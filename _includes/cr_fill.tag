@@ -2,12 +2,11 @@
 
 <br><br><br><br>
     <center><img src="/images/black.gif" height=1 width=300><br>
-    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2011 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
     <BR>
     <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
     <Br>
-    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
-                   <A href="/answers.html">answer page</A>.</Font>
+    Would you believe this site is served from Github?  Is that weird or what?
 <br><br>
 <script type="text/javascript"><!--
 google_ad_client = "pub-7508846022405297";
