@@ -1,0 +1,3 @@
+perl ../lpml.pl taskmgr.xml
+zip wftk_taskmgr.zip taskmgr.xml taskmgr.tcl schema.sql *.html
+cp taskmgr.tcl ../../../../tcl

@@ -1,0 +1,11 @@
+source: /home/michael/vivtek/mysql_vivtek.pl
+table: tasks
+where: domain=text_reg
+fields: id title priority status created resolved
+text: description
+new-fields: title priority status description
+edit-fields: title priority status created description
+touch: todo todo_archive
+status: status active closed
+created: created
+on-closed: resolved=now()

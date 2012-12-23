@@ -1,0 +1,5 @@
+panels 2
+panel 1
+mouse says This cartoon was programmed by a teen.
+panel 2
+mouse says Take that adult world!

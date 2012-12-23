@@ -1,0 +1,42 @@
+panels 8
+panel 1
+caption (bottom middle) EMPTY CARTOON
+
+panel 2
+caption (bottom middle) EMPTY CARTON
+
+panel 3
+font size=12 color=255,0,0
+mao appears
+mao says Fred, did you forget to buy milk again?
+mao leaves 
+font clear
+
+panel 4
+commiemobile appears
+caption (bottom middle) EMPTY CAR TON
+commiemobile leaves
+
+panel 5
+color=255,0,0
+font size=12
+marx appears
+marx says A ton of car? Toncar? You're welcome.
+marx leaves
+font clear
+
+panel 6
+caption (bottom middle) M. T. KARTEN
+
+panel 7
+font size=12
+color=124,252,0
+al says Didn't he write environmental fiction?
+al leaves
+font clear
+
+panel 8
+font size=12
+dot says Am I rendered yet? *&^% piece of junk
+caption (lower right, size=16, color=128,0,0) NEXT: LESS
+ 

@@ -1,0 +1,333 @@
+<litprog>
+<object name="layout.pl" language="perl" item="layout_module"/>
+
+
+<format name="index">
+<html><head><title>Toon-o-matic layout module</title></head>
+<body>
+<h2>Toon-o-matic layout module</h2>
+<hr/>
+The layout module is complicated.  Duh.
+[##itemlist##]
+<hr/>
+
+[##body##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation prepared using <a href=http://www.vivtek.com/lpml.html>LPML</a>.
+Try literate programming.  You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<format name="default">
+<html><head><title>Toon-o-Matic layout module: [##label##]</title></head>
+<body>
+<h2>[##label##]</h2>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="layout_module.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="layout_module.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+
+
+<item name="layout_module" label="The layout module" format="index">
+At this point (in this version) the panels have already been drawn into <code>panels.gif</code>
+and the decorated toon spec with its panel sizes and lots of other info has been written to
+<code>panels.xml</code>.  What the layout module does, for each panel in sequence, is to
+determine which characters are there, what dialog they have, what sound effects are floating
+around, and where captions should go.  It needs to eventually massage all those things around
+in each panel until it's "happy".  Eventually.  For now, we're going to be ecstatic to be
+able to draw anything at all.  That's why this is not release-grade software.
+<p>
+So let's load up two little modules.  The first is my XMLAPI module; the second is a
+subroutine that knows how to convert a string into a graphic image by building a Postscript
+program and calling Ghostscript on it.  I'll link to that when it's documented.  Maybe.
+If you're nice to me.
+
+<piece>
+require "_xmlapi";
+require "_maketext";
+</piece>
+
+The first thing we do is load our cartoon again.  It's all decorated with panel sizes,
+remember.
+<piece>
+open O, "panels.xml" or die "What are you tryin ta pull, man?  Can't find panels.xml";
+$cartoon = xml_read (O);
+close O;
+</piece>
+
+The cartoon XML notes the background image we'll be using, so let's make sure it exists.
+The idea is cantankerosity here, so we'll write error messages to match.
+<piece>
+die "Can't find panels.gif, you idiot!" if (!-e 'panels.gif');
+</piece>
+
+OK.  Here we go.  What we do is recurse down through the panel structure (so we're following
+our panels in a time-like fashion), collecting drawing objects as we go.  Characters and
+sound effects will be completely specified as drawing primitives; text will be generated
+into graphic files using <code>_maketext</code>, and each and every object in the lot will
+be fully specified during this phase.
+
+<piece>
+@characters = ();
+$panelnumber = 0;
+scan_layout ($cartoon);
+
+sub scan_layout {
+   my $panel = shift;
+   <insert name="layout_module_scan_layout"/>
+}
+<insert name="layout_module_scan_layout.helpers"/>
+</piece>
+
+Now we've fully specified our characters, so we convert their full specifications in
+each panel into a set of drawing commands.  Line widths and so forth will vary, so we'll
+have to break our drawing up into a whole set of drawing scripts.  Each one will be passed
+to the <code>mogrify</code> program for placement.
+
+<piece>
+%commandfiles = ();
+build_drawing ($cartoon);
+
+sub build_drawing {
+   my $panel = shift;
+   <insert name="layout_module_build_drawing"/>
+}
+</piece>
+
+And now we call the ImageMagick <code>mogrify</code> program to draw our characters,
+place our text, and generally make a cartoon.
+<piece>
+@files = keys (%commandfiles);
+# Sort them here.  Later.
+foreach (@files) {
+   open O, ">$_.txt";
+   print O $commandfiles{$_};
+   close O;
+}
+
+print "Moving panels to cartoon.\n";
+system "copy panels.gif cartoon.gif";
+
+foreach (@files) {
+   print "Applying $_\n";
+   system "mogrify -stroke black -draw \@$_.txt cartoon.gif";
+}
+</piece>
+
+So now, just for documentation and debugging, we write our final XML out to stdout.  There
+will (later) be a follow-on step which will generate map HTML so we can include links in
+our cartoons, but that'll come later.
+<piece>
+open O, ">layout.xml";
+xml_write (O, $cartoon);
+print O "\n";
+close O;
+</piece>
+
+Let's do a quick definition of how we do image geometry, and then it's on to the initial
+layout scan.
+<piece>
+sub image_geometry {
+   my $image = shift;
+   print "Getting geometry of $image\n";
+   system "identify -verbose $image > outfile.txt"; # This is the baroque way of doing this.
+   open O, "outfile.txt";
+   my @s;
+   while (<O>) {
+      if (/Geometry:/) {
+         chomp;
+         @s = split /[:+]/;
+         my $size = $s[1];
+         $size =~ s/ //g;
+         @s = split /x/, $size;
+      }
+   }
+   close O;
+   return @s;
+}
+</piece>
+</item>
+
+
+<item name="layout_module_scan_layout" label="Scanning a panel for layout items">
+This is the body of the <code>scan_layout</code> function.  It's called on a panel, and
+it needs to find layout items in that panel.  If the panel has subpanels, our simplifying
+assumption is that it may contain nothing else.  Ultimately we'll revisit this point, but
+right now we have a rather rigid order of processing, with panels not moving in response
+to other pressures on them.
+<p>
+And in fact this whole layout piece is a lot more rigid than I'd like it to be, ultimately.
+If I wanted to spend years on this, I'd be building it on an architecture much like 
+Douglas Hofstadter's group uses to do analogy and high-level perception.  And in fact, I
+will probably end up doing that a couple of years down the road.  In the meantime, I'm going
+to lay out characters and props, then dialog, then background and sound effects, then captions.
+In reality, a human cartoonist entertains a range of layout pressures from all these elements,
+and arrives at a final layout after a great deal of work, sometimes -- that solution may
+even involve rewriting the script, moving events or dialogs out of too-busy panels into others.
+But the Toon-o-Matic, in this protoprototype phase, doesn't have that option.  It'll have to
+make do with what it's got.  If the final output is ugly, then the metacartoonist (that would
+be me) will have to rewrite the script, or do whatever else is required to improve the situation.
+<piece>
+my @panels = ();
+foreach (xml_elements ($panel)) {
+   push @panels, $_ if $$_{name} eq 'panel';
+}
+if (@panels) {
+   foreach (@panels) {
+      scan_layout ($_);
+   }
+} else {
+   # Let's do some layout, man!  First scan: read things in.
+   @dialog = ();
+   @captions = ();
+   $panelnumber ++;
+   foreach (xml_elements ($panel)) {
+      if ($$_{name} eq 'character') {
+         read_character ($_);
+      } elsif ($$_{name} eq 'caption') {
+         read_caption ($_);
+      } elsif ($$_{name} eq 'dialog') {
+         read_dialog ($_);
+      } elsif ($$_{name} eq 'prop') {
+      } elsif ($$_{name} eq 'background') {
+      } elsif ($$_{name} eq 'sound') {
+      }
+      # Those last three are just so I don't forget what I had in mind, of course.
+   }
+
+   # Now we know what's actually on the panel.
+   # Draw captions.  Captions just overlay whatever else is there, pretty much.
+   foreach (@captions) { # Simplifying assumptions: location="bottomleft", linestyle="simple".
+      $height = xml_attrval ($_, 'height') / 1.5;
+      $height = sprintf ('%.0f', $height);
+      $width = xml_attrval ($_, 'width') / 1.5;
+      $width = sprintf ('%.0f', $width);
+      xml_set ($_, 'draw-h', $height);
+      xml_set ($_, 'draw-w', $width);
+      xml_set ($_, 'rel-h', '0');
+      xml_set ($_, 'rel-y', xml_attrval ($panel, 'panel-h') - $height);
+
+      xml_set ($_, 'linestyle', 'simple') if xml_attrval ($_, 'linestyle') eq '';  # This will eventually come from style.
+   }
+
+   # Let's place characters.  The list is a list of names which indexes into the roster of characters.
+   foreach (@characters) { # This'll probably include props later.
+      
+   }
+
+   # For dialogs and captions, the read_* functions have created image files and decorated the elements with filenames
+   # and sizes.  All we need to do is to determine position.  Dialog and caption lists are lists of the elements themselves,
+   # with any changes of course being reflected in the actual XML.
+   foreach (@dialog) {
+   }
+
+}
+</piece>
+</item>
+
+
+<item name="layout_module_scan_layout.helpers" label="Miscellaneous functions for doing layout">
+Our helper functions for layout fall into one category at present: <code>read_*</code> reads an element and does
+preliminary layout.  I'll split out the actual layout into additional functions if and when it gets complicated enough
+to be impossible to work with.
+<p/>
+<code>read_caption</code> is the one we're concerned with right now.
+<piece>
+sub read_caption {
+   my $xml = shift;
+
+   @children = xml_children ($xml);
+   $text = ${$children[0]}{content};
+   $file = "caption$panelnumber";
+   print "Writing caption $file: $text\n";
+   maketext ($file, $text);  # Woo-hoo.
+   $file .= ".gif";
+   xml_set ($xml, 'file', $file);
+   ($x, $y) = image_geometry ($file);
+   xml_set ($xml, 'height', $y);
+   xml_set ($xml, 'width', $x);
+
+   push @captions, $xml;
+}
+</piece>
+
+Let's insert some dummy definitions for <code>read_character</code> and <code>read_dialog</code>.  Later we'll fill them in.
+<piece>
+sub read_character {
+   my $xml = shift;
+
+}
+sub read_dialog {
+   my $xml = shift;
+
+}
+</piece>   
+</item>
+
+
+<item name="layout_module_build_drawing" label="Building the drawing commands">
+And here we scan the panel again, adding drawing commands to various and sundry drawing
+files.  The order in which those files are executed will be (somewhat) fixed, but in
+general, all objects requiring the same line strength and stroke and fill colors will
+be tossed into the same script.
+<piece>
+foreach (xml_elements ($panel)) {
+   if ($$_{name} eq 'panel') {
+      build_drawing ($_);
+   } elsif ($$_{name} eq 'caption') {
+      # Place the text image and draw the box if the linestyle isn't 'none'.
+      $x = xml_attrval ($panel, 'panel-x') + xml_attrval ($_, 'rel-x');
+      $y = xml_attrval ($panel, 'panel-y') + xml_attrval ($_, 'rel-y');
+      $commandfiles{'captions'} .= "image $x,$y";
+      if (xml_attrval ($_, 'linestyle') ne 'none') {
+         $commandfiles{'black_none_1'} .= "rectangle $x,$y";
+      }
+      $w = xml_attrval ($_, 'draw-w');
+      $h = xml_attrval ($_, 'draw-h');
+      $commandfiles{'captions'} .= " $w,$h "; # IM ignores draw-w, by the way, just using height.  Images retain aspect.
+      if (xml_attrval ($_, 'linestyle') ne 'none') {
+         $x += $w;
+         $y += $h;
+         $commandfiles{'black_none_1'} .= " $x,$y\n";
+      }
+      $commandfiles{'captions'} .= xml_attrval ($_, 'file');
+      $commandfiles{'captions'} .= "\n";
+   }
+}
+</piece>
+A funny little outtake here.  I had forgotten that the second pair of numbers in the 'image' drawing command isn't the
+coordinate of the other corner (like the 'rectangle' command) but ostensibly the size of the image to be overlaid.  My
+first caption was at the left-hand side of the first panel, so I didn't notice the error until I added captions to other
+panels:
+<center><img src="outtake20001028.gif"/></center>
+Nothing like a program that does graphical output to produce some very interesting-<i>looking</i> bugs.  Heh.
+</item>
+
+</litprog>

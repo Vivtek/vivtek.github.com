@@ -1,0 +1,13 @@
+SUBJECT>Using expat in DLL
+POSTER>Josip Rakonca
+EMAIL>josip.rakonca@st.hinet.hr
+DATE>966494208
+EMAILNOTICES>no
+IP_ADDRESS>ceng11.tel.hr
+PREVIOUS>
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>This post is a bit off topic. I have this test application (Win exe) where expat works OK. But, when I try to use it in a DLL, LoadLibrary returns NULL pointer. When I comment all the lines where expat functions are called, LoadLibrary works fine.
+<P>Help!

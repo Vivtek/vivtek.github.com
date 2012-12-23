@@ -1,0 +1,7 @@
+../lpml.pl xmlapi.xml
+/usr/local/bin/indent -kr -sob -i3 -lp -ts100 xmlapi.c
+gcc -o xmlapi.o -c -I/nd/local/src/expat/xmlparse xmlapi.c
+../lpml.pl xmlcgi.xml
+/usr/local/bin/indent -kr -sob -i3 -lp -ts100 xmlcgi.c
+gcc -o xmlcgi.o -c -I/nd/local/src/expat/xmlparse xmlcgi.c
+zip xmlapi xmlapi.xml xmlapi.h xmlapi.c xmlcgi.xml xmlcgi.h xmlcgi.c *.html 

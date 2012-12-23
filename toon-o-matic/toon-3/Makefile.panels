@@ -1,0 +1,55 @@
+lenin =?
+# Panel Makefile generated Wed Jun 18 16:26:28 PDT 2008 by Toon-o-Matic t2
+# Contains no serviceable parts.  Batteries not included.
+# Void in NH, VT, and U.S. Minor Outlying Islands.
+
+all:  panel-1.svg panel-3.svg
+
+panel-1.svg: character-lenin-default-1-1.svg dialog-1-1.svg
+	perl build_panel_g.pl panel-1.xml 1 1 > panel-1-g.svg
+	perl merge_svg.pl "panel 1" panel-1-g.svg character-lenin-default-1-1.svg dialog-1-1.svg > panel-1.svg
+
+placement-panel-1.xml: draw-character-lenin-default-1.xml
+	perl place_characters.pl "panel 1" 698 150 draw-character-lenin-default-1.xml > placement-panel-1.xml
+
+panel-3.svg: character-dot-default-3-3.svg caption-3-1.svg caption-3-2.svg
+	perl build_panel_g.pl panel-3.xml 1 314 > panel-3-g.svg
+	perl merge_svg.pl "panel 3" panel-3-g.svg character-dot-default-3-3.svg caption-3-1.svg caption-3-2.svg > panel-3.svg
+
+placement-panel-3.xml: draw-character-dot-default-3.xml
+	perl place_characters.pl "panel 3" 698 150 draw-character-dot-default-3.xml > placement-panel-3.xml
+
+dialog-1-1.info: dialog-1-1.xml  character-lenin-default-1-1.svg
+	perl render_text.pl dialog-1-1.xml dialog-1-1.png
+	identify -format '<graphic size="%b" height="%h" width="%w" geometry="%g" file="%f"/>' dialog-1-1.png > dialog-1-1.info
+
+dialog-1-1.svg: dialog-1-1.info
+	perl draw_caption.pl dialog-1-1.xml dialog-1-1.info 698 150 0 dialog-1-1.png > dialog-1-1.svg
+
+draw-character-lenin-default-1.xml: character-lenin-default-1.xml
+	perl build_character.pl this 698 150 character-lenin-default-1.xml > draw-character-lenin-default-1.xml
+
+character-lenin-default-1-1.svg: draw-character-lenin-default-1.xml placement-panel-1.xml
+	perl draw.pl draw-character-lenin-default-1.xml 698 150 placement-panel-1.xml > character-lenin-default-1-1.svg
+
+caption-3-2.info: caption-3-2.xml
+	perl render_text.pl caption-3-2.xml caption-3-2.png
+	identify -format '<graphic size="%b" height="%h" width="%w" geometry="%g" file="%f"/>' caption-3-2.png > caption-3-2.info
+
+caption-3-2.svg: caption-3-2.info
+	perl draw_caption.pl caption-3-2.xml caption-3-2.info 698 150 0 caption-3-2.png > caption-3-2.svg
+
+draw-character-dot-default-3.xml: character-dot-default-3.xml
+	perl build_character.pl this 698 150 character-dot-default-3.xml > draw-character-dot-default-3.xml
+
+character-dot-default-3-3.svg: draw-character-dot-default-3.xml placement-panel-3.xml
+	perl draw.pl draw-character-dot-default-3.xml 698 150 placement-panel-3.xml > character-dot-default-3-3.svg
+
+caption-3-1.info: caption-3-1.xml
+	perl render_text.pl caption-3-1.xml caption-3-1.png
+	identify -format '<graphic size="%b" height="%h" width="%w" geometry="%g" file="%f"/>' caption-3-1.png > caption-3-1.info
+
+caption-3-1.svg: caption-3-1.info
+	perl draw_caption.pl caption-3-1.xml caption-3-1.info 698 150 0 caption-3-1.png > caption-3-1.svg
+
+

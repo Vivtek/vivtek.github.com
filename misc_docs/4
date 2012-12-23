@@ -1,0 +1,145 @@
+use File::Spec;
+
+sub findfile {
+   my $file = shift;
+   my $count = scalar (split /\//, `pwd`);
+   while (!-e $file and $count) {
+      $file = "../" . $file;
+      $count--;
+   }
+   return $file;
+}
+
+$def = $defn = shift @ARGV;
+$cmd = shift @ARGV;
+
+($vol, $dir, $fn) = File::Spec->splitpath ($defn);
+if ($fn !~ /\./) { $defn .= ".data"; }
+$deffile = findfile($defn);
+open DEFN, findfile($deffile) or die "-Can't find definition file $defn\n";
+while (<DEFN>) {
+   chomp;
+   last unless $_;
+   ($tag, $val) = split (/: */, $_, 2);
+   $parms{$tag} = $val;
+}
+@touch = split / +/, $parms{touch};
+
+# File still open if source is "here".
+
+if ($cmd eq 'wikiform') {
+   # Generic wiki format for data source.
+   @fields = split / +/, $parms{fields};
+   @text = split / +/, $parms{text};
+   $id = $fields[0];
+   if (grep {$_ eq 'title'} @fields) {
+      print "!title: [##title##]\n";
+   } else {
+      print "!title: Record #[##$id##]\n";
+   }
+   print "!data: $def $id=[##$id##]\n";
+   print "<table>\n";
+   foreach $field (@fields) {
+      print "<tr><td><b>$field:</b></td><td>[##$field##]</td></tr>\n";
+   }
+   print "</table>\n";
+   foreach $field (@text) {
+      print "\n[##$field##]\n";
+   }
+   exit;
+} elsif ($cmd eq 'new' || $cmd eq 'edit') {
+   # Generic data entry form, with or without data.
+   $data = {};
+   if ($cmd eq 'edit') {
+      open DATA, "perl $parms{source} $deffile get " . join(' ', @ARGV) . "|";
+      $glom = 0;
+      while (<DATA>) {
+         #print "data> $_";
+         chomp;
+         if (!$glom) {
+            ($field, $val) = split (/: */, $_, 2);
+            if ($val =~ /<<(.*)/) {
+               $eof = $1;
+               $glom = 1;
+               $$data{$field} = '';
+               next;
+            }
+            $$data{$field} = $val;
+         } else {
+            if ($_ eq $eof) {
+               $glom = 0;
+            } else {
+               $$data{$field} .= "$_\n";
+            }
+         }
+      }
+      close DATA;
+   }
+   @fields = split / +/, $parms{fields};
+   @text = split / +/, $parms{text};
+   if ($cmd eq 'new') {
+      @add = split / +/, $parms{"new-fields"};
+   } else {
+      @add = split / +/, $parms{"edit-fields"};
+   }
+   @status = split / +/, $parms{status};
+   if (!@add) {
+      @add = @fields;
+      push @add, @text;
+   }
+
+   $status = $$data{$status[0]};
+   $status = $status[1] unless $status;
+
+   print "<table>\n";
+   if ($cmd eq 'edit') {
+      print "<input type=hidden name=\"$fields[0]\" value=\"$$data{$fields[0]}\">\n";
+   }
+   foreach $field (@add) {
+      if ($field eq $status[0]) {
+         print "<tr><td><b>$field:</b></td><td><select name=\"$field\" selected=\"$status\">";
+         foreach $s (@status[1,-1]) {
+            print "<option value=\"$s\">$s";
+         }
+         print "</select>\n";
+      } elsif (grep {$_ eq $field} @fields) {
+         print "<tr><td><b>$field:</b></td><td><input name=\"$field\" size=\"50\"";
+         if ($$data{$field}) {
+            print " value=\"$$data{$field}\""; # TODO: quote
+         }
+         print "></td></tr>\n";
+      } else {
+         print "<tr><td><b>$field:</b></td><td><textarea name=\"$field\" rows=\"15\" cols=\"75\">";
+         if ($$data{$field}) {
+            print $$data{$field}; # TODO: quote
+         }
+         print "</textarea></td></tr>\n";
+      }
+   }
+   if ($cmd eq 'new') {
+      print "<tr><td colspan=2><center><input value=\"Add record\" type=\"submit\"></center></td></tr>\n";
+   } else {
+      print "<tr><td colspan=2><center>";
+      print "<input type=\"submit\" name=\"data_action\" value=\"Modify\">";
+      foreach $s (@status [1, -1]) {
+         print "&nbsp;<input type=\"submit\" name=\"data_action\" value=\"$status[0] -> $s\">" unless $status eq $s;
+      }
+      print "&nbsp;<input type=\"submit\" name=\"data_action\" value=\"Delete\">";
+      print "</td></tr>\n";
+   }
+   print "</table>\n";
+   exit;
+}
+
+if ($parms{source} =~ /\.pl$/) {
+   # Perl-defined data source: pass it all along and the source must figure it out.
+   close DEFN;
+   system "perl $parms{source} $deffile $cmd " . join (' ', @ARGV);
+   if ($cmd eq 'add' || $cmd eq 'mod' || $cmd eq 'store' || $cmd eq 'checkin') {
+      foreach $t (@touch) {
+         system "touch $t.wiki" unless $t =~ /\[/;
+      }
+   }
+} else {
+   # Whatever
+}

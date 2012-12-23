@@ -1,0 +1,16 @@
+SUBJECT>very fine-grained workflow?
+POSTER>toby cabot
+EMAIL>toby@caboteria.org
+DATE>970459534
+EMAILNOTICES>no
+IP_ADDRESS>h00a0244c7066.ne.mediaone.net
+PREVIOUS>
+NEXT> 36
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Very cool. You've clearly put a lot of thought into this!
+<P>Lately I've been thinking about &quot;workflow&quot; in the context of tasks that applications need to chain together to accomplish some goal. For example, I want to sign up for internet service, including web hosting with my own domain name. I start at some web form, and then under the hood various things need to happen: check for domain availability, set up web server, add records to LDAP, provision billing system, etc.
+<P>It seems to me that at a high level it's a pretty similar problem to the one you've solved here; it just takes place much more quickly. eg, your &quot;buying a chair&quot; example happens at human time, maybe hours or days, whereas &quot;customer just signed up for service&quot; might involve a half-dozen steps that take place in less than a few seconds if everything goes OK. The major implication of this is performance: probably hundreds of work &quot;steps&quot; per second as opposed to tens.
+<P>Performance is usually pretty straightforward to solve, but there may be more subtle architectural issues that prevent wftk from working in this context, so I'll ask. Do you think that wftk would be useful for this sort of computer-driven workflow, or is it better suited for more traditional business workflow?
+<P>Regards, Toby Cabot

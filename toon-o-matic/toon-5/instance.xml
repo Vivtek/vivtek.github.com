@@ -1,0 +1,21 @@
+<cartoon width="700" rowformat="1" character-base-url="http://www.vivtek.com/toonbots/characters/" panel-h="150">
+<panel>
+<character action="leaves" name="fidel"/>
+<dialog who="fidel" font-color="0,0,255" font-size="10">Mon dieu! Como esta tallez vous con carne?</dialog>
+</panel>
+<panel>
+<character name="will"/>
+<dialog who="will" font-size="9">Forsooth, inactivity doth affect<br/>the marrow of the bone, the appetite of the stomach...</dialog>
+</panel>
+<panel>
+<character name="will"/>
+<dialog who="will" font-size="11">And the residuals from all those PBS shows,<br/>may they go to blazes! </dialog>
+</panel>
+<panel>
+<character name="mouse"/>
+<dialog who="mouse">wow. it's a world of code again. </dialog>
+</panel>
+<panel>
+<caption location="bottom" font-color="255,0,0" font="Bitstream Charter:style=Bold Italic">NEXT: IF YOU LIKE BIRDS AND ANIMALS, WE'VE GOT MUSIC TOO!</caption>
+</panel>
+</cartoon>

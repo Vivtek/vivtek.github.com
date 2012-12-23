@@ -1,0 +1,22 @@
+SUBJECT>Re: Please talk to me!
+POSTER>reet
+EMAIL>dolphininn@btopenworld.com
+DATE>1064967821
+EMAILNOTICES>no
+IP_ADDRESS>host213-122-55-154.in-addr.btopenworld.com
+PREVIOUS>8
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; I am trying to get Expat API understand importing for XML files using the
+<BR>> ]&gt;
+<P>&gt; &amp;test.cfg;
+<P>&gt; In the above example all the xml tags from file www.abc.com/test.xml
+<BR>> should become part of one XML document and we must be able to read the
+<BR>> imported tags. The contents of included file look like:
+<P>&gt; 12345 Sun
+<P>&gt; This works just fine in my Java XML parser but I am havig trouble to get
+<BR>> it to work with expat C/C++ XML parser on Sun Solaris. If you can provide
+<BR>> some insight into it It will be greate help.
+<P>&gt; Thanks in advance. -Sundeep.

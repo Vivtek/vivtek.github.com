@@ -1,0 +1,15 @@
+SUBJECT>HOWTO for beginners?
+POSTER>Ty LT
+EMAIL>
+DATE>1017981597
+EMAILNOTICES>no
+IP_ADDRESS>thunderbird.webmedia.com.au
+PREVIOUS>
+NEXT> 168
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Hi,
+<P>I would love to see a short example on just how to do a simple workflow. Something like: (See post &quot;Purchase Request: Just do it ??&quot;)
+<P>wftk create 5 wftk define . 5 . chair wftk set . 5 &quot;Reason for request&quot; &quot;I want one&quot; wftk set . 5 &quot;Product requested&quot; &quot;Leather Chair&quot; wftk set . 5 &quot;Requester's email&quot; &quot;email@www.example.com&quot; wftk complete . 5 wftk tasks . 5 wftk set . 5 &quot;Approval code&quot; Yes wftk complete . 5 10
+<P>That would really help people get started (more so than the source comments!)

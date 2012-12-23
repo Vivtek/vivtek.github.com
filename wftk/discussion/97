@@ -1,0 +1,17 @@
+SUBJECT>wftk -- was it is, what it isn't
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>987828592
+EMAILNOTICES>no
+IP_ADDRESS>as1-067.blm.bluemarble.net
+PREVIOUS>96
+NEXT> 136
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>What it is, is the workflow functionality. What it isn't, yet, is any kind of GUI. It's also in C, not Java, although it's fairly small, actually, so that porting shouldn't be terribly difficult.
+<P>I've had quite a lot of interest for an EJB version, actually, and I'm really extremely interested in doing it or at least helping significantly if you're really focussed on doing it yourself -- but I just don't know much Java. I've dabbled in it, but frankly, I'm not sure where to start with beans.
+<P>You can get a lot of insight into what wftk can do by looking around the documentation for the prototype, which is at http://www.vivtek.com/wftk/prototype.html
+<P>I'd appreciate any kind of feedback into what would be required for an EJB version.
+<P>Aha -- I see as well that you're interested in a graphical procdef editor in Java. Me, too. Take a look around the prototype documentation. I just haven't had the time to get serious about updating the documentation to cover the release version.
+<P>Thanks for the interest! Michael

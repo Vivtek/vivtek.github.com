@@ -1,0 +1,29 @@
+<cartoon rowformat="1" width="700" panel-h="150" character-base-url="http://www.vivtek.com/toonbots/characters/">
+<panel>
+<character name="Proxybot"/>
+<character name="mao"/>
+<dialog who="mao" font-size="10" font-color="0,0,255">Hey, Fred</dialog>
+</panel>
+<panel>
+<character name="Proxybot"/>
+<dialog who="Proxybot" font-size="10">cymbalta lawsuits solicitation</dialog>
+<character name="mao"/>
+<dialog who="mao" font-size="10">?</dialog>
+</panel>
+<panel>
+<character name="Proxybot"/>
+<dialog who="Proxybot" font-size="09">Dear Dane,<br/>How about buying yourself a two<br/>Omega watches the same day?<br/>It's not impossible</dialog>
+<character name="mao" action="leaves"/>
+<dialog who="mao" font-size="10" font-color="0,0,255">Exit, stage left.</dialog>
+</panel>
+<panel>
+<character name="will" action="leaves"/>
+<dialog who="will" font-size="10">Gad and zounds!<br/>Thou maligns me as a melancholy Dane?<br/>I am not Marmaduke, forsooth!  </dialog>
+<character action="leaves" name="Proxybot"/>
+</panel>
+<panel>
+<character name="mouse"/>
+<dialog who="mouse" font-size="9">michael, I think the bot needs to be despammed again.</dialog>
+<caption font-size="12" font-color="255,0,0" location="lower right">NEXT: MORE SPAM!</caption>
+</panel>
+</cartoon>

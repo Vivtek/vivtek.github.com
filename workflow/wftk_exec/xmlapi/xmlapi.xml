@@ -1,0 +1,820 @@
+<litprog>
+<object name="xmlapi.h" language="c" item="h"/>
+<object name="xmlapi.c" language="c" item="main"/>
+
+
+<format name="index">
+<html><head><title>XML manipulation library "xmlapi"</title></head>
+<body>
+<h2>xmlapi: XML manipulation library</h2>
+<center>
+[ <a href="xmlapi.zip">download</a> ] [ <a href="xmlapi.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/xml/discuss.pl">discussion</a> ]
+</center>
+<hr/>
+This is another spinoff of the <a href="http://www.vivtek.com/wftk.html">open-source
+workflow toolkit</a>.  <a href="http://www.vivtek.com/expat.html">expat</a> is great for
+parsing XML files -- but what do you do with them once parsed?  For the wftk and for other
+projects, I needed a flexible set of functions which could load an XML data structure into
+memory and then <i>do things to it</i>.  This library is the result.
+<p/>
+(08/11/00) One of the things I did to it was to write the <a href="xmlcgi.html">XMLCGI</a>
+interface to CGI.  It takes all the salient information about the current CGI environment and
+sticks it into an XMLAPI structure.  Makes it easy to do CGI in C.  At least for me.
+<p/>
+[##itemlist##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<format name="default">
+<html><head><title>xmlapi: [##label##]</title></head>
+<body>
+<h2>[##label##]</h2>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="index.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="index.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<item name="index" label="index" format="index">
+</item>
+
+<item name="h" label="Definitions">
+I define three basic datastructures for dealing with XML: the element, the attribute, and the
+element list.  Each of these has a <code>struct</code> definition (<code>_element</code>,
+<code>_attr</code>, and <code>_list</code> respectively) and a pointer typedef (<code>XML</code>,
+<code>ATTR</code>, and <code>ELEMENTLIST</code>).  My apologies that the names don't match up,
+but it makes sense to me: the <code>struct</code> names reflect a lower-level appreciation
+for what the objects are, while the typedefs relect a higher-level view of what they're to be
+used for.  Yeah.  Anyway, that's my left-brain rationalization for an essentially right-brained
+nomenclature.
+<piece>
+typedef struct _element XML;
+typedef struct _attr ATTR;
+typedef struct _list ELEMENTLIST;
+
+struct _element {
+   char * name;
+   ATTR * attrs;
+   XML * parent;
+   ELEMENTLIST * children;
+};
+
+struct _attr {
+   char * name;
+   char * value;
+   ATTR * next;
+};
+
+struct _list {
+   XML * element;
+   ELEMENTLIST * next;
+   ELEMENTLIST * prev;
+};
+</piece>
+
+Those datastructures suffice to represent an XML file in memory, semi-efficiently (although
+hash lookup for element and attribute names will be a nice feature at some later date) and
+completely.  To work with those, I'm building up quite a little menagerie of functions, which
+are as follows:
+
+<piece>
+void xml_write (FILE * file, XML * xml);
+void xml_writecontent (FILE * file, XML * xml);
+void xml_prepend (XML * parent, XML * child);
+void xml_append (XML * parent, XML * child);
+XML * xml_loc (XML * start, const char * loc);
+void xml_getloc (XML * xml, char *loc, int len);
+void xml_set (XML * xml, const char * name, const char * value);
+void xml_setnum (XML * xml, const char *attr, int number);
+const char * xml_attrval (XML * element,const char * name);
+int xml_attrvalnum (XML * element,const char * name);
+XML * xml_create (const char * name);
+XML * xml_createtext (const char * value);
+XML * xml_createtextlen (const char * value, int len);
+void xml_free (XML * xml);
+void xml_delete(XML * piece);
+XML * xml_first (XML * xml);
+XML * xml_firstelem (XML * xml);
+XML * xml_last (XML * xml);
+XML * xml_lastelem (XML * xml);
+XML * xml_next (XML * xml);
+XML * xml_nextelem (XML * xml);
+XML * xml_prev (XML * xml);
+XML * xml_prevelem (XML * xml);
+XML * xml_read (FILE * file);
+</piece>
+</item>
+
+<item name="main" label="Functions except for xml_read">
+<p/>
+So here's my budding XML manipulation API:
+
+<piece>
+#include <stdio.h>
+#include <malloc.h>
+#include <string.h>
+#include "xmlparse.h"
+#include "xmlapi.h"
+
+<insert name="xml_create"/>
+<insert name="xml_set"/>
+<insert name="xml_prepend"/>
+<insert name="xml_append"/>
+<insert name="xml_insert"/>
+<insert name="xml_createtext"/>
+<insert name="xml_write"/>
+<insert name="xml_free"/>
+<insert name="xml_delete"/>
+<insert name="xml_first"/>
+<insert name="xml_next"/>
+<insert name="xml_loc"/>
+<insert name="xml_read"/>
+</piece>
+</item>
+
+<item name="xml_write" label="xml_write: Writing XML data to disk">
+Writing the contents of one of our XML structures out into a file is simple.  We've got two
+different variants on this function; one writes the entire element (<code>xml_write</code>)
+and the other writes just the content of the element (<code>xml_writecontent</code>).
+<piece>
+void xml_write (FILE * file, XML * xml)
+{
+   ATTR * attr;
+   ELEMENTLIST * list;
+</piece>
+
+First, if the element we're working on is plain text, we just write it out.
+<piece>
+   if (xml->name == NULL) {
+      fprintf (file, "%s", xml->attrs->value);
+      return;
+   }
+</piece>
+
+It's a regular element, so we open the element and write the name.
+<piece>
+   fprintf (file, "[[%s", xml->name);
+   attr = xml->attrs;
+   while (attr != NULL) {
+      fprintf (file, " %s=\"%s\"", attr->name, attr->value);
+      attr = attr->next;
+   }
+</piece>
+
+If the element has no children (this includes text), then we close the tag as an empty tag,
+and we're finished.
+<piece>
+   if (xml->children == NULL) {
+      fprintf (file, "/>");
+      return;
+   } else  fprintf (file, ">");
+</piece>
+
+Otherwise we track down the list of children and write each of them, recursively.
+<piece>
+   xml_writecontent (file, xml);
+</piece>
+
+And finally, if there were children, then we need to close the tag with the full close.
+<piece>
+   fprintf (file, "[[/%s>", xml->name);
+}
+</piece>
+
+The weakness of this function currently is that in the absence of plain text there will never
+be a line break.  Not good -- but I don't see a good algorithm for doing it better while
+ruling out the possibility of inserting line breaks where they'll be errors.
+<p/>
+Let's go ahead and define our xml_writecontent.
+<piece>
+void xml_writecontent (FILE * file, XML * xml)
+{
+   ELEMENTLIST * list;
+
+   list = xml->children;
+   while (list) {
+      xml_write (file, list->element);
+      list = list->next;
+   }
+}
+</piece>
+</item>
+
+<item name="xml_prepend" label="xml_prepend: Inserting elements">
+Prepending to a linked list is, of course, very easy.
+<piece>
+void xml_prepend (XML * parent, XML * child)
+{
+   ELEMENTLIST * list;
+
+   child->parent = parent;
+
+   list = (ELEMENTLIST *) malloc (sizeof(struct _list));
+   list->element = child;
+   list->prev = NULL;
+   list->next = parent->children;
+   parent->children = list;
+}
+</piece>
+</item>
+
+<item name="xml_append" label="xml_append: Inserting elements">
+It's <i>ap</i>pending where we run into problems.
+<piece>
+void xml_append (XML * parent, XML * child)
+{
+   ELEMENTLIST * list;
+   ELEMENTLIST * ch;
+
+   child->parent = parent;
+
+   list = (ELEMENTLIST *) malloc (sizeof(struct _list));
+   list->element = child;
+   list->prev = NULL;
+   list->next = NULL;
+
+   if (parent->children == NULL) {
+      parent->children = list;
+      return;
+   }
+
+   ch = parent->children;
+   while (ch->next != NULL) ch = ch->next;
+   list->prev = ch;
+   ch->next = list;
+}
+</piece>
+</item>
+
+<item name="xml_loc" label="Bookmarking things: xml_loc and xml_getloc">
+<piece>
+XML * xml_loc (XML * start, const char * loc)
+{
+   char * mark;
+   const char * attrval;
+   char piece[64];
+   int i;
+   int count;
+
+   if (!loc) return (start);
+   if (!*loc) return (start);
+
+   while (start #^7#^7 start->name == NULL) start = xml_next (start);
+   if (!start) return (NULL);
+
+   while (*loc == ' ') loc++;
+   i = 0;
+   while (*loc #^7#^7 *loc != '.') piece[i++] = *loc++;
+   piece[i] = '\0';
+   if (*loc) loc++;
+   while (*loc == ' ') loc++;
+
+   mark = strchr (piece, ']');
+   if (mark) *mark = '\0';
+   mark = strchr (piece, '(');
+   if (mark) {
+      *mark++ = '\0';
+      count = atoi (mark);
+      mark = NULL;
+   } else {
+      count = 0;
+      mark = strchr (piece, '[');
+      if (mark) {
+         *mark++ = '\0';
+      }
+   }
+
+   while (start) {
+      if (start->name == NULL) {
+         start = xml_next (start);
+         continue;
+      }
+      if (strcmp (start->name, piece)) {
+         start = xml_next (start);
+         continue;
+      }
+      if (count) {
+         count --;
+         start = xml_next (start);
+         continue;
+      }
+      if (!mark) {
+         if (*loc) return (xml_loc (xml_first (start), loc));
+         return (start);
+      }
+      attrval = xml_attrval(start, "id");
+      if (attrval) {
+         if (strcmp (attrval, mark)) {
+            start = xml_next (start);
+            continue;
+         }
+         if (*loc) return (xml_loc (xml_first(start), loc));
+         return (start);
+      }
+      attrval = xml_attrval(start, "name");
+      if (attrval) {
+         if (strcmp (attrval, mark)) {
+            start = xml_next (start);
+            continue;
+         }
+         if (*loc) return (xml_loc (xml_first(start), loc));
+         return (start);
+      }
+   }
+   return (NULL);
+}
+</piece>
+
+Building our locator is recursive.  We build our parent's locator, append a
+dot, and qualify it.
+<piece>
+void xml_getloc (XML * xml, char *loc, int len)
+{
+   int s;
+   int count;
+   XML * sib;
+   if (xml->parent != NULL) {
+      xml_getloc (xml->parent, loc, len);
+   } else {
+      *loc = '\0';
+   }
+   s = strlen (loc);
+   if (s > 0 #^7#^7 s #^lt# len-1) { strcat (loc, "."); s++; }
+   len -= s;
+   loc += s;
+   if (strlen(xml->name) #^lt# len) {
+      strcpy (loc, xml->name);
+   } else {
+      strncpy (loc, xml->name, len-1);
+      loc[len-1] = '\0';
+   }
+   if (xml->parent == NULL) return;
+   sib = xml_first(xml->parent);
+   count = 0;
+   while (sib != xml #^7#^7 sib != NULL) {
+      if (sib->name != NULL) {
+         if (!strcmp (sib->name, xml->name)) count ++;
+      }
+      sib = xml_next(sib);
+   }
+   if (count > 0 #^7#^7 s > 4) {
+      strcat (loc, "(");
+      sprintf (loc + strlen(loc), "%d", count);
+      strcat (loc, ")");
+   }
+}
+</piece>
+</item>
+
+<item name="xml_set" label="Working with attributes: xml_set and xml_attrval">
+Setting an attribute is a little complicated.  If the attribute is already represented in the
+element's attribute list, then we free the old value, allocate space for a copy of the new
+value, and copy it.  Otherwise we allocate a new attribute holder and copy both name and
+value into it.
+<piece>
+void xml_set (XML * xml, const char * name, const char * value)
+{
+   ATTR * attr;
+
+   attr = xml->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) break;
+      attr = attr->next;
+   }
+
+   if (attr) {
+      free ((void *) (attr->value));
+      attr->value = (char *) malloc (strlen (value) + 1);
+      strcpy (attr->value, value);
+      return;
+   }
+
+   if (xml->attrs == NULL) {
+      attr = (ATTR *) malloc (sizeof (struct _attr));
+      xml->attrs = attr;
+   } else {
+      attr = xml->attrs;
+      while (attr->next) attr = attr->next;
+      attr->next = (ATTR *) malloc (sizeof (struct _attr));
+      attr = attr->next;
+   }
+
+   attr->next = NULL;
+   attr->name = (char *) malloc (strlen (name) + 1);
+   strcpy (attr->name, name);
+   attr->value = (char *) malloc (strlen (value) + 1);
+   strcpy (attr->value, value);
+}
+void xml_setnum (XML * xml, const char *attr, int number)
+{
+   char buf[sizeof(number) * 3 + 1];
+   sprintf (buf, "%d", number);
+   xml_set (xml, attr, buf);
+}
+</piece>
+
+Retriving a value, on the other hand, is rather simple.
+<piece>
+const char * xml_attrval (XML * element,const char * name)
+{
+   ATTR * attr;
+
+   attr = element->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) return (attr->value);
+      attr = attr->next;
+   }
+   return ("");
+}
+int xml_attrvalnum (XML * element, const char * name)
+{
+   return (atoi (xml_attrval (element, name)));
+}
+</piece>
+</item>
+
+<item name="xml_create" label="xml_create: Creating an empty element">
+Creation of an element is nothing more than allocating the space, then allocating space for
+a copy of the name and copying it.
+<p/>
+For extra credit, determine how omitting the initialization of <code>ret->parent</code>
+would screw up <code>xml_read</code> later on.  But only sometimes.  That stupid omission
+cost me a rather horrible evening in July of 2000.
+<piece>
+XML * xml_create (const char * name)
+{
+   XML * ret;
+
+   ret = (XML *) malloc (sizeof (struct _element));
+   ret->name = (char *) malloc (strlen (name) + 1);
+   strcpy (ret->name, name);
+   ret->attrs = NULL;
+   ret->children = NULL;
+   ret->parent = NULL;
+
+   return (ret);
+}
+</piece>
+</item>
+
+<item name="xml_createtext" label="xml_createtext: a shortcut for plain text">
+I represent character data (plain old text) as an element with no name.  The first (nameless)
+attribute contains the text.  Instead of using xml_create to do this, then using xml_set
+to set the attribute, I'm defining a special create function for plain text chunks.
+<p/>
+And for easy compatibility with expat, there's a version which takes a pointer and length
+instead of assuming null termination.
+<piece>
+XML * xml_createtext (const char * value)
+{
+   XML * ret;
+
+   ret = (XML *) malloc (sizeof (struct _element));
+   ret->name = NULL;
+   ret->children = NULL;
+   ret->parent = NULL;
+   ret->attrs = (ATTR *) malloc (sizeof (struct _attr));
+   ret->attrs->name = NULL;
+   ret->attrs->next = NULL;
+   ret->attrs->value = (char *) malloc (strlen (value) + 1);
+   strcpy (ret->attrs->value, value);
+
+   return (ret);
+}
+XML * xml_createtextlen (const char * value, int len)
+{
+   XML * ret;
+
+   ret = (XML *) malloc (sizeof (struct _element));
+   ret->name = NULL;
+   ret->children = NULL;
+   ret->attrs = (ATTR *) malloc (sizeof (struct _attr));
+   ret->attrs->name = NULL;
+   ret->attrs->next = NULL;
+   ret->attrs->value = (char *) malloc (len + 1);
+   strncpy (ret->attrs->value, value, len);
+   ret->attrs->value[len] = '\0';
+
+   return (ret);
+}
+</piece>
+</item>
+
+<item name="xml_free" label="xml_free: Cleaning up afterwards">
+To free an XML element, we free its name, each of its attributes (and their names and
+values), each child (recursively) and the list element which held the child, and finally
+we can free the XML element itself.
+<piece>
+void xml_free (XML * xml)
+{
+   ATTR * attr;
+   ELEMENTLIST * list;
+
+   if (xml == NULL) return;
+
+   if (xml->name != NULL) free ((void *) (xml->name));
+   while (xml->attrs) {
+      attr = xml->attrs;
+      xml->attrs = xml->attrs->next;
+      if (attr->name != NULL) free ((void *) (attr->name));
+      if (attr->value != NULL) free ((void *) (attr->value));
+      xml->attrs = attr->next;
+      free ((void *) attr);
+   }
+
+   while (xml->children) {
+      list = xml->children;
+      xml->children = list->next;
+      if (list->element != NULL) xml_free (list->element);
+      free ((void *) list);
+   }
+   free ((void *) xml);
+}
+</piece>
+</item>
+
+<item name="xml_delete" label="Deleting pieces: xml_delete">
+Deleting a piece out of an XML structure is more than just freeing it; we have to
+close ranks before and after as well.
+<piece>
+void xml_delete(XML * piece)
+{
+   ELEMENTLIST * list;
+   if (!piece) return;
+   if (piece->parent != NULL) {
+      list = piece->parent->children;
+      while (list != NULL && list->element != piece) list = list->next;
+      if (list != NULL) {
+         if (list->next != NULL) list->next->prev = list->prev;
+         if (list->prev != NULL) list->prev->next = list->next;
+      }
+      if (list == piece->parent->children) piece->parent->children = list->next;
+      free ((void *) list);
+   }
+   xml_free (piece);
+}
+</piece>
+</item>
+
+<item name="xml_first" label="Children: xml_first and xml_last">
+Finding the first child is, of course, <i>very</i> easy.  The last is less so.
+<p/>
+I've also tossed in a function <code>xml_firstelem</code> which is just lie <code>xml_first</code>
+except that it doesn't see plain text elements.
+<piece>
+XML * xml_first(XML * xml)
+{
+   if (xml == NULL) return NULL;
+   if (xml->children == NULL) return NULL;
+   return (xml->children->element);
+}
+XML * xml_firstelem(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return NULL;
+   list = xml->children;
+   while (list != NULL) {
+      if (list->element->name != NULL) break;
+      list = list->next;
+   }
+   if (list != NULL) return (list->element);
+   return NULL;
+}
+
+XML * xml_last(XML *xml)
+{
+   ELEMENTLIST *list;
+   list = xml->children;
+   if (list == NULL) return NULL;
+   while (list->next != NULL) list = list->next;
+   return (list->element);
+}
+XML * xml_lastelem(XML *xml)
+{
+   ELEMENTLIST *list;
+   list = xml->children;
+   if (list == NULL) return NULL;
+   while (list->next != NULL) list = list->next;
+   while (list != NULL) {
+      if (list->element->name != NULL) break;
+      list = list->prev;
+   }
+   if (list != NULL) return (list->element);
+   return NULL;
+}
+</piece>
+</item>
+
+<item name="xml_next" label="Siblings: xml_next and xml_prev">
+For next and previous, we have to find the current element in its parent's children list,
+and then we're good to go.  Each function comes in two flavors: one sees plain text and the
+other (e.g. xml_nextelem) doesn't.
+
+<piece>
+XML * xml_next(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return (NULL);
+   if (xml->parent == NULL) return (NULL);
+   list = xml->parent->children;
+   while (list != NULL && list->element != xml) list = list->next;
+   if (list == NULL) return (NULL);
+   if (list->next == NULL) return (NULL);
+   return (list->next->element);
+}
+XML * xml_nextelem(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return (NULL);
+   if (xml->parent == NULL) return (NULL);
+   list = xml->parent->children;
+   while (list != NULL && list->element != xml) list = list->next;
+   if (list == NULL) return (NULL);
+   while (list->next != NULL) {
+      if (list->next->element->name != NULL) break;
+      list = list->next;
+   }
+   if (list->next == NULL) return (NULL);
+   return (list->next->element);
+}
+XML * xml_prev(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return (NULL);
+   if (xml->parent == NULL) return (NULL);
+   list = xml->parent->children;
+   while (list != NULL && list->element != xml) list = list->next;
+   if (list == NULL) return (NULL);
+   if (list->prev == NULL) return (NULL);
+   return (list->prev->element);
+}
+XML * xml_prevelem(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return (NULL);
+   if (xml->parent == NULL) return (NULL);
+   list = xml->parent->children;
+   while (list != NULL #^7#^7 list->element != xml) list = list->next;
+   if (list == NULL) return (NULL);
+   while (list->prev != NULL) {
+      if (list->prev->element->name != NULL) break;
+      list = list->prev;
+   }
+   if (list->prev == NULL) return (NULL);
+   return (list->prev->element);
+}
+</piece>
+</item>
+
+<item name="xml_insert" label="inserting things: xml_insertbefore and xml_insertafter">
+I don't need this just at the moment, so I'll skip it for now.
+</item>
+
+
+<item name="xml_read" label="xml_read: Using expat to parse XML files into memory">
+The basic structure of the parser is identical to any expat application.  We create the
+parser and pass in a pointer to the XML we're building up as the user data.  We register
+the handlers for elements and for plain text, and we're not interested in anything else.
+<p/>
+Then we simply throw pieces of the input stream at the parser until we're through with it.
+The handlers do all the work of creating and inserting XML pieces into the growing structure.
+If we encounter an error, we free all the stuff we've already done; otherwise we return the
+structure at the conclusion of the parse.
+<piece>
+<insert name=".startElement"/>
+<insert name=".endElement"/>
+<insert name=".charData"/>
+
+XML * xml_read (FILE * file)
+{
+   XML_Parser parser;
+   char buf[BUFSIZ];
+   int done;
+   XML * ret;
+
+   ret = NULL;
+   parser = XML_ParserCreate(NULL);
+
+   XML_SetUserData (parser, (void *) &ret);
+
+   XML_SetElementHandler(parser, startElement, endElement);
+   XML_SetCharacterDataHandler(parser, charData);
+
+   done = 0;
+
+   do {
+      size_t len = fread(buf, 1, sizeof(buf), file);
+      done = len #^lt# sizeof(buf);
+      if (!XML_Parse(parser, buf, len, done)) {
+         fprintf (stderr, "Error in xml_read: %s at line %d\n",
+            XML_ErrorString(XML_GetErrorCode(parser)),
+            XML_GetCurrentLineNumber(parser));
+         xml_free (ret);
+         return NULL;
+      }
+   } while (!done);
+   XML_ParserFree(parser);
+
+   return (ret);
+}
+</piece>
+</item>
+
+
+<item name="xml_read.startElement" label="Handling elements: startElement">
+The <code>startElement</code> handler, then, does a great deal of the work of creating
+XML data structures.  The <code>userData</code> parameter points to the immediate parent
+of the node being encountered.  When we open a new node, we allocate the data structure
+and copy attributes, append the new node to its parent, then we set userData to point to the
+new node -- when the element closes, we move userData up the chain back to the parent.
+<p/>
+In the case of an empty element, expat fortunately calls first the open handler, then the
+close handler, so whether we have an explicitly empty element or not doesn't matter.
+<p/>
+It's astounding how much simpler this <code>startElement</code> is than the corresponding
+<a href="http://www.vivtek.com/xmltools/startElement.html">handler in xmltools</a>!
+<p/>
+An interesting note: originally I had the call to <code>xml_set</code> below incrementing
+the <code>atts</code> pointer twice, like <code>**atts++, *atts++</code>.  This worked fine on
+Solaris with gcc, but oddly, when I took it to Windows with MSVC, it appeared not to increment
+until after the call.  Must be a slightly overzealous "optimization"...  At any rate, the new code
+works fine.
+<piece>
+void startElement(void *userData, const char *name, const char **atts)
+{
+   XML ** parent;
+   XML * element;
+
+   element = xml_create (name);
+   while (*atts) {
+      xml_set(element, atts[0], atts[1]);
+      atts += 2;
+   }
+
+   parent = (XML **) userData;
+   if (*parent != NULL) xml_append (*parent, element);
+   *parent = element;
+}
+</piece>
+</item>
+
+<item name="xml_read.endElement" label="Handling elements: endElement">
+At the close of the element, we just jump up the tree to the parent.  If there is no
+parent, then we stay put.  Thus if there are for some reason two root elements in the input,
+the structure won't reflect the input, but the first root element won't get stranded, either.
+<piece>
+void endElement(void *userData, const char *name)
+{
+   XML ** element;
+
+   element = (XML **) userData;
+   if ((*element)->parent != NULL) *element = (*element)->parent;
+}
+</piece>
+</item>
+
+<item name="xml_read.charData" label="Handling non-element data: charData">
+Character data is even easier.  We just create a new text structure and append it onto the
+parent.  End of story.
+<piece>
+void charData (void *userData, const XML_Char *s, int len) {
+   XML ** parent;
+
+   parent = (XML **) userData;
+   xml_append (*parent, xml_createtextlen ((char *) s, len));
+}
+</piece>
+</item>
+
+
+
+</litprog>

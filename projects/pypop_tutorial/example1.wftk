@@ -1,0 +1,5 @@
+<ui>
+  <frame id="main" title="Really simple app">
+     <html>This is an example text.</html>
+  </frame>
+</ui>

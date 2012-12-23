@@ -1,0 +1,4 @@
+<panel>
+<character name="marx" action="leaves"/>
+<dialog who="marx" font-size="12">A ton of car? Toncar? You're welcome.</dialog>
+</panel>

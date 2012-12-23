@@ -1,0 +1,39 @@
+SUBJECT>UI suggestion
+POSTER>Brian Ewins
+EMAIL>Brian.Ewins@btinternet.com
+DATE>972483966
+EMAILNOTICES>no
+IP_ADDRESS>132.146.14.56
+PREVIOUS>
+NEXT> 59
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Just looking at the UI, you were asking for some suggestions. I work a lot with siebel (http://www.siebel.com/) . In this tool table-like screens are pretty much generic, and have these properties:
+<P>- you can display or hide any column of an object
+<P>- you can order columns in any way you like
+<P>- you can order rows by the value of any column.
+<P>This is really neat and quite powerful (you might want to download the Siebel Sales demo to have a look). It is actually possible to do this with a web UI like this:
+<P>- store user preferences of the list of fields, in order, they want to see for a given query.
+<P>- have a separate screen which allows editing of this list. A UI which approaches the Siebel one could look something like:
+<P>Not Shown Shown
+<P>[field 1] [&amp;lt;&amp;lt;] [field 3]
+<P>[field 2] [&amp;lt; ] [field 5]
+<P>[field 4] [ &amp;gt;] [ ]
+<P>[ ] [&amp;gt;&amp;gt;] [ ]
+<P>(Dang I can't get this pic to post ok. Hope you can figure it out :o( )
+<P>Click the buttons in the middle to move items between the shown/not shown lists (javascript makes this easy but you can do it without). Columns are ordered by the order in which you add fields to the 'Shown' list. Column sort order is handled dynamically by clicking on the top of a column.
+<P>How hard this is to implement really depends on how much data is involved. If you have to page data back to the client (eg show at most 20 rows) then you need to pass the sort order down to the query, and this may give you issues. However, the display logic is completely generic and can be made independent of the objects being displayed. eg (perl pseudocode):
+<P>my @report=(); for my $object (@results) {
+<P>my @row=();
+<P>for my $columnname (@{$user-&gt;{'colprefs'}-&gt;{$reportname}}) {
+<P>push @row,$object-&gt;{$columnname};
+<P>}
+<P>push @report,\@row; }
+<P>Working this way drastically cuts down the amount of time you spend writing web display code, and saves you thinking about what fields to display on a report. You expose ALL OF THEM and let the user decide which they need to see.
+<P>Its probably worth describing the other bits of reuse in the Siebel UI, since the screen layout is similar to yours, and they are useful in practice.
+<P>There is an along-the-top menu bar for the major functional areas (eg: account administration, orders, faults, that kind of thing) There is a down-the-side menu bar for the actions you can perform on the current functional area selected.
+<P>The main 'view' for an action is then composed of 'applets'. Not java ones, but their name for reusable chunks of UI. Eg you may have a page which shows at the bottom a list of active tasks. At the top, you could have a form for editing the current task. Both of these are constructed from independently reusable chunks of code. In order for this to work in an HTML context, you need to separate out the code which constructs a link out of a column in a table (this isnt from Siebel experience but from my own coding)
+<P>This is getting a bit detailed but I've come this far :o). Each cell of a table has a display value, and an identity. The identity is used to construct links to other parts of the application. eg a user name may be displayed, but a user id is used as the identity. The link target may depend on context, but you will usually have default link targets (eg user id normally links to a user details screen. However in some contexts it may link to user action history). The 'OO' way to do this is to define methods which construct links out of ids. Then, when reusing the applet, subclass it and override these methods with something context-specific. NB you should similarly be able to override the query the applet uses, in order to reuse display logic for different queries.
+<P>Does this work? Yes, it really does. Put it this way, I wrote a fantasy football manager for the World Cup and a project management tool using 90% unchanged code...
+<P>BTW Are you still looking for Outlook screenshots? Evolution http://www.helixcode.com/apps/evolution.php3 looks incredibly similar but if you still want shots of Outlook (98, not 2000) I can oblige.

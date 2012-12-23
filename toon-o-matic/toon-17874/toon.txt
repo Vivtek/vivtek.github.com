@@ -1,0 +1,13 @@
+panels 6
+
+panel 1 
+Lenin appears
+Lenin says Вот анекдот про Сталина.
+
+panel 2
+Lenin says Сталин разговаривает по телефону с Черчиллем:
+
+panel 3
+
+panel 4
+Lenin Unicode never works when I try to be funny.

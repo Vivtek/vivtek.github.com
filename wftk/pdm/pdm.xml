@@ -1,0 +1,329 @@
+<litprog>
+<object name="pdm.c" language="c" item="main"/>
+
+
+<format name="index">
+<html><head><title>Procdef manager</title></head>
+<body>
+<h2>Procdef manager</h2>
+<center>
+[ <a href="wftk_pdm.zip">download</a> ] [ <a href="pdm.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+
+<hr/>
+The procdef manager manages (and edits) process definitions.  For the time being, I'm only
+implementing a local filesystem procdef repository -- but the procdef manager will almost
+certainly be the basis for a remote-serving repository.
+<p/>
+The procdef repository, then, is a directory.  Process definitions are located in XML files
+stored in that directory; the filename of each is of the form <identifier>_<version>.xml.
+So for example, version 1 of the "chair" process is in chair_1.xml.
+<p/>
+Versions are related to one another via an item file, which is likewise an XML file, but is
+named <identifier>.xml with no version number.  Note the possibility of a naming collision
+if your identifier has an underscore in it.  I'm not even going to worry about that right now.
+<p/>
+Finally, the entire procdef repository is catalogued with the file <code>index.xml</code>, which
+lists all the procdefs in the repository, their current versions, and their owners.  At some
+point, we'll also have to include a permission setup.  But all in good time.
+<p/>
+Note that the PDM is at once a document management system (in that it provides version control)
+and an editor.
+<p/>
+Table of contents:
+[##itemlist##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<format name="default">
+<html><head><title>Project name: [##label##]</title></head>
+<body>
+<h2>[##label##]</h2>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="index.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="index.html">Top: lpml alpha</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<item name="index" label="The procdef manager" format="index">
+</item>
+
+<item name="main" label="File layout">
+Well, this is the third component of the wftk, so my environment is getting a little more mature.
+I've moved XML manipulation into a <a href="http://www.vivtek.com/xml/xmlapi/">library</a> to
+cut down on overhead; eventually I'll redo the core engine to use that library instead of simply
+defining everything right in the same file.
+<p/>
+But this program is really simple.  It takes a command on the command line, and it returns some
+HTML representing some facet of the procdef repository (or some individual procdef in the
+repository.)  A separate program will serve to make changes to procdefs and such; this one
+will just show things.  (I think.)
+<piece>
+#include <stdio.h>
+#include <string.h>
+#include "xmlapi.h"
+#include "localdefs.h"
+
+XML * directory;
+XML * item;
+XML * version;
+XML * datasheet;
+
+FILE * file;
+
+char sbuf[1024];
+char * mark;
+char * format;
+XML  * xml;
+XML  * holder;
+
+int main (int argc, char *argv[])
+{
+   if (argc #^lt# 2) {
+      printf ("Usage: pdm [[command> [#^lt#args>]\n");
+      return (1);
+   }
+   directory = NULL;
+   item = NULL;
+   version = NULL;
+
+   if (!strcmp (argv[1], "list") ) {
+      <insert name="list"/>
+   } else if (!strcmp (argv[1], "starter")) {
+      <insert name="starter"/>
+   } else if (!strcmp (argv[1], "datasheet")) {
+      <insert name="datasheet"/>
+   } else if (!strcmp (argv[1], "editor")) {
+      <insert name="editor"/>
+   } else {
+      printf ("Unknown command '%s'\n", argv[1]);
+   }
+
+   if (directory) xml_free (directory);
+   if (item) xml_free (item);
+   if (version) xml_free (version);
+
+   return (0);
+}
+</piece>
+</item>
+
+
+<item name="list" label="list: Displaying the procdef directory">
+The <code>list</code> is the first one I'm implementing.  It simply takes a URL format
+and builds a set of &lt;li> lines, one for each procdef in the directory.  Note that at this
+moment there's no mechanism for folders, or viewing permissions, or really anything
+sophisticated at all.
+
+<piece>
+sprintf (sbuf, "%s%s", PROCESS_DEFINITION_REPOSITORY, "index.xml");
+file = fopen (sbuf, "r");
+if (!file) {
+   printf ("Unable to open directory file %s\n", sbuf);
+   return (1);
+}
+
+directory = xml_read (file);
+fclose (file);
+if (!directory) {
+   printf ("Corrupt directory file.\n");
+   return (1);
+}
+
+if (argc > 2) {
+   format = argv[2];
+} else {
+   format = "edit?item=%s";
+}
+
+item = xml_firstelem (directory);
+while (item) {
+   if (!strcmp (item->name, "item")) {
+      mark = (char *) xml_attrval (item, "title");
+      if (!*mark) mark = (char *) xml_attrval (item, "id");
+      printf ("[[li>[[strong>[[a href=\"");
+      printf (format, xml_attrval (item, "id"));
+      printf ("\">%s[[/a>[[/strong>[[br>\n", mark);
+      xml_writecontent (stdout, item);
+      printf ("[[br>\n");
+   }
+   item = xml_nextelem (item);
+}
+</piece>
+</item>
+
+
+<item name="starter" label="starter: Displaying a process start form">
+The start form generator is pretty straightforward.  Given a procdef identifier, we load the
+procdef item file first and find the current version of the definition.  Then we load that
+definition and get some pertinent information, mostly the data items it needs to get started,
+but also a title.  We return our data on stdout in line-based format; the first line is the
+title of the process, the second is the current version, and each subsequent line is a data
+item, formatted as a table row.
+
+<piece>
+if (argc < 3) {
+   printf ("Missing procdef identifier in starter command.\n");
+   return (1);
+}
+sprintf (sbuf, "%s%s.xml", PROCESS_DEFINITION_REPOSITORY, argv[2]);
+file = fopen (sbuf, "r");
+if (!file) {
+   printf ("Unable to open procdef file %s.\n", sbuf);
+   return (1);
+}
+
+item = xml_read (file);
+fclose (file);
+
+if (!item) {
+   printf ("Corrupt procdef file %s.\n", sbuf);
+   return (1);
+}
+
+sprintf (sbuf, "%s%s_%s.xml", PROCESS_DEFINITION_REPOSITORY, argv[2], xml_attrval (item, "ver"));
+file = fopen (sbuf, "r");
+if (!file) {
+   printf ("Unable to open procdef version file %s.\n", sbuf);
+   return (1);
+}
+
+version = xml_read (file);
+fclose (file);
+
+if (!version) {
+   printf ("Corrupt version file %s.\n", sbuf);
+   return (1);
+}
+
+if (strcmp (xml_attrval (version, "name"), "")) {
+   printf ("%s\n", xml_attrval (version, "name"));
+} else {
+   printf ("%s\n", argv[2]);
+}
+printf ("%s\n", xml_attrval (item, "ver"));
+
+xml = xml_firstelem (version);
+while (xml) {
+   if (!strcmp (xml->name, "data")) {
+      <insert name=".handle_data"/>
+   } else if (!strcmp (xml->name, "sequence")) {
+      break;
+   } else if (!strcmp (xml->name, "parallel")) {
+      break;
+   } else if (!strcmp (xml->name, "task")) {
+      break;
+   }
+
+   xml = xml_nextelem (xml);
+}
+</piece>
+</item>
+
+<item name="starter.handle_data" label="Handling formatting of data items">
+A starter data item is one which we encounter before encountering some action (really before
+encountering anything that can block.)  When we find one, we need to emit a line of HTML table
+which will format it.  How we do that depends on its type.
+
+<piece>
+printf ("[[tr>[[td>%s[[/td>\n", xml_attrval (xml, "name"));
+printf ("[[td>");
+if (!strcmp (xml_attrval (xml, "type"), "text")) {
+   printf ("[[textarea name=\"%s\" rows=5 cols=40>", xml_attrval (xml, "name"));
+   xml_writecontent (stdout, xml);
+   printf ("[[/textarea>\n");
+} else {
+   printf ("[[input name=\"%s\" value=\"", xml_attrval (xml, "name"));
+   xml_writecontent (stdout, xml);
+   printf ("\">\n");
+}
+printf ("[[/td>[[/tr>\n");
+</piece>
+</item>
+
+
+<item name="datasheet" label="datasheet: Generating a blank datasheet">
+This is basically a straight variation on the starter command.
+
+<piece>
+if (argc < 5) {
+   printf ("Missing arguments in datasheet command.\n");
+   return (1);
+}
+
+sprintf (sbuf, "%s%s_%s.xml", PROCESS_DEFINITION_REPOSITORY, argv[2], argv[3]);
+file = fopen (sbuf, "r");
+if (!file) {
+   printf ("Unable to open procdef version file %s.\n", sbuf);
+   return (1);
+}
+
+version = xml_read (file);
+fclose (file);
+
+if (!version) {
+   printf ("Corrupt version file %s.\n", sbuf);
+   return (1);
+}
+
+datasheet = xml_create( "datasheet");
+sprintf (sbuf, "%s_%s.xml", argv[2], argv[3]);
+xml_set (datasheet, "procdef", sbuf);
+xml_set (datasheet, "process", argv[4]);
+
+xml = xml_firstelem (version);
+while (xml) {
+   if (!strcmp (xml->name, "data")) {
+      holder = xml_create ("data");
+      xml_set (holder, "id", xml_attrval (xml, "name"));
+      xml_set (holder, "type", xml_attrval (xml, "type"));
+      xml_append (datasheet, holder);
+   } else if (!strcmp (xml->name, "sequence")) {
+      break;
+   } else if (!strcmp (xml->name, "parallel")) {
+      break;
+   } else if (!strcmp (xml->name, "task")) {
+      break;
+   }
+
+   xml = xml_nextelem (xml);
+}
+
+xml_write (stdout, datasheet);
+</piece>
+</item>
+
+
+<item name="editor" label="editor: Displaying an edit form">
+</item>
+
+</litprog>

@@ -1,0 +1,321 @@
+<litprog>
+<object name="browse.c" language="c" item="browse_main"/>
+
+
+<format name="index">
+<html><head><title>Folder browser CGI</title></head>
+<body>
+<h2>A permission-based folder browser CGI</h2>
+<center>
+[ <a href="wftk_user.zip">download</a> ] [ <a href="browser.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">wftk discussion</a> ]
+</center>
+
+<hr/>
+This browser is based on the <a href=index.html>user module for wftk</a> and is distributed as a part of
+that code.  It allows hierarchical data to be browsed very easily, and additional objects to be added
+to a hierarchy.  Moreover, the user module allows a given user's view of the hierarchy to be affected by
+that user's permission levels for various objects and groups of objects.
+<p/>
+The browser is implemented as a CGI program.  Since display of a fully opened folder tree thus requires a full
+traversal of that tree on every request, an alternative which caches some results in persistent storage might
+be a nice extension at some point, but in the meantime this will serve many purposes.  Not only can it be used
+to browse users themselves for an admin tool, it can also be pressed into service for menu maintenance for the
+overall wftk user interface, it can organize groups of procdefs for the PDM, and so on.  Basically it should
+do a good job allowing a user to traverse any kind of hierarchical structure, especially where that structure
+depends on the access level of the user.
+<p/>
+The whole thing is defined in a single file, browse.c, which compiles to the CGI executable in question.
+The CGI interface is managed by <a href="http://www.vivtek.com/xml/xmlapi/xmlcgi.html">XMLCGI</a>, which is
+an optional part of the <a href="http://www.vivtek.com/xml/xmlapi/">XMLAPI</a>.  You'll be seeing lots of the
+XMLAPI around this project.
+<p/>
+This program is showing my gradual drift in programming philosophy towards more object-oriented styles.  Yeah, OK,
+so that makes me fifteen years behind, so sue me.  But my first inclination (and first stab) at this was simply to
+knock out some code which reads the user/group permission structure and writes some HTML.  But then I started
+thinking, and what I came up with is a lot nicer: the program works in two passes.  The first pass builds a
+directory view structure (as, yes, an in-memory XML structure, I just can't get enough of this library), and the
+second pass expresses that as HTML (or as whatever we want, really).  This separation of form from content is
+one of the things I continually wrestle with, and it's fascinating how it just keeps cropping up, even when
+you aren't really looking for it.
+<p/>
+So this program, like all of them, will most likely end up producing some spinoff library code.  In the meantime,
+it's monolithic in that single file, but broken into a couple of interesting functions.
+<p/>
+Table of contents:
+[##itemlist##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.  Try literate programming.  You'll like it.
+</font>
+</td>
+</tr>
+</table>
+</center>
+</body></html>
+</format>
+
+<format name="default">
+<html><head><title>Browser:: [##label##]</title></head>
+<body>
+<h2>[##label##]</h2>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="browse.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="browse.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<item name="browse" label="Folder browser" format="index">
+</item>
+
+<item name="browse_main" label="user.c: implementation">
+First off is our includes.  Note that local wftk includes are in the parent directory; we're compiling browse.c out of
+the user module directory.  The <code>localdefs.h</code> file contains definitions local to the current installation;
+under Unix that typically includes the location of the various repositories (of which we need two), but under Windows
+that is taken care of in the Registry.  However, the ending for CGI programs is also included in <code>localdefs.h</code>.
+<piece>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "user.h"
+#include "xmlcgi.h"
+#include "../localdefs.h"
+
+/* ------------------------------------------------------------------ */
+/* browse.c                                                           */
+/* A CGI program for folder-oriented, permission-based hierarchical   */
+/* browsing.  This program is part of the wftk workflow toolkit and   */
+/* is distributed under the terms of the GNU license.                 */
+/* Copyright (c) 2000, Vivtek: wftk@vivtek.com                        */
+/* ------------------------------------------------------------------ */
+</piece>
+
+<piece>
+XML * cgi;
+XML * environment;
+XML * input;
+
+XML * current_user;
+
+XML * view;
+
+<insert name="browse_dirview_create"/>
+<insert name="browse_dirview_show"/>
+
+int main (int argc, char * argv[])
+{
+   XML * elem;
+
+   cgi = cgi_init ();
+   environment = xml_loc (cgi, "cgicall.environment");
+   input = xml_loc (cgi, "cgicall.query");
+
+   current_user = user_authenticate (environment, AUTH_DOMAIN);
+   if (!current_user) {
+      printf ("[[html>[[head>[[title>User authentication required[[/title>[[/head>\n");
+      printf ("[[body>[[h2>User authentication required [[/h2>[[hr>\n");
+      printf ("A valid user authentication response is required to access this area.\n");
+      printf ("[[/body>[[/html>\n");
+      xml_free (cgi);
+      exit(0);
+   }
+
+   view = xml_create ("dirview");
+   xml_set (view, "root", xml_attrval (input, "root"));
+   xml_set (view, "curuser", xml_attrval (current_user, "name"));
+   xml_set (view, "state", xml_attrval (input, "state"));
+
+   dirview_create (view, current_user);
+
+   printf ("Content-type: text/html\n\n");
+   dirview_show (stdout, view);
+
+   xml_free (cgi);
+   xml_free (current_user);
+   xml_free (view);
+}
+</piece>
+</item>
+
+
+<item name="browse_dirview_create" label="Traversing the user/group repositories to build a directory view">
+So.  The first step is to build a directory view.  I'm thinking of the directory view as something along these
+lines:
+<pre>
+&lt;dirview root="" cur_user="michael" state="folder:+">
+&lt;folder name="folder1" label="My Folder">
+&lt;object class="document" object="ddriou2" label="A document in My Folder"/>
+&lt;/folder>
+&lt;object class="document" object="3324ffq" label="My Document for Stuff"/>
+&lt;object class="document" object="333333s" label="Another Document"/>
+&lt;/dirview>
+</pre>
+Let's talk a little about what I expect all that to mean.  First, the elements "dirview", "folder", and "object" are
+pretty obvious.  An "object" is a leaf in the directory tree, a document.  (Of any type; classes in the wftk
+permission system are simply strings with no semantics at all, actually.)  Folders and objects have names and labels;
+the name is the machine-readable identifier, while the label appears in the actual display.
+<p/>
+The "root" of the directory view is used to tell the constructor where to start the view; by default it is the
+current user, so that the directory displayed will be those objects owned/accessible by the current user.  However,
+there are plenty of reasons to start directory views elsewhere, so that's what the root is for.
+<p/>
+The "state" of the directory view determines which of the folders is shown in an open state and which in a closed
+state.  Open folders must of course be traversed.  The convention I'm setting (tentatively) is pretty simple; if the
+state is blank, then nothing's open.  If it's a "+", then everything's open.  If a folder is named, that folder
+is open, and if two folders are open they're separated by commas.  Finally, to open subfolders, I use semicolons,
+so if the folder named "f1" is open in main folder "f2", then my state is "f2:f1".  If all subfolders of f2 where
+to be open, the state would be "f2:+".  We'll see if that's adequate, but it feels right.
+<p/>
+All these incoming attributes of the dirview element are basically parameters to this construction function.
+<p/>
+So.  All that explained, let's write some code.
+<piece>
+<insert name=".scan"/>
+void dirview_create (XML * dv, XML * cur_user)
+{
+   XML * elem;
+   XML * direlem;
+
+   dirview_scan (dv, cur_user, xml_attrval (dv, "state"));
+}
+</piece>
+</item>
+
+<item name="browse_dirview_create.scan" label="Scanning a user or group">
+We start the process by scanning the root user or group; the <code>dirview_scan</code> function will call itself
+recursively if the state indicates that it should.
+<piece>
+int  folder_append (XML * view, XML * elem);
+void dirview_scan (XML * dv, XML * entity, const char *state)
+{
+   XML * elem;
+   XML * direlem;
+   XML * group;
+
+   elem = xml_firstelem (entity);
+   while (elem) {
+      if (!strcmp (elem->name, "object")) {
+         direlem = xml_create ("object");
+         if (*xml_attrval (elem, "label")) {
+            xml_set (direlem, "label", xml_attrval (elem, "label"));
+         } else {
+            xml_set (direlem, "label", xml_attrval (elem, "object"));
+         }
+         xml_append (dv, direlem);
+      } else if (!strcmp (elem->name, "group") || !strcmp (elem->name, "group-include")) {
+         direlem = xml_create ("folder");
+         xml_set (direlem, "name", xml_attrval (elem, "name"));
+         if (*xml_attrval (elem, "label")) {
+            xml_set (direlem, "label", xml_attrval (elem, "label"));
+         } else {
+            xml_set (direlem, "label", xml_attrval (elem, "name"));
+         }
+         if (folder_append (dv, direlem)) {
+            group = group_get (xml_attrval (elem, "name"));
+            dirview_scan (direlem, group, state);
+            xml_free (group);
+         }
+      }
+      elem = xml_nextelem (elem);
+   }
+}
+</piece>
+
+So now let's look at the <code>folder_append</code> function, which simply wraps <code>xml_append</code> with some
+code to avoid duplicates and cycles in the directory tree (our "directory" structure is significantly more dangerous
+than a real file structure in that regard.)
+<p/>
+If the folder is indeed appended, the function returns 1; otherwise, the folder is freed and the function returns 0.
+<piece>
+int folder_append (XML * view, XML * elem)
+{
+   XML * check;
+   const char * name = xml_attrval (elem, "name");
+
+   check = view;
+   while (check) {
+      if (!strcmp (xml_attrval (check, "name"), name)) {
+         xml_free (elem);
+         return (0);
+      }
+      check = check->parent;
+   }
+
+   check = xml_firstelem (view);
+   while (check) {
+      if (!strcmp (check->name, "folder")) {
+         if (!strcmp (xml_attrval (check, "name"), name)) {
+            xml_free (elem);
+            return (0);
+         }
+      }
+      check = xml_nextelem (check);
+   }
+
+   xml_append (view, elem);
+   return (1);
+}
+</piece>
+</item>
+
+
+<item name="browse_dirview_show" label="Presenting a directory view in HTML">
+This part might end up being a more general mechanism, given time.  Yes, before I get several emails telling me that
+this problem has already been solved by XSL, I realize that XSL probably already does everything I need.  Eventually
+I will redress that, but for now I need a solution quickly.  Now, on the other hand, if you want to do something that
+uses XSL to do something that's compatible with what I'm doing here, then I want to hear from you.
+<piece>
+void dirview_show (FILE * out, XML * dv)
+{
+   XML * elem;
+   const char * link;
+
+   elem = xml_firstelem (dv);
+   if (!elem) return;
+
+   fprintf (out, "[[ul>\n");
+   while (elem) {
+      if (!strcmp (elem->name, "folder")) {
+         fprintf (out, "[[li> <strong>%s</strong>\n", xml_attrval (elem, "label"));
+         dirview_show (out, elem);
+      } else {
+         link = xml_attrval (elem, "link");
+         if (*link) {
+            fprintf (out, "[[li> [[a href=\"%s\">%s[[/a>\n", link, xml_attrval (elem, "label"));
+         } else {
+            fprintf (out, "[[li> %s\n", xml_attrval (elem, "label"));
+         }
+      }
+      elem = xml_nextelem (elem);
+   }
+   fprintf (out, "[[/ul>\n");
+}
+</piece>
+</item>
+
+
+
+</litprog>

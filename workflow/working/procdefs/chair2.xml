@@ -1,0 +1,3 @@
+<item id="chair2" ver="a" title="Test add of process" owner="michael"><description>This is a test process.
+
+Hopefully this description will retain its multilinedness.</description><versions><version id="a" file="chair2_a.xml"/><version id="b" file="chair2_b.xml" owner="michael"/><version id="c" file="chair2_c.xml" owner="michael"/><version id="d" file="chair2_d.xml" owner="michael"/><version id="e" file="chair2_e.xml" owner="michael"/></versions></item>

@@ -1,0 +1,3 @@
+<character name="fidel" label="Fidel Castro" rel-h="60">
+<draw face="right" file="image-fidel-1.bmp" type="image"/>
+</character>

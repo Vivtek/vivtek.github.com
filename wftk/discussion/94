@@ -1,0 +1,21 @@
+SUBJECT>Unix build?
+POSTER>Paul Wakefield
+EMAIL>wftk@phred.org.uk
+DATE>987602612
+EMAILNOTICES>no
+IP_ADDRESS>netcache1-ctn.is.co.za
+PREVIOUS>
+NEXT> 95
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Has anyone managed to build the new 0.9 beta on Unix (specifically Linux)?
+<P>I want to use WFTK as the basis of a simple task management system for our devteam - we're outgrowing the basic 'tasks' table + some web pages concept I threw together a year ago.
+<P>I'm working through the problems, but if someone's already done the hard work I'm interested.
+<P>So far:
+<P>1) Fixed line terminations (gcc didn't like the CRLFs)
+<P>2) Fiddled with the Makefiles for expat and xmlapi to fix some linker errors.
+<P>They build, but the test program in xmlapi doesn't produce any output
+<P>when I pipe in text.xml
+<P>Now I'm tinkering with the wftk files; wftk_internals produces a compiler error on line 13. My C is rusty, so I'm off to find the documentation for typedefs.
+<P>

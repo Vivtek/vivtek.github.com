@@ -1,0 +1,21 @@
+<svg width="702" height="466">
+<rect width="700" style="fill: white" height="466"/>
+<polyline transform="" points="1,1 699,1 699,151 1,151 1,1" style="fill:none; stroke:black; stroke-width:1" arrow=""/>
+<polyline transform="" points="1,314 699,314 699,464 1,464 1,314" style="fill:none; stroke:black; stroke-width:1" arrow=""/>
+<polyline transform="" points="1,157 699,157 699,307 1,307 1,157" style="fill:none; stroke:black; stroke-width:1" arrow=""/>
+<g transform="translate(1,1)"/>
+<g transform="translate(1,1)"><g y="45" w="78.4615384615385" h="90" x="309.769230769231">
+<image y="45" width="78.4615384615385" xlink:href="image-me-1.bmp" x="309.769230769231" height="90"/>
+</g>
+<g>
+<polyline style="stroke:black; stroke-width:1; fill:white" points="388.23076923077,23 490.23076923077,23 490.23076923077,45 449.23076923077,45 393.23076923077,90 429.23076923077,45 388.23076923077,45 388.23076923077,23"/>
+<image y="2" width="82" transform="translate(388.23076923077,23)" xlink:href="dialog-1-1.png" x="10" height="18"/>
+</g>
+</g>
+<g transform="translate(1,314)"/>
+<g transform="translate(1,314)"><g y="124" w="278" transform="translate(420,124)" h="26" x="420">
+<rect y="0" width="278" style="stroke:black; stroke-width:1; fill:white" x="0" height="26"/>
+<image y="2" width="258" xlink:href="caption-3-1.png" x="10" height="22"/>
+</g>
+</g>
+</svg>

@@ -1,0 +1,22 @@
+panel
+font size=12
+mouse says ooomp pawh pawh ooomp pawh pawh
+mouse leaves
+panel
+al says oh say can you see...
+al leaves
+panel
+mao says ehhhe awwwww ehhhe awwww
+mao leaves
+panel
+yoda says mouse-like I am.
+yoda leaves
+panel
+osama says I am not much liking of<br>your decadent music and sexy mouse.
+osama leaves
+panel
+mouse says Got any cheese?<br>Obama you got a sexy turban<br> I'm getting that frisky feeling <br> I'm coming over to your side of the cave cutie
+mouse leaves
+panel
+caption (middle, size=16, color=255,0,0) Brought to you by the Undertakers Association<br/>Meaning of Life Division
+caption (bottom middle, color=0,0,255) The Meaning of Life is within your grasp, next to the Holy Grail

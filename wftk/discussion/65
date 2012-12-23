@@ -1,0 +1,14 @@
+SUBJECT>WFTK initial comments
+POSTER>Chui Tey
+EMAIL>teyc@bigfoot.com
+DATE>976773077
+EMAILNOTICES>no
+IP_ADDRESS>dyn-0-20.dialin.uq.net.au
+PREVIOUS>
+NEXT> 75
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Nice stuff. I liked the way you do the state transitions down the tree of processes. I've got some of the code running on my machine, although aolserver doesn't seem to want to give me odbc.
+<P>The cgi/command-line duality is innovative. You could really help the project along if you set aside perhaps half and hour to give some worked examples, like typically command line arguments. I spent a couple of days getting stuff to work and figuring out what the commands are, and I (and I'm sure other people ) could have contributed to the project meaningfully if we had a little headstart.
+<P>

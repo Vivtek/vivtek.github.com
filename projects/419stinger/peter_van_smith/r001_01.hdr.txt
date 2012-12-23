@@ -1,0 +1,19 @@
+Return-Path: <peter_vansmith01@yahoo.co.uk>
+Received: from web23013.mail.ird.yahoo.com (web23013.mail.ird.yahoo.com [217.146.189.38])
+	by despammed.com (8.11.6/8.11.6) with SMTP id l0LIRuN24039
+	for <michael@despammed.com>; Sun, 21 Jan 2007 13:27:56 -0500
+Received: (qmail 59324 invoked by uid 60001); 21 Jan 2007 18:27:48 -0000
+DomainKey-Signature: a=rsa-sha1; q=dns; c=nofws;
+  s=s1024; d=yahoo.co.uk;
+  h=Received:Date:From:Subject:To:In-Reply-To:MIME-Version:Content-Type:Content-Transfer-Encoding:Message-ID;
+  b=k1v4LA/+dxxg2IPgnZMHkJcRhgRDjmBG4UQNIdRz8xoKjfNAGwqWgjuxbAlaBlIpefoVWZU2Di/2dKCXM54bOUEVg2aCBbrCWCBRKBFValcgF3MYZu4nJoTsdDqEvmSnf/qPgLyg2UORZ7/2RxS9/MsckU7K6l7pVdLrj5Nq4cY=;
+Received: from [62.163.34.97] by web23013.mail.ird.yahoo.com via HTTP; Sun, 21 Jan 2007 18:27:48 GMT
+Date: Sun, 21 Jan 2007 18:27:48 +0000 (GMT)
+From: Peter Smith <peter_vansmith01@yahoo.co.uk>
+Subject: [despammed] Thanks for your mail.
+To: Michael <michael@despammed.com>
+In-Reply-To: <45B068CA.4050307@despammed.com>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="0-1191890937-1169404068=:58620"
+Content-Transfer-Encoding: 8bit
+Message-ID: <515276.58620.qm@web23013.mail.ird.yahoo.com>

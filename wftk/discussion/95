@@ -1,0 +1,16 @@
+SUBJECT>Re: Unix build?
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>987621819
+EMAILNOTICES>no
+IP_ADDRESS>as0-030.blm.bluemarble.net
+PREVIOUS>94
+NEXT> 98
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Has anyone managed to build the new 0.9 beta on Unix (specifically Linux)? Howdy!
+<P>I was hoping to get to a Solaris build today -- but if you can possibly wangle me a test account via telnet/ssh on your server, I'd be ecstatic. I don't have access to another Linux box at the moment.
+<P>I haven't tried the xmlapi test programs in a while, so they may well be broken. I should look at that as well. I spent so much time getting to this point that I've been revelling a bit in not being quite so driven. :-)
+<P>There's a lot of work to be done to get to a robust build, but it won't take too long.
+<P>Michael

@@ -1,0 +1,32 @@
+<cartoon width="700" rowformat="1" character-base-url="http://www.vivtek.com/toonbots/characters/" panel-h="150">
+<panel>
+<caption location="bottom middle">EMPTY CARTOON</caption>
+</panel>
+<panel>
+<caption location="bottom middle">EMPTY CARTON</caption>
+</panel>
+<panel>
+<character action="leaves" name="mao"/>
+<dialog who="mao" font-color="255,0,0" font-size="12">Fred, did you forget to buy milk again?</dialog>
+</panel>
+<panel>
+<character action="leaves" name="commiemobile"/>
+<caption location="bottom middle">EMPTY CAR TON</caption>
+</panel>
+<panel>
+<character action="leaves" name="marx"/>
+<dialog who="marx" font-size="12">A ton of car? Toncar? You're welcome.</dialog>
+</panel>
+<panel>
+<caption location="bottom middle">M. T. KARTEN</caption>
+</panel>
+<panel>
+<character action="leaves" name="al"/>
+<dialog who="al" font-size="12">Didn't he write environmental fiction?</dialog>
+</panel>
+<panel>
+<character name="dot"/>
+<dialog who="dot" font-size="12">Am I rendered yet? *&amp;^% piece of junk</dialog>
+<caption location="lower right" font-color="128,0,0" font-size="16,">NEXT: LESS</caption>
+</panel>
+</cartoon>

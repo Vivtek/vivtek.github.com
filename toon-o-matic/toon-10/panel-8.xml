@@ -1,0 +1,5 @@
+<panel>
+<character name="dot"/>
+<dialog who="dot" font-size="12">Am I rendered yet? *&amp;^% piece of junk</dialog>
+<caption location="lower right" font-color="128,0,0" font-size="16,">NEXT: LESS</caption>
+</panel>

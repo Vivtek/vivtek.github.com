@@ -1,0 +1,3 @@
+<character action="leaves" name="mao" tag="default-3" rel-h="50" rel-w="" height="75" width="66.2068965517241">
+<draw face="left" file="image-mao-1.bmp" type="image" rel-h="100" rel-w="100" height="75" rel-x="0" rel-y="0" w="128" h="145" width="66.2068965517241"/>
+</character>

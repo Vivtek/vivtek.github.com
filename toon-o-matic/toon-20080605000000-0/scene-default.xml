@@ -1,0 +1,6 @@
+<scene id="default" panels="1-2-3">
+<frame tag="default-1" id="1" panels="1">
+<character name="me" action="leaves" tag="default-1"/>
+</frame>
+<frame tag="default-2" id="2" panels="2-3"/>
+</scene>

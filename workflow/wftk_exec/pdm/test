@@ -1,0 +1,4 @@
+foreach $key (keys %ENV) {
+  print "Hi!\n";
+}
+

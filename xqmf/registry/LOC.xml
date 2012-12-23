@@ -1,0 +1,10 @@
+<metric name="LOC" version="0.1", date="July 24, 2000">
+<contact name="Michael Roberts" email="xqmf@vivtek.com" site="http://www.vivtek.com/xqmf.html"/>
+<attributions/>
+<notes>
+First metric!  First analyzer!
+</notes>
+<code>
+xml_set ($elem, 'count', $#input);
+</code>
+</metric>

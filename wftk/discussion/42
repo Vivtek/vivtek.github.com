@@ -1,0 +1,16 @@
+SUBJECT>OK, OK, you can download it, then
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>970684908
+EMAILNOTICES>no
+IP_ADDRESS>tc7-34.blm.bluemarble.net
+PREVIOUS>
+NEXT> 44
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>I mean, if it's so important to you that you can look at it and try it out, then sheesh, I created a download page at
+<P>http://www.vivtek.com/wftk/download.html
+<P>The version up there now is really raw. And it relies on AOLserver 2.1 because that's what I've been using for the task manager (which is 75% of the interface.) Please refrain from modifying the code directly -- if you submit patches to .c files, I'm unlikely to get around to applying them any time soon, because the real source is in the LPML XML files. Those are processed to generate both documentation and code.
+<P>But please feel free to give the beast a shot. I'll have installation instructions available soon. (I've got them written down but not yet typed up.) If you can't wait, good luck, heheh, you'll need it.
+<P>If you're running the precompiled Windows code, be advised that the entire thing must then sit in C:\wftk -- otherwise it just plain won't work. Registry configuration will be a subsequent trick, currently left as an exercise to the reader if anybody's really ambitious.

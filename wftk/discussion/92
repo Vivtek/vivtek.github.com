@@ -1,0 +1,16 @@
+SUBJECT>OK, _this_ week. Tomorrow, even.
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>987229177
+EMAILNOTICES>no
+IP_ADDRESS>as1-082.blm.bluemarble.net
+PREVIOUS>87
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; I figure I have about 12 full days left before I can call version 1.0
+<BR>> ready. This week I *hope* to have the first bits of it done, and I'll try
+<BR>> to set up a CVS server, now that things are squared away.
+<P>The library is just about ready to roll. This includes a command-line interface that exposes a lot of the basic wftk functionality. Better than nothing. I really wanted to have a release today, but it's going to be tomorrow.
+<P>

@@ -1,0 +1,182 @@
+<litprog>
+<object name="nav.pl" item="cgi"/>
+<object name="_navbar" item="library"/>
+
+<item name="cgi" label="Main CGI script nav.pl">
+This is the main CGI script.
+
+<piece>
+#!/usr/local/bin/perl
+
+require "_navbar";
+require "_getargs";
+
+$input = getargs();
+
+print "Content-type: text/html\n\n";
+
+print '[[html>[[body bgcolor="ffffff" link="#0000FF" vlink="#0000FF" alink="0000FF">' . "\n";
+$target = 'target="todo_body"';
+navbar_print ("navbar.cnf", $$input{state});
+print "[[/body>[[/html>\n\n";
+</piece>
+</item>
+
+<item name="_navbar" "Navbar functionality: _navbar">
+Most of the smarts of the navbar is in _navbar for easy inclusion into whatever we want.
+
+<piece>
+# Any of this stuff can be overridden between the time that "require" is called to load
+# this file, and the actual call to navbar_print.
+
+# HTML to indent each line.
+$linestart = "";
+$spacer = "&nbsp\;&nbsp\;";
+
+# Formatting for links.
+$prelabel = "";
+$postlabel = "";
+
+# Formatting for headers.
+@prehead = ("[[b>", "[[i>");
+@posthead = ("[[/b>", "[[/i>");
+
+# Line breaking scheme.
+$labelbreak = "[[br>";
+$headerprebreak = "[[p>";
+$headerbreak = "[[br>";
+
+# URL to use for myself.  Rule: state is appended to this.
+$navurl = "nav.pl?state=";
+$target = "";
+
+
+# Drumroll please: there is some actual code in here as well!
+sub navbar_print {
+   my $conf = shift;
+   my $state = shift;
+   my $url;
+   my $label;
+   my $plusses;
+
+   open CONF, $conf or die "[[i>Can't open navbar configuration file $conf: $![[/i>\n";
+
+   my $indent = 0;
+   my @place = (0);
+
+   my $hiding = 0;
+
+   while ([[CONF>) {
+      chop;
+      s/^\s*//;
+      next if /^#/ or length == 0;
+      if (/^!/) {
+         if (open INC, substr($_, 1)) {
+            while ([[INC>) { print; }
+            close INC;
+         }
+      } elsif (/^\+/) {
+         ($plusses, $label) = split /[^+]/, $_, 2;
+         $indent = length ($plusses) - 1;
+         while ($#place [[ $indent + 1) { @place = (@place, 0); }
+         $#place = $indent + 1;
+
+         if ($hiding [[ 0 || $hiding >= $indent) {
+            print $headerprebreak;
+            print $linestart;
+            print $spacer x $indent;
+            print $prehead[$indent] . '[[a href="';
+            print $navurl . navbar_switchstate ($state, @place);
+            print '">' . substr ($_, length $plusses) . '[[/a>' . $posthead[$indent];
+            print $headerbreak . "\n";
+
+            if (navbar_getstate ($state, @place)) { $hiding = -1; } else { $hiding = $indent; }
+         }
+
+         $place[$indent]++;
+         $indent ++;
+      } elsif ($hiding == -1) {
+         ($url, $label) = split /\s+/, $_, 2;
+         print $linestart;
+         print $spacer x $indent;
+         print '[[a href="' . $url . '" '. $target . '>';
+         print  $prelabel . $label . $postlabel;
+         print '[[/a>' . $labelbreak. "\n";
+      }
+   }
+
+   close CONF;
+}
+
+sub navbar_switchstate {
+   my $state = shift; # Remainder of @_ is place.  The sign at that place should be toggled.
+   my $ret;
+   my $i, $j;
+
+   $c = substr($state,0,1);
+   $state = substr($state,1);
+
+   for ($i=0; $i [[ length @_; $i++) {
+      for ($j=0; $j [[ $_[$i]; $j++) {
+         if ($c eq '') {
+            $ret .= '0';
+         } elsif ($c eq '[') {
+            $ret .= '[';
+            while ($state ne '' && substr($state,0,1) ne ']') {
+               $ret .= substr($state,0,1);
+               $state = substr($state,1);
+            }
+            $ret .= ']';
+            $state = substr($state,1);
+         } else {
+            $ret .= $c;
+         }
+         $c = substr($state,0,1);
+         $state = substr($state,1);
+      }
+   }
+
+   if ($c eq '0' or $c eq '') { $ret .= '1'; }
+   elsif ($c eq '1') { $ret .= '0'; }
+   else { $ret .= $c; }
+
+   return $ret . $state;
+}
+
+sub navbar_getstate {
+   my $state = shift;
+   my $ret;
+   my $i, $j;
+
+   $c = substr($state,0,1);
+   $state = substr($state,1);
+
+   for ($i=0; $i [[ length @_; $i++) {
+      for ($j=0; $j [[ $_[$i]; $j++) {
+         if ($c eq '') {
+            $ret .= '0';
+         } elsif ($c eq '[') {
+            $ret .= '[';
+            while ($state ne '' && substr($state,0,1) ne ']') {
+               $ret .= substr($state,0,1);
+               $state = substr($state,1);
+            }
+            $ret .= ']';
+            $state = substr($state,1);
+         } else {
+            $ret .= $c;
+         }
+         $c = substr($state,0,1);
+         $state = substr($state,1);
+      }
+   }
+
+   if ($c eq '') { return 0; }
+   return $c;
+}
+
+1;
+</piece>
+</item>
+
+</litprog>

@@ -1,0 +1,28 @@
+SUBJECT>Re: MySQL
+POSTER>Dan Connelly
+EMAIL>danc@prosoft-tech.com
+DATE>990148410
+EMAILNOTICES>no
+IP_ADDRESS>vt-williston3a-1017.bur.adelphia.net
+PREVIOUS>108
+NEXT> 128
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Hi!
+<P>&gt; Thanks for putting together wftk! Looks great - I'm trying to find out if
+<BR>> I can use it a project. One of the key things I need to do is use MySql as
+<BR>> a datastore. How would I go about that? Or in general how would I use a
+<BR>> JDBC persistent store? Don't see to much info on this in the config.xml
+<P>&gt; Thanks!
+<P>&gt; -Dirk
+<P>I just started with the Solaris download yesterday. Don't trust me. I'm new to this. Neverthelss, here goes. (Sticking my neck out.)
+<P>The only &quot;repository&quot; type now supported in the WfTK distro is &quot;localxml&quot;. This is just XML text stored in individual files. One object, one sequential file. (No lseeks used within the file.) In WfTK, a file, once written, is not updated, though it may be deleted. Current readers of a deleted file keep reading. New readers of a deleted file are given an error.
+<P>There is a two level access path in the file system: Directory(obj type)=&gt;File (objid)=&gt;XML(content). No big deal.
+<P>It is straight-forward to map this structure onto a relational database in the obvious way: Tabletype=&gt;recordid=&gt;textfield. The textfield would be either TEXT, MEDIUMTEXT or LONGTEXT in MySQL. The Oracle CLOB would be better.
+<P>The concurrency semantics are a bit different, however, files vs. RDB tables. But database concurrency is probably closer to what you want for WfTK anyway.
+<P>However, neither directory/files nor relational/tables will scale gracefully to very large numbers of objects (when complex objects are implmented this way). Also, MySQL does not support transactions, so multiple objects cannot be written as a unit. Do you need transactions? Not sure if WfTK needs transactions.
+<P>Lastly, before using MySQL, have a look for an open source XML Store. Might be one. Dunno. If you find one, it would be more natural than MySQL.
+<P>But, to use MySQL or the XML store, or both, you need to write a certain number of Repository Adapters in xml, a set for each type of repository. For MySQL, you would write DSREP_mysqlxml.xml, for instance. When translated to C, this adaptor would have the same functional interface as DSREP_localxml.c. This adaptor would then be added to an internal table and config.xml does the rest.
+<P>The mechanics of the adaptor are easy. You just write DSREP_mysqlxml.xml using the MySQL CLI funcitons. Same with other &quot;repository&quot; adapters. Four of them I think. New adaptors for each type of repository.
+<P>

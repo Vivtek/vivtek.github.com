@@ -1,0 +1,320 @@
+<litprog>
+<object name="PERMS_localxml.c" language="c" item="PERMS_localxml"/>
+
+
+<format name="index">
+<html><head><title>PERMS adaptor: localxml</title></head>
+<body>
+<h2>PERMS adaptor: localxml</h2>
+<hr/>
+<p/>
+[##body##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+
+<item name="PERMS_localxml" label="PERMS adaptor: localxml" format="index">
+This is the localxml permissions directory adaptor for the wftk.  It encapsulates permissions directory
+functionality, storing users and groups as XML files in local directories.  The directories in
+question are determined by the config module using the USER_DIRECTORY
+and GROUP_DIRECTORY named values.
+
+<piece>
+#include [[stdio.h>
+#include [[stdarg.h>
+#include [[sys/types.h>
+#include [[sys/stat.h>
+#ifdef WINDOWS
+#include [[io.h>
+#endif
+#include [[errno.h>
+#include "xmlapi.h"
+#include "../wftk_internals.h"
+</piece>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<piece>
+static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "perm"
+};
+
+XML * PERMS_localxml_init (WFTK_ADAPTOR * ad, va_list args);
+XML * PERMS_localxml_free (WFTK_ADAPTOR * ad, va_list args);
+XML * PERMS_localxml_info (WFTK_ADAPTOR * ad, va_list args);
+XML * PERMS_localxml_perm (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   PERMS_localxml_init,
+   PERMS_localxml_free,
+   PERMS_localxml_info,
+   PERMS_localxml_perm
+};
+
+static struct adaptor_info _PERMS_localxml_info =
+{
+   4,
+   names,
+   vtab
+};
+</piece>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<piece>
+struct adaptor_info * PERMS_localxml_get_info ()
+{
+   return & _PERMS_localxml_info;
+}
+</piece>
+
+Thus concludes the communication with the config module.  Now on with the actual implementation
+of functionality.
+
+<piece>
+XML * PERMS_localxml_init (WFTK_ADAPTOR * ad, va_list args) {
+   struct stat statbuf;
+   char directory[1024]; /* TODO: the usual. */
+   char * end;
+   const char * parms = xml_attrval (ad->parms, "parms");
+   if (!*parms) parms = config_get_value (ad->session, "perms.localxml.directory");
+
+   /* Check for existence, return error if the directory doesn't exist or if it isn't a directory. */
+   strcpy (directory, parms);
+   end = directory + strlen (directory) - 1;
+   if (*end == '\\') *end = '\0';
+   if (*end == '/') *end = '\0';
+
+   if (stat (directory, &statbuf) == -1) {
+      xml_setf (ad->parms, "error", "Directory '%s' not found.", directory);
+      return (XML *) 0;
+   }
+   if (!(statbuf.st_mode & S_IFDIR)) {
+      xml_setf (ad->parms, "error", "Directory '%s' not directory.", directory);
+      return (XML *) 0;
+   }
+
+   strcat (directory, "/");
+   xml_set (ad->parms, "dir", directory);
+   strcpy (directory, "localxml:");
+   strcat (directory, xml_attrval (ad->parms, "dir"));
+   xml_set (ad->parms, "spec", directory);
+   return (XML *) 0;
+}
+</piece>
+
+That wasn't so hard, was it?  Well, freeing up the adaptor is much easier:
+<piece>
+XML * PERMS_localxml_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</piece>
+
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<piece>
+XML * PERMS_localxml_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "perms");
+   xml_set (info, "name", "localxml");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return info;
+}
+</piece>
+
+OK.  So now we get down to the actual business of figuring out permissions.  To judge a permission level, the
+API passes in an action and a user, each XML structures of course.  The user may be a NULL value if the action
+is to be performed anonymously; permissions files should thus reflect this contingency.
+<p/>
+This first cut ignores groups and just works with individual users.  This obviously limits scalability, so it's
+going to be a rather high priority, post-v1.0, to get groups working as well.  But I really want to get this
+out the door.  I mean, <i>really</i>.  So I'm cutting those corners which make a bit of sense.
+<p/>
+So let's cut to the chase.
+
+<piece>
+void _PERMS_localxml_decide (XML * ret, XML * rules, XML * action, XML * user);
+XML * PERMS_localxml_perm (WFTK_ADAPTOR * ad, va_list args) {
+   char path[1024]; /* TODO: fix constant. */
+   XML *action = (XML *) 0;
+   XML *user = (XML *) 0;
+   FILE *file;
+   XML * rules;
+   XML * ret;
+
+   if (args) action = va_arg (args, XML *);
+   if (!action) {
+      xml_set (ad->parms, "error", "No action given.");
+      return (XML *) 0;
+   }
+   user = va_arg (args, XML *);
+
+   ret = xml_create ("value");
+   strcpy (path, xml_attrval (ad->parms, "dir"));
+   strcat (path, xml_attrval (action, "action"));
+   strcat (path, ".xml");
+   file = fopen (path, "r");
+   if (!file) {
+      xml_set (ret, "value", "ok");
+      return ret;
+   }
+
+   rules = xml_read (file);
+   fclose (file);
+
+   /* OK, we've got a perms rulebase for the action in question, and we now have to decide whether we
+      can authorize the action or not. */
+   _PERMS_localxml_decide (ret, rules, action, user);
+   xml_free (rules);
+
+   /* In the absence of any other rules, we permit action to be taken. */
+   if (!*xml_attrval (ret, "value")) {
+      xml_set (ret, "value", "yes");
+   }
+
+   return (ret);
+}
+</piece>
+
+So now we have to figure out how to <i>interpret</i> the rulebase.  Fortunately, that can be copied pretty much verbatim from
+<code>wftk_decide</code>, since it's the same syntax.  I debated actually <i>calling</i> <code>wftk_decide</code>, but decided
+against it, because I'd have to build a fake datasheet and so forth, and it still probably wouldn't fit too well.
+<p/>
+Tests are made in a permissions-specific way using the following function:
+<piece>
+int _PERMS_localxml_test (XML * rule, XML * action, XML * user)
+{
+   int result = 0;
+   const char * value;
+   char * which;
+
+   if (*xml_attrval (rule, "equal")) {  /* Cutting corners.  TODO: maybe some more choices? */
+      which = "equal";
+   } else return result;
+
+   if (!strcmp (xml_attrval (rule, "value"), "user")) {
+      if (user) {
+         value = xml_attrval (user, "id");
+      } else {
+         value = "anonymous";
+      }
+   } else {
+      value = xml_attrval (action, "value");
+   }
+
+   if (!strcmp (which, "equal")) {
+      result = !strcmp (value, xml_attrval (rule, "equal"));
+   }
+
+   if (!strcmp (rule->name, "unless")) return !result;
+   return result;
+}
+</piece>
+
+That function is still rather rudimentary (if only because it still ignores group memberships), and can be expected to gain complexity
+in the post-v1.0 era <i>but I really want to get this released</i>.  Stop me if I'm repeating myself.
+<p/>
+So now the computation of the decision itself is pretty straightforward (see <a href="../wftk_decide.html"><code>wftk_decide</code></a>
+for more background):
+
+<piece>
+void _PERMS_localxml_decide (XML * ret, XML * rules, XML * action, XML * user)
+{
+   XML * elem;
+   XML * elem2;
+   int fire;
+
+   elem = xml_firstelem (rules);
+   while (elem) {
+      if (!strcmp (elem->name, "if") || !strcmp (elem->name, "unless")) {
+         if (_PERMS_localxml_test (elem, action, user)) {
+            xml_set (ret, "value", xml_attrval (elem, "result"));
+            xml_set (ret, "reason", xml_attrval (elem, "reason"));
+            return;
+         }
+      } else if (!strcmp (elem->name, "else")) {
+         xml_set (ret, "value", xml_attrval (elem, "result"));
+         xml_set (ret, "reason", xml_attrval (elem, "reason"));
+         return;
+      } else if (!strcmp (elem->name, "any")) {
+         elem2 = xml_firstelem (elem);
+         while (elem2) {
+            fire = 0;
+            if (!strcmp (elem2->name, "if") || !strcmp (elem2->name, "unless")) {
+               if (_PERMS_localxml_test (elem2, action, user)) {
+                  if (*xml_attrval (elem2, "result")) {
+                     xml_set (ret, "value", xml_attrval (elem2, "result"));
+                     xml_set (ret, "reason", xml_attrval (elem, "reason"));
+                     return;
+                  }
+                  fire = 1;
+               }
+            } else if (!strcmp (elem2->name, "then") && fire) {
+               xml_set (ret, "value", xml_attrval (elem2, "result"));
+               xml_set (ret, "reason", xml_attrval (elem, "reason"));
+               return;
+            }
+            elem2 = xml_nextelem (elem2);
+         }
+         if (fire) {
+            xml_set (ret, "value", xml_attrval (elem, "result"));
+            xml_set (ret, "reason", xml_attrval (elem, "reason"));
+            return;
+         }
+      } else if (!strcmp (elem->name, "all")) {
+         elem2 = xml_firstelem (elem);
+         while (elem2) {
+            if (!strcmp (elem2->name, "if") || !strcmp (elem2->name, "unless")) {
+               if (!_PERMS_localxml_test (elem2, action, user)) {
+                  break;
+               }
+            } else if (!strcmp (elem->name, "then")) {
+               xml_set (ret, "value", xml_attrval (elem2, "result"));
+               xml_set (ret, "reason", xml_attrval (elem, "reason"));
+               return;
+            }
+            elem2 = xml_nextelem (elem2);
+         }
+         if (!elem2) {
+            xml_set (ret, "value", xml_attrval (elem, "result"));
+            xml_set (ret, "reason", xml_attrval (elem, "reason"));
+            return;
+         }
+      } else if (!strcmp (elem->name, "decide")) {
+         _PERMS_localxml_decide (ret, elem, action, user);
+         return;
+      }
+      elem = xml_nextelem (elem);
+   }
+}
+</piece>
+
+</item>
+
+
+</litprog>
+
+

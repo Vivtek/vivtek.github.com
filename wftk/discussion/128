@@ -1,0 +1,39 @@
+SUBJECT>Re: MySQL
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>990413408
+EMAILNOTICES>no
+IP_ADDRESS>as0-024.blm.bluemarble.net
+PREVIOUS>115
+NEXT> 129
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; I just started with the Solaris download yesterday. Don't trust me. I'm
+<BR>> new to this. Neverthelss, here goes. (Sticking my neck out.)
+<P>This is exactly correct.
+<P>Actually, this coming week I'm going to be starting a datasheet storage repository based on Oracle. The &quot;same thing&quot; should work with MySQL, and I hope to parallel develop with PostgreSQL as I go, as I like PostgreSQL a lot for most of my projects.
+<P>I guess I could install MySQL and try to do all three at once. We're only talking about a day's work or so.
+<P>(But the Oracle one, that's being paid for. Aaaah.)
+<P>&gt; In
+<BR>> WfTK, a file, once written, is not updated, though it may be deleted.
+<P>? Where do you get that? The localxml dsrep adaptor, like any dsrep adaptor, writes on a call to wftk_process_save.
+<P>&gt; It is straight-forward to map this structure onto a relational database in
+<BR>> the obvious way: Tabletype=&gt;recordid=&gt;textfield. The textfield would
+<BR>> be either TEXT, MEDIUMTEXT or LONGTEXT in MySQL. The Oracle CLOB would be
+<BR>> better.
+<P>Exactly.
+<P>&gt; The concurrency semantics are a bit different, however, files vs. RDB
+<BR>> tables. But database concurrency is probably closer to what you want for
+<BR>> WfTK anyway.
+<P>Agreed.
+<P>&gt; However, neither directory/files nor relational/tables will scale
+<BR>> gracefully to very large numbers of objects (when complex objects are
+<BR>> implmented this way).
+<P>While I'll agree on the filesystem end of that assertion, I'd like to see some references for the same assertion pertaining to databases.
+<P>&gt; Not sure if WfTK needs transactions.
+<P>Still too stupid. It would depend on how you wrote your dsrep adaptor, really.
+<P>&gt; Lastly, before using MySQL, have a look for an open source XML Store.
+<BR>> Might be one. Dunno. If you find one, it would be more natural than MySQL.
+<P>And if you find one, I'd like to get a pointer as well. Thanks!
+<P>

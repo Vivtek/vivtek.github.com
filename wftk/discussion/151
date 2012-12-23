@@ -1,0 +1,20 @@
+SUBJECT>Re: problem with command line tool
+POSTER>Michael
+EMAIL>toonbots@vivtek.com
+DATE>998925844
+EMAILNOTICES>no
+IP_ADDRESS>as0-189.blm.bluemarble.net
+PREVIOUS>150
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Thanks.
+<BR>> but I tried command
+<BR>> wftk set . chair &quot;Approval code&quot; yes
+<BR>> several times, but I just failed everytime.
+<P>Unless you created and defined a process which has the id &quot;chair&quot;, this is failing because the process doesn't exist.
+<P>wftk create . chair wftk define . chair . chair wftk set . chair &quot;Approval code&quot; yes
+<P>OR
+<P>wftk create . (message: Process 1 created, or whatever) wftk define . 1 . chair wftk set . 1 &quot;Approval code&quot; yes
+<P>Does that make sense? Sorry for the delay. This board has so little traffic I often forget to check it.

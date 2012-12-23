@@ -1,0 +1,871 @@
+<litprog>
+<object name="lpml.pl" language="perl" item="main"/>
+
+
+<format name="index">
+<html><head><title>lpml alpha version</title></head><style>{##style##}</style>
+<body>
+{##navlogo##}
+<div class="title">lpml, alpha version Perl script</div>
+<center>
+[<nbsp/><a href="lpml_alpha.zip">download</a><nbsp/>]
+[<nbsp/><a href="lpml_alpha.xml">xml source</a><nbsp/>]
+[<nbsp/><a href="http://www.vivtek.com/lpml/discuss.pl">discussion</a><nbsp/>]
+</center>
+<hr/>
+This is the first run at the <a href="/lpml.html">lpml (Literate Programming Markup Language)</a>.
+It is a simple Perl script,
+doesn't do much fancy yet -- but it works.  My eventual plans for it are extensive, and I
+don't expect any of the code now in existence to survive long. (<i>Note, six years later: in reality,
+it worked so perfectly for my purposes that it survived six years unchanged.</i>)
+<p/>
+I'd be overjoyed if someone else found this system to be useful.  If you do, please
+<a href="mailto:michael@vivtek.com">tell me about it</a> and of course feel free to update me
+with any changes you might have made to the code.
+<p/>
+Table of contents:
+[##itemlist##]
+
+
+The completed code (a Perl script) is available <a href="lpml_alpha.txt">here</a> as a plain
+text file suitable for download.  To install it, just replace the first line (which is the
+path to my Perl interpreter) with the path to your own Perl interpreter.
+I haven't written any user documentation except a <a href="/lpml/language.html">list of the
+elements I use</a>.  The overall setup of a presentation isn't described anywhere yet.
+<p/>
+You can, of course, study <a href="lpml_alpha_xml.txt">the XML-ish code</a> I used to generate
+this code and documentation.  This is pretty thin user documentation but soon I hope to augment
+it.
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2006, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+{##cr_fill##}
+</body></html>
+</format>
+
+<format name="default">
+<html><head><title>lpml alpha: [##label##]</title><style>{##style##}</style></head>
+<body>
+{##navlogo##}
+<div class="title">[##label##]</div>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="index.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="index.html">Top: lpml alpha</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2006, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+{##cr_fill##}
+</body></html>
+</format>
+
+<item name="index" label="LPML alpha" format="index">
+</item>
+
+<item name="main" label="Script file structure">
+This is the overall layout of the file, and indeed of most single-file Perl scripts.  As such,
+it will serve as a useful pattern someday when this project gets to the point where patterns
+are explicitly supported. 
+<p/>
+I don't know how other people write Perl scripts, but I start out by processing the input, so
+I can quit early if there's already a problem.  Then globals and subroutine declaration (in
+most of my larger pieces, of course, I eschew globals and I put subroutines into separate
+files.)  Then the meat of the code, which executes the following basic algorithm: <ul>
+<li>Scan<br/>
+The initial scan reads the file and creates a list of items keyed by name.  Each item's
+information includes its label (for printing into the documentation) and its initial text
+pieces (for tangling.)  Note that some pieces concatenate onto <i>other</i> items than the
+one they're in; in this case, the label may not even be known before the first text piece
+is added, but that won't stop us, we're Perl.</li>
+<li>Tangle<br/>
+Once the scan is complete, we have all the information we need to generate the text targets
+defined by this file.  (That's tangling.)  So we get that task out of the way.  The other
+reason that tangle goes first is that in a later version than this, the tangle will accumulate
+index data which will be used during the weave phase (where documentation is generated.)</li>
+<li>Prepare indices<br/>
+Using information gained during the initial scan and possibly augmented during tangle, we can
+prepare various indices which can then be used in the generation of the documentation.  At the
+moment, these indices are simply a hierarchical list of items and a list of objects generated;
+no information is created during tangle.  Knuth's original <code>WEB</code>, of course,
+generated a comprehensive list of crossreferences and a list of identifiers during tangle.</li>
+<li>Weave<br/>
+The weave step generates the documentation, one page per item, by name.
+If an item is called "index" (thus generating "index.html") then it will be omitted from the
+list of items, and its label will be available for use in subsequent pages.
+The <code>&lt;insert&gt;</code> tag is replaced by the label of its item, suitably formatted.
+Text pieces are formatted as code blocks. </li>
+</ul>
+
+<piece>
+#!/usr/local/bin/perl
+# This is the lpml alpha Perl script.
+# Copyright (c) 2000 Vivtek.  All rights reserved except those explicitly granted
+# under the GNU Public License.
+# http://www.vivtek.com/lpml/lpml_alpha/index.html for more information.
+
+<insert name="process_args"/>
+
+
+<insert name="scan"/>
+<insert name="tangle"/>
+<insert name="write_index"/>
+<insert name="weave"/>
+
+<insert name="clean_up"/>
+</piece>
+</item>
+
+<item name="scan" label="Initial scan">
+The intial scan of the input file is pretty straightforward.  It simply reads everything and
+builds a list of items, keyed by name and containing their labels and their text.  The only
+weird case you have to watch out for is when a piece concatenates to an item that hasn't been
+encountered yet.  In that case, the piece is stashed anyway, then when the item <i>is</i>
+defined, if it has a text piece in it then that piece will be inserted before any text already
+collected.
+
+<p/>
+Due to the crude nature of my current weave, I have all this in one big blob of text.  This is
+because I can't bring myself to break it onto separate pages.  And of course the other reason
+for this is that I'm still not literate-adapted; I have always tended to write code in a rather
+monolithic fashion (breaking code into subroutines to increase readability has always really
+irritated me.  I guess that's why I'm working on a literate programming system instead.)
+
+<p/>
+One assumption I'm making here: the input file is open on INPUT.  It will have to be rewound
+before doing the weave.  Tangle won't require a further pass, because this scan step will
+gather everything we need for tangling.  First, let's set up some globals we'll be using.
+
+<piece>
+@items = ();
+@objects = ();
+@formats = ();
+$name = '';
+$piecename = '';
+$parentname = '';
+$formatname = '';
+</piece>
+
+The way I'm doing this is that I'm effectively using the name of the current item, and the
+name of the item receiving the current piece, as state variables.  When we leave the element
+in each case, I reset the value to blank, so that the scanner can tell we're not in an item
+or piece respectively.
+<p/>
+So at the end of the loop, you see the two little chunks that actually read all the interesting
+things in this pass: each line is attached to a piece if the piecename is set, or to a format
+if the formatname is set.  Obviously, the two shouldn't be set at the same time, but there's
+nothing in the code which formally precludes that.
+<piece>
+while ([[INPUT>)
+{
+   <insert name=".handle_tags"/>
+
+   if ($piecename ne '') {
+      $pieces{$piecename} .= $_;
+   }
+   if ($formatname ne '') {
+      $format{$formatname} .= $_;
+   }
+}
+</piece>
+</item>
+
+<item name="scan.handle_tags" label="Looking for tags">
+Tag handling is pretty easy: each time we have a line, we check it for a match with one of
+the tags that we know how to handle.  This means that all LPML tags must be on lines by
+themselves, but so far that requirement hasn't been too onerous.  When I build in a real
+XML tokenizer, this whole section will look a lot different.
+<p/>
+The tags we're looking for are <code>&lt;object&gt;</code>, <code>&lt;item&gt;</code>, and
+<code>&lt;piece&gt;</code>.  Oh, and I've just added <code>&lt;format&gt;</code>.
+<p/>
+One of the things the tag handlers do is to set and unset various state markers.
+For instance, I terminate the <code>&lt;item&gt;</code> tag by setting the <code>$name</code>
+global to blank.  I also set the <code>$piecename</code> global to blank in case the user
+forgot to terminate the current piece.  I know that violates the principles of XML tokenization,
+but again, later we'll get into real XML tokenization and I don't want to mess with it yet.
+<piece>
+   if (/([[object .*>)/i)
+   {
+      <insert name="scan.handle_object"/>
+   }
+
+   if (/([[item .*>)/i)
+   {
+      <insert name="scan.handle_item"/>
+      next;
+   }
+
+   if (/([[\/item\s*>)/i) {
+      if ($name !~ /\./) { $parentname = $name; }
+      $name = '';
+      $piecename = '';
+      next;
+   }
+
+   if (/([[piece.*>)/i)
+   {
+      next if $name eq ''; # Pieces are silent outside of items.
+      <insert name="scan.handle_piece"/>
+      next;
+   }
+   if (/([[\/piece\s*>)/i) {
+      $piecename = '';
+      next;
+   }
+
+   if (/([[format.*>)/i)
+   {
+      <insert name="scan.handle_format"/>
+      next;
+   }
+   if (/([[\/format\s*>)/i) {
+      $formatname = '';
+      next;
+   }
+</piece>
+</item>
+
+<item name="scan.handle_object" label="Handle object tag">
+The object scanner is a little simpler than the item and piece scanners, so I'll explain it
+first.  As each line is scanned, it's checked for being an <code>&lt;object&gt;</code> tag.
+Note that this is assuming that the tag will be the only thing on the line.  I don't want to
+get into real tokenizing of the XML input, because that will be the province of the QDMT, which
+is my next four-letter vowelless acronym.  The next version of lpml will use the QDMT to tokenize
+its input.
+<p/>
+At any rate, if the object tag is encountered, I read its attributes into the 
+<code>$thistag</code> hash.  The other handlers reuse this hash.
+<piece>
+$tag = $1;
+$tag =~ s/^[[object\s+//i;
+$attr = "";
+%thistag = (name => '', language => '', item => '');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+</piece>
+
+Now that we've loaded the current object's attributes, let's check the attributes for consistency.
+This is kind of a validation of the kind-of DTD.
+
+<piece>
+if ($thistag{name} eq '') {
+   print STDERR "$. : Nameless object encountered.\n";
+   next;
+}
+if ($thistag{item} eq '') {
+   print STDERR "$. : Object '$thistag{item}' has no starting item.\n";
+   next;
+}
+</piece>
+
+Validation complete, we'll build up a list of objects, and stash the start item of this
+particular object.  The language isn't being used yet, so we won't stash it.
+
+<piece>
+@objects = (@objects, $thistag{name});
+$starter{$thistag{name}} = $thistag{item};
+</piece>
+</item>
+
+<item name="scan.handle_item" label="Handling item tags">
+Handling items works pretty much the same way, except that there's more to keep track of.
+<piece>
+$tag = $1;
+$tag =~ s/^[[item\s+//i;
+$attr = "";
+%thistag = (name => '', label => '', pattern => '', language => '', format => 'default');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+if ($thistag{name} eq '') {
+   print STDERR "$. : Nameless item encountered.\n";
+   next;
+}
+
+$name = $thistag{name};
+$lastchild{$name} = $name;
+$children{$name} = 0;
+if ($name !~ /\./) {
+   $parentname = '';
+   $parent{$name} = '';
+} else {
+   $parentname = $name;
+   $parentname =~ s/\..*?$//;
+   $parent{$name} = $parentname;
+   $lastchild{$parentname} = $name;
+   $children{$parentname} += 1;
+}
+
+push @items, $name;
+
+if (defined $label{$name}) {
+   print STDERR "$. : Duplicate item name '$name'.\n";
+}
+if ($thistag{label} eq '') { $thistag{label} = $name; }
+$label{$name} = $thistag{label};
+if ($parentname eq '') {
+   $url{$name} = "$name.html";
+} else {
+   $n = $name;
+   $n =~ s/^.*?\.//;
+   $url{$name} = $url{$parentname} . '#' . $n;
+}
+</piece>
+</item>
+
+<item name="scan.handle_piece" label="Handle piece tag within item">
+And finally, the <code>&lt;piece&gt;</code> tag, which is pretty analogous to 
+<code>&lt;item&gt;</code>.
+
+<piece>
+$tag = $1;
+$tag =~ s/^[[piece\s*//i;
+$attr = "";
+%thistag = (add-to => '', language => '');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+
+$piecename = $name;
+$piecename = $thistag{'add-to'} if $thistag{'add-to'} ne '';
+</piece>
+</item>
+
+<item name="scan.handle_format" label="Handle format tag">
+The <code>&lt;format&gt;</code> tag simply takes its content and stashes it into a hash, just
+like pieces.  The only attribute we care about in a format tag is its name.
+
+<piece>
+$tag = $1;
+$tag =~ s/^[[format\s*//i;
+$attr = "";
+%thistag = (name => 'default');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+
+$formatname = $thistag{name};
+push @formats, $formatname;
+</piece>
+</item>
+
+
+
+<item name="tangle" label="Tangle: write code output">
+The tangle step is really pretty easy.  What we do in this step is use the <code>$pieces</code>
+hash we populated during the scan step to generate code.  We insert items in other items by
+using the <code>&lt;insert&gt;</code> tag.
+<p/>
+Since our coding language is XML, we can't use the character '<code>&lt;</code>' explicitly
+in our code.  Irritating, but that's one of the tiny little disadvantages of using XML, and it's
+offset by so many advantages that living with it isn't so hard.  All we do is use
+'<code>[[</code>' instead (hard-coded in this version, soon to be specifiable.)  So the tangle
+step also takes care of substituting our '<code>&lt;</code>' back in.
+<p/>
+Tangle is inherently recursive.  I'm dumbly following the whole recursive structure in a
+depth-first manner; the smarter thing would be to cache items as they're tangled in case of
+reuse (then I wouldn't have to retangle that item).  Since I'm working with small files here,
+that probably isn't worth the effort, so I'm not going into it.
+<p/>
+Note also that since Perl can define subroutines right in the middle of the rest of the code,
+I found it more natural simply to include the recursive routine here right in the middle of
+things, instead of packing it off into some subroutine block.
+
+<piece>
+<insert name=".tangle_one"/>
+foreach $obj (@objects) {
+   open OUT, ">$obj";
+   tangle_one ($starter{$obj});
+   close OUT;
+}
+</piece>
+</item>
+
+<item name="tangle.tangle_one" label="Definition of 'tangle_one' subroutine">
+The tangle procedure is recursive, and writes out the tangled output to the object file.
+Among other things, it needs to convert special characters to their literal equivalents;
+special characters are those, like &lt; and &amp;, which XML doesn't allow anywhere but in
+meaningful positions.  These replacements occur right at the bottom.
+<piece>
+sub tangle_one {
+   my $item = shift;
+   foreach $_ (split /\n/, $pieces{$item}) {
+      if (/([[insert .*>)/i)
+      {
+         $tag = $1;
+         $tag =~ s/^[[insert\s+//i;
+         $attr = "";
+         %thisobject = (name => '');
+         foreach $piece (split /"/, $tag) {
+            if ($attr eq '') {
+               $attr = $piece;
+               $attr =~ s/^\s*//;
+               $attr =~ s/\s*=\s*$//;
+            } else {
+               $thisobject{$attr} = $piece;
+               $attr = '';
+            }
+         }
+         if ($thisobject{name} =~ /^\./) {
+            $thisobject{name} = $item . $thisobject{name};
+         }
+         if ($thisobject{name} eq '') {
+            print STDERR "$. : Item to be inserted not named.\n";
+            next;
+         }
+         tangle_one ($thisobject{name});
+         next;
+      }
+
+      s/\[\[/[[/g;
+      s/#\^7/#^7/g;
+      s/#\^lt#/[[/g;
+      print OUT "$_\n";
+   }
+}
+
+</piece>
+</item>
+
+<item name="weave" label="Weave: Write documentation pages">
+The weave step is the other main function of traditional literate programming: it takes the
+items as defined and creates the documentation file.  Since the documentation in this case is
+a set of pages, the philosophy is a little different.  For each main item, we write a separate
+documentation page (subitems are left on the same page as their respective parents, with
+headings.)
+
+<p/>
+The formats used to generate pages are, of course, those read in on the initial scan into
+the format hash.  If no format is specified for an item, the format 'default' is used; if a
+format is named but not defined, then the body of the item is simply printed (i.e. an undefined
+format is effectively equal to '[##body##]').  This sounds useless but it comes in handy for
+embedding fixed pages (such as index.html) directly into the XML document.
+
+<p/>
+The file &lt;project&gt;_format.html is used to generate each of these pages; a more elaborate
+formatting control mechanism would be nice later, but this will do the trick for now.  Code
+pieces are written enclosed in <code>&lt;code&gt;</code> tags, and <code>&lt;insert&gt;</code>
+tags are replaced with the label, not the name, of the respective items.
+
+<p/>
+The overall code for weave looks a lot like the scan code, because it's doing very similar
+things.  It scans lines of input, using global variables to mark its current state.
+
+<p/>
+Setup is straightforward: we rewind the <code>INPUT</code> filehandle, load the template
+into a list (because we'll be scanning it once for each item page) and set some globals to
+blank values.
+
+<piece>
+seek INPUT, 0, 0;
+
+$name = '';
+$item = 0;
+$piece = 0;
+
+while ([[INPUT>) {
+</piece>
+
+So let's get down to business scanning.  The thing <i>weave</i> is interested in is items, so
+let's look for <code>&lt;item&gt;</code> tags first.  For each item we encounter, we'll set
+up replacement tags as follows: <ul>
+<li><code>[##next##]</code> and <code>[##prev##]</code><br/>
+These contain the URLs of the next and previous items in the list, respectively.  The first
+item has a <code>[##prev##]</code> pointing to the index, and the last has a
+<code>[##next##]</code> pointing to the index.</li>
+<li><code>[##nextlabel##]</code> and <code>[##prevlabel##]</code><br/>
+The labels of the next and previous items, for nice link formatting.</li>
+<li><code>[##body##]</code><br/>
+The body of the item is its documentation and properly formatted code.  In other words, most
+of the work of <i>weave</i> is to build up the <code>[##body##]</code> tag.</li>
+<li><code>[##name##]</code>, <code>[##url##]</code> and <code>[##label##]</code><br/>
+The name, URL and label of the current item.</li>
+</ul>
+Eventually we'll want change dates as well, but we're not tracking it yet, so there's not much
+point.  All in good time.
+
+<piece>
+   if (/([[item .*>)/i)
+   {
+      $tag = $1;
+      $tag =~ s/^[[item\s+//i;
+      $attr = "";
+      %thisitem = (name => '', label => '', pattern => '', language => '', format => 'default');
+      foreach $part (split /"/, $tag) {
+         if ($attr eq '') {
+            $attr = $part;
+            $attr =~ s/^\s*//;
+            $attr =~ s/\s*=\s*$//;
+         } else {
+            $thisitem{$attr} = $part;
+            $attr = '';
+         }
+      }
+
+      $name = $thisitem{name};
+      $formatname = $thisitem{format};
+
+      if ($parent{$name} eq '') {
+         $tags{name} = $name;
+         $tags{url} = $url{$name};
+         $tags{label} = $label{$name};
+
+         if ($item == 0) {
+            $i = $items[$#items];
+         } else {
+            $i = $items[$item-1];
+         }
+         if ($parent{$i} ne '') { $i = $parent{$i}; }
+         $tags{prev} = $url{$i};
+         $tags{prevlabel} = $label{$i};
+
+         $tags{body} = '';
+      } else {
+         $n = $name;
+         $n =~ s/^.*?\.//;
+         $tags{body} .= "[[br>[[br>\n";
+         $tags{body} .= "[[a name=\"$n\">\n";
+         $tags{body} .= "[[i>$label{$name}[[/i>[[br>\n";
+      }
+
+      if ($item == $#items) {
+         $tags{next} = $url{$items[0]};
+         $tags{nextlabel} = $label{$items[0]}; 
+      } else {
+         $tags{next} = $url{$items[$item+1]};
+         $tags{nextlabel} = $label{$items[$item+1]};
+      }
+
+      next;
+   }
+   next if $name eq '';
+</piece>
+
+And of course we terminate the item similarly to the scanner.  The difference is that we also
+write out the current item's page using the various tags we've accumulated during scanning.
+Note that one of the things we're doing while writing the file is to convert HTML-like XML
+tags into bona fide HTML; eventually this sort of thing should be handled in some formatting
+module, but in the meantime I'm intent on HTML output.
+<p/>
+Things are only written when either the current item has no children (and no parent), or the
+current item is the last child of its parent.  If the current item is a child, then its body
+has been written onto the pre-existing body of its parent, and other tags (like next and prev)
+have already been set during processing of the parent.  And the format to be used is <i>also</i>
+already set by the parent.  (Corollary: if you set a format in a child item, nothing will 
+happen.)
+<piece>
+   if (/([[\/item\s*>)/i) {
+      if (($parent{$name} eq '' #^7#^7 $children{$name} == 0) || $lastchild{$parent{$name}} eq $name)
+      {
+         if ($parent{$name} eq '') {
+            open OUT, ">$url{$name}";
+         } else {
+            open OUT, ">$url{$parent{$name}}";
+         }
+         foreach $line (split /\n/, $format{$formatname}) {
+
+            $_ = $line . "\n";
+            while (/\[##(.*?)##\]/) {
+               $tag=$1;
+               s/\[##$tag##\]/$tags{$tag}/e;
+            }
+
+            s([[/li>)()g;
+            s([[p/>)([[p>[[/p>)g;
+            s([[br/>)([[br>)g;
+            s([[hr(.*?)/>)([[hr$1>)g;
+            s([[nbsp/>)(#^7nbsp;)g;
+            s([[li>[[b>)([[b>[[li>)g;
+
+            s({##)([##)g;
+            s(##})(##])g;
+
+            print OUT;
+         }
+         close OUT;
+      }
+
+      $name = '';
+      $item++;
+
+      next;
+   }
+</piece>
+
+While in an <code>&lt;item&gt;</code>, we scan for pieces, just like scan.  Text inside pieces
+is formatted differently (with spacing and linebreaks intact.)
+
+<piece>
+   if (/([[piece.*>)/i)
+   {
+      $tag = $1;
+      $tag =~ s/^[[piece\s*//i;
+      $attr = "";
+      %thispiece = (add-to => '', language => '');
+      foreach $part (split /"/, $tag) {
+         if ($attr eq '') {
+            $attr = $part;
+            $attr =~ s/^\s*//;
+            $attr =~ s/\s*=\s*$//;
+         } else {
+            $thispiece{$attr} = $part;
+            $attr = '';
+         }
+      }
+
+      $tags{body} .= "[[table width=100%>\n";
+      $tags{body} .= "[[tr>[[td width=30 bgcolor=eeeeee>#^7nbsp;[[/td>[[td width=100%>\n";
+      if ($thispiece{'add-to'} ne '') {
+         $tags{body} .= "[[i>Add the following to \"$label{$thispiece{'add-to'}}\"[[/i>[[br>\n";
+      }
+      $tags{body} .= "[[pre>";
+      $piece = 1;
+      next;
+   }
+   if (/[[\/piece\s*>/i) {
+      $tags{body} .= "[[/pre>";
+      $tags{body} .= "[[/td>[[/tr>[[/table>\n";
+      $piece = 0;
+      next;
+   }
+</piece>
+
+Almost done.  The only remaining thing is to format <code>&lt;insert&gt;</code> tags.
+
+<piece>
+   if (/([[insert\s.*>)/i)
+   {
+      $tag = $1;
+      $before = $`;
+      $after = $';
+
+      $tag =~ s/^[[insert\s+//i;
+      $attr = "";
+      %thisinsert = (name => '');
+      foreach $part (split /"/, $tag) {
+         if ($attr eq '') {
+            $attr = $part;
+            $attr =~ s/^\s*//;
+            $attr =~ s/\s*=\s*$//;
+         } else {
+            $thisinsert{$attr} = $part;
+            $attr = '';
+         }
+      }
+      if ($thisinsert{name} =~ /^\./) {
+         $thisinsert{name} = $name . $thisinsert{name};
+      }
+
+      $tags{body} .= $before . "[[i>See [[a href=\"$url{$thisinsert{name}}\">";
+      $tags{body} .= "$label{$thisinsert{name}}[[/a>[[/i>$after";
+      next;
+   }
+</piece>
+
+And finally, any line which doesn't contain an <code>&lt;insert&gt;</code> and which is actually
+within an <code>&lt;item&gt;</code> simply gets tacked onto the current item's body after we
+make sure all the characters are going to display correctly.  Note especially the attention
+to detail with the [## delimiter -- if we didn't replace that with a version containing an
+HTML entity instead (&amp;#35;) then we'd have a problem with recursion once we get into the
+template application code.  Which, of course, I realized only after having a problem with
+recursion once I got into the template application code.
+
+<piece>
+   s/#^7/#^7amp;/g if $piece;
+   s/\[\[/#^7lt;/g if $piece;
+   s/\[\#\#/[#^7#35;#/g;
+   s/#\^7/#^7amp;/g if $piece;
+   s/#\^lt#/#^7lt;/g if $piece;
+
+   s({##)([##)g if $piece;
+   s(##})(##])g if $piece;
+
+   $tags{body} .= $_ if $name ne '';
+}
+</piece>
+
+</item>
+
+<item name="write_index" label="Prepare indices">
+In the first version of this app, I used a file named [[project>_index.html as the template
+for the index page of the application.  This page had the following tags available:
+<ul>
+<li>itemlist</li>
+<li>objectlist</li>
+</ul>
+
+However, once I had the <code>&lt;format&gt;</code> tag working, it turned out to be much
+cleaner simply to make those tags available for <i>all</i> pages, then allow an item named
+"index" to write out the index page.  So instead of writing the index page in this block, I'm
+just going to build the tags and trust that the document will use them.  And frankly, if not,
+no skin off my nose.  In that case, the document will need some kind of explicitly generated
+navigation.
+<p/>
+So let's build our item and object indices.  Each of these is hardwired to
+be a bullet point list at the moment; that would be a nice thing to open up to configuration
+but that sort of enhancement will come later.
+<p/>
+Since the index page is now a plain old item, I'm going to omit it from the table of contents.
+It's kind of jarring to see it there.  On the other hand, since the index page is now a plain
+old item, I can use its label in further link formatting!
+<p/>
+The use of the <code>tags</code> hash has to do with the way I do template printing.
+<p/>
+The item list has a variable <code>$level</code> which keeps track of the table of contents
+level.  Subitems are indented under their parents.  When a non-subitem is encountered and the
+<code>$level</code> is 1, then we have to terminate the sublevel.
+
+<piece>
+$level = 0;
+$tags{itemlist} = "[[ul>\n";
+foreach $item (@items) {
+   if ($item eq 'index') {
+      $tags{indexlabel} = $label{$item};
+   } else {
+      if (!$level #^7#^7 $parent{$item} ne '') {
+         $level = 1;
+         $tags{itemlist} .= "[[ul>\n";
+      }
+      if ($level #^7#^7 $parent{$item} eq '') {
+         $level = 0;
+         $tags{itemlist} .= "[[/ul>\n";
+      }
+      $tags{itemlist} .= "[[li> [[a href=\"$url{$item}\">$label{$item}[[/a>\n";
+   }
+}
+$tags{itemlist} .= "[[/ul>\n";
+$tags{objectlist} = "[[ul>\n";
+foreach $obj (@objects) {
+   $tags{objectlist} .= "[[li> [[code>$obj[[/code>:";
+   $tags{objectlist} .= "[[a href=\"$url{$starter{$obj}}\">$label{$starter{$obj}}[[/a>\n";
+}
+$tags{objectlist} .= "[[/ul>\n";
+</piece>
+</item>
+
+<item name="process_args"  label="Process arguments and open source file">
+Finally, now that we have the good stuff out of the way, we're ready to talk about how we
+open our input file.  The scan and weave steps expect input in the INPUT file handle.
+
+<piece>
+if (@ARGV != 1) {
+   print STDERR "Usage: $0 [[filename>\n";
+   exit 1;
+}
+open INPUT, $ARGV[0] or die "Can't open file '$ARGV[0]'\n";
+
+$format_html = $ARGV[0];
+$format_html =~ s/\.xml$/_format.html/i;
+$index_html = $ARGV[0];
+$index_html =~ s/\.xml$/_index.html/i;
+</piece>
+
+And after all is said and done, we'll want to clean all this up, too.
+<piece add-to="clean_up">
+close INPUT;
+</piece>
+</item>
+
+<item name="clean_up" label="Clean up afterwards" display_class="nodisplay">
+</item>
+
+<item name="changelog" label="Change log and further ideas">
+This is of course a work in progress, even this alpha version.  I'm going to cut off this
+particular version whenever I complete
+<a href="http://www.vivtek.com/xml/tokenizing.html">qdmt</a>
+but until then I've got a few things I want to build into even this primitive little app.
+<p/>
+<ul>
+<li><b>Initial application functional</b> <i>3/21/2000</i><br/>
+The initial version could (just barely) tangle and weave.  It could process itself and it
+produced readable documentation.  Qualifies as literate programming in my book, anyway.</li>
+<li><b>Second pass</b> <i>3/26/2000</i><br/>
+Did a few things.  Changed the highlighting of code segments in woven documentation by
+sticking that little grey bar next to them.  Eventually that sort of thing should be done
+with some sort of map (or better yet, lpml should work with DocBook SGML.)  Adding subitem
+functionality.</li>
+<li><b>Support for <code>&lt;format&gt;</code> tag</b> <i>5/7/2000</i><br/>
+Not only did I do better formatting (and remove that awkward dependence on external files)
+I also made it possible for an XML-correct document to generate HTML during weave, and parsed
+this entire document with <a href="/expat.html">expat</a> to ensure that it's well-formed XML,
+which it is.  It was like pulling teeth!  I've fallen into a number of HTML coding habits that
+really make XML complain!
+It is now also possible to generate a single-page
+documentation, since there is no explicitly "different" index page.
+</li>
+<li><b>Added support for quoting [##tags##]</b> <i>12/12/2006</i><br/>
+I use those tags everywhere, including the nav stuff on my own site, so I added support
+for quoting them -- a {##tag##} will get passed through to the output as [##tag##].</li>
+</ul>
+
+Here's a list of things I want to introduce before I do better XML tokenization:
+<ul>
+<li>Hide non-display items (like the cleanup item from this very project.)</li>
+<li>Variant support (to define objects which share some items but differ in others.)</li>
+</ul>
+
+And then there's the further future:
+<ul>
+<li>Version control and documentation.</li>
+<li>Real XML tokenizer (QDMT or expat).</li>
+<li>DocBook XML instead of HTML output.</li>
+<li>Management beyond tangle (i.e. something on the make level.)</li>
+<li>Active items (generated from data structures aside from text, like database queries.)</li>
+<li>More sophisticated integration with my other <a href="/content_management.html">content
+management</a> toolset.</li>
+</ul>
+
+Plenty to do.  Maybe I'll get some of it done sooner or later.  Watch this space for further
+details.
+</item>
+
+</litprog>

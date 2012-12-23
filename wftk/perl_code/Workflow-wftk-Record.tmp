@@ -1,0 +1,669 @@
+package Workflow::wftk::Record;
+
+use warnings;
+use strict;
+
+use Text::ParseWords;
+
+
+=head1 NAME
+
+Workflow::wftk::Record - Provides common code for working with single records, which basically underlie everything in the wftk.
+
+=head1 VERSION
+
+Version 0.01
+
+
+I<Implementation>:
+
+
+   our $VERSION = '0.01';
+
+
+=head1 SYNOPSIS
+
+The C<Workflow::wftk::Record> module organizes a record's worth of data into something more or less like a hash.  But it's a hash
+with power.  In addition to a series of named fields, the wftk record can have attachments (i.e. large binary objects or documents),
+it can have explicit links or references to other records in the repository, it can contain lists or subrecords, and so on.
+
+=head1 FUNCTIONS
+
+=head2 new, new_for_list, new_in_session
+
+A C<new> record is a blank one created from thin air.  It doesn't belong to a list, or even a session.  The C<new_for_list> constructor
+is told which list it will be for, and C<new_in_session> is a blank one not associated with a list (the "anonymous" list will probably
+end up getting stored in the working directory or something).
+
+
+I<Implementation>:
+
+
+   sub new {
+      my $classname = shift;
+
+      my $self = {};
+      bless($self, $classname);
+      $self->{repos} = undef;
+      $self->{listname} = '<anonymous>';
+      $self->{values} = {};
+      $self->{meta} = {};
+      $self->{white} = {};
+      $self->{fields} = [];
+      $self->{types} = {};
+      $self->{kind} = '';
+      $self->{body} = '';
+      $self->{parent} = undef;
+
+      my $in = shift;
+      return $self unless $in;
+
+      if (not ref $in) {
+         $self->parse($in);
+         return $self;
+      }
+
+      if (ref $in eq 'HASH') {
+         while (my ($k, $v) = each (%$in)) {
+            $self->{$k} = $v;
+         }
+      }
+
+      if ($self->{file}) {
+         my $fh;
+         if (open $fh, $self->{file}) {
+            $self->parse ($fh) if $fh;
+            close $fh;
+         }
+      }
+      return $self;
+   }
+
+   sub new_for_list {
+      my $self = new(shift);
+      $self->{list} = shift;
+      my $level = shift;
+      $self->{repos} = $self->{list}->{repos};
+      $self->{listname} = $self->{list}->{list};
+      if (!$level) {
+         my @fields = $self->{list}->fields;
+         $self->{fields} = \@fields;
+      } else {
+         $self->{fields} = $self->{list}->{fields};
+      }
+      $self->{body} = $self->{list}->{body};
+      foreach my $f (@{$self->{fields}}) {
+         $self->{values}->{$f} = undef;
+      }
+      return $self;
+   }
+
+   sub new_in_session {
+      my $self = new(shift);
+      $self->{repos} = shift;
+      return $self;
+   }
+
+=head2 make_record
+
+The C<make_record> is a fourth class method that takes any object and tries to build a C<Workflow::wftk::Record> object out of it.
+If it's a hashref, this is easy.  If it's an arrayref, it will use the fields of the list supplied (if any) and make up new names
+for any fields left over by generating "fieldn" names that haven't already been used.  If it's a scalar reference, it will deference it,
+and if it's a scalar, it passes it to the parser to handle as a string.
+
+If none of that works, it returns an empty record.
+
+
+I<Implementation>:
+
+
+   sub make_record {
+      my ($classname, $object, $list) = @_;
+      return $object if ref $object eq $classname;
+
+      my $ret;
+      if ($list) {
+         $ret = new_for_list ($classname, $list);
+      } else {
+         $ret = new($classname);
+      }
+
+      if (ref $object eq 'HASH') {
+         while (my ($k, $v) = each %$object) {
+            $ret->put($k, $v);
+         }
+         return $ret;
+      }
+      if (ref $object eq 'ARRAY') {
+         my @fields = $list->fields if $list;
+         my $count = 1;
+         while (@fields < @$object) {
+            push @fields, "field$count" unless grep { $_ eq "field$count"} @fields;
+            $count++;
+         }
+         foreach (@$object) {
+            $ret->put(shift @fields, $_);
+         }
+         return $ret;
+      }
+      if (ref $object eq 'SCALAR') { $object = $$object; }
+      if (!ref $object) {
+         $ret->parse($object);
+         return $ret;
+      }
+      return $ret;  # TODO: if it's a "record" of a different type, maybe we should try tying it?
+   }
+
+=head2 TIEHASH, SCALAR, CLEAR, FIRSTKEY, NEXTKEY
+
+The usual hash-tying functions are all defined.
+
+
+I<Implementation>:
+
+
+   sub TIEHASH  { new(@_); }
+   sub SCALAR   { 'wftk record: ' . $_[0]->{listname}}
+   sub CLEAR    { $_[0]->{values} = {}; }
+   sub FIRSTKEY { my $a = scalar keys %{$_[0]->{values}}; each %{$_[0]->{values}}; }
+   sub NEXTKEY  { each %{$_[0]->{values}}; }
+   sub FETCH    { $_[0]->get($_[1]); }
+   sub EXISTS   { exists $_[0]->{values}->{$_[1]}; }
+   sub STORE    { $_[0]->put($_[1], $_[2]); }
+   sub DELETE   { delete $_[0]->{values}->{$_[1]} }
+
+=head2 fields
+
+The C<fields> method returns a list of the fields (column names) defined for the record.
+
+
+I<Implementation>:
+
+
+   sub fields {
+      my $self = shift;
+      return @{$self->{fields}};
+   }
+
+=head2 values
+
+The C<values> method returns a list of the values stored in this record in the same order as the field list.
+
+
+I<Implementation>:
+
+
+   sub values {
+      my $self = shift;
+      return map { $self->{values}->{$_} } @{$self->{fields}};
+   }
+
+=head2 kind
+
+The C<kind> method gets or sets the record's 'kind', which is a string more or less labeling its informal type.
+
+
+I<Implementation>:
+
+
+   sub kind {
+      my ($self, $kind) = @_;
+      $self->{kind} = $kind if defined $kind;
+      $self->{kind};
+   }
+
+=head2 get, get_one
+
+The C<get> method returns a field value if given one field name, or a list if given more than one.
+Given a dotted field name, it treats each part except the last as a subrecord, then gets the corresponding field from that
+subrecord.
+
+
+I<Implementation>:
+
+
+   sub get {
+      my $self = shift;
+
+      return $self->get_one($_[0]) if @_ eq 1;
+      return map { $self->get_one($_) } @_;
+   }
+
+   sub get_one {
+      my ($self, $key, $what) = @_;
+      $what = 'values' unless $what;
+
+      if ($key =~ /^(.+?)\.(.*)/) {
+         my ($start, $rest) = ($1, $2);
+         my $subrec = $self->get_one($start);
+         return undef unless $subrec;
+         return undef unless ref $subrec;
+         if (ref $subrec eq 'ARRAY') {
+            my @map = map {
+               $self->get_one($_)->get_one($rest, $what);
+            } @{$subrec};
+            return @map;
+         }
+         return undef unless $subrec->can('get_one');
+         return $subrec->get_one($rest, $what);
+      }
+
+      if ($key =~ /^(.*)\((.*)\)$/) {
+         my $index;
+         ($key, $index) = ($1, $2);
+         my $r = ref $self->{$what}->{$key};
+         return $self->{$what}->{$key} unless $r;
+         return ${$self->{$what}->{$key}}[$index] if $r eq 'ARRAY';
+         return $self->{$what}->{$key}->get_one($index) if $self->{$what}->{$key}->can('get_one');
+      }
+
+      if ($key =~ /^\?\?(.*)$/) {
+         $key = $1;
+         return $self->search($key, 1);
+      }
+
+      if ($key =~ /^\?(.*)$/) {
+         $key = $1;
+         return $self->get_kind($key, 1);
+      }
+
+      if (wantarray && $what eq 'values' && ref ($self->{values}->{$key}) eq 'ARRAY') {
+         return @{$self->{values}->{$key}};
+      }
+      return $self->{$what}->{$key};
+   }
+
+=head2 get_kind
+
+The C<get_kind> method finds all the immediate children of the current record which are of the kind given.  Later, we might want to consider
+caching this list or something, but for now, we just search each time.  The return is the hash of fields which are of the kind in question.
+
+
+I<Implementation>:
+
+
+   sub get_kind {
+      my ($self, $kind, $namesonly) = @_;
+
+      my @return = ();
+
+      foreach my $f (@{$self->{fields}}) {
+         next unless ref $self->{values}->{$f};
+         next if ref $self->{values}->{$f} eq 'ARRAY';
+         next unless $self->{values}->{$f}->can('kind');
+         next unless $self->{values}->{$f}->kind() eq $kind;
+
+         push @return, $f;
+         push @return, $self->{values}->{$f} unless $namesonly;
+      }
+
+      return @return if wantarray;
+      return \@return;
+   }
+
+=head2 search
+
+The C<search> method does the same as C<get_kind>, but recursively into the subrecord structure.
+
+
+I<Implementation>:
+
+
+   sub search {
+      my ($self, $kind, $namesonly) = @_;
+
+      my @return = ();
+
+      foreach my $f (@{$self->{fields}}) {
+         next unless ref $self->{values}->{$f};
+         next if ref $self->{values}->{$f} eq 'ARRAY';
+
+         if ($self->{values}->{$f}->can('kind') && $self->{values}->{$f}->kind() eq $kind) {
+            push @return, $f;
+            push @return, $self->{values}->{$f} unless $namesonly;
+         }
+
+         if ($self->{values}->{$f}->can('search')) {
+            my $name = 1;
+            foreach ($self->{values}->{$f}->search($kind, $namesonly)) {
+               if ($name) {
+                  push @return, "$f.$_";
+               } else {
+                  push @return, $_;
+               }
+               $name = not $name unless $namesonly;
+            }
+         }
+      }
+
+      return @return if wantarray;
+      return \@return;
+   }
+
+=head2 put, append, put_full
+
+The C<put> method takes a value and writes it to the record.  If the value is a known list value, C<put> appends the value to the list.
+The C<append> method does the same thing, except that if the field is already there, it will append its value to the one already there.
+Both of these methods actually just for C<put_full>.
+
+
+I<Implementation>:
+
+
+   sub put {
+      my ($self, $key, $value, $what) = @_;
+      $self->put_full($key, $value, $what, '>');
+   }
+   sub append {
+      my ($self, $key, $value, $what) = @_;
+      $self->put_full($key, "$value\n", $what, '>>');
+   }
+
+   sub put_full {
+      my ($self, $key, $value, $what, $mode) = @_;
+      if (not $key) {
+         $key = 'body';   # TODO: allow the list to define the "body" field's name.
+         $self->{body} = $key;
+      }
+      $what = 'values' unless $what;
+
+      if ($key =~ /^(.+?)\.(.*)/) {
+         my ($start, $rest) = ($1, $2);
+         my $type = $self->{types}->{$start} || 0;
+         return if $type eq 1 || $type eq 2;
+
+         my $subrec = $self->{values}->{$start};
+         if (not defined $subrec) {
+            $subrec = new(ref $self, {parent => $self});
+            $self->{values}->{$start} = $subrec;
+            push @{$self->{fields}}, $start;
+         }
+         $subrec->put($rest, $value, $what);
+         return;
+      }
+
+      my $type = 1;
+      $type = 2 if ref $value eq 'ARRAY';
+
+      unless (my @match = grep {lc $_ eq lc $key} @{$self->{fields}}) {
+         # This is a new field.
+         push @{$self->{fields}}, $key;
+         $self->{$what}->{$key} = $value;
+         $self->{types}->{$key} = $type;
+      } else {
+         # An old field.  If it's a list, push the incoming value(s).
+         if (defined $self->{types}->{$match[0]} && $self->{types}->{$match[0]} eq 2) {
+            if ($type eq 2) {
+               foreach (@{$value}) {
+                  push @{$self->{$what}->{$match[0]}}, $_;
+               }
+            } else {
+               push @{$self->{$what}->{$match[0]}}, $value;
+            }
+         } elsif ($mode eq '>>') {
+            # If we're in append mode, append to the existing value.
+            $self->{$what}->{$match[0]} = '' if not defined $self->{$what}->{$match[0]};
+            $self->{$what}->{$match[0]} .= $value;
+            $self->{types}->{$match[0]} = $type;
+         } else {
+            $self->{$what}->{$match[0]} = $value;
+            $self->{types}->{$match[0]} = $type;
+         }
+      }
+
+      if ($self->{persist}) {
+         my $fh; 
+         open $fh, ">", $self->{file};
+         print $fh $self->as_text;
+         close $fh;
+      }
+   }
+
+=head2 set_default
+
+The C<set_default> method takes a hash value of field values.  If the fields in question are already defined in the record,
+C<set_default> does nothing; if they are not defined, it sets the values as specified.
+
+
+I<Implementation>:
+
+
+   sub set_default {
+      my ($self, $fields) = @_;
+
+      while (my ($k, $v) = each %{$fields}) {
+         next if defined ($self->get($k));
+         $self->put($k, $v);
+      }
+   }
+
+=head2 putlist
+
+The C<putlist> method takes a list of values, creates a new list value to contain them (or clobbers any existing value of that name),
+and puts all the values to the field.
+
+
+I<Implementation>:
+
+
+   sub putlist {
+      my ($self, $key, @values) = @_;
+      $self->put($key, \@values);
+   }
+
+=head2 parse
+
+The C<parse> method takes a string in the standard wftk record format and writes the fields contains therein into the record.
+This format is intended to handle simple records in a simple way, so it doesn't cover everything.  To cover everything, you
+really need to use XML to serialize a record.
+
+The file format is as follows:
+
+   field1: value
+   field2: value
+   long_field: <<EOF
+   This is text
+   with line breaks.
+   EOF
+
+
+I<Implementation>:
+
+
+   sub parse {
+      my ($self, $input) = @_;
+
+      my $alt = '';
+      if (ref $input eq 'GLOB') {
+         while (<$input>) {
+            $alt .= $_;
+         }
+         $_ = $alt;
+      } else {
+         $_ = $input;
+      }
+
+      # Taken from the Perl recipes:
+      my ($white, $leader);  # common whitespace and common leading string
+      if (/^\s*(?:([^\w\s]+)(\s*).*\n)(?:\s*\1\2?.*\n)+$/) {
+          ($white, $leader) = ($2, quotemeta($1));
+      } else {
+          ($white, $leader) = (/^(\s+)/, '');
+      }
+      $leader = '' unless $leader;
+      $white = '' unless $white;
+      s/^\s*?$leader(?:$white)?//gm if $leader or $white;
+
+      my $cursubrec = '';
+      my $glom = 0;
+      my ($eof, $field, $val);
+      my $data = '';
+      my %kinds;
+      foreach my $line (split /\n/) {
+         if (!$glom) {
+            next unless $line;
+            next if $line =~ /^#/;  # TODO: cache somewhere for later writing.
+
+            if ($line =~ /^\[(.*)\]/) {
+               my $subrec = $1;
+               $subrec = '..' if $subrec eq '/';  # A little syntactic sugar.
+
+               my $kind;
+               if ($subrec =~ /^(.*?) *: *(.*)$/) {
+                  $subrec = $1;
+                  $kind = $2;
+               } else {
+                  $kind = '';
+               }
+
+               if ($subrec =~ /^\./) {
+                  while ($subrec =~ /^\.\./) {
+                     last if $subrec eq '.';
+                     if ($cursubrec =~ /\./) {
+                        $cursubrec =~ s/\..*?$//;
+                     } else {
+                        $cursubrec = '';
+                     }
+                     $subrec =~ s/^\.//;
+                  }
+                  if ($subrec ne '.') {
+                     $cursubrec .= '.' if $cursubrec and $subrec !~ /^\./;
+                     $cursubrec .= $subrec;
+                  }
+               } else {
+                  $cursubrec = $subrec;
+               }
+
+               $kinds{$cursubrec} = $kind if $kind and not $kinds{$cursubrec};
+               next;
+            }
+
+            if ($line =~ /^\+/) {
+               $line =~ s/^\+*//;
+               $line =~ s/:.*$//;
+               $line .= ': 1';
+            }
+
+            if ($line =~ /^\-/) {
+               $line =~ s/^\-*//;
+               $line =~ s/:.*$//;
+               $line .= ': 0';
+            }
+
+            if ($line =~ /^@/ || $line =~ /^\*/) {
+               $line =~ s/^[@\*]//;
+               ($field, $val) = split (/: */, $line, 2);
+               my @words = quotewords ('\s+', 0, $val);
+               $self->putlist(_subrec_field($cursubrec, $field), @words);
+               next;
+            }
+
+            if ($line =~ /:/) {
+               ($field, $val) = split (/: */, $line, 2);
+               if ($val =~ /<<(.*)/) {
+                  $eof = $1;
+                  $glom = 1;
+                  $data = '';
+                  next;
+                }
+                $self->put(_subrec_field($cursubrec, $field), $val);
+            } else {
+                $data = "$line\n";
+                $eof = '';
+                $glom = 1;
+                $field = '';
+            }
+         } else {
+            if ($eof and ($line eq $eof)) {
+               $glom = 0;
+               $self->put(_subrec_field($cursubrec, $field), $data);
+            } else {
+               $data .= "$line\n";
+            }
+         }
+      }
+      if ($glom) {
+         $self->put(_subrec_field($cursubrec, $field), $data);
+      }
+
+      foreach (keys %kinds) {
+         my $subrec = $self->get($_);
+         eval { $subrec->kind($kinds{$_}); }
+      }
+   }
+
+   sub _subrec_field {
+      my ($subrec, $field) = @_;
+
+      $field =~ s/^\.+//;
+      $subrec .= '.' if $subrec;
+      return $subrec . $field;
+   }
+
+=head2 as_text
+
+The C<as_text> method builds a string formatted just like the C<parse> method expects.  The two together provide a convenient
+serialization format which is very easy to comprehend and modify by hand.  The idea here is quick and easy.
+
+
+I<Implementation>:
+
+
+   sub as_text {
+      my ($self) = @_;
+
+      my $ret = '';
+      foreach my $f (@{$self->{fields}}) {
+         next if $self->{body} and $f eq $self->{body};
+         $ret .= "$f: ";
+         if (not defined $self->{values}->{$f}) {
+            $ret .= "\n";
+         } elsif ($self->{values}->{$f} =~ /\n/) {
+            $ret .= "<<EOF\n";
+            $ret .= $self->{values}->{$f};
+            if ($self->{values}->{$f} =~ /\n*/) {
+            } else {
+               $ret .= "\n";
+            }
+            $ret .= "EOF\n";
+         } else {
+            $ret .= $self->{values}->{$f} . "\n";
+         }
+      }
+      if ($self->{body} and $self->{values}->{$self->{body}}) {
+         $ret .= $self->{values}->{$self->{body}};
+      }
+
+      return $ret;
+   }
+
+=head1 AUTHOR
+
+Michael Roberts, C<< <michael at vivtek.com> >>
+
+=head1 BUGS
+
+Please report any bugs or feature requests to C<bug-workflow-wftk at rt.cpan.org>, or through
+the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Workflow-wftk>.  I will be notified, and then you'll
+automatically be notified of progress on your bug as I make changes.
+
+
+=head1 SUPPORT
+
+You can find documentation for this module with the perldoc command.
+
+    perldoc Workflow::wftk::Record
+
+=head1 COPYRIGHT & LICENSE
+
+Copyright 2008 Vivtek, all rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+
+
+I<Implementation>:
+
+
+   1; # End of Workflow::wftk::Record

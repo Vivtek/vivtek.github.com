@@ -1,0 +1,13 @@
+SUBJECT>Second example: xmltools
+POSTER>Michael
+EMAIL>lpml@vivtek.com
+DATE>959306885
+EMAILNOTICES>no
+IP_ADDRESS>tc7-75.blm.bluemarble.net
+PREVIOUS>
+NEXT>
+IMAGE>
+LINKNAME>xmltools are here
+LINKURL>http://www.vivtek.com/xmltools/
+<P>The xmltools are a set of, well, XML tools. Based on expat, they are four command-line utilities to work with XML. Quite useful for your XML-aware shell scripts.
+<P>I wrote the tools first, then reverse-literatized them. It may show. Again, I'd appreciate any comments you might have.

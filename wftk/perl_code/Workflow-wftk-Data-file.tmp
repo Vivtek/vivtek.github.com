@@ -1,0 +1,293 @@
+package Workflow::wftk::Data::file;
+
+use warnings;
+use strict;
+
+use Workflow::wftk::Record;
+use base qw(Workflow::wftk::Data);
+use Symbol;
+
+
+=head1 NAME
+
+Workflow::wftk::Data::file - Provides storage tools for putting data into flat files, one line per record.
+
+=head1 VERSION
+
+Version 0.01
+
+
+I<Implementation>:
+
+
+   our $VERSION = '0.01';
+
+
+=head1 SYNOPSIS
+
+The C<Workflow::wftk::Data::file> module implements the Data class with storage of data in a flat file.
+Yes, I know it more or less duplicates DBD::AnyData.  Feel free to use the C<Workflow::wftk::Data::dbi> adapter
+if you prefer.
+
+This is a pretty crude file interface.  It opens the file to start with, imports the data, and closes the file.
+If the file is opened in read-only mode, that's that.  Otherwise, data is written after every add/mod/del.  On add,
+it's just appended, while mod/del rewrite the entire file.  Between writes, the file is closed.
+
+Essentially, this is not meant to be high-performance.  If you want high performance for a large list, storing
+it in a single large text file is not the way to get it.  You'll want to consider DBM, SQLite, or a multiuser
+DBMS like MySQL.  The basic wftk data building blocks are really meant to provide unified access for heterogeneous data storage
+environments, not performance.
+
+That said, if you want a list with a simple open file for storage (to reduce memory overhead), you might want
+to look at L<DBD::File> and its many subclasses.
+
+Note that this class can also be used as a virtual list within another datasource.  I'm not 100% sure that will
+work, but soon, my pretty, soon.  This was one of the features I bogged down on in the C version.
+
+=head1 FUNCTIONS
+
+=head2 connect
+
+The C<connect> method opens a file and reads it, storing the values obtained into a hash, where the superclass can
+work with it just like a memory table.
+We use a regexp /([A-Za-z0-9_:./ ])/ to untaint the filename we're given.
+
+
+I<Implementation>:
+
+
+   sub connect {
+      my ($self, $def) = @_;
+
+      $self->{fields} = [];
+      $self->{values} = {};
+      $self->{nextkey} = 1;
+      $self->{conf}->set_default ({ keys => 1, header => 0 });
+      $self->{file} = $self->{conf}->get('file');
+
+      if (-e $self->{file}) {
+         my $fh = $self->open();
+         $self->import_data($fh);
+         $self->close_fh($fh);
+      }
+   }
+   sub DESTROY { $_[0]->close() }
+
+=head2 open, close_fh
+
+The C<open> method opens the list's storage file for reading or writing and returns the file handle.  I'm not sure
+this should necessarily be private.  The C<close_fh> method, of course, closes that file handle again.
+
+
+I<Implementation>:
+
+
+   sub open {
+      my $self = shift;
+      my $fh = gensym();
+      my $d = shift;
+      $d = '<' unless $d;
+      $d = '>' if $d eq 'w';
+      $d = '>>' if $d eq 'a';
+      open $fh, "$d$self->{file}";
+      return $fh;
+   }
+   sub close_fh { close $_[1] if $_[1]; }
+
+=head2 import_data
+
+The C<import_data> method reads the file given to it, adding records to memory as it goes.  (Note: calling it 'import' had
+surprisingly bad side effects.)
+
+
+I<Implementation>:
+
+
+   sub import_data {
+      my ($self, $fh) = @_;
+
+      return unless $fh;
+      my @fields = ();
+      if ($self->{conf}->get('header')) {
+         @fields = split /\t/, $self->getline($fh);
+         shift @fields if $self->{conf}->get('keys');
+         $self->add_fields (@fields);
+      }
+      while ($_ = $self->getline($fh)) {
+         my @values = split /\t/;
+         my $key = undef;
+         $key = shift @values if $self->{conf}->get('keys');
+         if (not @fields) {
+            for (my $i = 0; $i < @values; $i++) {
+                push @fields, "field$i";
+            }
+         }
+         my $rec = $self->get_new();
+         foreach (@fields) { $rec->put($_, shift @values); }
+         $self->SUPER::put($key, $rec);  # This stores the record im memory, you see.
+      }
+   }
+
+=head2 getline
+
+The C<getline> method gets a line from a file handle provided.  This might later not be a file handle, which is why
+it is abstracted in this way.
+
+
+I<Implementation>:
+
+
+   sub getline {
+      my ($self, $fh) = @_;
+      my $line = scalar <$fh>;
+      chomp $line if defined $line;
+      $line;
+   }
+
+=head2 key_as_text
+
+The C<key_as_text> expresses a given record as text for this list's definition.  It will be used in both
+concrete and virtual modes.
+
+
+I<Implementation>:
+
+
+   sub key_as_text {
+      my ($self, $key) = @_;
+
+      my @values = $self->get($key)->values();
+      unshift @values, $key if $self->{conf}->get('keys');
+      join ("\t", @values);
+   }
+
+=head2 put
+
+The C<put> method takes a record object and writes it to the list.  It calls C<write> and C<append>, depending on whether
+the whole file needs to be written or not.  Note that we can thus subclass for virtual accesses.
+
+
+I<Implementation>:
+
+
+   sub put {
+      my ($self, $key, $record) = @_;
+      my $origkey = $key;
+      $key = $self->SUPER::put($key,$record);
+      if ($origkey) {
+         $self->write();
+      } else {
+         $self->append($self->key_as_text($key));
+      }
+      return $key;
+   }
+
+=head2 write
+
+The C<write> method opens the list's storage file and writes the data to it.
+
+
+I<Implementation>:
+
+
+   sub write {
+      my ($self) = @_;
+      my $fh = $self->open ("w");
+      if ($self->{conf}->get('header')) {
+         my @fields = $self->fields();
+         unshift @fields, '' if ($self->{conf}->get('keys'));
+         $self->putline($fh, join ("\t", @fields));
+      }
+      for (my $key = $self->first_key(); $key; $key = $self->next_key()) {
+         $self->putline($fh, $self->key_as_text($key));
+      }
+      $self->close_fh($fh);
+   }
+
+=head2 append
+
+The C<append> method opens the list's storage file in append mode, and appends a given line to it.
+
+
+I<Implementation>:
+
+
+   sub append {
+      my ($self, $line) = @_;
+      my $fh = $self->open ("a");
+      $self->appendline($fh, $line);
+      $self->close_fh($fh);
+   }
+
+=head2 putline, appendline
+
+The C<putline> and C<appendline> methods just print a line to a file handle.  I can't remember why I
+separated them, but I'm sure that it will be obvious later.
+
+
+I<Implementation>:
+
+
+   sub putline {
+      my ($self, $fh, $line) = @_;
+      print $fh "$line\n";
+   }
+   sub appendline {
+      my ($self, $fh, $line) = @_;
+      print $fh "$line\n";
+   }
+
+=head2 delete
+
+The C<delete> method, given a key, deletes the record.
+
+
+I<Implementation>:
+
+
+   sub delete {
+      my ($self, $key) = @_;
+      $self->SUPER::delete($key);
+      $self->write();
+   }
+
+=head2 close
+
+The C<close> method closes the file.  Hmm, except it's already closed, isn't it?  So ... never mind.
+
+
+I<Implementation>:
+
+
+   sub close { }
+
+=head1 AUTHOR
+
+Michael Roberts, C<< <michael at vivtek.com> >>
+
+=head1 BUGS
+
+Please report any bugs or feature requests to C<bug-workflow-wftk at rt.cpan.org>, or through
+the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Workflow-wftk>.  I will be notified, and then you'll
+automatically be notified of progress on your bug as I make changes.
+
+
+=head1 SUPPORT
+
+You can find documentation for this module with the perldoc command.
+
+    perldoc Workflow::wftk::Data
+
+=head1 COPYRIGHT & LICENSE
+
+Copyright 2008 Vivtek, all rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+
+
+I<Implementation>:
+
+
+   1; # End of Workflow::wftk::Data

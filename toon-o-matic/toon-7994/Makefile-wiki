@@ -1,0 +1,14 @@
+WIKISRC = $(wildcard ./*.wiki)
+WIKIPG = $(WIKISRC:.wiki=.html)
+
+TOONSRC = $(wildcard ./toon-*.wiki)
+
+all: toons.txt $(WIKIPG)
+
+%.html: %.wiki
+	perl /home/michael/vivtek/pages/index.pl $<
+	perl /home/michael/vivtek/pages/weave.pl $< > $@
+
+toons.txt: $(TOONSRC)
+	perl toon_setup.pl
+	touch toons.txt

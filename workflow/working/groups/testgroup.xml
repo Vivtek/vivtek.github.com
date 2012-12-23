@@ -1,0 +1,1 @@
+<group name="testgroup"><user name="michael"/><group-included-by name="blah" permission="own"/><group-include name="scenarios" permission="edit"/><group-include name="scenarios" permission="checkout"/><user name="anthony"/><user name="demo"/><user name="long"/></group>

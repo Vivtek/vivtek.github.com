@@ -1,0 +1,20 @@
+SUBJECT>Re: Workflow, Python and Zope
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>969419327
+EMAILNOTICES>no
+IP_ADDRESS>tc7-118.blm.bluemarble.net
+PREVIOUS>20
+NEXT> 45
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; As Josh already mentioned there is Zope and Python. Currently there is a
+<BR>> discussion thread in the Zope mailing list
+<BR>> (http://lists.zope.org/pipermail/zope-dev) and in egroups:
+<BR>> http://www.egroups.com/messagesearch/zope?query=Workflow, discussing
+<BR>> Generic Workflow. I am convinced that it would be a great shift to build a
+<BR>> Workflow product on Zope with Python. There is already a small basis of a
+<BR>> workflow, but maybe we could pull together the resources.
+<P>&gt; Arno Gross arno.gross@constotec.de
+<P>Actually, I'm currently learning Python. As Python is typically extended with plain-vanilla C modules, and as the new and improved wftk (which hasn't hit stores yet) is reimplemented as a set of libraries, I think that it's going to be really simple to drop the engine into Python and Zope. That'll be my next trick.

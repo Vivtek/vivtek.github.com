@@ -1,0 +1,92 @@
+#!/usr/local/bin/perl
+
+sub crack { 
+   my ($peer, $user, $whatever, $rest) = split (/ /, shift (@_), 4);
+   my ($stamp, $stuff) = split /\]/, $rest, 2;
+   $stamp = substr($stamp, 1);
+
+   my ($d, $nont) = split / /, $stamp, 2;
+   my ($dt, $t) = split /:/, $d, 2;
+
+   return ("$peer $user $whatever [", $dt, $t, " $nont] $stuff");
+}
+
+$lastpre = "";
+$lastpost = "";
+$lastdt = "";
+$lastti = "";
+
+$llastpre = "";
+$llastpost = "";
+$llastdt = "";
+$llastti = "";
+
+system "date +%y/%m/%d >> /usr/local/AOLserver/web/nslog/analog_done/fixups.log";
+open LOG, ">>/usr/local/AOLserver/web/nslog/analog_done/fixups.log";
+
+$line = 0;
+
+while (<>) {
+   $line ++;
+   ($pre, $dt, $ti, $post) = crack ($_);
+
+   $dateok = 0;
+   $timeok = 0;
+
+   if ($lastpre ne "") {
+      # Check time first for being a valid time
+      if (length ($lastti) < 8) {
+         print LOG "$line: time was '$lastti', replaced with '$ti'\n";
+         $lastti = $ti;
+      }
+      ($h, $m, $s) = split /:/, $lastti, 3;
+      if ($h < 0 || $h > 23 || $m < 0 || $m > 59 || $s < 0 || $s > 59) {
+         print LOG "$line: time was '$lastti', replaced with '$ti'\n";
+         $lastti = $ti; # Use the next time up as the timestamp if we've lost the real info.
+      }
+      # OK, now let's check the date.  For date checking we need *both* bracketing dates.
+      if ($llastpre ne "") {
+         if ($lastdt ne $dt) {
+            # Well, the dates differ.  They can obviously do that anyway...  But not by much.
+            ($lld, $llm, $lly) = split m'/', $llastdt, 3;
+            ($ld, $lm, $ly) = split m'/', $lastdt, 3;
+            ($d, $m, $y) = split m'/', $dt, 3;
+
+            # These three rules restore continuity in almost all cases.  If a glitch occurs
+            # right on the boundary between days, you're still screwed, but frankly with any
+            # appreciable traffic the probability is extremely low so I'm not too worried
+            # about it.  If you want to fix it, do it and tell me how.  michael@vivtek.com!
+            if ($y == $lly && $ly != $y) {
+               $ly = $y;
+            }
+            if ($d == $lld && $ld != $d) {
+               $ld = $d;
+            }
+            if ($m eq $llm && $lm ne $m) {
+               $lm = $m;
+            }
+            if ($lastdt ne "$ld/$lm/$ly") {
+               print LOG "$line: date was '$lastdt', replaced with '$ld/$lm/$ly'\n";
+               $lastdt = "$ld/$lm/$ly";
+            }
+         }
+      }
+      print "$lastpre$lastdt:$lastti$lastpost";
+   }
+
+   $llastpre = $lastpre;
+   $llastdt = $lastdt;
+   $llastti = $lastti;
+   $llastpost = $lastpost;
+
+   $lastpre = $pre;
+   $lastdt = $dt;
+   $lastti = $ti;
+   $lastpost = $post;
+}
+
+if ($lastpre ne "") { # Print the line hanging in the buffer if there was any data at all.
+   print "$lastpre$lastdt:$lastti$lastpost";
+}
+
+close LOG;

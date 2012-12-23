@@ -1,0 +1,21 @@
+SUBJECT>Thanks!
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>973212844
+EMAILNOTICES>no
+IP_ADDRESS>as0-131.blm.bluemarble.net
+PREVIOUS>59
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Just making sure I wasnt teaching my granny to suck eggs, I took a gander
+<BR>> at your code. Unfortunately I dont speaka da TCL well enough to
+<BR>> contribute, but I really think your code would be helped immensely by the
+<BR>> modularisation suggestions in my previous message.
+<P>OK, granny's in da house.
+<P>Hey -- thanks for the four excellent posts here! I drop by the message board every week or so, so I hope you didn't get to feeling too ignored.
+<P>Here's the situation. The code you see is basically a first-run prototype. You're absolutely correct that the UI is far too bound to the data structure, and in fact the next run is a lot looser, but still not quite ready to let loose (and I've been swamped for the last couple of months.)
+<P>I like your suggestions -- on the other hand I have a great distrust for &quot;simply&quot; dropping other libraries into the mix without a little thought about how to do it well. If you've ever followed such projects as wxPython, you'll see that whenever one module upgrades, the whole dang system breaks until somebody slogs through the whole thing. And if you don't upgrade, you're shooting yourself in the foot anyway.
+<P>The &quot;new&quot; wftk is a lot more modular and insulates itself a lot better from things like this.
+<P>Talk is cheap, which is why I don't say too much. I have beaucoup things to fix up with the wftk before I think it's version 1 and I'm *extremely* grateful for your input.

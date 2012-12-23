@@ -1,0 +1,29 @@
+SUBJECT>Re: Repository solutions?
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>970684546
+EMAILNOTICES>no
+IP_ADDRESS>tc7-34.blm.bluemarble.net
+PREVIOUS>16
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Why not use an existing revision control system. You get fine-grain
+<BR>> version control, with delta-based compression, and even networked
+<BR>> distribution support.
+<P>Mostly laziness on my part. I usually find that a more or less clean API and a namby-pamby prototype implementation is a good way to start, for me. Then I can go back and integrate with some existing system -- but if I start by trying to learn the existing system, I don't get anything done to integrate.
+<P>&gt; I believe CVS could do the trick, but if you're willing to try something
+<BR>> more interesting, have a look at PRCS. This is a fair bit simpler to use
+<BR>> than CVS and in some ways more powerful.
+<P>I hadn't thought of CVS integration until you mentioned this, but now I'm really getting pretty interested in it. I'll take a look at PRCS if I get the time.
+<P>&gt; Although it's currently using RCS
+<BR>> as a backend, the next version will be using xdelta. Xdelta uses efficient
+<BR>> binary deltas (rsync algorithm), has an application-level filesystem
+<BR>> interface, database backend, and support for CVSup type remote updates
+<BR>> between arbitary versions. Perhaps Xdelta alone would be useful?
+<P>&gt; http://www.cs.berkeley.edu/~jmacd/prcs.html
+<P>&gt; All these fancy low level features are cool, but the main benefit for you
+<BR>> would be a nice version controlled repository that could be used for
+<BR>> everything with a dead-simple interface.
+<P>I'll definitely scope things out. One of my watchwords with wftk has been to make it possible to integrate the toolkit with anything already there in the target environment. That's why I conceive of wftk as a toolkit instead of as an application (which it also is, of course.)

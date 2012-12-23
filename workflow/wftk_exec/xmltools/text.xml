@@ -1,0 +1,18 @@
+<litprog>
+<object name="out.txt" item="start"/>
+<object name="out2.txt" item="next"/>
+
+<item name="start" label="Starting item">
+<!-- COmment. -->
+Hi.
+<insert name="second"/>
+</item>
+
+<item name="second" label="Hi again">
+Here is some content.
+
+(Just checking.)
+</item>
+</litprog>
+
+

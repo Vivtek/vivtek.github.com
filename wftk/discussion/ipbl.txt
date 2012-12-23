@@ -1,0 +1,6 @@
+66.232.102.40: Google shows frequent spam; can't figure out proxy, tho
+67.15.207.27: Listed on proxylist.sakura.ne.jp w/port 8080 - first attempt answered, then silent
+195.2.114.2: Not listed as a proxy, but spam is spam.
+220.226.63.254: Listed on ban list, port 8008 reveals an open Squid proxy.  Cool.
+200.238.102.170: Listed on www.proxylistonline.com w/port 8080 - first one that actually works!  Retrieved Google Brazil through it.  Cool!!  Google on "" proxy
+200.238.102.162: Listed www.aliveproxy.com w/port 8080 -- is it the whole block?  Certainly it's the same spammer.

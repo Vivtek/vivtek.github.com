@@ -1,0 +1,17 @@
+SUBJECT>Expat.dll
+POSTER>Jaikrishnan
+EMAIL>jaikrishnan@hotmail.com
+DATE>1019503264
+EMAILNOTICES>no
+IP_ADDRESS>203.199.130.170
+PREVIOUS>
+NEXT> 175
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Hi,
+<P>I tried to run the binaries and also compile the sources supplied. I am struck with an error as expat.dll not found.
+<P>Is there something missing in the distributions? I have perl installed at another location where I found an expat.dll. Placing this at the location does not seem to help.
+<P>All help is appreciated.
+<P>Thanks
+<P>Jaikrishnan

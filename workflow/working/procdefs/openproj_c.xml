@@ -1,0 +1,62 @@
+<workflow name="Open source change request" author="Michael: michael@vivtek.com">
+   <role name="Analyst"/>
+   <role name="Developer"/>
+   <role name="Tester"/>
+   <role name="Documentor"/>
+
+   <data name="Change request number" type="sequence"/>
+   <data name="Description" type="text"/>
+   <data name="Supporting documentation">
+     <list><data type="document"/></list>
+   </data>
+   <data name="Mailing list"><list><data/></list></data>
+   
+
+   <sequence>
+      <task label="Analyze" role="Analyst">
+         <data name="action" type="choice(ok,merge,fork)">
+            
+         </data>
+      </task>
+      <if expr="${action} == 'merge'">
+         <situation name="merge"/>
+         <elseif expr="${action} == 'fork'"/>
+         <situation name="fork"/>
+      </if>
+      <task label="Develop" role="Developer">
+         <data name="changes" type="collection(cvs)"/>
+      </task>
+      <task label="Test" role="Tester">
+         <data name="test plan" type="collection(cvs)"/>
+      </task>
+      <task label="Document" role="Documentor">
+         <data name="CR documentation" type="document"/>
+         <data name="Doc updates" type="collection(cvs)"/>
+      </task>
+   </sequence>
+   <handle situation="merge">
+      <task label="Define merge" role="Analyst">
+         <data name="mergee" type="workflow"/>
+         <data name="explanation" type="text"/>
+      </task>
+      <alert type="foreign-role" to="${mergee}:Analyst">
+         <data name="label" type="text" value="Change request merge"/>
+         <data name="explanation"/>
+         <data name="mailing list"/>
+      </alert>
+   </handle>
+   <handle situation="fork">
+      <task label="Define fork" role="Analyst">
+         <data name="description" type="text"/>
+         <data name="newdescription" type="text"/>
+         <data name="Supporting documentation" type="collection(document)"/>
+         <data name="New supporting documentation" type="collection(document)"/>
+      </task>
+      <start name="Open source change request">
+         <data name="description" value="${newdescription}"/>
+         <data name="Supporting documentation" value="${Supporting documentation}"/>
+         <data name="Mailing list" value="${Mailing list}"/>
+      </start>
+      <resume/>
+   </handle>
+ </workflow>

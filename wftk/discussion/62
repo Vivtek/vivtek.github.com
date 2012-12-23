@@ -1,0 +1,18 @@
+SUBJECT>Re: metamodel and random thoughts
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>973213256
+EMAILNOTICES>no
+IP_ADDRESS>as0-131.blm.bluemarble.net
+PREVIOUS>50
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; It strikes me reading the stuff on this site that the metamodel is
+<BR>> missing
+<P>You're not missing it -- I'm currently getting a lot more serious about it. I wanted to do the prototype before I messed with theory (yeah, OK, it's probably backwards, but that's just the way my brain works.)
+<P>I don't care for a lot of the theory floating around out there. Granted, I haven't gotten into it in any depth, but there are two basic views of workflow: one is process-oriented (and tasks are epiphenomena representing process state), and the other is task-oriented (and processes are epiphenomena representing groups of tasks.) Both are perfectly valid views of this stuff we call &quot;workflow&quot; -- and yet all the theory I've seen chooses one as the &quot;true&quot; view and calls the other an epiphenomenon.
+<P>My goal with the wftk (after all, a *toolkit*) is to address both these views. So far, I haven't done a particularly creditable job from a theoretical standpoint, but I'm working on it.
+<P>I would like to stress at this point that basically *the* paramount goal of this project is to have a workflow tool that Joe Schmo can use to *define* workflow. A generic XML tool would be an immediate shot in the foot. Sorry. However, nothing in the system prevents you from using multiple procdef editors; knock yourself out.
+<P>Sorry, this message deserves more thought than I can give it. I'll get back to it.

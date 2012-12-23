@@ -1,0 +1,37 @@
+<workflow name="Tradeshow org" author="Michael michael@vivtek.com">
+   <role name="Organizer"/>
+   <role name="Hotel person"/>
+   <role name="Schedule person"/>
+   <role name="Catering person"/>
+   <role name="Floor layout person"/>
+   <role name="Brochure person"/>
+
+   <data name="Show name" type="text"/>
+   <data name="Planned date" type="text"/>
+
+   <sequence>
+     <parallel>
+       <sequence>
+         <task label="Book hotel" role="Hotel person">
+           <data name="Hotel booking record" type="something"/>
+         </task>
+         <parallel>
+           <task label="Plan floor layout" role="Floor layout person">
+             <data name="Floor layout" type="document"/>
+           </task>
+           <task label="Rough schedule" role="Schedule person">
+             <data name="Schedule" type="document"/>
+           </task>
+         </parallel>
+       </sequence>
+       <task label="Book caterer" role="Catering person">
+         <data name="Catering service" type="text"/>
+       </task>
+     </parallel>
+     <task label="Create brochure" role="Brochure person">
+       <data name="Floor layout" readonly="yes"/>
+       <data name="Schedule" readonly="yes"/>
+       <data name="Brochure" type="document"/>
+     </task>
+   </sequence>
+ </workflow>

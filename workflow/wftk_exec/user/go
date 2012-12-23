@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# Why isn't this in a Makefile?  Well, realize that since all the source is in an XML file processed by
+# LPML, all the *.c will get changed every time anyway.  So there's no benefit in using make, weirdly.
+# When LPML grows up a little, I'll write makefiles.  In the meantime, live with it.  This won't take
+# very long to compile anyway.
+
+perl ../lpml.pl user.xml
+/usr/local/bin/indent -kr -sob -i3 -lp -ts100 user.h
+/usr/local/bin/indent -kr -sob -i3 -lp -ts100 user.c
+/usr/local/bin/indent -kr -sob -i3 -lp -ts100 main.c
+cp user.h ..
+
+perl ../lpml.pl browse.xml
+/usr/local/bin/indent -kr -sob -i3 -lp -ts100 browse.c
+
+make user
+make browse.cgi
+
+zip wftk_user user.xml browse.xml *.html *.c *.h
+cp wftk_user.zip ..

@@ -1,0 +1,23 @@
+SUBJECT>Re: How do I get a copy of the source code?
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>970356661
+EMAILNOTICES>no
+IP_ADDRESS>tc7-54.blm.bluemarble.net
+PREVIOUS>24
+NEXT> 33
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; I have been all over your site, and have not yet figured out how to get a
+<BR>> copy of your source code. At our company we are very much interested in
+<BR>> your work, and might even invest some time and energy towards a Java
+<BR>> implementation.
+<P>&gt; Most open source projects have the source code ready to download in a zip
+<BR>> file, whether it is compilable/runnable or not. If that is not available,
+<BR>> then at least anonomous CVS access is available. On top of that, the GPL
+<BR>> mandates that the source must be obtained in a downloadable state.
+<P>Yes, it certainly does -- as soon as there is a release.
+<P>I'm currently working feverishly with Galactic to wrap this up, and I haven't been devoting much of my time to keeping the site up to date. In the meantime, I haven't exactly had people beating my door down wanting to help out, and I thus haven't really had much motivation to maintain a downloadable form of the code, as this is a (count me) one-man project. If you are offering said support, then gee, that sounds great.
+<P>I've been talking with the Brock people about a Java implementation, by the way, and I'm also setting things up for a Python/Zope integration. If you'd like to help in some way instead of implying that I'm not getting things done as quickly or completely as you'd like, then again, that sounds great. Otherwise, please don't joggle my elbow. In another few days I'll have things ready to download and install, OK?
+<P>

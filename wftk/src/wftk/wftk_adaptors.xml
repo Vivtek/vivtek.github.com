@@ -1,0 +1,270 @@
+<litprog>
+<object name="wftk_adaptors.c" language="c" item="wftk_adaptors"/>
+
+
+<format name="index">
+<html><head><title>wftk adaptor code</title></head>
+<body>
+<h2>wftk: wftk adaptor code</h2>
+<center>
+[ <a href="wftk_engine.zip">download</a> ] [<a href="index.html">wftk core engine</a> ] [ <a href="wftk_adaptors.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr/>
+The adaptors used by wftk to interface with other systems or components of the wftk system are managed using the
+following code.  This code is most definitely version pre-1.0, so it will probably change and mature quite a bit over the
+next few months.  Right now, I'm envisioning basically a hard-coded set of API definition structures, and very little
+search smarts.  Eventually, I'll figure out a hash table library and it'll rip through all this code like wildfire, but
+in the meantime I don't anticipate that scalability will be much of an issue with the number of implementations of a
+given module which need to be active in an installation at the same time...  So what I'm saying is I don't see this
+as a really high priority.  Your mileage (as always) may vary.
+<p/>
+[##body##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+
+<item name="wftk_adaptors" label="wftk adaptor code" format="index">
+There is no include file for this, as the wftk_internals takes care of definition.  So I'll just cut to the chase
+with the source file -- and all on this one page, too!
+<p/>
+The whole thing, as I envision it, is pretty dumb.  An API consists of a table of functions, a table of names of the
+functions, and the number of entries in each table.  Each function takes a vararg list of parameters, and returns an
+XMLAPI pointer.  There is no error checking done by the adaptor code.
+<p/>
+This is pretty much a poor man's ActiveX; the point of ActiveX is to make interchangeable implementations
+of adaptor APIs, and this is one of the reasons I actually respect Microsoft's programming work.  Of course, given the
+resources, I would have done a better job.  And in fact this module is a first implementation of something that could
+someday be a better job.
+<p/>
+So.  We've got two main functions to define: <code>wftk_get_adaptor</code> retrieves a pointer to an adaptor structure
+by type and name.  The type is an integer defined at compile-time.  The other function, <code>wftk_call_adaptor</code>,
+naturally provides a call interface for functions in the API.
+<piece>
+#include [[stdio.h>
+#include [[stdarg.h>
+#include [[string.h>
+#include [[malloc.h>
+#include "xmlapi.h"
+#include "wftk_internals.h"
+
+WFTK_ADAPTOR * config_get_adaptor (void * session, int adaptor_class, const char * descriptor, int length);
+WFTK_ADAPTORLIST * config_get_adaptorlist (void * session, int adaptor_class);
+
+<insert name=".wftk_get_adaptor"/>
+<insert name=".wftk_free_adaptor"/>
+<insert name=".wftk_call_adaptor"/>
+</piece>
+Then we have another set of similar calls which deal in multiple adaptors.
+<piece>
+<insert name=".wftk_get_adaptorlist"/>
+<insert name=".wftk_free_adaptorlist"/>
+<insert name=".wftk_call_adaptorlist"/>
+</piece>
+
+<p/>
+The way this works is that each type of adaptor has a list of function names that drivers implement.  Each driver has
+a list of functions implementing those names.  When the calling program calls <code>wftk_get_adaptor</code>, it first
+determines the type of adaptor (using the type number), then splits the specifier on a colon to get the name of the
+driver to use.  Anything after that optional colon is passed to the initialization function to build into the arbitrary
+parameters (which are of course an in-memory XML structure.  I'm really getting attached to that data structure.)
+
+<p/>
+How the actual drivers are found and initialized is up to the config module; in the first run, it'll just be hardcoded.
+Later the config module can be updated to do searches through installed DLLs or what have you.
+</item>
+
+<item name="wftk_adaptors.wftk_get_adaptor" label="wftk_get_adaptor(): building an adaptor">
+Building an adaptor instance is not a lot more than asking the config module for the pointer, then filling in the
+details.  For more information on configuration modules, see the standard module implementation.
+<piece>
+WFTK_EXPORT WFTK_ADAPTOR * wftk_get_adaptor (void * session, int adaptor_class, const char * adaptor_descriptor)
+{
+   const char * mark;
+   WFTK_ADAPTOR * ad;
+   WFTK_ADAPTOR_LIST * list;
+
+   /* Maybe we've already got this adaptor in our list? */
+   if (session) {
+      list = ((WFTK_SESSION *) session)->ads;
+      while (list) {
+         if (list->ad->num == adaptor_class) {
+            if (!adaptor_descriptor) return (list->ad);
+            if (!strcmp (adaptor_descriptor, xml_attrval (list->ad->parms, "spec"))) return (list->ad);
+         }
+         list = list->next;
+      }
+   }
+
+   /* Ask the config module for the initial setup.  If this is an unknown adaptor name, nothing's alloc'd and we return. */
+   if (adaptor_descriptor) {
+      for (mark = adaptor_descriptor; *mark #^7#^7 *mark != ':'; mark++);
+      ad = config_get_adaptor (session, adaptor_class, adaptor_descriptor, mark - adaptor_descriptor);
+   } else {
+      ad = config_get_adaptor (session, adaptor_class, NULL, 0);
+   }
+   if (!ad) return ((WFTK_ADAPTOR *) 0);
+
+   /* Get the parms structure started.  The adaptor initializer will take it from here. */
+   ad->parms = xml_create ("parms");
+   if (adaptor_descriptor) {
+      if (*mark) mark++;
+      xml_set (ad->parms, "parm", mark);
+   }
+
+   /* Call the initializer. */
+   xml_set (ad->parms, "error", "");
+   (ad->vtab[0]) (ad, (va_list) 0);
+   if (*xml_attrval (ad->parms, "error")) {
+      config_debug_message ('A', "[%d]init: %s", adaptor_class, xml_attrval (ad->parms, "error")); /* TODO: not optimal */
+      xml_free (ad->parms);
+      free (ad);
+      return ((WFTK_ADAPTOR *) 0);
+   }
+
+   /* Add the new adaptor to the list. */
+   if (session) {
+      list = malloc (sizeof (WFTK_ADAPTOR_LIST));
+      list->next = ((WFTK_SESSION *) session)->ads;
+      list->ad = ad;
+      ((WFTK_SESSION *) session)->ads = list;
+   }
+
+   /* Return the initialized adaptor. */
+   return (ad);
+}
+</piece>
+</item>
+
+<item name="wftk_adaptors.wftk_free_adaptor" label="wftk_free_adaptor(): disposing of an adaptor">
+Once we're done with an adaptor, we have to free it.  No free lunch in C.  The only exception
+is that if a valid session is passed in, we won't free the adaptor because it's presumed to
+be stashed in the session (this means that if NULL is passed in, we <i>do</i> free.)
+<piece>
+WFTK_EXPORT void wftk_free_adaptor (void * session, WFTK_ADAPTOR * ad)
+{
+   if (session) return;
+
+   (ad->vtab[1]) (ad, (va_list) 0);  /* Let the adaptor do whatever it needs to do in order to clean up. */
+   xml_free (ad->parms);
+   free (ad);
+}
+</piece>
+</item>
+
+<item name="wftk_adaptors.wftk_call_adaptor" label="wftk_call_adaptor(): calling an adaptor function">
+The calling of an adaptor, once it's found, is absurdly simple.
+<piece>
+WFTK_EXPORT XML * wftk_call_adaptor (WFTK_ADAPTOR * ad, const char * function, ...)
+{
+   va_list argptr;
+   XML * retval;
+   int func;
+
+   if (!ad) return (XML *) 0;
+
+   for (func = 0; func [[ ad->nfuncs; func++) {
+      if (!strcmp (function, ad->names[func])) break;
+   }
+   if (func == ad->nfuncs) {
+      config_debug_message ('A', "[%d]%s: function '%s' unknown", ad->num, xml_attrval (ad->parms, "spec"), function);
+      return ((XML *) 0);
+   }
+
+   xml_set (ad->parms, "error", "");
+
+   va_start (argptr, function);
+   retval = (ad->vtab[func]) (ad, argptr);
+   va_end (argptr);
+
+   if (*xml_attrval (ad->parms, "error")) {
+      config_debug_message ('A', "[%d]%s:%s - %s", ad->num, xml_attrval (ad->parms, "spec"), function, xml_attrval (ad->parms, "error"));
+   }
+   return (retval);
+}
+</piece>
+</item>
+
+
+
+<item name="wftk_adaptors.wftk_get_adaptorlist" label="wftk_get_adaptorlist(): getting a list of default listeners">
+This is pretty easy, as the config module and get_adaptor do most of the work.  Well, actually all the work.
+<piece>
+WFTK_EXPORT WFTK_ADAPTORLIST * wftk_get_adaptorlist (void * session, int adaptorclass)
+{
+   return (config_get_adaptorlist (session, adaptorclass));
+}
+</piece>
+</item>
+
+<item name="wftk_adaptors.wftk_free_adaptorlist" label="wftk_free_adaptorlist(): freeing an adaptor list">
+<piece>
+WFTK_EXPORT void wftk_free_adaptorlist (void * session, WFTK_ADAPTORLIST * list)
+{
+   int i;
+   if (!list) return;
+
+   for (i=0; i [[ list->count; i++) {
+      wftk_free_adaptor (session, list->ads[i]);
+   }
+
+   free (list);
+}
+</piece>
+</item>
+
+<item name="wftk_adaptors.wftk_call_adaptorlist" label="wftk_call_adaptorlist(): shotgun notification">
+Calling a list of adaptors isn't too hard, either; we just iterate down the list and send the stuff out.  If we get
+XML return values, we free them all.
+<piece>
+WFTK_EXPORT int wftk_call_adaptorlist (WFTK_ADAPTORLIST * list, const char * function, ...)
+{
+   va_list argptr;
+   int i;
+   XML * retval;
+   int func;
+
+   if (!list) return 0;
+
+   va_start (argptr, function);
+
+   for (i=0; i [[ list->count; i++) {
+      if (!(list->ads[i])) continue;
+      for (func = 0; func [[ list->ads[i]->nfuncs; func++) {
+         if (!strcmp (function, list->ads[i]->names[func])) break;
+      }
+      if (func == list->ads[i]->nfuncs) {
+         config_debug_message ('A', "[%d]%s: function '%s' unknown", list->ads[i]->num, xml_attrval (list->ads[i]->parms, "spec"), function);
+      } else {
+         xml_set (list->ads[i]->parms, "error", "");
+
+         retval = (list->ads[i]->vtab[func]) (list->ads[i], argptr);
+
+         if (*xml_attrval (list->ads[i]->parms, "error")) {
+            config_debug_message ('A', "[%d]%s:%s - %s", list->ads[i]->num, xml_attrval (list->ads[i]->parms, "spec"), function, xml_attrval (list->ads[i]->parms, "error"));
+         }
+         if (retval) xml_free (retval);
+      }
+   }
+
+   va_end (argptr);
+
+   return (1);
+}
+</piece>
+</item>
+
+</litprog>
+
+

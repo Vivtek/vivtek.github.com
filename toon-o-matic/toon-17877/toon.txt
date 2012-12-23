@@ -1,0 +1,11 @@
+
+panel
+font size=12
+Lenin says Вот анекдот про Сталина.
+panel
+Lenin says Сталин разговаривает по телефону с Черчиллем:
+Lenin leaves
+panel
+-
+panel
+Lenin says Unicode never works when I try to be funny.

@@ -1,0 +1,14 @@
+SUBJECT>Compilation?
+POSTER>Vlad
+EMAIL>vovikg@my-deja.com
+DATE>982352609
+EMAILNOTICES>no
+IP_ADDRESS>reverse-lookup
+PREVIOUS>
+NEXT> 83
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>I downloaded and tried to compile wftk under Linux. I went to user directory and typed make, it couldn't find some of the .h files, like:
+<P>gcc -O2 -I../xmlapi -DXML_NS -c -o ../expat/xmlparse/xmlparse.o ../expat/xmlparse/xmlparse.c ../expat/xmlparse/xmlparse.c:31: xmldef.h: No such file or directory ../expat/xmlparse/xmlparse.c:73: xmltok.h: No such file or directory ../expat/xmlparse/xmlparse.c:74: xmlrole.h: No such file or directory make: *** [../expat/xmlparse/xmlparse.o] Error 1
+<P>How do I modify Makefile so the files are found? Thanks, Vlad.

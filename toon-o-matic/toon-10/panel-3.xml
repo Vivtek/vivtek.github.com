@@ -1,0 +1,4 @@
+<panel>
+<character name="mao" action="leaves"/>
+<dialog who="mao" font-color="255,0,0" font-size="12">Fred, did you forget to buy milk again?</dialog>
+</panel>

@@ -1,0 +1,5 @@
+<panel>
+<character name="mao"/>
+<dialog who="mao" ref-who="character-mao-default-2-2.svg">indeed</dialog>
+<character name="mouse" tag="default-1"/>
+</panel>

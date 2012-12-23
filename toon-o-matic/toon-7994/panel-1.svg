@@ -1,0 +1,11 @@
+<g transform="translate(1,1)"><g w="56.25" y="52.5" h="75" x="204.541666666667">
+<rect width="56.25" y="52.5" style="stroke:black; stroke-width:1; fill:none" x="204.541666666667" height="75"/>
+</g>
+<g w="66.2068965517241" y="52.5" h="75" x="432.229885057471">
+<image width="66.2068965517241" y="52.5" xlink:href="image-mao-1.bmp" x="432.229885057471" height="75"/>
+</g>
+<g>
+<polyline points="498.436781609195,29.5 582.436781609195,29.5 582.436781609195,52.5 550.436781609195,52.5 503.436781609195,90 530.436781609195,52.5 498.436781609195,52.5 498.436781609195,29.5" style="stroke:black; stroke-width:1; fill:white"/>
+<image width="64" y="2" transform="translate(498.436781609195,29.5)" xlink:href="dialog-1-1.png" x="10" height="19"/>
+</g>
+</g>

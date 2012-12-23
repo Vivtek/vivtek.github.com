@@ -1,0 +1,19 @@
+!navhead.html
+
++My Processes
+   show?process=mine     Current list
+   show?process=all      All processes
+   create?what=process   Create ad-hoc
+   start                 Start
+
++My To Do List
+   overview                  Full list
+   overview?filter=scheduled Calendar
+   create?what=task          Add a task
+
++Administration
+   keywords           Keyword administration
+   login              Switch logins
+   user?action=modify Change contact info
+
+!navrest.html

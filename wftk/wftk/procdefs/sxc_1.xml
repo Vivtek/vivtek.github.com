@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+
+  <workflow name="SourceXchange project" author="Michael: michael@vivtek.com">
+    <role name="Proposer"></role>
+    <role name="Sponsor"></role>
+    <role name="Reviewer"></role>
+    <role name="SourceXchange"></role>
+
+    <data name="SourceXchange project number" type="integer"></data>
+    <data name="Proposing party" type="record">
+       <!-- Just a thought: for non-database records, we should be able to define the record here... -->
+    </data>
+
+    <sequence>
+       <task label="Submit proposal" role="Proposer" agent="${Proposing party}"></task>
+       <task label="Accept proposal" role="Sponsor"></task>
+       <parallel>
+          <task label="Plan project" role="Proposer">
+             <data name="Detailed project plan" type="document"></data>
+          </task>
+          <task label="Assign reviewer" role="SourceXchange"></task>
+          <task label="Ready project record (milestones, lead, etc.)" role="SourceXchange"></task>
+       </parallel>
+       <start name="${Detailed project plan}" location="deliverable" mode="merge" completion="Signoff">
+       </start>
+       <parallel>
+          <task label="Accept project" role="Sponsor"></task>
+          <task label="Accept project" role="Reviewer"></task>
+       </parallel>
+       <task label="Make source code available" role="SourceXchange"></task>
+    </sequence>
+
+
+    <subprocess name="Signoff">
+      <data name="Milestone" type="task"></data>
+      <if expr="${Milestone.name} not like 'Milestone%'">
+        <data name="Milestone.status" value="accept"></data>
+        <sequence>
+          <parallel>
+            <task label="Accept milestone" role="Sponsor">
+              <data name="Sponsor's answer" type="choose(accept, reject)"></data>
+            </task>
+            <task label="Accept milestone" role="Reviewer">
+              <data name="Reviewer's answer" type="choose(accept, reject)"></data>
+            </task>
+          </parallel>
+
+          <if expr="${Sponsor's answer} = accept">
+            <data name="Milestone.status" value="accept"></data>
+            <elseif expr="${Reviewer's answer} = reject"/>
+            <data name="Milestone.status" value="reject"></data>
+            <situation name="Milestone dispute"><data name="Milestone"></data></situation>
+          </if>
+        </sequence>
+      </if>
+    </subprocess>
+
+  </workflow>
+

@@ -1,0 +1,6 @@
+#define PROCDEF_DIRECTORY "/usr/local/AOLserver/vivtek/pages/wftk/wftk/procdefs/"
+#define DATASHEET_DIRECTORY "/usr/local/AOLserver/vivtek/pages/todomgr/datasheets/"
+#define USER_DIRECTORY "/usr/local/AOLserver/vivtek/pages/wftk/wftk/users/"
+#define GROUP_DIRECTORY "/usr/local/AOLserver/vivtek/pages/wftk/wftk/groups/"
+#define PERM_DIRECTORY "/usr/local/AOLserver/vivtek/pages/wftk/wftk/perms/"
+#define ODBC_CONNECTION "wftk"

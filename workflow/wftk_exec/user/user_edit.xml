@@ -1,0 +1,176 @@
+<litprog>
+<object name="user_edit.c" language="c" item="user_edit_main"/>
+
+
+<format name="index">
+<html><head><title>User editor CGI</title></head>
+<body>
+<h2>User module: user editor (CGI implementation)</h2>
+<center>
+[ <a href="wftk_user.zip">download</a> ] [ <a href="user_edit.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">wftk discussion</a> ]
+</center>
+
+<hr/>
+This is a quick little CGI app which provides a convenient user interface for editing user information.
+The same editor will be used by users editing their own personal information and for administrators
+editing that of other people.  Password changes will also take place using this CGI.
+A completely analogous group editor will also be available.
+<p/>
+Table of contents:
+[##itemlist##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.  Try literate programming.  You'll like it.
+</font>
+</td>
+</tr>
+</table>
+</center>
+</body></html>
+</format>
+
+<format name="default">
+<html><head><title>User editor: [##label##]</title></head>
+<body>
+<h2>[##label##]</h2>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="user_edit.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="user_edit.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<item name="user_edit" label="User editor" format="index">
+</item>
+
+<item name="user_edit_main" label="Main program">
+This is so straightforward I hardly even feel the need to document it.
+
+<piece>
+#include "user.h"
+#include "xmlcgi.h"
+
+XML * current_user;
+XML * user = NULL;
+XML * edited;
+XML * cgi;
+XML * environment;
+XML * query;
+
+<insert name="browse_dirview_create"/>
+<insert name="browse_dirview_show"/>
+
+int main (int argc, char * argv[])
+{
+   ATTR * attr;
+   char * field;
+
+   cgi = cgi_init ();
+   environment = xml_loc (cgi, "cgicall.environment");
+   query = xml_loc (cgi, "cgicall.query");
+
+   current_user = user_authenticate (environment, "wftk workflow");
+   edited = current_user;
+   if (!current_user) {
+      printf ("Content-type: text/html\n\n");
+      printf ("[[html>[[head>[[title>User authentication required[[/title>[[/head>\n");
+      printf ("[[body>[[h2>User authentication required [[/h2>[[hr>\n");
+      printf ("A valid user authentication response is required to access this area.\n");
+      printf ("[[/body>[[/html>\n");
+      xml_free (cgi);
+      exit(0);
+   }
+
+   if (strcmp ("", xml_attrval (query, "user"))) {
+      user = user_get (xml_attrval (query, "user"));
+      if (!user) {
+         printf ("Content-type: text/html\n\n");
+         printf ("[[html>[[head>[[title>Unknown user '%s'[[/title>[[/head>\n", xml_attrval (query, "user"));
+         printf ("[[body>[[h2>Unknown user '%s'[[/h2>[[hr>\n", xml_attrval (query, "user"));
+         printf ("The system was unable to locate the username you entered.\n[[/body>[[/html>\n");
+         xml_free (cgi);
+         xml_free (current_user);
+         exit(0);
+      }
+      edited = user;
+      if (!user_perm (current_user, "user", xml_attrval (query, "user"), "edit")) {
+         printf ("Content-type: text/html\n\n");
+         printf ("[[html>[[head>[[title>Insufficient privilege[[/title>[[/head>\n");
+         printf ("[[body>[[h2>Insufficient privilege[[/h2>[[hr>\n");
+         printf ("You don't have permission to edit the personal information for user '%s'.\n", xml_attrval (query, "user"));
+         printf ("[[/body>[[/html>\n");
+         xml_free (cgi);
+         xml_free (current_user);
+         exit(0);
+      }
+   }
+
+   attr = query->attrs;
+   while (attr) {
+      if (strcmp (attr->name, "user") && strcmp (attr->name, "name")) {
+         xml_set (edited, attr->name, attr->value);
+      }
+      attr = attr->next;
+   }
+
+   user_save (edited);
+
+   printf ("Content-type: text/html\n\n");
+   printf ("[[html>[[head>[[title>Edit user information for '%s'[[/title>[[/head>\n", xml_attrval (edited, "name"));
+   printf ("[[body>[[h2>User information for '%s'[[/h2>[[hr>\n", xml_attrval (edited, "name"));
+   printf ("[[form action=\"%s\" method=post>\n", xml_attrval (environment, "SCRIPT_NAME"));
+   if (strcmp (xml_attrval (query, "user"), "")) {
+      printf ("[[input type=hidden name=user value=\"%s\">\n", xml_attrval (query, "user"));
+   }
+   printf ("[[table>\n");
+   attr = edited->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, "user") || !strcmp (attr->name, "name")) {
+      } else if (!strcmp (attr->name, "password")) {
+         /*printf ("[[tr>[[td>Password[[/td>[[td>[[input name=password>[[/td>[[/tr>\n");*/
+      } else if (!strcmp (attr->name, "fullname")) {
+         printf ("[[tr>[[td>Full name[[/td>[[td>[[input name=fullname value=\"%s\">[[/td>[[/tr>\n", attr->value);
+      } else if (!strcmp (attr->name, "email")) {
+         printf ("[[tr>[[td>Email address[[/td>[[td>[[input name=email value=\"%s\">[[/td>[[/tr>\n", attr->value);
+      } else {
+         printf ("[[tr>[[td>%s[[/td>[[td>[[input name=\"%s\" value=\"%s\">[[/td>[[/tr>\n", attr->name, attr->name, attr->value);
+      }
+      attr = attr->next;
+   }
+   printf ("[[tr>[[td colspan=2>[[center>[[input type=submit value=\"Update user info\">[[/center>[[/td>[[/tr>\n");
+   printf ("[[/table>\n");
+   printf ("[[/form>[[/body>[[/html>\n");
+
+   xml_free (cgi);
+   if (user) xml_free (user);
+   xml_free (current_user);
+}
+</piece>
+</item>
+
+
+
+</litprog>

@@ -1,0 +1,26 @@
+!navhead.html
+
++My Processes
+   process_list.html     Current list
+   process_complete.html Completed
+   process_start.html    Start
+   process_new.html      New
+   process_open.html     Open
+
++My To Do List
+   todo_today.html    Today's tasks
+   todo.html          Full list
+   todo_calendar.html Calendar
+   todo_add.html      Add a task
+
++Reports
+   reports_overview.html What's Happening
+
++Administration
+   admin_pref.html    Preferences
+   admin_users.html   User Administration
+   admin_perms.html   Permissions
+   admin_globals.html Global Values
+   admin_system.html  System Activity
+
+!navrest.html

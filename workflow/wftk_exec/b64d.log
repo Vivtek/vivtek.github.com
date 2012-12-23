@@ -1,0 +1,36 @@
+*encoded is 'c' and bytes is 0
+*encoded is '2' and bytes is 1
+*encoded is 'R' and bytes is 2
+*encoded is 'm' and bytes is 3
+Now bytes is 4
+divider is 65536
+remainder is 25702 and chunk is 7562342
+converted character was s
+divider is 256
+remainder is 102 and chunk is 25702
+converted character was d
+divider is 1
+remainder is 0 and chunk is 102
+converted character was f
+*encoded is 'c' and bytes is 0
+*encoded is '2' and bytes is 1
+*encoded is 'R' and bytes is 2
+*encoded is 'm' and bytes is 3
+Now bytes is 4
+divider is 65536
+remainder is 25702 and chunk is 7562342
+converted character was s
+divider is 256
+remainder is 102 and chunk is 25702
+converted character was d
+divider is 1
+remainder is 0 and chunk is 102
+converted character was f
+*encoded is 'O' and bytes is 0
+*encoded is 'g' and bytes is 1
+*encoded is '=' and bytes is 2
+*encoded is '=' and bytes is 3
+Now bytes is 4
+divider is 65536
+remainder is 0 and chunk is 3801088
+converted character was :

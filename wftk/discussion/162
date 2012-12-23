@@ -1,0 +1,14 @@
+SUBJECT>Can wftk work with GUI or Web apps?
+POSTER>Andy Leung
+EMAIL>andy@post.harvard.edu
+DATE>1010827878
+EMAILNOTICES>no
+IP_ADDRESS>host85.216.41.122.ma.110.net
+PREVIOUS>
+NEXT> 164
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Hi,
+<P>I'm planning to build an application. It'll be either in Delphi/Interbase or Apache/Java/MySQL. Has anyone made wftk work in these 2 environments? How? Any pointers would be very appreciated. Thanks a lot!
+<P>Andy

@@ -1,0 +1,3 @@
+<character name="mao" label="Chairman Mao" rel-h="50">
+<draw face="left" file="image-mao-1.bmp" type="image"/>
+</character>

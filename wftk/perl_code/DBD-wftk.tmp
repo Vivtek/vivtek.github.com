@@ -1,0 +1,610 @@
+package DBD::wftk;
+
+use warnings;
+use strict;
+
+use DBI ();
+require DBI::SQL::Nano;
+
+use Workflow::wftk;
+
+=head1 NAME
+
+DBD::wftk - Provides a DBI interface for the wftk.  That means it provides a DBI interface to THE WORLD.
+
+=head1 VERSION
+
+Version 0.01
+
+
+I<Implementation>:
+
+
+   our $VERSION = '0.01';
+
+
+=head1 SYNOPSIS
+
+The L<DBI> is Perl's general-purpose SQL database interface.  What you probably didn't know (I didn't until today) is that
+L<SQL::Statement> provides a parser and engine for general-purpose SQL database access.  It's the basis for L<DBD::File>,
+which itself is subclassed to a variety of things, like L<DBD::CSV>, for instance.
+
+So we have a cheap SQL engine already available.  The wftk can define a repository consisting of a whole series of table-like
+entities.  Obviously, the next step is to permit SQL queries against those lists.  I had originally wanted to do this with SQLite
+in the C version of the wftk, but -- well -- the spirit is willing, but the flesh is weak.  I'm simply not man enough to do all
+that in C against SQLite.  It has been on the back burner for about a year.
+
+But that was then, and this is now!  When you really start getting beyond mere surface scratching in my new best friend CPAN,
+you find that people are doing all KINDS of stuff that I therefore don't have to.  Like writing database engines for which all
+I have to do is write a simple little Perl module to use.
+
+
+I<Implementation>:
+
+
+   # -------------------------------------------------------------------------------------------------------------------------------
+   # I'm going to comment the structure of the driver as I go; I find the existing documentation for DBI drivers terribly confusing.
+   # Here's the top-level upshot: a DBI driver (a DBD module) defines several packages at once.  The first is simply the driver
+   # itself, and it's first.
+   #
+
+   # This driver package is basically that of DBD::RAM.  It's cleaner than DBD::File.
+   use vars qw($VERSION $err $errstr $sqlstate $drh);
+
+   $VERSION = '0.01';
+
+   $err       = 0;        # holds error code   for DBI::err
+   $errstr    = "";       # holds error string for DBI::errstr
+   $sqlstate  = "";       # holds SQL state for    DBI::state
+   $drh       = undef;    # holds driver handle once initialized
+
+=head3 driver
+
+
+I<Implementation>:
+
+
+   sub driver {
+      return $drh if $drh;  # (This is a class variable -- once the driver is initialized, you don't need to repeat that.)
+      my($class, $attr) = @_;
+      $class .= "::dr";
+
+      # Custom methods are installed here.
+      # DBI->setup_driver('DBD::wftk');
+      #  DBD::wftk::db->install_method('wftk_example_dbh_method');
+      #  DBD::wftk::st->install_method('wftk_example_sth_method');
+
+      $drh = DBI::_new_drh($class, {
+          'Name'    => 'RAM',
+          'Version' => $VERSION,
+          'Err'     => \$DBD::wftk::err,
+          'Errstr'  => \$DBD::wftk::errstr,
+          'State'   => \$Workflow::wftk::sqlstate,
+          'Attribution' => 'DBD::wftk by Michael Roberts (michael@vivtek.com)',
+      });
+      return $drh;
+   }
+   sub CLONE {
+      undef $drh;
+   }
+
+   # ------------------------------------------------------------------------------------------------------------------
+   # The next package is a database driver.  While the overall driver class is defined once for a given Perl environment,
+   # we define a database driver handle for each database connection (this is conventionally "$dbh").
+   #
+   # In our case, the connection is to a given repository.  We'll pass in a handle to the repository from outside if
+   # we already have it; otherwise, we'll just assume we're running generic DBI code, and open a new repository session
+   # inside here.
+   #
+   # Connections from the DBI have two ways to pass in attributes to the database driver.  The first is the one everybody
+   # usually uses; it's to tack everything together as a semicolon-delimited string in the database name.  But there's
+   # also a hash pointer that can be passed in ($attr).  Note that if we're calling in to connect to an existing
+   # repository, we *have* to use the hashref -- otherwise we can't pass a pointer to a repository, now can we?
+   #
+   # Note, too, that the "semicolon-delimited string" is merely conventional.  We could put anything we wanted into that string.
+   #
+
+   package DBD::wftk::dr; # -- Note: here, we're back to DBD::File as a skellington, mostly, with simplifications from the
+                          #          DBD Writer's Guide (DBI::DBD's POD).
+   $DBD::wftk::dr::imp_data_size = 0;
+
+   sub connect ($$;$$$) {
+       my($drh, $dbname, $user, $auth, $attr)= @_;
+
+       # create a 'blank' dbh
+       my $this = DBI::_new_dbh($drh, {
+   	'Name' => $dbname,
+   	'USER' => $user,
+   	'CURRENT_USER' => $user,
+       });
+
+       # We'll use the code from DBI::DBD to split out the dbname and write its pieces into the attr hashref.
+       # In case you're wondering, DBI will save the attr hashref for us after this procedure returns.
+       foreach my $var ( split /;/, $dbname ) {
+          my ($attr_name, $attr_value) = split '=', $var, 2;
+          return $drh->set_err($DBI::stderr, "Can't parse DSN part '$var'")
+             unless defined $attr_value;
+
+          # add driver prefix to attribute name if it doesn't have it already
+          $attr_name = "wftk_$attr_name" unless $attr_name =~ /^wftk_/o;
+
+           $attr->{$attr_name} = $attr_value;
+       }
+
+       # create a 'blank' dbh (call superclass constructor)
+       my ($outer, $dbh) = DBI::_new_dbh($drh, { Name => $dbname });
+
+       # Do we have a repository already?
+       if ($attr->{wftk_repos}) {
+          $dbh->{wftk_repos} = delete $attr->{wftk_repos};
+       } else {
+          my $dir = $attr->{wftk_dir} || undef;
+          $dbh->{wftk_repos} = Workflow::wftk->new($dir);
+       }
+       $attr->{wftk_dir} = $dbh->{wftk_repos}->directory();
+       $dbh->{sql_handler} = 'SQL::Statement';
+
+       $dbh->STORE('Active', 1 );
+
+       return $outer;
+   }
+
+   # The data_sources() function is called to get a list of potential databases
+   # within the database connection.  The wftk only supports a single datasource
+   # in each repository, so this doesn't really apply to us.
+   #
+   # I suppose if the Workflow::wftk module had some system registry of
+   # available repositories, this would be the place to return that list.  But
+   # it doesn't, by design.
+   sub data_sources ($;$) {
+      ('dbi:wftk:.');   # I honestly can't think of anything more sensible than this.
+   }
+
+   sub disconnect_all {
+   }
+
+   sub DESTROY {
+       undef;
+   }
+
+   # ---------------------------------------------------------------------------------------------------------------
+   # The next package is the database handle itself.  This is the dbh we so well know and love, and it is where
+   # actual SQL statements are prepared and executed.
+   #
+
+   package DBD::wftk::db; # ====== DATABASE ======
+   $DBD::wftk::db::imp_data_size = 0;
+
+   # This prepare() is taken from DBD::File, because the example implementation doesn't actually do any SQL parsing.
+   sub prepare ($$;@) {
+       my($dbh, $statement, @attribs)= @_;
+
+       # create a 'blank' sth
+       my $sth = DBI::_new_sth($dbh, {'Statement' => $statement});
+
+       if ($sth) {
+   	my $class = $sth->FETCH('ImplementorClass');
+   	$class =~ s/::st$/::Statement/;
+   	my($stmt);
+
+           # if using SQL::Statement version > 1
+           # cache the parser object if the DBD supports parser caching
+           # SQL::Nano and older SQL::Statements don't support this
+
+   	if ( $dbh->{sql_handler} eq 'SQL::Statement' )
+              {
+               my $parser = $dbh->{wftk_sql_parser_object};
+               $parser ||= eval { $dbh->func('wftk_cache_sql_parser_object') };
+               if ($@) {
+     	        $stmt = eval { $class->new($statement) };
+   	    }
+               else {
+     	        $stmt = eval { $class->new($statement,$parser) };
+   	    }
+           }
+           else {
+   	    $stmt = eval { $class->new($statement) };
+   	}
+   	if ($@) {
+   	    $dbh->set_err(1, $@);
+   	    undef $sth;
+   	} else {
+   	    $sth->STORE('wftk_stmt', $stmt);
+   	    $sth->STORE('wftk_params', []);
+   	    $sth->STORE('NUM_OF_PARAMS', scalar($stmt->params()));
+   	}
+       }
+       $sth;
+   }
+   sub wftk_cache_sql_parser_object { # This is cribbed from DBD::File, too.
+       my $dbh = shift;
+       my $parser = {
+               dialect    => 'wftk',
+               RaiseError => $dbh->FETCH('RaiseError'),
+               PrintError => $dbh->FETCH('PrintError'),
+           };
+       my $sql_flags  = $dbh->FETCH('sql_flags') || {};
+       %$parser = (%$parser,%$sql_flags);
+       $parser = SQL::Parser->new($parser->{dialect},$parser);
+       $dbh->{wftk_sql_parser_object} = $parser;
+       return $parser;
+   }
+   sub disconnect ($) {
+       shift->STORE('Active',0);
+       1;
+   }
+   sub FETCH ($$) {
+       my ($dbh, $attrib) = @_;
+       if ($attrib eq 'AutoCommit') {
+   	return 1;
+       } elsif ($attrib eq (lc $attrib)) {
+   	# Driver private attributes are lower cased
+
+           # Error-check for valid attributes
+           # not implemented yet, see STORE
+           #
+           return $dbh->{$attrib};
+       }
+       # else pass up to DBI to handle
+       return $dbh->SUPER::FETCH($attrib);
+   }
+
+   sub STORE ($$$) {
+       my ($dbh, $attrib, $value) = @_;
+
+       if ($attrib eq 'AutoCommit') {
+   	return 1 if $value; # is already set
+   	die("Can't disable AutoCommit");
+       } elsif ($attrib eq (lc $attrib)) {
+   	# Driver private attributes are lower cased
+
+           if ($attrib eq 'wftk_dir') {
+               return; # We just ignore any attempt to change the directory.
+               #die ("arggggghhhhhh");
+     	    #return $dbh->set_err( 1,"You can't switch directories in midstream")
+   	}
+   	$dbh->{$attrib} = $value;
+   	return 1;
+       }
+       return $dbh->SUPER::STORE($attrib, $value);
+   }
+
+   sub DESTROY ($) {
+       my $dbh = shift;
+       $dbh->disconnect if $dbh->SUPER::FETCH('Active');
+   }
+
+   # list_tables() lists the tables in the database, which corresponds pretty exactly to
+   # wftk's lists() method.
+   sub list_tables ($) {
+       my $dbh = shift;
+
+       my %lists = $dbh->{wftk_repos}->lists();
+       keys %lists;
+   }
+
+   # commit() and rollback() are the transaction handlers -- ideally, transactions in wftk will
+   # be handled by data change packets, but since I haven't implemented that, we ain't got nothin.
+   sub commit ($) {
+       my($dbh) = shift;
+       if ($dbh->FETCH('Warn')) {
+   	warn("Commit ineffective while AutoCommit is on", -1);
+       }
+       1;
+   }
+
+   sub rollback ($) {
+       my($dbh) = shift;
+       if ($dbh->FETCH('Warn')) {
+   	warn("Rollback ineffective while AutoCommit is on", -1);
+       }
+       0;
+   }
+
+   # ----------------------------------------------------------------------------------------------------------------------
+   # Next is the statement level.
+   #
+
+   package DBD::wftk::st; # ====== STATEMENT ======
+
+   $DBD::wftk::st::imp_data_size = 0;
+
+   # The implementations for bind_param(), finish(), and fetch() are taken more or less
+   # whole cloth from DBD::File, and essentially they are only here because they reference
+   # driver-specific parameters.
+   #
+
+   sub bind_param ($$$;$) {
+       my($sth, $pNum, $val, $attr) = @_;
+       $sth->{wftk_params}->[$pNum-1] = $val;
+       1;
+   }
+   sub execute {
+      my $sth = shift;
+      my $params;
+      if (@_) {
+         $sth->{'wftk_params'} = ($params = [@_]);
+      } else {
+         $params = $sth->{'wftk_params'};
+      }
+
+      $sth->finish;
+      my $stmt = $sth->{'wftk_stmt'};
+
+      my $result = eval { $stmt->execute($sth, $params); };
+      return $sth->set_err(1,$@) if $@;
+      if ($stmt->{'NUM_OF_FIELDS'}) { # is a SELECT statement
+         $sth->STORE(Active => 1);
+         $sth->STORE('NUM_OF_FIELDS', $stmt->{'NUM_OF_FIELDS'}) if !$sth->FETCH('NUM_OF_FIELDS');
+      }
+      return $result;
+   }
+   sub finish {
+       my $sth = shift;
+       $sth->SUPER::STORE(Active => 0);
+       delete $sth->{wftk_stmt}->{data};
+       return 1;
+   }
+   sub fetch ($) {
+       my $sth = shift;
+       my $data = $sth->{wftk_stmt}->{data};
+       if (!$data  ||  ref($data) ne 'ARRAY') {
+   	$sth->set_err(1, "Attempt to fetch row from a Non-SELECT statement");
+   	return undef;
+       }
+       my $dav = shift @$data;
+       if (!$dav) {
+           $sth->finish;
+   	return undef;
+       }
+       if ($sth->FETCH('ChopBlanks')) {
+   	map { $_ =~ s/\s+$// if $_; $_ } @$dav;
+       }
+       $sth->_set_fbav($dav);
+   }
+   *fetchrow_arrayref = \&fetch;
+
+   # Similarly, FETCH() and STORE() don't do anything particularly customized.
+   sub FETCH ($$) {
+       my ($sth, $attrib) = @_;
+       return undef if ($attrib eq 'TYPE'); # Workaround for a bug in DBI 0.93
+       return $sth->FETCH('wftk_stmt')->{'NAME'} if ($attrib eq 'NAME');
+       if ($attrib eq 'NULLABLE') {
+   	my($meta) = $sth->FETCH('wftk_stmt')->{'NAME'}; # Intentional !
+   	if (!$meta) {
+   	    return undef;
+   	}
+   	my($names) = [];
+   	my($col);
+   	foreach $col (@$meta) {
+   	    push(@$names, 1);
+   	}
+   	return $names;
+       }
+       if ($attrib eq (lc $attrib)) {
+   	# Private driver attributes are lower cased
+   	return $sth->{$attrib};
+       }
+       # else pass up to DBI to handle
+       return $sth->SUPER::FETCH($attrib);
+   }
+
+   sub STORE ($$$) {
+       my ($sth, $attrib, $value) = @_;
+       if ($attrib eq (lc $attrib)) {
+   	# Private driver attributes are lower cased
+   	$sth->{$attrib} = $value;
+   	return 1;
+       }
+       return $sth->SUPER::STORE($attrib, $value);
+   }
+
+   # Here is where we would clean up wftk-specific things after a query is
+   # complete.
+   sub DESTROY ($) {
+       my $sth = shift;
+       $sth->finish if $sth->SUPER::FETCH('Active');
+   }
+
+   sub rows ($) { shift->{'wftk_stmt'}->{'NUM_OF_ROWS'} };
+
+
+   # --------------------------------------------------------------------------------------------------------------
+   # The Statement object subclasses an SQL Statement class.  The only real wftk-specific method here is the
+   # open_table() method, called to open or create a table.  For tables created in wftk through the DBI interface,
+   # we just create an in-memory list.  If you want something more specific than that, you'll have to call the wftk
+   # list definition functions to set up a different list storage, or configure your table in the repository
+   # to start with.
+   #
+
+   package DBD::wftk::Statement;
+
+   @DBD::wftk::Statement::ISA = qw(DBI::SQL::Nano::Statement);
+
+   sub open_table ($$$$$) {
+      my($self, $data, $table, $createMode, $lockMode) = @_;
+
+      my $dbh = $data->{Database};
+      my $wftk = $dbh->{wftk_repos};
+
+      my $list_obj;
+      if ($createMode) {
+         my %lists = $wftk->lists();
+         if ($lists{$table}) {
+            die "A table $table already exists";
+         }
+         $list_obj = $wftk->open($table);
+      } else {
+         $list_obj = $wftk->open($table);  # TODO: think about locking.  Do we care?  I think we assume the lists
+                                           #       are taking care of it for us.  Probably naive.
+      }
+      my @fields = ('!key', $list_obj->fields());  # Note: this is veryveryvery important and cost me HOURS.  Sigh.
+      my $columns = {};
+
+      for (my $i = 0;  $i < @fields; $i++) {
+          $columns->{$fields[$i]} = $i;
+      }
+
+      my @keys = $list_obj->keys();  # TODO: figure out how to use first_key and next_key to do this.
+      my $tbl = {
+         list_obj => $list_obj,
+         col_nums => $columns,
+         col_names => \@fields,
+         CURRENT_ROW => 0,
+         THIS_ROW_KEY => undef,
+         KEYS => \@keys,
+      };
+
+      # This is taken from DBD::File.  I find this kind of shenanigans with class names
+      # pretty cavalier, but it works.
+      my $class = ref($self);
+      $class =~ s/::Statement/::Table/;
+      bless($tbl, $class);
+      $tbl;
+   }
+
+   # ---------------------------------------------------------------------------------------------------------------------
+   # The table package manages the table.  I had originally copied this more or less whole cloth from DBD::File, only to
+   # discover that SQL::Statement will delete the entire table and re-insert each individual record in order to update
+   # or delete.  Which makes sense for a file!  But for key-based retrieval such as the wftk does, it doesn't.
+   #
+   # Well, it turns out (although for the life of me I haven't found documentation yet) that you can implement
+   # delete_one_row and update_one_row, and SQL::Statement will do the right thing.  To return the key from a row in
+   # fetch_row, you also have to have a little special return logic.  I discovered all this by inspecting the code for
+   # SQL::Statement and DBD::DBM (which implements all that).
+   #
+
+   package DBD::wftk::Table;
+
+   @DBD::wftk::Table::ISA = qw(SQL::Eval::Table);
+
+   sub drop ($) {
+       my($self) = @_;
+       return 1;
+   }
+
+   sub seek ($$$$) {
+       my($self, $data, $pos, $whence) = @_;
+
+       # This seek() is taken from DBD::RAM.
+       my($currentRow) = $self->{'CURRENT_ROW'};
+       if ($whence == 0) {
+   	$currentRow = $pos;
+       } elsif ($whence == 1) {
+   	$currentRow += $pos;
+       } elsif ($whence == 2) {
+   	$currentRow = @{$self->{KEYS}} + $pos;
+       } else {
+   	die $self . "->seek: Illegal whence argument ($whence)";
+       }
+       if ($currentRow < 0) {
+   	die "Illegal row number: $currentRow";
+       }
+       $self->{'CURRENT_ROW'} = $currentRow;
+    
+   }
+
+   sub truncate ($$) {
+       print "truncate\n";
+       my($self, $data) = @_;
+       while (my ($k,$v) = each %$data) { print "$k -> $v\n"; }
+       1;
+   }
+
+
+   ##################################
+   # fetch_row()
+   # CALLED WITH "SELECT ... FETCH"
+   # The fetch_row() function fetches an entire sequence of rows one after the other, possibly
+   # interspersed with seek() calls.  It prepends the key of the row to the values.
+   ##################################
+   sub fetch_row ($$$) {
+       my($self, $data, $row) = @_;
+
+       my $cr = $self->{CURRENT_ROW};
+       return undef if $cr >= @{$self->{KEYS}};
+       $self->{CURRENT_ROW} = $cr + 1;
+       my $rec = $self->{list_obj}->get_sql($self->{KEYS}->[$cr]);
+       return undef unless $rec;
+       my @values = ($self->{KEYS}->[$cr], $rec->values());
+       $self->{THIS_KEY} = $self->{KEYS}->[$cr];
+
+       $self->{row} = \@values;
+       return @values if wantarray;
+       return $self->{row};
+   }
+
+
+
+   ##############################
+   # push_names()
+   # CALLED WITH "CREATE TABLE"
+   ##############################
+   sub push_names ($$$) {
+      my($self, $data, $names) = @_;
+      my $dbh     = $data->{Database};
+      my $tname   = $self->{NAME};
+
+      $self->{list_obj}->add_fields(@$names);
+
+      # Now set up col_names and col_nums in the way DBI expects them.
+      $self->{col_names} = $names;
+      my($colNums) = {};
+      for (my $i = 0;  $i < @$names;  $i++) {
+          $colNums->{$names->[$i]} = $i;
+      }
+      $self->{col_nums} = $colNums;
+      1; 
+   }
+
+   ################################
+   # push_rows()
+   # CALLED WITH "INSERT" & UPDATE
+   ################################
+   sub push_row ($$$) {
+       my($self, $data, $fields) = @_;
+
+       my $newrec = $self->{list_obj}->get_new();
+       for ($newrec->fields()) {
+          $newrec->put($_, shift @$fields || '');
+       }
+       $self->{list_obj}->add($newrec);
+       1;
+   }
+
+   # So here is the one-row (key-based) stuff, copied from DBD::DBM and modified.to fit the wftk.
+   # Note again that each of our rows contains the key for the record, followed by all the rest
+   # of the data.
+   sub fetch_one_row ($$;$) {
+       my($self,$key_only,$key) = @_;
+       return $self->{col_names}->[0] if $key_only;
+       my $rec = $self->{list_obj}->get_sql($key);
+       return undef unless $rec;
+       my $row = [$key, $rec->values()];
+       #while (my ($k,$v) = each %$self) { print "$k = $v\n"; }
+       return @$row if wantarray;
+       return $row;
+   }
+   sub delete_one_row ($$$) {
+       my($self,$data,$aryref) = @_;
+       $self->{list_obj}->del($aryref->[0]);
+   }
+   sub update_one_row ($$$) {
+       my($self,$data,$aryref) = @_;
+       my $key = shift @$aryref;
+       return undef unless defined $key;
+
+       my $rec = $self->{list_obj}->get_sql($key);
+       my @fields = @{$self->{col_names}};
+       shift @fields;
+
+       for (@fields) {
+          $rec->put($_, shift @$aryref);
+       }
+       $self->{list_obj}->mod($key,$rec);
+   }
+
+
+   1;
+
+

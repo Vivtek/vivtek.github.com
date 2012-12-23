@@ -1,0 +1,14 @@
+SUBJECT>Re: cannot find expat.dll
+POSTER>andrewa
+EMAIL>andrew.arblaster@ttsservices.co.uk
+DATE>1035363058
+EMAILNOTICES>no
+IP_ADDRESS>gw-hbg01.pde.philips.com
+PREVIOUS>204
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; when I run wftk.exe ,it fails because of &quot;cannot find expat.dll&quot;
+<P>Try http://www.libexpat.org/ - it worked for me.
+<P>Regards, Andrew

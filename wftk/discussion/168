@@ -1,0 +1,23 @@
+SUBJECT>Re: HOWTO for beginners?
+POSTER>Ty LT
+EMAIL>
+DATE>1018013355
+EMAILNOTICES>no
+IP_ADDRESS>203.8.94.247
+PREVIOUS>167
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Well, ok, I take it back about the source comments not being useful! They are.
+<P>BTW, when can we expect to see a PHP module? That would be great.
+<P>&gt; Hi,
+<P>&gt; I would love to see a short example on just how to do a simple workflow.
+<BR>> Something like: (See post &quot;Purchase Request: Just do it ??&quot;)
+<P>&gt; wftk create 5 wftk define . 5 . chair wftk set . 5 &quot;Reason for
+<BR>> request&quot; &quot;I want one&quot; wftk set . 5 &quot;Product
+<BR>> requested&quot; &quot;Leather Chair&quot; wftk set . 5 &quot;Requester's
+<BR>> email&quot; &quot;email@www.example.com&quot; wftk complete . 5 wftk tasks
+<BR>> . 5 wftk set . 5 &quot;Approval code&quot; Yes wftk complete . 5 10
+<P>&gt; That would really help people get started (more so than the source
+<BR>> comments!)

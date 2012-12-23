@@ -1,0 +1,10 @@
+<group name="scenarios" label="WFTK scenarios">
+<object class="workflow" object="tradeshow" permission="own"/>
+<object class="workflow" object="chair" permission="own"/>
+<object class="workflow" object="sxc" permission="own"/>
+<object class="workflow" object="ecomm" permission="own"/>
+<object class="workflow" object="closedproj" permission="own"/>
+<object class="workflow" object="openproj" permission="own"/>
+<group-included-by name="testgroup" permission="edit"/>
+<group-included-by name="testgroup" permission="checkout"/>
+</group>

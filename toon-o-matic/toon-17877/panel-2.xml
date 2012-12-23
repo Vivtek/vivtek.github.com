@@ -1,0 +1,4 @@
+<panel>
+<character name="Lenin" action="leaves"/>
+<dialog who="Lenin" font-size="12">Сталин разговаривает по телефону с Черчиллем:</dialog>
+</panel>

@@ -1,0 +1,203 @@
+package Workflow::wftk::Data::dir;
+
+use warnings;
+use strict;
+
+use Workflow::wftk::Record;
+use base qw(Workflow::wftk::Data);
+use Symbol;
+use File::Path::Tiny;
+use DateTime;
+use Scalar::Util qw(looks_like_number);
+
+
+
+=head1 NAME
+
+Workflow::wftk::Data::dir - Provides storage tools for putting data into files in a directory, one file per record.
+
+=head1 VERSION
+
+Version 0.01
+
+
+I<Implementation>:
+
+
+   our $VERSION = '0.01';
+
+
+=head1 SYNOPSIS
+
+The C<Workflow::wftk::Data::dir> module implements the Data class with storage of data in directories.  In this model, each
+entry in the directory has a separate file.  The default parser for data in that file is the default Record parser (with one
+field per line, the name of the field being colon-separated from the value).
+
+Ultimately, we'll need to define different parsers.  I'm not sure yet where that definition will reside, but it's crucial, because
+defining variant parsers will allow us to set filters and do indexing in a principled manner.
+
+The C<::dir> class differs from our memory and file classes in that it supports a two-tiered data structure.  The first level of
+fields are visible to SQL, and must be available by parsing of the filename itself (which is available immediately upon reading
+the directory), while the second level of fields is only revealed after retrieval of the full record.  This notion of multitiered
+expense in data structures is a powerful one.  We'll work the mechanisms back into the general data handler and we'll thank ourselves
+later.
+
+=head1 FUNCTIONS
+
+=head2 connect
+
+The C<connect> method just sets up the data structure, but it doesn't actually read the directory.  That's because sometimes we're
+going to use this adapter to read single files without needing to load the whole directory every time.  The directory loader
+is only going to run when C<first_key> or C<keys> is called.
+
+
+I<Implementation>:
+
+
+   sub connect {
+      my ($self, $def) = @_;
+
+      $self->{cache_keys} = 1;
+      $self->{keycache} = 0;
+      $self->{mask} = "#";
+      $self->{sql_fields} = ['id', 'filename', 'mod', 'size'];
+      $self->{dir} = $self->{conf}->get('dir');
+
+      die unless my $ret = File::Path::Tiny::mk($self->{dir});   # TODO: Surely there's a better way to handle errors?
+   }
+   sub DESTROY { $_[0]->close() }
+
+=head2 keys, first_key
+
+For the directory adapter, we're going to cache our keys (that is, the directory listing) and return key lists from that cache.
+A call to C<keys> or C<first_key> renews the cache if the directory has changed since the last time we read it.  (There is no
+special implementation of C<first_key> here because if keys are cached, first_key calls C<keys> anyway.)
+
+When we call the key reader (thus loading the list) we also load the values hash with the SQL-accessible fields (those that we
+can determine from the directory scan itself, but nothing from the file contents).
+
+
+I<Implementation>:
+
+
+   sub keys {
+      my ($self) = @_;
+
+      if ($self->{keycache} != -M $self->{dir}) {
+         my $sym = gensym();
+         opendir $sym, $self->{dir};
+         foreach my $f (readdir($sym)) {
+            next unless -f "$self->{dir}/$f";
+            my $rec = $self->get_new();
+            $rec->put('id', $f);
+            $rec->put('filename', $f);
+            my $m = DateTime->now();
+            $m->subtract (seconds => (-M "$self->{dir}/$f") * 24 * 60 * 60);
+            $rec->put('mod', $m->iso8601());
+            $rec->put('size', -s "$self->{dir}/$f");
+            $self->SUPER::put($f, $rec);
+         }
+         closedir $sym;
+         $self->{keycache} = -M $self->{dir};
+      }
+
+      $self->SUPER::keys();
+   }
+
+=head2 get, get_sql
+
+The C<get> method retrieves the actual field contents from a file given its key.  This is not cached.
+The C<get_sql> method is also overridden here, because it needs to load the directory before saying anything
+about any specific SQL record.
+
+
+I<Implementation>:
+
+
+   sub get {
+      my ($self, $key) = @_;
+      my $sym = gensym();
+      my $text = "";
+      open $sym, "$self->{dir}/$key" or return;
+      while (<$sym>) { $text .= $_; }
+      close $sym;
+      my $rec = $self->get_new(1);
+      $rec->parse($text);
+      return $rec;
+   }
+   sub get_sql {
+      my $self = shift;
+      my $keys = scalar $self->keys();
+      $self->SUPER::get_sql(@_);
+   }
+      
+
+=head2 put
+
+The C<put> method takes a record object and writes the appropriate file
+
+
+I<Implementation>:
+
+
+   sub put {
+      my ($self, $key, $record) = @_;
+      if (defined $key) {
+         if (looks_like_number($key) && $key >= $self->{nextkey}) {
+            $self->{nextkey} = $key + 1;
+         }
+      } else {
+         my $keys = scalar $self->keys(); # Make sure the known keys are obtained.
+         $key = $self->genkey($record);
+      }
+      my $sym = gensym();
+      open $sym, ">$self->{dir}/$key" or return;
+      print $sym $record->as_text();
+      close $sym;
+      return $key;
+   }
+
+=head2 delete, del
+
+The C<delete> method, given a key, deletes the file for that key.
+
+
+I<Implementation>:
+
+
+   sub delete {
+      my ($self, $key) = @_;
+      $self->SUPER::delete($key);
+      unlink "$self->{dir}/$key";
+   }
+
+=head1 AUTHOR
+
+Michael Roberts, C<< <michael at vivtek.com> >>
+
+=head1 BUGS
+
+Please report any bugs or feature requests to C<bug-workflow-wftk at rt.cpan.org>, or through
+the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Workflow-wftk>.  I will be notified, and then you'll
+automatically be notified of progress on your bug as I make changes.
+
+
+=head1 SUPPORT
+
+You can find documentation for this module with the perldoc command.
+
+    perldoc Workflow::wftk::Data
+
+=head1 COPYRIGHT & LICENSE
+
+Copyright 2009 Vivtek, all rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+
+
+I<Implementation>:
+
+
+   1; # End of Workflow::wftk::Data::dir

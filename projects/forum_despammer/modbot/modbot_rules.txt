@@ -1,0 +1,11 @@
+!google_count: ip
+? google_count > 20: +100
+
+!count_links: post
+? link_count > 2: +10*
+
+!russian_chars: post
+? post-russian > 0.1: +10
+
+!known_user: poster
+? known_user > 0: -150

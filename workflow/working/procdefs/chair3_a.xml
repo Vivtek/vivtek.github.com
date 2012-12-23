@@ -1,0 +1,1 @@
+<workflow name="Test Add #2" created="michael"><role name="Process owner" local=""/><note type="description">Another test case.</note><data name="Data item 1" type="string"/><parallel repeat="no" index=""><data name="Test" type="text"/><task label="Do stuff" role="Process owner"/></parallel></workflow>

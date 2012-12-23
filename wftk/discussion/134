@@ -1,0 +1,22 @@
+SUBJECT>Re: Wf-XML
+POSTER>Ulrich Eck
+EMAIL>ueck@net-labs.de
+DATE>994096810
+EMAILNOTICES>no
+IP_ADDRESS>217.5.177.74
+PREVIOUS>89
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; I've looked over the Wf-XML and (correct me if I'm wrong) the standard
+<BR>> deals exclusively with communication between WFMS, not actual process
+<BR>> definition. Has anyone seen process definition in the standard where I
+<BR>> have not?
+<P>&gt; I completely agree with Matt Hicks. Wf-XML is just a very basic (u. maybe
+<BR>> non very mature) DTD to exchange messages between engines.
+<P>There is a new Document availiable from wfmc that specifies a:
+<P>Workflow Process Definition Interface -- XML Process Definition Language.
+<P>which makes it possible to standardized exchange/create Process Definitions for workflows-systems .. perhaps it is worth to have a look at:
+<P>http://www.wfmc.org/standards/docs/xpdl_010522..pdf
+<P>

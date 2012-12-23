@@ -1,0 +1,1 @@
+<workflow name="Process name here"><role name="Joe" local=""/><sequence repeat="no" index=""><task label="Work, work, work" role="Joe"/></sequence></workflow>

@@ -1,0 +1,11 @@
+<item ver="1" title="SourceXchange project">
+<owner name="michael">Michael michael@vivtek.com</owner>
+<edits/>
+<versions>
+<version id="1" file="sxc_1.xml">
+The original version of the SourceXchange scenario.
+For more information see <a href="http://www.vivtek.com/wftk/usage/sxc.html">the
+SourceXchange scenario</a>.
+</version>
+</versions>
+</item>

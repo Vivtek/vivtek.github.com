@@ -1,0 +1,14 @@
+SUBJECT>Re: where was the oci.h file gone ???
+POSTER>Michael
+EMAIL>toonbots@vivtek.com
+DATE>997024432
+EMAILNOTICES>no
+IP_ADDRESS>as0-103.blm.bluemarble.net
+PREVIOUS>145
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; while i try to compiling the files contain in taskindex directory. the
+<BR>> error message suddenly display at monitor.
+<P>Whoops! Modify the build.bat file in the TASKINDEX directory to eliminate compilation of the TASKINDEX_oracle adaptor -- that's looking for the Oracle include file (oci.h). Sorry about that. I don't yet have much of a configuration procedure in place, do I?

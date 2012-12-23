@@ -1,0 +1,15 @@
+SUBJECT>XML Storage of Task/State
+POSTER>Bob Payne
+EMAIL>rpayne@ccpace.com
+DATE>959279925
+EMAILNOTICES>no
+IP_ADDRESS>host.ccpace.com
+PREVIOUS>
+NEXT> 5
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Since you are already storing most of your Data/Process info in the XML document. What design decisions led you to have an external store for the Task/State information for the WorkFlow instance.
+<P>This will make it faster to generate the Task List.
+<P>But...It seems more elegant to store this information in the XML document. This would allow the XML WorkFlow Document to be handed off to another WF processor or external party for processing and have all the Task/State information right there.
+<P>This would be a big step forward. I don't know of any WF system that can pass tasks around like this. This may in fact be the Holy Grail for B2B process integration.

@@ -1,0 +1,15 @@
+SUBJECT>Re: Wf-XML
+POSTER>Matt Hicks
+EMAIL>m.hicks@sap.com
+DATE>972670220
+EMAILNOTICES>no
+IP_ADDRESS>proxyphl2.sap.com
+PREVIOUS>47
+NEXT> 89
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>I've looked over the Wf-XML and (correct me if I'm wrong) the standard deals exclusively with communication between WFMS, not actual process definition. Has anyone seen process definition in the standard where I have not?
+<P>On a similar note, it would be nice to see the XML for process definition in wftk resemble more closely the Interface 1 standard of the WfMC. If that were the case, the process definition interface for wftk might then instantly be capable of producing definition that any WfMC Interface 1 compliant WFMS could interpret (not that I know which MFMS are).
+<P>&gt; Haven't had time to read it yet, but I certainly hope to do something with
+<BR>> it, you're right.

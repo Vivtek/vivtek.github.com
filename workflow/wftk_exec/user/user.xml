@@ -1,0 +1,1449 @@
+<litprog>
+<object name="user.h" language="c" item="include"/>
+<object name="user.c" language="c" item="library"/>
+<object name="main.c" language="c" item="main"/>
+
+
+<format name="index">
+<html><head><title>User module</title></head>
+<body>
+<h2>User module</h2>
+<center>
+[ <a href="wftk_user.zip">download</a> ] [ <a href="user.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+
+<hr/>
+The user module is used by the various parts of the wftk both for authorizing users and for
+storing information about users and the things they work with.  To do this, we maintain XML
+documents, one for each user and one for each group.  A <i>group</i> in this context contains
+both a list of users and a list of objects.  The objects are defined pretty vaguely; since
+the programs which handle those objects will be querying the user module for levels of access,
+those programs are assumed to know what they're doing.  So basically I'm giving objects a
+module name (a namespace, really) and an identifier.
+<p/>
+A group may contain other groups; the contained groups may thus be seen as folders (even though
+they may simultaneously serve as groups of users, the folder metaphor is more apt for contained
+groups.)  In this case, the permission used on the link combines with the permission the
+contained group has on the object thus: (x) + own = (x), own + (x) = (x), (x) + (x) = (x), and
+(x) + (y) = nothing.  So let's assume that group "myfolder" has permission "own" on object
+"MyDocument".  If I grant group "friends" permission "view" on myfolder, then they end up with
+view + own = <i>view</i> on MyDocument.  Anybody with "view" privilege on "friends" thus
+acquires viewing privileges on MyDocument.
+<p/>
+A group or user may also be considered as an object, of course, and that's how we grant admin
+privileges.  If I grant somebody viewing privileges on the "friends" folder above, <i>as an
+object</i>, then they can view the actual friends folder and its contents, but they <i>do
+not</i> thereby acquire any privileges to MyDocument.
+<p/>
+This explanation is pretty weak, so I'm going to let it sit a few days and start again.
+<p/>
+This module defines three files.  First, of course, is <code>user.c</code>, which is simply
+the implementation of the functionality.  This file should be compiled along with your project.
+The obligatory declarations are of course in <code>user.h</code>.  Finally, <code>main.c</code>
+defines a main program and simple command-line interface, resulting in a command-line
+user maintenance utility.
+<p/>
+I've written a <a href=browse.html>folder browser</a> based on this user library.  Take a look
+at it for an idea of how to use the library.
+<p/>
+Table of contents:
+[##itemlist##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font>
+</td>
+</tr>
+</table>
+</center>
+</body></html>
+</format>
+
+<format name="default">
+<html><head><title>User module: [##label##]</title></head>
+<body>
+<h2>[##label##]</h2>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="index.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="index.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<item name="index" label="The user module" format="index">
+</item>
+
+<item name="include" label="user.h: definition of the interface">
+<piece>
+#ifndef __USER_H_
+#define __USER_H_
+#include [[stdio.h>
+#include [[stdlib.h>
+#include "../xmlapi.h"
+</piece>
+I have no idea how more sophisticated user directory models like LDAP work, so this is the
+interface which I came up with instead.  Ideally this API could use alternative implementations
+(like an LDAP module) but that will have to wait for more maturity (and time to work on it.)
+<p/>
+In the meantime, here's what I've come up with.  First off, I'm developing this in a CGI
+prototype environment, so here's a user authentication function.  This function will take
+a single XML tag which has the CGI environment as attributes of the tag (which is how I'm
+handling the CGI environment in wftk, of course.)  It returns NULL if the user is not
+authenticated (either the user is wrong or the wrong password is given); otherwise it loads
+the user from the user repository and returns the XML structure of the user.  If NULL is
+returned, it emits a user authentication header to stdout.  Presumptuous, but it will work in
+the prototype just fine.
+<piece>
+XML * user_authenticate (XML * cgi_environment, const char * realm);
+</piece>
+
+Next we have some basic stuff for getting users and such.  The <code>user_exists</code>
+function simply checks the repository to see whether a named user is in there.  Then there are
+get and save functions for users.  These come in two varieties: the
+plain-vanilla just gets/saves a user, but the "auth" variety checks the current user's
+permissions to ensure that the operation is allowed.
+<piece>
+int user_exists (const char *username);
+XML * user_get (const char * username);
+int user_save (XML * user);
+XML * user_auth_get (const char * username, XML * current_user);
+int user_auth_save (XML * user, XML * current_user);
+</piece>
+
+And then the same stuff for groups.
+<piece>
+int group_exists (const char *groupname);
+XML * group_get (const char * groupname);
+int group_save (XML * group);
+XML * group_auth_get (const char * groupname, XML * current_user);
+int group_auth_save (XML * group, XML * current_user);
+</piece>
+
+We need functions to manipulate group contents: to add a user, we use
+<code>user_join</code> and to remove a user, we use <code>user_leave</code>.  Adding and
+removing objects should really be considered granting and revoking permissions, so that is
+reflected in the nomenclature.  And finally, we have functions to link and unlink groups
+to one another.
+<piece>
+int user_join (XML * user, XML * group);
+int user_leave (XML * user, XML * group);
+int object_grant (XML * user_or_group, const char * class, const char * object, const char * permission);
+int object_revoke (XML * user_or_group, const char * class, const char * object, const char * permission);
+int group_include (XML * outgroup, XML * ingroup, const char * permission);
+int group_unlink (XML * outgroup, XML * ingroup, const char * permission);
+</piece>
+
+And finally, we have a function which is basically the whole point of the exercise:
+<code>user_perm</code> queries the user's permission to a given object.  This assumes that the
+user is already loaded.  Note that in cases where user and group information is loaded and
+cached, some method will be necessary for invalidating cached permission information.  That
+can come later, of course.  We have a variant on <code>user_perm</code> called <code>user_perm_group</code>
+where we don't have an object class or name, just a group which owns it.  Otherwise it works the same.
+<piece>
+int user_perm (XML * user, const char * class, const char * object, const char * permission);
+int user_perm_group (XML * user, const char * groupname, const char * permission);
+</piece>
+
+Well, in retrospect that wasn't very final.  I also need some functionality to list objects
+and permissions.
+
+<piece>
+XML * user_list (XML * user, const char * class, const char * object, const char * permission);
+void user_expand (XML * list_or_group);
+void user_expandall (XML * list_or_group);
+</piece>
+
+<i>10/1/00</i> A quick little recursive function to find all the groups in which a user is a member.
+And the converse, too, but in two flavors: one just returns keys, the other more information than that.
+<piece>
+void user_groups_list (XML * user, XML * holder, const char * permission);
+void group_users_list (XML * group, XML * holder, const char * permission);
+void group_users_list_detailed (XML * group, XML * holder, const char * permission);
+</piece>
+
+<piece>
+#endif
+</piece>
+</item>
+
+<item name="library" label="user.c: implementation">
+OK, so we've defined what we're doing -- now how are we going to do it?  I thought you'd never
+ask.
+<piece>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "user.h"
+#include "../localdefs.h"
+
+/* ------------------------------------------------------------------ */
+/* user.c                                                             */
+/* This implements the user and group API for wftk.                   */
+/* ------------------------------------------------------------------ */
+</piece>
+
+OK, here goes.  Follow the links below to see implementations.
+<piece>
+<insert name="auth"/>
+
+<insert name="exist.user"/>
+<insert name="exist.group"/>
+
+<insert name="getsave.user_get"/>
+<insert name="getsave.user_save"/>
+<insert name="getsave.group_get"/>
+<insert name="getsave.group_save"/>
+<insert name="getsave.user_auth_get"/>
+<insert name="getsave.user_auth_save"/>
+<insert name="getsave.group_auth_get"/>
+<insert name="getsave.group_auth_save"/>
+
+<insert name="joinleave.user_join"/>
+<insert name="joinleave.user_leave"/>
+<insert name="joinleave.object_grant"/>
+<insert name="joinleave.object_revoke"/>
+<insert name="joinleave.group_include"/>
+<insert name="joinleave.group_unlink"/>
+
+<insert name="user_perm"/>
+
+<insert name="listing.user_list"/>
+<insert name="listing.user_expand"/>
+<insert name="listing.user_expandall"/>
+<insert name="listing.groups"/>
+<insert name="listing.users"/>
+</piece>
+</item>
+
+<item name="exist" label="Checking for existence of users and groups">
+In this implementation, anyway, checking for the existence of a user or a group is as simple
+as checking the repository directory for the named file.
+</item>
+<item name="exist.user" label="user_exists()">
+<piece>
+int user_exists(const char * user)
+{
+   char buf[1024];
+   FILE * file;
+   sprintf (buf, "%s%s", USER_REPOSITORY, user);
+   file = fopen (buf, "r");
+   if (file) {
+      fclose (file);
+      return 1;
+   }
+   return 0;
+}
+</piece>
+</item>
+<item name="exist.group" label="group_exists()">
+<piece>
+int group_exists(const char * group)
+{
+   char buf[1024];
+   FILE * file;
+   sprintf (buf, "%s%s", GROUP_REPOSITORY, group);
+   file = fopen (buf, "r");
+   if (file) {
+      fclose (file);
+      return 1;
+   }
+   return 0;
+}
+</piece>
+</item>
+
+<item name="getsave" label="Loading and saving users and groups">
+Given the simplicity of the xmlapi, most of this is pretty easy.  However, the fact that we're
+using the user module to authorize access to users makes it interestingly recursive.  But
+looking at the auth versions of the get and save functions, we can see an excellent example of
+how to use the module.
+</item>
+<item name="getsave.user_get" label="user_get()">
+<piece>
+XML * user_get (const char * username)
+{
+   char buf[1024];
+   FILE * file;
+   XML * ret;
+
+   if (!strcmp (username, "anonymous")) {
+      ret = xml_create ("user");
+      xml_set (ret, "name", "anonymous");
+      return (ret);
+   }
+
+   sprintf (buf, "%s%s.xml", USER_REPOSITORY, username);
+   file = fopen (buf, "r");
+   if (!file) return NULL;
+
+   ret = xml_read (file);
+   fclose (file);
+   return (ret);
+}
+</piece>
+</item>
+<item name="getsave.user_save" label="user_save()">
+<piece>
+int user_save (XML * user)
+{
+   char buf[1024];
+   FILE * file;
+
+   sprintf (buf, "%s%s.xml", USER_REPOSITORY, xml_attrval (user, "name"));
+   file = fopen (buf, "w+");
+   if (!file) return 1;
+
+   xml_write (file, user);
+   fclose (file);
+   return (0);
+}
+</piece>
+</item>
+<item name="getsave.group_get" label="group_get()">
+<piece>
+XML * group_get (const char * groupname)
+{
+   char buf[1024];
+   FILE * file;
+   XML * ret;
+
+   sprintf (buf, "%s%s.xml", GROUP_REPOSITORY, groupname);
+   file = fopen (buf, "r");
+   if (!file) {
+      ret = xml_create ("group");
+      xml_set (ret, "name", groupname);
+      return (ret);
+   }
+
+   ret = xml_read (file);
+   fclose (file);
+   return (ret);
+}
+</piece>
+</item>
+<item name="getsave.group_save" label="group_save()">
+<piece>
+int group_save (XML * group)
+{
+   char buf[1024];
+   FILE * file;
+
+   sprintf (buf, "%s%s.xml", GROUP_REPOSITORY, xml_attrval (group, "name"));
+   file = fopen (buf, "w+");
+   if (!file) return 1;
+
+   xml_write (file, group);
+   fclose (file);
+   return (0);
+}
+</piece>
+</item>
+
+<item name="getsave.user_auth_get" label="user_auth_get()">
+</item>
+<item name="getsave.user_auth_save" label="user_auth_save()">
+</item>
+<item name="getsave.group_auth_get" label="group_auth_get()">
+</item>
+<item name="getsave.group_auth_save" label="group_auth_save()">
+</item>
+
+<item name="joinleave" label="Adding and removing users and things from groups">
+These are simply some extremely simple wrappers around the xmlapi functionality used to
+make the specified changes.
+</item>
+<item name="joinleave.user_join" label="user_join()">
+When a user joins a group, then a link is made in both directions.  Just in case the join
+is redundant (in either direction) we scan both user and group for membership before appending
+the link.
+<p/>
+Note that this only affects structures in memory; the calling app has to know when to save
+both structures back to the repository.  Note further that there is absolutely no locking going
+on here.  Eventually we might want to address this issue in some way (otherwise it will
+eventually cause us to wish that we had already addressed it...)
+<piece>
+int user_join (XML * user, XML * group)
+{
+   XML * child;
+   child = xml_firstelem (group);
+   while (child) {
+      if (!strcmp (child->name, "user"))
+         if (!strcmp (xml_attrval (child, "name"), xml_attrval (user, "name")))
+            goto ensure_group;
+      child = xml_nextelem (child);
+   }
+   child = xml_create ("user");
+   xml_set (child, "name", xml_attrval (user, "name"));
+   xml_append (group, child);
+
+ensure_group:
+   child = xml_firstelem (user);
+   while (child) {
+      if (!strcmp (child->name, "group"))
+         if (!strcmp (xml_attrval (child, "name"), xml_attrval (group, "name")))
+            return 0;
+      child = xml_nextelem (child);
+   }
+   child = xml_create ("group");
+   xml_set (child, "name", xml_attrval (group, "name"));
+   xml_append (user, child);
+
+   return 0;
+}
+</piece>
+</item>
+<item name="joinleave.user_leave" label="user_leave()">
+When a user <i>leaves</i> a group, then, the links in both directions must be removed.
+<piece>
+int user_leave (XML * user, XML * group)
+{
+   XML * child;
+
+   child = xml_firstelem (group);
+   while (child) {
+      if (!strcmp (child->name, "user")) {
+         if (!strcmp (xml_attrval (child, "name"), xml_attrval (user, "name"))) {
+            xml_delete (child);
+            child = xml_firstelem (group);
+         }
+      }
+      child = xml_nextelem (child);
+   }
+
+   child = xml_firstelem (user);
+   while (child) {
+      if (!strcmp (child->name, "group")) {
+         if (!strcmp (xml_attrval (child, "name"), xml_attrval (group, "name"))) {
+            xml_delete (child);
+            child = xml_firstelem (user);
+         }
+      }
+      child = xml_nextelem (child);
+   }
+}
+</piece>
+</item>
+<item name="joinleave.object_grant" label="object_grant()">
+Permission granting is an easier task, since object inclusion only goes one way (there is
+no object repository; groups know that they hold objects, but the objects have to ask.)
+<p/>
+Note that we don't really care whether we're given a user or a group to add the permission
+to; they work the same way, and the xmlapi doesn't care.
+<piece>
+int object_grant (XML * user_or_group, const char * class, const char * object, const char * permission)
+{
+   XML * child;
+   child = xml_firstelem (user_or_group);
+   while (child) {
+      if (!strcmp (child->name, "object"))
+         if (!strcmp (xml_attrval (child, "class"), class) #^7#^7
+             !strcmp (xml_attrval (child, "object"), object) #^7#^7
+             !strcmp (xml_attrval (child, "permission"), permission))
+            return 0;
+      child = xml_nextelem (child);
+   }
+   child = xml_create ("object");
+   xml_set (child, "class", class);
+   xml_set (child, "object", object);
+   xml_set (child, "permission", permission);
+   xml_append (user_or_group, child);
+   return 0;
+}
+</piece>
+</item>
+<item name="joinleave.object_revoke" label="object_revoke()">
+Revocation is a little different.  If a NULL is passed in for object or for permission, it matches
+anything.  (You can't do the same for classes.  Sorry.)
+<p/>
+Revocation is <i>not</i> recursive.  That is, if I revoke viewer privilege for a user, one of
+the user's group memberships might still result in viewer privileges.  I'm not sure if this
+is a bug or a feature, but it is at least documented.
+<piece>
+int object_revoke (XML * user_or_group, const char * class, const char * object, const char * permission)
+{
+   XML * child;
+   int ok;
+   child = xml_firstelem (user_or_group);
+   while (child) {
+      if (!strcmp (child->name, "object") #^7#^7
+          !strcmp (xml_attrval (child, "class"), class)) {
+         ok = 0;
+         if (!object) ok = 1;
+         if (!ok) if (!strcmp (xml_attrval (child, "object"), object)) ok = 1;
+         if (ok) {
+            ok = 0;
+            if (!permission) ok = 1;
+            if (!ok) if (!strcmp (xml_attrval (child, "permission"), permission)) ok = 1;
+            if (ok) {
+               xml_delete (child);
+               child = xml_firstelem (user_or_group);
+            }
+         }
+      }
+      child = xml_nextelem (child);
+   }
+}
+</piece>
+</item>
+<item name="joinleave.group_include" label="group_include()">
+Group links are also two-way, and are decorated with the permission level being granted to the
+containing group.  So these functions kind of combine the complexity of the other functions
+above.
+<p/>
+Group inclusion
+<piece>
+int group_include (XML * outgroup, XML * ingroup, const char * permission)
+{
+   XML * child;
+   child = xml_firstelem (outgroup);
+   while (child) {
+      if (!strcmp (child->name, "group-include"))
+         if (!strcmp (xml_attrval (child, "name"), xml_attrval (ingroup, "name")) #^7#^7
+             !strcmp (xml_attrval (child, "permission"), permission))
+            goto ensure_ingroup;
+      child = xml_nextelem (child);
+   }
+   child = xml_create ("group-include");
+   xml_set (child, "name", xml_attrval (ingroup, "name"));
+   xml_set (child, "permission", permission);
+   xml_append (outgroup, child);
+
+ensure_ingroup:
+   child = xml_firstelem (ingroup);
+   while (child) {
+      if (!strcmp (child->name, "group-included-by"))
+         if (!strcmp (xml_attrval (child, "name"), xml_attrval (outgroup, "name")) #^7#^7
+             !strcmp (xml_attrval (child, "permission"), permission))
+            return 0;
+      child = xml_nextelem (child);
+   }
+   child = xml_create ("group-included-by");
+   xml_set (child, "name", xml_attrval (outgroup, "name"));
+   xml_set (child, "permission", permission);
+   xml_append (ingroup, child);
+
+   return 0;
+}
+</piece>
+</item>
+<item name="joinleave.group_unlink" label="group_unlink()">
+As with <code>object_revoke</code> above, 
+<piece>
+int group_unlink (XML * outgroup, XML * ingroup, const char * permission)
+{
+   XML * child;
+   int ok;
+   child = xml_firstelem (outgroup);
+   while (child) {
+      if (!strcmp (child->name, "group-include") #^7#^7
+          !strcmp (xml_attrval (child, "name"), xml_attrval (ingroup, "name"))) {
+         ok = 0;
+         if (!permission) ok = 1;
+         if (!ok) if (!strcmp (xml_attrval (child, "permission"), permission)) ok = 1;
+         if (ok) {
+            xml_delete (child);
+            child = xml_firstelem (outgroup);
+         }
+      }
+      child = xml_nextelem (child);
+   }
+
+   child = xml_firstelem (ingroup);
+   while (child) {
+      if (!strcmp (child->name, "group-included-by") #^7#^7
+          !strcmp (xml_attrval (child, "name"), xml_attrval (outgroup, "name"))) {
+         ok = 0;
+         if (!permission) ok = 1;
+         if (!ok) if (!strcmp (xml_attrval (child, "permission"), permission)) ok = 1;
+         if (ok) {
+            xml_delete (child);
+            child = xml_firstelem (ingroup);
+         }
+      }
+      child = xml_nextelem (child);
+   }
+}
+</piece>
+</item>
+
+<item name="auth" label="Authentication in a CGI environment">
+User authentication in the CGI environment is fairly straightforward; we take the
+WWW-Authenticate header from the environment, decode it, load the named user, and check the
+password.  If there is no such header, if the user doesn't exist, or if the password doesn't
+match, then we emit a 403 response header, and return a NULL to the program.  If all goes well,
+then we simply return the user structure which we loaded.
+
+<piece>
+<insert name=".base64decode"/>
+XML * user_authenticate(XML * cgi_env, const char * realm)
+{
+   XML * ret;
+   char username[512];
+   char * password;
+
+   _base64decode (username, xml_attrval (cgi_env, "HTTP_AUTHORIZATION") + 6);
+
+   password = strchr (username, ':');
+   if (password) *password++ = '\0';
+   else password = "";
+
+   ret = user_get (username);
+   if (ret) {
+      if (!strcmp (password, xml_attrval (ret, "password"))) return (ret);
+      xml_free (ret);
+   }
+
+   printf ("Status: 401 Authentication required\n");
+   printf ("WWW-Authenticate: BASIC realm=\"%s\"\n\n", realm);
+
+   return NULL;
+}
+</piece>
+</item>
+
+<item name="auth.base64decode" label="Decoding base 64 authorization strings">
+Base-64 encoding is pretty cool, when you look at it.  It uses 64 printable characters; note
+that 64 is 2^6; that is, you can encode six bits of data in one base-64 character.  Thus
+24 bits of data is four characters, meaning that three bytes of binary data correspond to
+four base-64 characters.  Decoding therefore naturally looks at four characters at a time;
+often the encoding will be padded with an '=' if there aren't three bytes of data, but that's
+not a particularly safe assumption to make while decoding.
+<p/>
+Effectively what we're doing during this conversion is converting to base 2^24, then breaking
+things up into bytes.
+<piece>
+void _base64decode (char * buf, const char * encoded)
+{
+   int bytes = 0;
+   unsigned long chunk = 0;
+   unsigned long remainder = 0;
+
+repeat:
+   while (*encoded && bytes < 4) {
+      if      (*encoded == '=') chunk = chunk * 64;
+      else if (*encoded  >  96) chunk = chunk * 64 + (*encoded - 71);
+      else if (*encoded  >  64) chunk = chunk * 64 + (*encoded - 65);
+      else if (*encoded  >  47) chunk = chunk * 64 + (*encoded + 4);
+      else if (*encoded ==  43) chunk = chunk * 64 + 62;
+      else if (*encoded ==  47) chunk = chunk * 64 + 63;
+      else                      chunk = chunk * 64;
+
+      bytes ++;
+      encoded ++;
+   }
+
+   bytes = 2;
+   while (chunk > 0 #^7#^7 bytes > -1) {
+      remainder = chunk % (1 << (bytes * 8));
+      *buf++ = (chunk - remainder) / (1 << (bytes * 8));
+      chunk = remainder;
+      bytes--;
+   }
+   bytes = 0;
+
+   if (*encoded) goto repeat;
+
+   *buf = '\0';
+}
+</piece>
+</item>
+
+<item name="user_perm" label="Actually using all this XML to figure out a user's permissions">
+I nearly forgot to include this function in the API -- isn't that weird?  Anyway, the whole
+point of all the preceding work is to be able to ask of a given user and a given object,
+whether the user has permission to a given action on that object.  To determine this, we'll
+walk the user and group trees until we find the object (or don't) and a permission level which
+matches.
+<p/>
+I've decided that rather than leave the permissions completely open to module interpretation,
+it will be simpler to define a couple right at the outset: "own" means automaticallly that the
+user gets any permission.  "write" is greater than "view", and those two are the only official
+permissions defined.  (I.e. if I have write permission, and the question is whether I may view
+an object, then the answer is always "yes".  That might be a little too simple, but I think in
+practice it will work.)
+<p/>
+Note that since permissions are completely arbitrary strings, a module is perfectly free to
+define anything at all as a permission.  For the wftk, "activate" makes a lot of sense as a
+permission, for instance.  It's just that the user module won't know anything special about
+those permissions.
+<p/>
+This is by far our most complicated function.
+<p/>
+There are three things which are "magic" about permissions.  First is that permission "own"
+qualifies you for any permission.  Second is that group "admin" has "own" on everything.
+Third is that everybody belongs to group "everybody", so that granting some privilege to
+group "everybody" makes that privilege public.  And fourth (OK, so I thought up another one
+during subsequent development) -- as I was saying, fourth is that any permission at all is
+sufficient for "view".
+<piece>
+<insert name="user_perm.userhelpers">
+int user_perm (XML * user, const char * class, const char * object, const char * permission)
+{
+   XML * group;
+   XML * child;
+
+   child = xml_firstelem (user);
+   while (child) {
+      if (!strcmp (child->name, "object")) {
+         if (!strcmp (xml_attrval (child, "class"), class) #^7#^7
+             !strcmp (xml_attrval (child, "object"), object)) {
+            if (_user_perm_cmp (xml_attrval (child, "permission"), permission)) return (1);
+         }
+      } else if (!strcmp (child->name, "group")) {
+         if (!strcmp (xml_attrval (child, "name"), "admin")) return (1);
+         group = group_get (xml_attrval (child, "name"));
+         if (group) {
+            if (user_perm (group, class, object, permission)) {
+               xml_free (group);
+               return (1);
+            }
+            xml_free (group);
+         }
+      } else if (!strcmp (child->name, "group-include")) {
+         if (_user_perm_cmp (xml_attrval (child, "permission"), permission)) {
+            group = group_get (xml_attrval (child, "name"));
+            if (group) {
+               if (user_perm (group, class, object, permission)) {
+                  xml_free (group);
+                  return (1);
+               }
+               xml_free (group);
+            }
+         }
+      }
+      child = xml_nextelem (child);
+   }
+   if (strcmp (user->name, "group") #^7#^7 strcmp (xml_attrval (user, "name"), "everybody")) {
+      group = group_get ("everybody");
+      if (group) {
+         if (user_perm (group, class, object, permission)) {
+            xml_free (group);
+            return (1);
+         }
+         xml_free (group);
+      }
+   }
+   return (0);
+}
+</piece>
+
+Now the variant, <code>user_perm_group</code>, which just takes the name of a group which owns the object
+in question.  (Thus having the named permission on the group will automatically count as having (at least) that
+permission on the object.)  This saves a great deal of overhead if we can assume that objects always are
+owned by single groups, which works well for the task manager.
+<piece>
+int user_perm_group (XML * user, const char * groupname, const char * permission)
+{
+   XML * group;
+   XML * child;
+
+   if (!strcmp (groupname, "everybody")) return (1);
+   if (!strcmp (groupname, "")) return (1);
+
+   child = xml_firstelem (user);
+   while (child) {
+      if (!strcmp (child->name, "group")) {
+         if (!strcmp (xml_attrval (child, "name"), "admin")) return (1);
+         if (!strcmp (xml_attrval (child, "name"), groupname)) return (1);
+
+         group = group_get (xml_attrval (child, "name"));
+         if (group) {
+            if (user_perm_group (group, groupname, permission)) {
+               xml_free (group);
+               return (1);
+            }
+            xml_free (group);
+         }
+      } else if (!strcmp (child->name, "group-include")) {
+         if (_user_perm_cmp (xml_attrval (child, "permission"), permission)) {
+            if (!strcmp (xml_attrval (child, "name"), groupname)) return (1);
+
+            group = group_get (xml_attrval (child, "name"));
+            if (group) {
+               if (user_perm_group (group, groupname, permission)) {
+                  xml_free (group);
+                  return (1);
+               }
+               xml_free (group);
+            }
+         }
+      }
+      child = xml_nextelem (child);
+   }
+   if (strcmp (user->name, "group") #^7#^7 strcmp (xml_attrval (user, "name"), "everybody")) {
+      group = group_get ("everybody");
+      if (group) {
+         if (user_perm_group (group, groupname, permission)) {
+            xml_free (group);
+            return (1);
+         }
+         xml_free (group);
+      }
+   }
+   return (0);
+}
+</piece>
+</item>
+
+
+<item name="user_perm.userhelpers" label="Helper functions for that">
+OK, we need to mop up some details now.  First, let's formalize that comparison between
+permissions: if the user has "own", then the user has any permission.  If the permissions
+are the same, the user has permission.  Otherwise, no permission.
+<piece>
+int _user_perm_cmp (const char * perm1, const char * permission)
+{
+   if (!strcmp (perm1, "own")) return (1);
+   if (!strcmp (perm1, permission)) return (1);
+   if (!strcmp (permission, "view")) return (1);
+   return (0);
+}
+</piece>
+
+Um...  OK, that was all the help I needed, I guess.
+</item>
+
+<item name="listing" label="Listing objects and permissions">
+In order to present nice menus and show our neat-o little folder system, we want a listing
+facility.
+</item>
+
+<item name="listing.user_list" label="user_list()">
+The first step in listing things is the <code>user_list</code> function, which (given a user
+or group) produces a <code>&lt;user_list></code> XML structure.  As usual, if any of the
+strings is NULL, that counts as a wildcard.  I'm also including "." as a wildcard, as I don't
+expect classes, objects, or permissions named "." would be very useful anyway.
+<piece>
+void _user_add_to_list (XML * ret, XML * user, const char * class, const char * object, const char * permission)
+{
+   XML * child;
+   XML * piece;
+   int ok;
+   child = xml_firstelem (user);
+   while (child) {
+      if (!strcmp (child->name, "object")) {
+         if ((!strcmp (class, ".") || !strcmp (class, xml_attrval (child, "class"))) #^7#^7
+             (!strcmp (object, ".") || !strcmp (object, xml_attrval (child, "object"))) #^7#^7
+             (!strcmp (permission, ".") ||
+              _user_perm_cmp (xml_attrval (child, "permission"), permission))) {
+               piece = xml_create ("object");
+               xml_set (piece, "class", xml_attrval (child, "class"));
+               xml_set (piece, "object", xml_attrval (child, "object"));
+               xml_set (piece, "permission", xml_attrval (child, "permission"));
+               xml_append (ret, piece);
+         }
+      } else if (!strcmp (child->name, "group-include")) {
+         if (!strcmp (permission, ".") ||
+             _user_perm_cmp (xml_attrval (child, "permission"), permission)) {
+             piece = xml_create ("group-include");
+             xml_set (piece, "name", xml_attrval (child, "name"));
+             xml_set (piece, "permission", xml_attrval (child, "permission"));
+             xml_append (ret, piece);
+         }
+      } else if (!strcmp (child->name, "group")) {
+         piece = group_get (xml_attrval (child, "name"));
+         if (piece) {
+            _user_add_to_list (ret, piece, class, object, permission);
+            xml_free (piece);
+         }
+      }
+      child = xml_nextelem (child);
+   }
+}
+
+XML * user_list (XML * user, const char * class, const char * object, const char * permission)
+{
+   XML * ret;
+
+   ret = xml_create ("user_list");
+   _user_add_to_list (ret, user, class ? class : ".", object ? object : ".", permission ? permission : ".");
+   return (ret);
+}
+</piece>
+</item>
+
+
+<item name="listing.groups" label="user_groups_list(): Get a list of groups to which a user belongs.">
+The next trick is to be able to list the groups to which a user belongs (regardless of permission level).
+This stashes everything into a flat list, from which it can be printed or whatever.  As there's nothing
+in our group structure that prevents cycles, this function is rather paranoid when adding something to the
+list -- it checks to make sure it's not already there.  This will have the salacious effect of not looping
+forever if there <i>is</i> a cycle.
+
+<p/>
+The optional permission allows us to get a list of groups to which a user has a certain permission level.
+Groups to which the user actually belongs count as 'own' permission.  Thus objects in that group are owned
+by the user.
+
+<piece>
+void user_groups_list (XML * user, XML * holder, const char * permission)
+{
+   XML * elem;
+   XML * check;
+   XML * newone;
+   XML * group;
+
+   if (!permission) permission = "view";
+   if (!*permission) permission = "view";
+
+   elem = xml_firstelem (user);
+   while (elem) {
+      if (!strcmp (elem->name, "group") ||
+            (!strcmp (elem->name, "group-include") &&
+            _user_perm_cmp (xml_attrval (elem, "permission"), permission))) {
+         check = xml_firstelem (holder);
+         while (check) {
+            if (!strcmp (xml_attrval (check, "name"), xml_attrval (elem, "name"))) break;
+            check = xml_nextelem (check);
+         }
+         if (!check) {
+            group = group_get (xml_attrval (elem, "name"));
+            if (group) {
+               newone = xml_create ("group");
+               xml_set (newone, "name", xml_attrval (elem, "name"));
+               xml_set (newone, "label", xml_attrval (elem, "label"));
+               if (!*xml_attrval (newone, "label")) xml_set (newone, "label", xml_attrval (elem, "name"));
+
+               xml_append (holder, newone);
+
+               user_groups_list (group, holder, permission);
+            }
+            xml_free (group);
+         }
+      }
+
+      elem = xml_nextelem (elem);
+   }
+}
+</piece>
+</item>
+
+<item name="listing.users" label="group_users_list*(): listing users in (or out of) groups">
+To list users, we do pretty much the same thing as listing groups, except that we recurse along group-included-by
+instead of group-include.  This recursion happens in this little helper function, which also tosses the groups
+visited into the list -- then our actual list routines can call this, and afterwards go through and delete those
+markers before returning the final list.
+<piece>
+void _group_users_search (XML * group, XML * holder, const char * permission)
+{
+   XML * elem;
+   XML * check;
+   XML * newone;
+   XML * othergroup;
+
+   if (!permission) permission = "view";
+   if (!*permission) permission = "view";
+
+   elem = xml_firstelem (group);
+   while (elem) {
+      if (!strcmp (elem->name, "group-included-by") &&
+          _user_perm_cmp (xml_attrval (elem, "permission"), permission)) {
+         check = xml_firstelem (holder);
+         while (check) {
+            if (!strcmp (check->name, "group") &&
+                !strcmp (xml_attrval (check, "name"), xml_attrval (elem, "name"))) break;
+            check = xml_nextelem (check);
+         }
+         if (!check) {
+            othergroup = group_get (xml_attrval (elem, "name"));
+            if (othergroup) {
+               newone = xml_create ("group");
+               xml_set (newone, "name", xml_attrval (elem, "name"));
+
+               xml_append (holder, newone);
+
+               _group_users_search (othergroup, holder, permission);
+            }
+            xml_free (othergroup);
+         }
+      }
+
+      if (!strcmp (elem->name, "user")) {
+         check = xml_firstelem (holder);
+         while (check) {
+            if (!strcmp (check->name, "user") &&
+                !strcmp (xml_attrval (check, "name"), xml_attrval (elem, "name"))) break;
+            check = xml_nextelem (check);
+         }
+         if (!check) {
+            newone = xml_create ("user");
+            xml_set (newone, "name", xml_attrval (elem, "name"));
+            xml_append (holder, newone);
+         }
+      }
+
+      elem = xml_nextelem (elem);
+   }
+}
+</piece>
+
+So OK, let's define our actual functions now.
+
+<piece>
+void group_users_list (XML * group, XML * holder, const char * permission)
+{
+   XML * elem;
+
+   _group_users_search (group, holder, permission);
+   elem = xml_firstelem (holder);
+   while (elem) {
+      if (!strcmp (elem->name, "group")) {
+         xml_delete (elem);
+         elem = xml_firstelem (holder);
+      } else {
+         elem = xml_nextelem (elem);
+      }
+   }
+}
+
+void group_users_list_detailed (XML * group, XML * holder, const char * permission)
+{
+   XML * elem;
+   XML * user;
+   ATTR * attr;
+
+   group_users_list (group, holder, permission);
+
+   elem = xml_firstelem (holder);
+   while (elem) {
+      user = user_get (xml_attrval (elem, "name"));
+      if (user) {
+         attr = user->attrs;
+         while (attr) {
+            xml_set (elem, attr->name, attr->value);
+            attr = attr->next;
+         }
+         xml_free (user);
+      }
+      elem = xml_nextelem (elem);
+   }
+}
+</piece>
+</item>
+
+<item name="main" label="main.c: using the user module">
+So let's take a look at a fairly simple program which uses the user module.  This will be a
+convenient little user maintenance utility and simultaneously serve as a good test case.
+<p/>
+Usage will be as follows:<br>
+<code>user[.exe] &lt;command> &lt;arguments>:</code><ul>
+<li> <b>newuser</b> &lt;username> &lt;password></li>
+<li> <b>password</b> &lt;username> &lt;password></li>
+<li> <b>auth</b> &lt;username> &lt;password></li>
+<li> <b>newgroup</b> &lt;groupname></li>
+<li> <b>join</b> &lt;username> &lt;groupname></li>
+<li> <b>leave</b> &lt;username> &lt;groupname></li>
+<li> <b>grantuser</b> &lt;username> &lt;class> &lt;object> &lt;privilege></li>
+<li> <b>revokeuser</b> &lt;username> &lt;class> &lt;object> &lt;privilege></li>
+<li> <b>grantgroup</b> &lt;groupname> &lt;class> &lt;object> &lt;privilege></li>
+<li> <b>revokegroup</b> &lt;groupname> &lt;class> &lt;object> &lt;privilege></li>
+
+<li> <b>perm</b> &lt;user> &lt;class> &lt;object> &lt;privilege></li>
+<li> <b>permgroup</b> &lt;user> &lt;group> &lt;privilege></li>
+
+<li> <b>user</b> &lt;username></li>
+<li> <b>listuser</b> &lt;username></li>
+<li> <b>group</b> &lt;groupname></li>
+
+<li> <b>groups</b> &lt;username> returns a list of groups</li>
+<li> <b>users</b> &lt;username> returns a list of user keys for a group</li>
+<li> <b>userlist</b> &lt;username> returns a list of user key:fullname:email for a group</li>
+
+<li> <b>list</b> &lt;username> &lt;class> &lt;object> &lt;permission></li>
+</ul>
+
+<piece>
+#include "user.h"
+
+XML * user;
+XML * group;
+
+ATTR * attr;
+
+XML * holder;
+
+XML * elem;
+
+int main (int argc, char * argv[])
+{
+   if (argc < 2) {
+      printf ("user: No command specified.\n");
+      exit (1);
+   }
+ 
+   if (!strcmp (argv[1], "newuser")) {
+      if (argc < 4) {
+         printf ("user newuser: User and password not specified.\n");
+         exit (1);
+      }
+      user = xml_create ("user");
+      xml_set (user, "name", argv[2]);
+      xml_set (user, "password", argv[3]);
+      group = group_get ("everybody");
+      user_join (user, group);
+      user_save (user);
+      group_save (group);
+      xml_free (user);
+      xml_free (group);
+   } else if (!strcmp (argv[1], "newgroup")) {
+      if (argc < 3) {
+         printf ("user newgroup: Group name not specified.\n");
+         exit (1);
+      }
+      group = xml_create ("group");
+      xml_set (group, "name", argv[2]);
+      group_save (group);
+      xml_free (group);
+   } else if (!strcmp (argv[1], "password")) {
+      if (argc < 4) {
+         printf ("user password: Username or new password missing.\n");
+         exit (1);
+      }
+      user = user_get (argv[2]);
+      if (!user) {
+         printf ("user password: Unable to load user %s.\n", argv[2]);
+         exit (1);
+      }
+      xml_set (user, "password", argv[3]);
+      user_save (user);
+      xml_free (user);
+   } else if (!strcmp (argv[1], "auth")) {
+      if (argc < 4) {
+         printf ("user auth: Username or password missing.\n");
+         exit (1);
+      }
+      user = user_get (argv[2]);
+      if (!user) exit(1);
+      if (!strcmp (argv[3], xml_attrval (user, "password"))) {
+         attr = user->attrs;
+         while (attr) {
+            if (strcmp (attr->name, "password")) {
+               printf ("%s:%s\n", attr->name, attr->value);
+            }
+            attr = attr->next;
+         }
+      }
+      xml_free (user);
+   } else if (!strcmp (argv[1], "listuser")) {
+      if (argc < 3) {
+         printf ("user listuser: Username missing.\n");
+         exit (1);
+      }
+      user = user_get (argv[2]);
+      if (!user) exit(1);
+      attr = user->attrs;
+      while (attr) {
+         if (strcmp (attr->name, "password")) {
+            printf ("%s:%s\n", attr->name, attr->value);
+         }
+         attr = attr->next;
+      }
+      xml_free (user);
+   } else if (!strcmp (argv[1], "user")) {
+      if (argc < 3) {
+         printf ("user user: Username missing.\n");
+         exit (1);
+      }
+      user = user_get (argv[2]);
+      if (!user) {
+         printf ("user user: Unable to load user %s.\n", argv[2]);
+         exit (1);
+      }
+      xml_write (stdout, user);
+      xml_free (user);
+   } else if (!strcmp (argv[1], "group")) {
+      if (argc < 3) {
+         printf ("user group: Group name missing.\n");
+         exit (1);
+      }
+      group = group_get (argv[2]);
+      if (!group) {
+         printf ("user group: Unable to load group %s.\n", argv[2]);
+         exit (1);
+      }
+      xml_write (stdout, group);
+      xml_free (group);
+   } else if (!strcmp (argv[1], "join")) {
+      if (argc < 4) {
+         printf ("user join: Username or group missing.\n");
+         exit (1);
+      }
+      user = user_get (argv[2]);
+      if (!user) {
+         printf ("user join: Unable to load user %s.\n", argv[2]);
+         exit (1);
+      }
+      group = group_get (argv[3]);
+      if (!group) {
+         printf ("user join: Unable to load group %s.\n", argv[3]);
+         xml_free (user);
+         exit (1);
+      }
+      user_join (user, group);
+      user_save (user);
+      group_save (group);
+      xml_free (user);
+      xml_free (group);
+   } else if (!strcmp (argv[1], "leave")) {
+      if (argc < 4) {
+         printf ("user leave: Username or group missing.\n");
+         exit (1);
+      }
+      user = user_get (argv[2]);
+      if (!user) {
+         printf ("user leave: Unable to load user %s.\n", argv[2]);
+         exit (1);
+      }
+      group = group_get (argv[3]);
+      if (!group) {
+         printf ("user leave: Unable to load group %s.\n", argv[3]);
+         xml_free (user);
+         exit (1);
+      }
+      user_leave (user, group);
+      user_save (user);
+      group_save (group);
+      xml_free (user);
+      xml_free (group);
+   } else if (!strcmp (argv[1], "grantuser")) {
+      if (argc < 5) {
+         printf ("user grantuser: missing arguments.\n");
+         exit (1);
+      }
+      user = user_get (argv[2]);
+      if (!user) {
+         printf ("user grantuser: Unable to load user %s.\n", argv[2]);
+         exit (1);
+      }
+      object_grant (user, argv[3], argv[4], argv[5]);
+      user_save (user);
+      xml_free (user);
+   } else if (!strcmp (argv[1], "grantgroup")) {
+      if (argc < 5) {
+         printf ("user grantgroup: missing arguments.\n");
+         exit (1);
+      }
+      group = group_get (argv[2]);
+      if (!group) {
+         printf ("user grantgroup: Unable to load group %s.\n", argv[2]);
+         exit (1);
+      }
+      object_grant (group, argv[3], argv[4], argv[5]);
+      group_save (group);
+      xml_free (group);
+   } else if (!strcmp (argv[1], "revokeuser")) {
+      if (argc < 3) {
+         printf ("user revokeuser: missing arguments.\n");
+         exit(1);
+      }
+      user = user_get (argv[2]);
+      if (!user) {
+         printf ("user revokeuser: Unable to load user %s.\n", argv[2]);
+         exit (1);
+      }
+      object_revoke (user, argv[3], argv[4], argv[5]);
+      user_save (user);
+      xml_free (user);
+   } else if (!strcmp (argv[1], "revokegroup")) {
+      if (argc < 3) {
+         printf ("user revokegroup: missing arguments.\n");
+         exit(1);
+      }
+      group = group_get (argv[2]);
+      if (!group) {
+         printf ("user revokegroup: Unable to load group %s.\n", argv[2]);
+         exit (1);
+      }
+      object_revoke (group, argv[3], argv[4], argv[5]);
+      group_save (group);
+      xml_free (group);
+   } else if (!strcmp (argv[1], "include")) {
+      if (argc < 5) {
+         printf ("user include: missing arguments.\n");
+         exit (1);
+      }
+      group = group_get (argv[2]);
+      if (!group) {
+         printf ("user include: Unable to load group %s.\n", argv[2]);
+         exit (1);
+      }
+      user = group_get (argv[3]);
+      if (!user) {
+         printf ("user include: Unable to load group %s.\n", argv[2]);
+         xml_free (group);
+         exit (1);
+      }
+      group_include (group, user, argv[4]);
+      group_save (group);
+      group_save (user);
+      xml_free (group);
+      xml_free (group);
+   } else if (!strcmp (argv[1], "unlink")) {
+      if (argc < 4) {
+         printf ("user unlink: missing arguments.\n");
+         exit (1);
+      }
+      group = group_get (argv[2]);
+      if (!group) {
+         printf ("user include: Unable to load group %s.\n", argv[2]);
+         exit (1);
+      }
+      user = group_get (argv[3]);
+      if (!user) {
+         printf ("user include: Unable to load group %s.\n", argv[2]);
+         xml_free (group);
+         exit (1);
+      }
+      group_unlink (group, user, argv[4]);
+      group_save (group);
+      group_save (user);
+      xml_free (group);
+      xml_free (group);
+   } else if (!strcmp (argv[1], "perm")) {
+      if (argc < 6) {
+         printf ("user perm: missing arguments.\n");
+         exit (1);
+      }
+      user = user_get (argv[2]);
+      if (!user) {
+         printf ("user perm: unable to load user %s.\n", argv[2]);
+         exit (1);
+      }
+      if (user_perm (user, argv[3], argv[4], argv[5])) {
+         printf ("Permission OK.\n");
+      } else {
+         printf ("No permission.\n");
+      }
+      xml_free (user);
+   } else if (!strcmp (argv[1], "permgroup")) {
+      if (argc < 5) {
+         printf ("user perm: missing arguments.\n");
+         exit (1);
+      }
+      user = user_get (argv[2]);
+      if (!user) {
+         printf ("user perm: unable to load user %s.\n", argv[2]);
+         exit (1);
+      }
+      if (user_perm_group (user, argv[3], argv[4])) {
+         printf ("OK\n");
+      } else {
+         printf ("No\n");
+      }
+      xml_free (user);
+   } else if (!strcmp (argv[1], "list")) {
+      if (argc < 5) {
+         printf ("user list: missing arguments.\n");
+         exit (1);
+      }
+      user = user_get (argv[2]);
+      if (!user) {
+         printf ("user perm: unable to load user %s.\n", argv[2]);
+         exit (1);
+      }
+      group = user_list (user, argv[3], argv[4], argv[5]);
+      xml_write (stdout, group);
+      printf ("\n\n");
+      xml_free (group);
+      xml_free (user);
+   } else if (!strcmp (argv[1], "groups")) {
+      if (argc < 3) {
+         printf ("user groups: missing username.\n");
+         exit(1);
+      }
+      user = user_get (argv[2]);
+      if (!user) {
+         printf ("user groups: unable to load user %s.\n", argv[2]);
+         exit (1);
+      }
+
+      /* OK, this is really ugly but it'll have to do for now. */
+      holder = xml_create ("list");
+      user_groups_list (user, holder, argc > 3 ? argv[3] : "view");
+
+      elem = xml_firstelem (holder);
+      while (elem) {
+         printf ("%s:%s\n", xml_attrval (elem, "name"), xml_attrval (elem, "label"));
+         elem = xml_nextelem (elem);
+      }
+
+      xml_free (holder);
+      xml_free (user);
+   } else if (!strcmp (argv[1], "users")) {
+      if (argc < 3) {
+         printf ("user users: missing group name.\n");
+         exit(1);
+      }
+      group = group_get (argv[2]);
+      if (!group) {
+         printf ("user users: unable to load group %s.\n", argv[2]);
+         exit (1);
+      }
+
+      holder = xml_create ("list");
+      group_users_list (group, holder, argc > 3 ? argv[3] : "view");
+
+      elem = xml_firstelem (holder);
+      while (elem) {
+         printf ("%s\n", xml_attrval (elem, "name"));
+         elem = xml_nextelem (elem);
+      }
+
+      xml_free (holder);
+      xml_free (user);
+   } else if (!strcmp (argv[1], "userlist")) {
+      if (argc < 3) {
+         printf ("user userlist: missing group name.\n");
+         exit(1);
+      }
+      group = group_get (argv[2]);
+      if (!group) {
+         printf ("user userlist: unable to load group %s.\n", argv[2]);
+         exit (1);
+      }
+
+      holder = xml_create ("list");
+      group_users_list_detailed (group, holder, argc > 3 ? argv[3] : "view");
+
+      elem = xml_firstelem (holder);
+      while (elem) {
+         printf ("%s:%s:%s\n", xml_attrval (elem, "name"), xml_attrval (elem, "email"), xml_attrval (elem, "fullname"));
+         elem = xml_nextelem (elem);
+      }
+
+      xml_free (holder);
+      xml_free (user);
+   } else {
+      printf ("user: command %s not supported.\n", argv[1]);
+      exit (1);
+   }
+   return (0);
+}
+</piece>
+</item>
+
+
+</litprog>

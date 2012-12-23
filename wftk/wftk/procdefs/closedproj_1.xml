@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+
+ <workflow name="Closed source release project" author="Michael: michael@vivtek.com>">
+   <role name="Analyst"></role>
+
+   <data name="Description" type="text"></data>
+   <data name="Mailing list">
+     <list><data type="text"></data></list>
+   </data>
+
+   <sequence>
+      <task label="Analyze" role="Analyst">
+         <data name="changesource" storage="database/select * from changerequests where status='open'" readonly="yes"></data>
+         <data name="changes" type="structure" value="${changesource}"></data>
+      </task>
+      <data name="changes.status" value="in progress"></data>
+      <data name="changes.project" value="${Current process}"></data>
+      <task label="Plan" role="Analyst">
+         <data name="Project plan" type="document:application/xml-workflow"></data>
+      </task>
+      <start name="${Project plan}" location="deliverable" mode="merged">
+      </start>
+      <data name="changes.status" value="complete"></data>
+   </sequence>
+ </workflow>
+

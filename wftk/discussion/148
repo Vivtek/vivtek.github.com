@@ -1,0 +1,22 @@
+SUBJECT>problem with command line tool
+POSTER>Cheng Yi
+EMAIL>chengyi@braveminds.com
+DATE>998106349
+EMAILNOTICES>no
+IP_ADDRESS>211.95.70.153
+PREVIOUS>
+NEXT> 149
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>since the command line util fetch parameters word by word, so it cannot recognize single parameter composed of multiple words, like &quot;Approval code&quot;, so i cannot set the value of some data, so the work process cannot flow.
+<P>is it possible to post a demo script showing the whole process of executing a demo workflow (ordering a chair), it must be a bit helpful.
+<P>sth like
+<P>wftk create . chair
+<P>wftk define . chair chair
+<P>wftk user . chair cy
+<P>wftk role . chair Supervisor cy
+<P>wftk complete . chair
+<P>.
+<P>.
+<P>.

@@ -1,0 +1,15 @@
+SUBJECT>Re: Command Line Parsing
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>990412879
+EMAILNOTICES>no
+IP_ADDRESS>as0-024.blm.bluemarble.net
+PREVIOUS>116
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; The command line processing (wftk_util) is a bit busted in the Solaris
+<BR>> download.
+<P>&gt; Try &quot;wftk -c myconfig.xml&quot;.
+<P>Hell, I haven't even *run* it on Solaris yet. It compiled. Then I had to, well, DO SOMETHING THAT EARNED ME AND MY FAMILY SOME MONEY. Not to put too fine a point on it.

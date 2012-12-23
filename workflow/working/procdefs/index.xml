@@ -1,0 +1,10 @@
+<index><item curver="" id="a"/><item curver="b" id="chair" title="Purchase request" checkout="May 12, 2000" file="chair_b.xml"/><item curver="" id="b"/><item curver="" id="chair2" title="Test add of process">This is a test process.
+
+Hopefully this description will retain its multilinedness.</item><item curver="a" id="chair3" title="Test Add #2" file="chair3_a.xml">Another test case.</item>
+<item curver="a" id="ecomm" title="Retail E-commerce Scenario" file="ecomm_a.xml"/>
+<item curver="a" id="closedproj" title="Closed-source Development Scenario" file="closedproj_a.xml"/>
+<item curver="a" id="openproj" title="Open-source Development Scenario" file="openproj_a.xml"/>
+<item curver="a" id="sxc" title="SourceXchange Scenario" file="sxc_a.xml"/>
+<item curver="a" id="tradeshow" title="Tradeshow Organization Scenario" file="tradeshow_a.xml"/>
+<item curver="" id="c" title=""/><item curver="" id="test" title=""/><item curver="a" id="d" title="Computer Purchase" file="d_a.xml"/><item curver="" id="i" title=""/><item curver="" id="j" title=""/><item curver="" id="e" title="nothing">no desc</item><item curver="" id="f" title="DemoProcess"/><item curver="" id="g" title="JoshuaTestFlow">Hello Michael,
+My name is Joshua Jen from Qbitt Corporation, We realize a serial java ap to embedd wftk and we need to test it.</item><item curver="" id="h" title="jtf"/><item curver="" id="k" title="PD Programming">Procdef tool programming</item><item curver="" id="l" title="Programming procdef tool">create a project of programming the procdef tool </item><item curver="" id="m" title=""/><item curver="" id="n" title="test">dfg</item></index>

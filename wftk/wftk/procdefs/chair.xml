@@ -1,0 +1,11 @@
+<item ver="1" title="Chair (purchase request)">
+<owner name="michael">Michael michael@vivtek.com</owner>
+<edits/>
+<versions>
+<version id="1" file="chair_1.xml">
+The original version of the chair scenario.
+For more information see <a href="http://www.vivtek.com/wftk/usage/chair.html">the
+chair scenario</a>.
+</version>
+</versions>
+</item>

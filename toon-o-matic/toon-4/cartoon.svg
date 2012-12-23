@@ -1,0 +1,10 @@
+<svg width="702" height="152">
+<rect width="700" style="fill: white" height="152"/>
+<polyline transform="" points="1,1 699,1 699,151 1,151 1,1" style="fill:none; stroke:black; stroke-width:1" arrow=""/>
+<g transform="translate(1,1)"/>
+<g transform="translate(1,1)"><g y="59" w="221" transform="translate(238,59)" h="31" x="238">
+<rect y="0" width="221" style="stroke:black; stroke-width:1; fill:white" x="0" height="31"/>
+<image y="2" width="201" xlink:href="caption-1-1.png" x="10" height="27"/>
+</g>
+</g>
+</svg>

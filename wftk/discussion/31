@@ -1,0 +1,43 @@
+SUBJECT>Re: Hello
+POSTER>Karsten Illing
+EMAIL>k.illing@d-land.de
+DATE>970491562
+EMAILNOTICES>no
+IP_ADDRESS>hdwinterp01.heidelberg.com
+PREVIOUS>12
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; It is not. I happen to share your opinion of C++; the core components of
+<BR>> the wftk are written in C and will continue to be written in C. The code
+<BR>> is clean and well-documented, and it frankly just isn't complex enough to
+<BR>> warrant objectification. (But I'll avoid that soapbox. I've worked with
+<BR>> enough object-oriented code to know that crap is crap even if it's
+<BR>> object-oriented crap.)
+<P>&gt; Java lacks the portability I need, and Python, while attractive, lacks the
+<BR>> performance. That said, I will almost certainly be working on a Python
+<BR>> extension utilizing the C code of the wftk -- thus bringing the Zope crowd
+<BR>> a little closer to my part of heaven.
+<P>&gt; I submit that there are far more C programmers than Python programmers in
+<BR>> the world today, and for the foreseeable future. Java I won't talk about,
+<BR>> that's a holy war.
+<P>&gt; Most open-source developers in general fall into that category. I don't
+<BR>> think Python people have any particular edge in that respect.
+<P>&gt; I will say, though, that I've been getting into Python (specifically
+<BR>> wxPython for cross-platform GUI development) and I really like it.
+<P>&gt; But I do need to ask you -- have you browsed the code? Do you really find
+<BR>> that less readable than Python?
+<P>&gt; If somebody knows about a good book, I'd like to hear about it as well.
+<BR>> The problem is that workflow is such a high-money item that nobody wants
+<BR>> to sell their knowledge as cheaply as a mere book.
+<P>Most of the litrature about WfM is only available as articles. Good Sources are
+<P>The LDIS Lab http://lsdis.cs.uga.edu/lib/lib.html
+<P>The university of Klagenfurt http://www.ifi.uni-klu.ac.at/Publications
+<P>Publications of Wil van der Aalst (Recommended &quot;The Application of Petri Nets to Workflow Management&quot;) http://wwwis.win.tue.nl/~wsinwa/publications.html
+<P>The university of Ulm http://www.informatik.uni-ulm.de/dbis/papers/
+<P>Good Books:
+<P>S.Jablonski, C.Bussler: Workflow Management : Modeling Concepts, Architecture and Implementation (But this book is out of print)
+<P>Stefan Jablonski, Markus Böhm, Wolfgang Schulze : Workflow- Management. Entwicklung von Anwendungen und Systemen. (Only in German)
+<P>That should be enough to start.
+<P>&gt; Thanks for the interest!

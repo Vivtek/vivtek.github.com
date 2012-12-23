@@ -1,0 +1,3 @@
+<sequence oncomplete="blah">
+<task label="Hi."/>
+</sequence>

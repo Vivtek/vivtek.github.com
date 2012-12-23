@@ -1,0 +1,304 @@
+<ui name="filetagger" ext="ftg" url="http://www.vivtek.com/projects/filetagger/" ver="1.0" date="2007-01-23">
+
+<about dev="Michael Roberts" copyright="(c) 2007 Vivtek and released under the GPL">
+The filetagger is the second app-a-week project and the first PyPop application.  It manages files in a simple
+database and formats an HTML tag cloud which can link to them.  It also implements a drop target so that
+files can be added to an open database with a simple operation.
+
+It is interpreted by PyPop, which is a wxPython-based GUI interpreter still in its infancy.  For more information
+and links to various relevant sites, visit the homepage.
+</about>
+
+<menubar id="main">
+  <menu label="&amp;File">
+     <item cmd="add" label="&amp;Add a file" help="Add a file to the database"/>
+     <item cmd="mod" label="&amp;Edit file info" help="Edit a file's information in the database"/>
+     <item cmd="delete" label="&amp;Delete a file" help="Delete a file from the database"/>
+     <separator/>
+     <item cmd="exit" label="E&amp;xit" help="Quit the program"/>
+  </menu>
+  <menu label="&amp;Help">
+     <item cmd="about" label="&amp;About" help="About filetagger"/>
+     <item cmd="help" label="&amp;Help" help="Brief explanation of usage"/>
+     <item cmd="open http://www.vivtek.com/projects/filetagger/" label="&amp;Filetagger home"
+           help="Information about the filetagger app"/>
+     <item cmd="open http://www.vivtek.com/wftk/pypop.html" label="&amp;Pypop home"
+           help="Information about the pypop framework"/>
+     <item cmd="register" label="&amp;Registry associations" help="Set up Registry settings"/>
+  </menu>
+</menubar>
+
+<frame id="main" menu="main" title="File tagger" onfiledrop="add %s">
+  <args id="main">
+    <flags>
+       <flag id="f" field="tabshown" value="Files"/>
+       <flag id="c" field="tabshown" value="Clouds"/>
+       <flag id="s" field="silent" value="yes"/>
+       <flag id="t" field="starting_tags" value="!rest" cmd="set selection some"/>
+    </flags>
+    <arg field="datafile" default="default.ftm"/>
+    <arg field="startcmd" rest="yes"/>
+  </args>
+
+  <data file="$datafile" cmd="reindex">
+     <files/>
+  </data>
+
+  <tabset edge="bottom" field="tabshown">
+    <tab label="Cloud">
+       <html field="html"/>
+    </tab>
+    <tab label="Files">
+       <splitter split="vertical" minpanesize="40" sashpos="80">
+         <panel>
+           <box id="box1" dir="vertical"/>
+           <radio-group label="Display:" dir="vertical" field="selection" box="box1" box-weight="0">
+              <radio value="all" label="All tags"/>
+              <radio value="some" label="Some tags"/>
+           </radio-group>
+           <listbox field="tags" box="box1" box-weight="1">
+              <value value="test1"/>
+              <value value="test2"/>
+           </listbox>
+           <button label="Show" box="box1" box-weight="0" cmd="update_list"/>
+           <button label="Add" box="box1" box-weight="0" cmd="add"/>
+           <button label="Edit" box="box1" box-weight="0" cmd="mod"/>
+           <button label="Delete" box="box1" box-weight="0" cmd="delete"/>
+         </panel>
+         <list list="files" field="filelist">
+           <col label="Name" field="name"/>
+           <col label="Tags" field="tags"/>
+           <col label="Description" field="description"/>
+         </list>
+       </splitter>
+    </tab>
+  </tabset>
+</frame>
+
+<dialog id="add" title="Adding files" h="300" w="300">
+  <box id="box1" dir="vertical"/>
+  <static box="box1" format="yes">You are adding [numfiles] files.</static>
+  <static box="box1">Tags to apply to all files (separate with spaces):</static>
+  <text box="box1" field="tags" multiline="yes"/>
+  <static box="box1">Description for all files:</static>
+  <text box="box1" field="description" multiline="yes"/>
+  <checkbox box="box1" field="edit_each" label="Do you want to edit each file separately?"
+             on="yes" off="no"/>
+  <box id="box2" box="box1" dir="horizontal"/>
+  <button box="box2" label="Add" value="ok"/>
+  <button box="box2" label="Cancel" value="cancel"/>
+</dialog>
+
+<dialog id="mod" title="Editing file info" h="300" w="300">
+  <box id="box1" dir="vertical"/>
+  <static box="box1" format="yes">Path: [path]</static>
+  <box id="box1a" box="box1" dir="horizontal"/>
+  <static box="box1a">Nickname:</static>
+  <text box="box1a" field="name"/>
+  <static box="box1">Tags (separated by spaces):</static>
+  <text box="box1" field="tags" multiline="yes"/>
+  <static box="box1">Description:</static>
+  <text box="box1" field="description" multiline="yes"/>
+  <box id="box2" box="box1" dir="horizontal"/>
+  <button box="box2" label="Update" value="ok"/>
+  <button box="box2" label="Cancel" value="cancel"/>
+</dialog>
+
+
+<action id="reindex" lang="python" parms="">
+   [data].filelist = {}
+   [data].tags = []
+   [data].tag_counts = {}
+   for f in [data].loc('.files').elements():
+      [data].filelist[f['path']] = f
+      for tag in f['tags'].split():
+         try:
+            if [data].tags.index(tag) > -1: [data].tag_counts[tag] = [data].tag_counts[tag] + 1
+         except:
+            [data].tags.append(tag)
+            [data].tag_counts[tag] = 1
+</action>
+
+<action id="initialize" lang="python" parms="">
+   : reindex
+   : find_tags
+   if context['starting_tags'] != "":
+      : set selection some
+      : set tags %s % context['starting_tags']
+   : update_list
+   : update_cloud
+   if context['startcmd']:
+      : %s % context['startcmd']
+   if context['silent']:
+      : exit
+</action>
+
+<action id="save" lang="python" parms="">
+   [data].write(context['datafile'])
+</action>
+
+<action id="show_tag" lang="command" parms="tag">
+   set selection some
+   set tags $tag
+   set tabshown Files
+   update_list
+</action>
+
+<action id="update_list" lang="python" parms="">
+   if context['selection'] == 'all':
+      file_list = [(f, f['path']) for f in [data].loc('.files').elements()]
+   else:
+      file_list = []
+      for file in [data].loc('.files').elements():
+         keys = file['tags'].split()
+         try:
+            if keys.index(context['tags']) > -1:
+               file_list.append ((file, file['path']))
+         except:
+            pass
+   [context].getboundfield('filelist').reload(file_list)
+</action>
+
+<action id="find_tags" lang="python" parms="">
+   keys = [data].tags
+   keys.sort()
+   [context].getboundfield('tags').new_listbox_values('tags', keys)
+</action>
+
+<action id="update_cloud" lang="python" parms="">
+   if len( [data].tags) == 0:
+      [context]['html'] = "There are no files in the database.[[br>Add some by switching to the Files tab below."
+      return True
+   sm = 3.0
+   lg = 8.0
+   delta = lg - sm
+   links = []
+   maxcount = 0
+   for key in [data].tags:
+      if [data].tag_counts[key] > maxcount:
+         maxcount = [data].tag_counts[key]
+   for key in [data].tags:
+      weight = [data].tag_counts[key] * 1.0 / maxcount
+      font = int(sm + delta * weight)
+      links.append ('[[a href="cmd:show_tag %s">[[font size="%d">%s[[/font>[[/a>' \
+                    % (key, font, key))
+   [context]['html'] = '\n'.join(links)
+</action>
+
+<action id="add" lang="python" parms="files...">
+   if len(files) == 0:
+      dlg = wx.FileDialog(self.frame, "Choose a file or files to add to the database", ".", "", "*.*", wx.OPEN|wx.MULTIPLE)
+      if dlg.ShowModal() == wx.ID_OK:
+         for path in dlg.GetPaths():
+            files = files + [path]
+      dlg.Destroy()
+
+   if len(files) == 0:
+      return True
+   elif len(files) == 1:
+      filerec = wftk.xmlobj (str="[[file/>")
+      filerec['path'] = files[0]
+      filerec['name'] = os.path.basename(filerec['path'])
+      if context['selection'] == 'some': filerec['tags'] = context['tags']
+      : if dialog mod; rec=filerec, title='Add file to database'
+      #if wxpywf.call_dialog(defn.search('dialog', 'id', 'mod'), [context], [context], \
+      #                     rec=filerec, title='Add file to database'):
+         [data].loc('.files').append_pretty(filerec)
+   else:
+      filesrec = wftk.xmlobj()
+      filesrec['numfiles'] = `len(files)`
+      if context['selection'] == 'some': filesrec['tags'] = context['tags']
+      filesrec['edit_each'] = 'yes'
+      silent = False
+      if defn['silent'] == 'yes': silent = True
+      : if dialog add; rec=filesrec, title='Add multiple files to database'
+         silent = True
+         #wxpywf.call_dialog(defn.search('dialog', 'id', 'add'), [context], [context], \
+         #                   rec=filesrec, title='Add multiple files to database'):
+      if silent:
+         for file in files:
+            filerec = wftk.xmlobj (str="[[file/>")
+            filerec['path'] = file
+            filerec['name'] = os.path.basename(filerec['path'])
+            for field in ('tags', 'description'): filerec[field] = filesrec[field]
+            if filesrec['edit_each'] == 'yes':
+               : if not dialog mod; rec=filerec, title='Adding file to database'
+               #if not wxpywf.call_dialog(defn.search('dialog', 'id', 'mod'), [context], \
+               #                          [context], rec=filerec, \
+               #                          title='Adding file to database'):
+                  next
+            [data].loc('.files').append_pretty(filerec)
+   : reindex
+   : update_list
+   : find_tags
+   : update_cloud
+   : save
+</action>
+
+<action id="mod" lang="python" parms="">
+   try:
+      rec = [data].filelist[context['filelist']]
+   except KeyError:
+      : notify "There is no file selected in the file list."
+      return True
+
+   if wxpywf.call_dialog(defn.search ('dialog', 'id', 'mod'), [context], [context], rec):
+      : reindex
+      : update_list
+      : find_tags
+      : update_cloud
+      : save
+</action>
+
+<action id="delete" lang="python" parms="">
+   try:
+      rec = [data].filelist[context['filelist']]
+   except KeyError:
+      : notify "There is no file selected in the file list."
+      return True
+   if wxpywf.ask_user("Delete file %s from the database?\n(This will not delete the file itself.)" \
+                      % context['filelist'], title="Deleting file") == wx.ID_YES:
+      rec.delete()
+      : reindex
+      : update_list
+      : find_tags
+      : update_cloud
+      : save
+</action>
+
+
+
+<help>
+Assuming you have PyPop configured as the handler for files with extension .wftk,
+the filetagger is run from the command line like this:<br/>
+filetagger.wftk -fcst[tag] [database name] [command]
+<br/><br/>
+If the filetagger is installed in PyPop's application database, you can also run it like this:<br/>
+pypop filetagger -fcst[tag] [database name] [command]
+<br/><br/>
+The flags are as follows:<br/>
+-f: show the Files tab when starting<br/>
+-c: show the Cloud tab when starting (default)<br/>
+-s: run silently, i.e. just execute the command given and quit<br/>
+-t[tag]: in the Files tab, filter for the tag given.
+<br/><br/>
+The database name is recommended; if omitted, the program will use "default.ftg" in the current directory.
+<br/><br/>
+Finally, the command can be one of the following:
+<br/><br/>
+add [filename] [filename]...
+<br/><br/>
+(In silent mode, no dialog will appear to elicit extra info; in that case, give it a tag with -t[tag]
+and that tag will be attached to the files you've just added.)  If you don't give any files, a common files dialog will come up to let you pick some.
+<br/><br/>
+mod [filename]
+<br/><br/>
+Pops up a dialog to edit that file
+<br/><br/>
+del [filename] [filename] ...
+<br/><br/>
+Deletes the file(s) listed.
+</help>
+
+
+</ui>

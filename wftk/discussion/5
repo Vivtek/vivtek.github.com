@@ -1,0 +1,31 @@
+SUBJECT>Re: XML Storage of Task/State
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>959282364
+EMAILNOTICES>no
+IP_ADDRESS>tc7-75.blm.bluemarble.net
+PREVIOUS>3
+NEXT> 6
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Since you are already storing most of your Data/Process info in the XML
+<BR>> document. What design decisions led you to have an external store for the
+<BR>> Task/State information for the WorkFlow instance.
+<P>Whoo! You make it sound like such a rational process! Heh.
+<P>Well, to a certain extent, it's just a kneejerk reaction to stash things in a database. But I'm also concerned with usability --
+<P>&gt; This will make it faster to generate the Task List.
+<P>-- usability. Right. The additional constraint that I was interested in with regards to the present task manager is that I wanted a component that could reasonably stand on its own without reference to the core engine at all.
+<P>This ... eh, OK, it's maybe a strange decision, given the relative sizes of the task manager and the core engine. But I'm looking at task management from a slightly different perspective. Whereas real workflow is certainly the main thrust of the project, I think that it's going to be important to be able to capture the day-to-day ad-hoc activities as well, to document them, organize them, etc.
+<P>So I see the task manager as supporting a spectrum of activity, ranging from completely one-off ad-hoc tasks that I simply manually place in my to-do list, all the way up to hierarchically organized processes. Only in this way are we going to be able to speak to the full range of the market: from the individual wanting to organize multiple projects (i.e. me) to being a backend for active websites (such as retail e-commerce), and so forth.
+<P>&gt; But...It seems more elegant to store this information in the XML document.
+<BR>> This would allow the XML WorkFlow Document to be handed off to another WF
+<BR>> processor or external party for processing and have all the Task/State
+<BR>> information right there.
+<P>I couldn't agree more. I'm not quite sure how to implement it yet, but the code is quite flexible in this regard: basically the current state of a given process instance is embodied in a datasheet . The datasheet can store individual data values attached to processes or tasks within the process, and now it also stores the active task queue. I'm considering using it to store an enactment log as well.
+<P>The point of the datasheet is, it's a completely free-form XML document. The core engine loads it when something needs to be done, sticks new stuff in and removes old stuff, and *doesn't care* if you toss arbitrary structured data into the thing for other purposes. Complete flexibility. So yeah, I think there's a great opportunity there.
+<P>&gt; This would be a big step forward. I don't know of any WF system that can
+<BR>> pass tasks around like this. This may in fact be the Holy Grail for B2B
+<BR>> process integration.
+<P>Well, the WfMC documentation defines some interfaces along these lines, and the Big Boys support them to greater or lesser degrees, but I don't have a good picture of the market yet, either.
+<P>I'll keep you posted on development, of course.

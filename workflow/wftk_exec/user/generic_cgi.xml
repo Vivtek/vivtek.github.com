@@ -1,0 +1,133 @@
+<litprog>
+<object name="browse.c" language="c" item="browse_main"/>
+
+
+<format name="index">
+<html><head><title>Folder browser CGI</title></head>
+<body>
+<h2>A permission-based folder browser CGI</h2>
+<center>
+[ <a href="wftk_user.zip">download</a> ] [ <a href="browser.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">wftk discussion</a> ]
+</center>
+
+<hr/>
+This browser is based on the <a href=index.html>user module for wftk</a> and is distributed as a part of
+that code.  It allows hierarchical data to be browsed very easily, and additional objects to be added
+to a hierarchy.  Moreover, the user module allows a given user's view of the hierarchy to be affected by
+that user's permission levels for various objects and groups of objects.
+<p/>
+The browser is implemented as a CGI program.  Since display of a fully opened folder tree thus requires a full
+traversal of that tree on every request, an alternative which caches some results in persistent storage might
+be a nice extension at some point, but in the meantime this will serve many purposes.  Not only can it be used
+to browse users themselves for an admin tool, it can also be pressed into service for menu maintenance for the
+overall wftk user interface, it can organize groups of procdefs for the PDM, and so on.  Basically it should
+do a good job allowing a user to traverse any kind of hierarchical structure, especially where that structure
+depends on the access level of the user.
+<p/>
+The whole thing is defined in a single file, browse.c, which compiles to the CGI executable in question.
+The CGI interface is managed by <a href="http://www.vivtek.com/xml/xmlapi/xmlcgi.html">XMLCGI</a>, which is
+an optional part of the <a href="http://www.vivtek.com/xml/xmlapi/">XMLAPI</a>.  You'll be seeing lots of the
+XMLAPI around this project.
+<p/>
+Table of contents:
+[##itemlist##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.  Try literate programming.  You'll like it.
+</font>
+</td>
+</tr>
+</table>
+</center>
+</body></html>
+</format>
+
+<format name="default">
+<html><head><title>Browser:: [##label##]</title></head>
+<body>
+<h2>[##label##]</h2>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="browse.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="browse.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<item name="browse" label="Folder browser" format="index">
+</item>
+
+<item name="browse_main" label="user.c: implementation">
+First off is our includes.  Note that local wftk includes are in the parent directory; we're compiling browse.c out of
+the user module directory.  The <code>localdefs.h</code> file contains definitions local to the current installation;
+under Unix that typically includes the location of the various repositories (of which we need two), but under Windows
+that is taken care of in the Registry.  However, the ending for CGI programs is also included in <code>localdefs.h</code>.
+<piece>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "user.h"
+#include "xmlcgi.h"
+#include "../localdefs.h"
+
+/* ------------------------------------------------------------------ */
+/* browse.c                                                           */
+/* A CGI program for folder-oriented, permission-based hierarchical   */
+/* browsing.  This program is part of the wftk workflow toolkit and   */
+/* is distributed under the terms of the GNU license.                 */
+/* Copyright (c) 2000, Vivtek: wftk@vivtek.com                        */
+/* ------------------------------------------------------------------ */
+</piece>
+
+<piece>
+XML * cgi;
+XML * environment;
+XML * input;
+
+XML * current_user;
+
+int main (int argc, char * argv[])
+{
+   cgi = cgi_init ();
+   environment = xml_loc (cgi, "cgicall.environment");
+   input = xml_loc (cgi, "cgicall.query");
+
+   current_user = user_authenticate (environment, AUTH_DOMAIN);
+   if (!current_user) {
+      printf ("[[html>[[head>[[title>User authentication required[[/title>[[/head>\n");
+      printf ("[[body>[[h2>User authentication required [[/h2>[[hr>\n");
+      printf ("A valid user authentication response is required to access this area.\n");
+      printf ("[[/body>[[/html>\n");
+      exit(0);
+   }
+
+   printf ("Content-Type: text/plain\n\n");
+   xml_write (stdout, cgi);
+}
+</piece>
+</item>
+
+
+</litprog>

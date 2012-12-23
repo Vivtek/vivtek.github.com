@@ -1,0 +1,20 @@
+SUBJECT>where was the oci.h file gone ???
+POSTER>nann-tsyr yueh
+EMAIL>neil.yueh@garmin.com
+DATE>996856635
+EMAILNOTICES>no
+IP_ADDRESS>h183.s5.ts31.hinet.net
+PREVIOUS>
+NEXT> 146
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>while i try to compiling the files contain in taskindex directory. the error message suddenly display at monitor.
+<P>===================== begin TASKINDEX_stdout.c TASKINDEX_odbc.c Microsoft (R) Incremental Linker Version 6.00.8447 Copyright (C) Microsoft Corp 1992-1998. All rights reserved.
+<P>Creating library TASKINDEX_odbc.lib and object TASKINDEX_odbc.exp TASKINDEX_oracle.c TASKINDEX_oracle.c(8) : fatal error C1083: Cannot open include file: 'oci.h': No such file or directory Microsoft (R) Incremental Linker Version 6.00.8447 Copyright (C) Microsoft Corp 1992-1998. All rights reserved.
+<P>LINK : fatal error LNK1181: cannot open input file &quot;oci.lib&quot;
+<P>==================== end..
+<P>no matter what I try to search at folder. I can't founded oci.h files in my harddisk, and I either in unix version of wftk.
+<P>How can i slove this problem????
+<P>thanks for your help anyway.
+<P>Neil. Garmin Taiwan MIS.

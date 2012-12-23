@@ -1,0 +1,6 @@
+<project home="http://www.vivtek.com/projects/filetagger/filetagger1.prj">
+<download>filetagger1.zip</download>
+<curver>1.01</curver>
+<s id="filetagger1" type="lpml-py">filetagger1.xml</s>
+<cr id="1">It would be nice to be able to launch files from the Files tab.</cr>
+</project>

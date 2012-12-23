@@ -1,0 +1,15 @@
+SUBJECT>MySQL
+POSTER>Dirk
+EMAIL>dirk_hamstra@yahoo.com
+DATE>990133826
+EMAILNOTICES>no
+IP_ADDRESS>bosgate.amer.iona.com
+PREVIOUS>
+NEXT> 115
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Hi!
+<P>Thanks for putting together wftk! Looks great - I'm trying to find out if I can use it a project. One of the key things I need to do is use MySql as a datastore. How would I go about that? Or in general how would I use a JDBC persistent store? Don't see to much info on this in the config.xml
+<P>Thanks!
+<P>-Dirk

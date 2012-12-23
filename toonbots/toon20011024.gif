@@ -1,0 +1,162 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>Toonbots -- ALL YOUR SPAM ARE BELONG TO US</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+[##navlogo##]
+
+<center><table><tr><td>
+<center><h1><u>Toonbots</u> -- ALL YOUR SPAM ARE BELONG TO US</h1>
+[&nbsp;<a href=index.html>toonbots home</a>&nbsp;]
+[&nbsp;<a href=toon-o-matic.html>the toon-o-matic</a>&nbsp;] [&nbsp;<a href=discuss.pl>forum</a>&nbsp;]
+</center>
+</td></tr>
+
+<tr><td>
+So today, one Tammy Lewis appears to have thought I wanted help advertising Toonbots.  Shyeeah.  Tammy most definitely <i>isn't</i> cool enough.  Here's the
+lame spam she sent:
+<blockquote><font size=-1>
+Hi<br>
+  We are responding to your request for FREE analysis of your site:<br>
+  <a href=http://www.vivtek.com/toonbots/>http://www.vivtek.com/toonbots/</a><br>
+  We feel there is very substantial potential to promote your site on the Internet. That is what we do - we bring traffic to our client's websites. We have proprietary 
+  software and assortment of other Internet tools designed to make your site popular and bring traffic that is interested in your product area.  This can put dollars in 
+  your pocket.
+<p>
+  Many of our clients initially thought it would be better for us to be paid in a percentage of profits. Thank goodness for them they choose a flat fee instead. They 
+  have enjoyed an enormous increase in traffic.
+<p>
+  Please REPLY to this email and include your:
+<p>
+  Full Name:
+<p>
+  Telephone #:
+<p>
+  WEB site :
+<p>
+  I think you will be very surprised by the detail and results of our analysis.<br>
+  Tammy Lewis<br>
+  Flight Promotions
+<p>
+If we received your request by mistake, click reply and type remove in the subject line.</font>
+</blockquote>
+
+Right.  Those of you in the know, <i>know</i> that I didn't request a free
+analysis from Tammy, right?  Why is that?  <ol><li><i>I</i> am in the frickin'
+Internet business, thus can do this myself, and <li> Toonbots is not what you
+would call my major profit center, right?</ol>
+<p>
+So the lie there really ticked me off.  So I decided to get off my duff and 
+do something about it.  First things first: a look at the headers.
+<table cellpadding=0>
+<tr><td>Received:</td><td>from www.u-u-u.net (rsvp-208-187-150-38.ac19.rcrd.eli.net [208.187.150.38]) by techspex.com (8.9.1/8.9.1) with<br>
+
+                   SMTP id HAA15547 for &lt;toonbots@vivtek.com>; Fri, 23 Mar 2001 07:50:08 -0500 (EST)</td></tr>
+<tr><td>Message-ID:</td><td>     &lt;200103231250.HAA15547@techspex.com></td></tr>
+<tr><td>From:</td><td>           "Tammy Lewis" &lt;tammylewis@ematic.com></td></tr>
+<tr><td>To:</td><td>              &lt;toonbots@vivtek.com></td></tr>
+<tr><td>Subject:</td><td>       I went to your web site</td></tr>
+<tr><td>Sender:</td><td>        "Tammy Lewis" &lt;tammylewis@ematic.com></td></tr>
+<tr><td>Mime-Version:</td><td> 1.0</td></tr>
+<tr><td>Date:</td><td>           Fri, 23 Mar 2001 00:37:41 -0800</td></tr>
+<tr><td>Content-Transfer-Encoding:</td><td>  8bit</td></tr>
+<tr><td>X-MIME-Autoconverted:</td><td>  from quoted-printable to 8bit by techspex.com id HAA15547</td></tr>
+<tr><td>Content-Type:</td><td>  text/plain; charset="ISO-8859-1"</td></tr>
+<tr><td>Content-Length:</td><td>  941</td></tr>
+<tr><td>Status: </td><td></td></tr>
+</table>
+
+From these headers, we can see that at least Tammy isn't using any spamware,
+and she's sending straight from her dialup to my mail server.  She gives a
+return address of <a href=mailto:tammylewis@ematic.com>tammylewis@ematic.com</a> (not that I'm encouraging other Web address harvesters to harvest that address
+or anything, that would plainly be wrong, eh?)
+<p>
+Since she wants orders to come via return mail, she obviously really is at that
+address.  More advanced spammers know that including a dropbox in your spam
+is a quick way to lose your address, so Tammy's new at this.  Most spammers
+use an unlisted fax number for their orders, because tracing it is far harder
+and phone companies don't care nearly as much as ISPs do if you spam.
+<p>
+So I took at look at ematic.com.  Cute little service, offers merchant
+services, email, website tools, that kind of stuff.  And it has an acceptible
+use policy at http://www.ematic.com/policy/policy.html (<i>March 31</i>: 
+they've moved it to <a href=http://www.ematic.com/information/policy/policy.html>http://www.ematic.com/information/policy/policy.html</a>)
+which includes the following rather nice quote:
+<blockquote>
+The biggest no no that will result in immediate termination of your account
+privileges include:<br>
+<strong>No spamming</strong> (sending of unsolicited email); 
+</blockquote>
+ ... and some other stuff, but note that spamming is first.  OK.  Nearly all
+ISPs have this, by the way.  So I check their contact pages.  No abuse address,
+so I'll copy to help and miscellaneous as well.
+<p>
+On to that dialup.  The first <i>Received:</i> header is the key one -- in fact,
+in this mail it's the only one, so it's obviously key.  The first address-looking
+thingy is what the mailer <i>said</i> it's name was.  The IP address in [square
+brackets] is the IP address the SMTP connection came from, and the second
+address-looking thingy is what reverse DNS told us is the <i>real</i> name
+of the address.  From the form, it's a dialup (because of all the 
+numbers in it) and it belongs to eli.net.  So we toddle off there, and find
+a rather nice acceptible-use policy (AUP) at <a href=http://www.eli.net/techsupport/aup.shtml>http://www.eli.net/techsupport/aup.shtml</a>.  Sure enough, they
+don't like spam either.  (Nobody does).
+<p>
+So now we have enough information to compose a nice LART (that stands for Loser
+Attitude Readjustment Tool, by the way), as follows:
+<blockquote><font size=-1>
+EMATIC.COM:<br>
+I received the attached spam this morning.  As the spammer requests a reply, I would imagine that tammylewis@ematic.com is indeed the perpetrator.  From a 
+quick check of your site, I found your policy page at http://www.ematic.com/policy/policy.html, which right up at the top notes that spamming will result in immediate 
+termination of the account.  Please do so.  Normally I would simply recycle this spam for statistical purposes at <a href=http://www.despammed.com>despammed.com</a>, but as Tammy lied (saying that I'd 
+requested a free assessment when I did *not*, as I am a consultant in Internet usage and hardly need the "services" of a spamming incompetent) I find that my 
+dander is up.
+<p>
+Terminate her account, please.
+<p>
+By the way, you don't list an abuse@ address.  I suggest you do so.  I've copied this complaint to help@ and miscellaneous@ in the hopes of getting it to the right 
+person.
+<p>
+ELI.NET:<br>
+Good AUP statement at http://www.eli.net/techsupport/aup.shtml.  This dialup is one of yours, but of course I have no good way of knowing if it's leased or not.  If 
+possible, terminate the dialup account; otherwise please forward this complaint to the proper people and encourage them to do so.
+<p>
+Tammy Lewis:<br>
+Look, lady, normally I just take a low-key approach to spam fighting, but this one just really ticked me off.  I didn't request an analysis for indexing of my online 
+comic of all things, and we both know that the only reason you would say that I did is so you can claim this isn't unsolicited bulk mail.  You're a liar and you've 
+broken two agreements (with ematic.com and your dialup provider) just by sending this spam.  You're probably naive and you just want to make a buck on the 
+Internet that everybody says is so lucrative, but let me tell you, there just ain't no free lunch.  The termination of a couple of accounts which *you* brought upon 
+yourself by breaking your word will hopefully serve as a wake-up call.
+<p>
+It's very possible that someone else has persuaded you that this would be a good idea as a business.  You may even have invested in this scam.  If so, please help 
+me find that person and nail the slime -- now wouldn't that be a nice revenge?  See, you just stand to lose a dialup account -- but if the originator of the scheme lied 
+to you (and certainly did if they said spamming was a good marketing tool) then the FTC may be able to take legal action.  *You* may be able to take legal action.  
+And that could be fun.  You could be a hero.
+<p>
+Interested?
+<p>
+Michael Roberts -- yeah, I do a comic.  Wanna make something of it?<br>
+Vivtek
+</font>
+</blockquote>
+
+And after that, of course, I attach the headers and the body of the spam.
+We'll see what happens.  Hopefully we'll get some nice responses.
+I'm hoping ematic.com responds well, because if they don't, their upstream
+provider, Digital Island, has a nice anti-spam policy at <a href=http://www.digitalisland.net/support/antispam.shtml>http://www.digitalisland.net/support/antispam.shtml</a>.  (In case you're wondering, traceroute is the wonder tool that
+can allow you to find out who leases bandwidth from whom.  On Windows, I like
+CyberKit, a free set of Net tools including traceroute, all in a nice GUI
+package.)
+
+<p>
+<i>Mar 31, 2001</i>:<br>
+Well, I never got any actual responses from anyone on this one (par for the
+course) but there is no Tammy Lewis to be found at ematic.com.  Coincidence?
+I don't think so.  Bye, Tam.  We hardly knew ye.
+
+</td></tr>
+</table>
+
+[##cr_fill##]
+</html>

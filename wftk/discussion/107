@@ -1,0 +1,18 @@
+SUBJECT>Re: expat compatibility
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>990052850
+EMAILNOTICES>no
+IP_ADDRESS>as0-048.blm.bluemarble.net
+PREVIOUS>105
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Even the suggested ftp has the problem with hashtable.
+<P>&gt; The hashtable code has been folded into the xmlparse code as static
+<BR>> functions. Well the work-around hack is simple enough.
+<P>&gt; Perhaps WfTK should remove its dependency on expat's internal hashtable
+<BR>> code.
+<P>Hmm. It shouldn't actually *be* dependent.... But (haha) no, I'm not moving to C++.
+<P>Let me see if I can figure out what you're talking about. Thanks for the notice.

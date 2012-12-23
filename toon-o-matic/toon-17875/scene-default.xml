@@ -1,0 +1,9 @@
+<scene id="default" panels="1-2-3-4">
+<frame tag="default-1" id="1" panels="1">
+<character name="Lenin" tag="default-1"/>
+</frame>
+<frame tag="default-2" id="2" panels="2-3-4">
+<character name="Lenin" tag="default-1"/>
+<character name="Lenin" tag="default-2"/>
+</frame>
+</scene>

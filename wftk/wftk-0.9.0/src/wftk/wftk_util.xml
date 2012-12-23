@@ -1,0 +1,1190 @@
+<litprog>
+<object name="wftk_util.c" language="c" item="tester"/>
+
+
+<format name="index">
+<html><head><title>wftk command-line utility</title></head>
+<body>
+<h2>wftk: wftk command-line utility</h2>
+<center>
+[ <a href="wftk_engine.zip">download</a> ] [ <a href="wftk_util.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr/>
+The command-line utility is first of all a convenient way to test the library after compilation.  But in addtion to that,
+it provides a dandy way for shell scripts to interact with workflow (not the least of which is to enable scripts to start
+processes.  Cool stuff, man.)  It also lets you interface wftk with <i>anything</i> that can do a system call.
+<p/>
+Here's how we do all this stuff:
+[##itemlist##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<format name="default">
+<html><head><title>wftk command-line utility: [##label##]</title></head>
+<body>
+<h2>[##label##]</h2>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="wftk_util.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="wftk_util.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<item name="wftk_util" label="wftk command-line utility" format="index">
+</item>
+
+<item name="tester" label="main()">
+Boy, this thing is almost too simple.  Well, once I reflect the entire wftk library in it, it won't be.  But what I'm
+interested in is a program which I invoke like this:
+
+<blockquote><code>
+wftk_util create . thingle
+</code></blockquote>
+
+and it creates a datasheet 'thingle' for me.  Then I continue to call it:
+
+<blockquote><code>
+wftk_util define . thingle . thingle_procdef<br>
+wftk_util require . thingle<br>
+wftk_util complete . thingle<br>
+wftk_util complete . thingle 14<br>
+</code></blockquote>
+
+and so on.  Good way to test new datasheet repositories, too.
+
+<piece>
+#include "wftk.h"
+#include [[string.h>
+#include [[stdio.h>
+
+#define PERIOD_TO_NULL(x) (strcmp(x, ".") ? x : (char *)0)
+
+main (int argc, char * argv[])
+{
+   char config_path[512];
+   char * chmark;
+   FILE * config_file;
+   FILE * file;
+   int  complain_if_no_file = 0;
+   int argp = 1; /* We'll use this to skip flags like -c for location of the config file. */
+   #define argsleft (argc - argp)
+   XML * datasheet = (XML *) 0;
+   XML * task = (XML *) 0;
+   XML * list = (XML *) 0;
+   void * session = (void *) 0;
+   XML * mark;
+   XML * action = (XML *) 0;
+
+   if (argc [[ 2) {
+      printf ("usage: wftk [command] -- type wftk help for more information.\n");
+      exit (1);
+   }
+
+   session = wftk_session_alloc();
+
+   while (*argv[argp] == '-') {
+      if (!strcmp (argv[argp], "-c")) {
+         argp++;
+         strcpy (config_path, argv[argp++]);
+         complain_if_no_file = 1;
+      } else if (!strcmp (argv[argp], "-u")) {
+         argp++;
+         wftk_session_setuser (session, argv[argp++]);
+      }
+   }
+
+   if (!complain_if_no_file) {
+      strcpy (config_path, argv[0]);
+#ifdef WIN32
+      chmark = strrchr (config_path, '\\');
+#else
+      chmark = strrchr (config_path, '/');
+#endif
+      if (chmark) chmark[1] = '\0';
+      strcat (config_path, "config.xml");
+   }
+
+   config_file = fopen (config_path, "r");
+   if (!config_file && complain_if_no_file) {
+      printf ("wftk: can't open config file '%s'\n", config_path);
+      exit (1);
+   }
+   if (config_file) {
+      mark = xml_read (config_file);
+      if (!mark && complain_if_no_file) {
+         printf ("wftk: config file '%s' is corrupt.\n", config_path);
+         fclose (config_file);
+         exit(1);
+      }
+      if (mark) wftk_session_configure (session, mark);
+      fclose (config_file);
+   }
+
+   argp++;
+   if (!strcmp (argv[argp-1], "help")) {
+      <insert name=".help_list"/>
+
+   } else if (!strcmp (argv[argp-1], "create")) {
+      <insert name="wftk_util_process.create"/>
+   } else if (!strcmp (argv[argp-1], "delete")) {
+      <insert name="wftk_util_process.delete"/>
+   } else if (!strcmp (argv[argp-1], "define")) {
+      <insert name="wftk_util_process.define"/>
+   } else if (!strcmp (argv[argp-1], "show")) {
+      <insert name="wftk_util_process.show"/>
+   } else if (!strcmp (argv[argp-1], "adhoc")) {
+      <insert name="wftk_util_process.adhoc"/>
+
+   } else if (!strcmp (argv[argp-1], "task")) {
+      <insert name="wftk_util_task.task"/>
+   } else if (!strcmp (argv[argp-1], "tasks")) {
+      <insert name="wftk_util_task.tasks"/>
+   } else if (!strcmp (argv[argp-1], "todo")) {
+      <insert name="wftk_util_task.todo"/>
+   } else if (!strcmp (argv[argp-1], "complete")) {
+      <insert name="wftk_util_task.complete"/>
+   } else if (!strcmp (argv[argp-1], "reject")) {
+      <insert name="wftk_util_task.reject"/>
+   } else if (!strcmp (argv[argp-1], "newtask")) {
+      <insert name="wftk_util_task.newtask"/>
+   } else if (!strcmp (argv[argp-1], "rescind")) {
+      <insert name="wftk_util_task.rescind"/>
+   } else if (!strcmp (argv[argp-1], "assign")) {
+      <insert name="wftk_util_task.assign"/>
+
+   } else if (!strcmp (argv[argp-1], "ask")) {
+      <insert name="wftk_util_request.ask"/>
+   } else if (!strcmp (argv[argp-1], "requests")) {
+      <insert name="wftk_util_request.requests"/>
+   } else if (!strcmp (argv[argp-1], "request")) {
+      <insert name="wftk_util_request.request"/>
+   } else if (!strcmp (argv[argp-1], "accept")) {
+      <insert name="wftk_util_request.accept"/>
+   } else if (!strcmp (argv[argp-1], "decline")) {
+      <insert name="wftk_util_request.decline"/>
+   } else if (!strcmp (argv[argp-1], "forget")) {
+      <insert name="wftk_util_request.forget"/>
+
+   } else if (!strcmp (argv[argp-1], "set")) {
+      <insert name="wftk_util_value.set"/>
+   } else if (!strcmp (argv[argp-1], "get")) {
+      <insert name="wftk_util_value.get"/>
+   } else if (!strcmp (argv[argp-1], "values")) {
+      <insert name="wftk_util_value.values"/>
+   } else if (!strcmp (argv[argp-1], "html")) {
+      <insert name="wftk_util_value.html"/>
+   } else if (!strcmp (argv[argp-1], "htmlblank")) {
+      <insert name="wftk_util_value.htmlblank"/>
+
+   } else if (!strcmp (argv[argp-1], "log")) {
+      <insert name="wftk_util_enactment.log"/>
+
+   } else if (!strcmp (argv[argp-1], "roles")) {
+      <insert name="wftk_util_role.roles"/>
+   } else if (!strcmp (argv[argp-1], "role")) {
+      <insert name="wftk_util_role.role"/>
+
+   } else if (!strcmp (argv[argp-1], "users")) {
+      <insert name="wftk_util_user.users"/>
+   } else if (!strcmp (argv[argp-1], "user")) {
+      <insert name="wftk_util_user.user"/>
+
+   } else if (!strcmp (argv[argp-1], "action")) {
+      <insert name="wftk_util_action"/>
+
+   } else {
+      printf ("Unknown command %s.\n", argv[argp-1]);
+   }
+
+   wftk_session_free (session);
+   if (task) xml_free (task);
+   if (list) xml_free (list);
+   if (action) xml_free (action);
+}
+</piece>
+
+A little note on the way I'm scanning the args of the program might be in order.  I have a variable <code>argp</code> which
+is the offset of the "current argument."  That allows me to consume flags at the outset of processing, without losing track
+of where the actual arguments are.  Normally you'd think you would then just read each arg and increment with <code>argp++</code>,
+but unfortunately MSVC++ 5.0 has a nasty little bug: if you have two separate arguments to a function, and they're both
+the same variable incremented, it "optimizes" by incrementing <i>after</i> the function call is built.  So you duplicate the
+first item.  Yeah.  Real optimal.  You'll notice that I therefore increment explicitly after each function call which requires
+more than one of the command-line arguments (if they're not in macros, anyway).  Good goin', Bill.
+</item>
+
+<item name="tester.help_list" label="The list of commands in printf format">
+<piece>
+printf ("WFTK command-line interface v1.0 2001/02/18\n");
+if (config_file) {
+   printf ("Using configuration file in %s\n\n", config_path);
+} else {
+   printf ("Using precompiled configuration.\n\n");
+}
+printf (" -c <file> : specify alternate configuration file\n");
+printf (" -u <user> : specify username for session (not authenticated)\n");
+printf ("\n");
+
+printf ("BASIC INFO:\n-----------\n");
+printf (" help     -- this list\n");
+printf (" info     -- (not implemented) library version and installation information\n");
+
+printf ("\nPROCESSES:\n----------\n");
+printf (" create   -- create a new process/datasheet\n");
+printf (" delete   -- delete an existing process/datasheet\n");
+printf (" define   -- associate a procdef with a process\n");
+printf (" show     -- show the state of a process\n");
+printf (" adhoc    -- attach and run ad-hoc workflow\n");
+
+printf ("\nTASKS:\n------\n");
+printf (" task     -- show a task (explicit or potential)\n");
+printf (" tasks    -- list tasks\n");
+printf (" todo     -- list active indexed tasks\n");
+printf (" complete -- start process or complete a task\n");
+printf (" reject   -- reject a task\n");
+printf (" newtask  -- create a new ad-hoc task\n");
+printf (" rescind  -- delete an ad-hoc task\n");
+printf (" assign   -- assign a user to a task\n");
+
+printf ("\nREQUESTS:\n---------\n");
+printf (" ask      -- make a request\n");
+printf (" requests -- list requests\n");
+printf (" request  -- show a request\n");
+printf (" accept   -- accept a request\n");
+printf (" decline  -- decline a request\n");
+printf (" forget   -- rescind a request\n");
+
+printf ("\nVALUES:\n-------\n");
+printf (" set       -- set a named value\n");
+printf (" get       -- get a named value\n");
+printf (" values    -- list the values in a datasheet\n");
+printf (" html      -- show the HTML form field for a value\n");
+printf (" htmlblank -- show a blank HTML form field for a value\n");
+
+printf ("\nENACTMENT:\n----------\n");
+printf (" log      -- show enactment history or write a log entry to the history\n");
+
+printf ("\nROLES:\n------\n");
+printf (" roles    -- list roles of process\n");
+printf (" role     -- show or assign a role\n");
+
+printf ("\nUSERS:\n------\n");
+printf (" users    -- list involved users of process\n");
+printf (" user     -- show a user or assign a user attribute\n");
+
+printf ("\nACTIONS:\n--------\n");
+printf (" action   -- perform an action with full permission/deferment protection\n");
+</piece>
+</item>
+
+
+
+<item name="wftk_util_process" label="Dealing with processes">
+What can we do with processes and datasheets?  Create them and delete them, define a process by attaching a procdef, and that's
+about it.
+</item>
+
+<item name="wftk_util_process.create" label="create: Creating a new datasheet">
+Creation of a process is almost <i>too</i> easy.
+<piece>
+datasheet = wftk_process_new (session, argsleft > 0 ? PERIOD_TO_NULL(argv[argp]) : (char *) 0, argsleft > 1 ? PERIOD_TO_NULL(argv[argp+1]) : (char *) 0);  argp++; argp++;
+if (datasheet) {
+   wftk_process_save (session, datasheet);
+   printf ("Created process %s\n", xml_attrval (datasheet, "id"));
+}
+</piece>
+
+A caveat: if I specify an ID which is already taken, I'll get another (but unique) ID, because the semantics of the
+wftk library consider the specified ID as a request, not a demand.  Obviously, you can code around that if you're using
+the library yourself, but the command-line utility is a very thin and simple wrapper, so it just goes with the flow.
+</item>
+
+<item name="wftk_util_process.delete" label="delete: Deleting an existing process">
+Here's one place where I start to ask, where should I refuse to do things?  At what point can a process say, "No, I'm active,
+you can't delete me?"  I'm not sure yet.  Another bridge to burn when I get to it.  In the meantime, this is a good way to
+clean up after testing.  But somewhere, either here or in <code>wftk_process_delete</code>, we really need to look aside at
+a defined deletion process instead of deleting willy-nilly.
+<piece>
+if (argsleft [[ 2) {
+   printf ("wftk delete: repository and ID required (use . for default repository)\n");
+   exit(1);
+}
+
+wftk_process_delete (session, argsleft > 0 ? PERIOD_TO_NULL(argv[argp++]) : (char *) 0, argv[argp]);
+</piece>
+</item>
+
+<item name="wftk_util_process.define" label="define: Attach a procdef">
+Defining a process means attaching a process definition to it.  The procdef is stored in a procdef repository, and the
+current version is always attached to new processes.  A process will thus always work from the same version of the procdef;
+if new versions are created, they apply only to newly created processes.  Otherwise havoc would ensue.
+<piece>
+if (argsleft [[ 4) {
+   printf ("wftk define: dsrep and ID, pdrep and ID are all required (use . for default repositories)\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp++]), argv[argp++]);
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+} else {
+   if (wftk_process_define (session, datasheet, PERIOD_TO_NULL (argv[argp++]), argv[argp++])) {
+      wftk_process_save (session, datasheet);
+      printf ("Procdef %s, current version %s\n", xml_attrval (datasheet, "procdef"), xml_attrval (datasheet, "version"));
+   }
+}
+</item>
+
+<item name="wftk_util_process.show" label="show: Displaying process information">
+</item>
+
+
+<item name="wftk_util_process.adhoc" label="adhoc: Running ad-hoc workflow">
+Ad-hoc workflow is something that most workflow systems handle only begrudgingly.  I'm finding that it's a convenient way
+to handle a lot of things, though, like requests, error situations, and so on.  Basically, the <code>adhoc</code> command
+just reads a file or stdin, and routes the XML there to <code>wftk_process_adhoc</code>, which tosses it into the datasheet
+and starts it up.  The ad-hoc code is really ad-hoc, that is, any valid workflow structure can be in it, and once it's 
+queued, we really don't care where it resides.
+
+<piece>
+if (argsleft [[ 2) {
+   printf ("wftk adhoc: dsrep and ID are required.  Use . for default repository\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp++]), argv[argp++]);
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+} else {
+   file = stdin;
+   if (argsleft > 0) {
+      file = fopen (argv[argp], "r");
+      if (!file) {
+         printf ("Can't open ad-hoc code file %s\n", argv[argp]);
+      }
+   }
+   if (file) {
+      mark = xml_read (file);
+      if (!mark) {
+         printf ("Can't read XML in ad-hoc input file %s\n", argv[argp]);
+      }
+      if (file != stdin) fclose (file);
+      if (mark) {
+         wftk_process_adhoc (session, datasheet, mark);
+      }
+   }
+}
+</piece>
+</item>
+
+
+
+
+
+<item name="wftk_util_task" label="Working with tasks">
+</item>
+
+<item name="wftk_util_task.task" label="task: Show a task, including data requirements">
+<piece>
+if (argsleft [[ 2) {
+   printf ("wftk task: dsrep and process ID required (use . for default repository)\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL (argv[argp++]), argv[argp++]);
+if (datasheet) {
+   if (argsleft [[ 1) {
+      task = wftk_task_retrieve (session, datasheet);
+   } else {
+      task = xml_create ("task");
+      xml_set (task, "id", argv[argp++]);
+      xml_set (task, "dsrep", xml_attrval (datasheet, "repository"));
+      xml_set (task, "process", xml_attrval (datasheet, "id"));
+      wftk_task_retrieve (session, task);
+   }
+
+   if (!strcmp (xml_attrval (task, "status"), "none")) {
+      printf ("No task found.\n");
+   } else {
+      printf ("Task '%s'\n", *xml_attrval (task, "label") ? xml_attrval (task, "label") : xml_attrval (task, "id"));
+      if (*xml_attrval (task, "role")) printf ("Role: %s\n", xml_attrval (task, "role"));
+      if (*xml_attrval (task, "user")) printf ("Assigned to %s\n", xml_attrval (task, "user"));
+      mark = xml_firstelem (task);
+      while (mark) {
+         if (!strcmp (mark->name, "data")) {
+            printf (" %c %s: %s\n", strcmp (xml_attrval (mark, "mode"), "input") ? ' ' : '*',
+                                    xml_attrval (mark, "id"), xml_attrval (mark, "value"));
+         }
+         mark = xml_nextelem (mark);
+      }
+   }
+}
+</piece>
+</item>
+
+<item name="wftk_util_task.tasks" label="tasks: List tasks">
+This task list is simply a list of tasks active in a given process.  The list is obtained from the datasheet directly.
+<piece>
+if (argsleft [[ 2) {
+   printf ("wftk task: dsrep and process ID required (use . for default repository)\n");
+   exit (1);
+}
+
+list = xml_create ("list");
+if (strcmp (argv[argp++], ".")) xml_set (list, "dsrep", argv[argp-1]);
+xml_set (list, "process", argv[argp++]);
+wftk_task_list (session, list);
+mark = xml_firstelem (list);
+if (!mark) {
+   printf ("No tasks found.\n");
+} else {
+   while (mark) {
+      printf ("%s: %s", xml_attrval (mark, "id"), xml_attrval (mark, "label"));
+      if (*xml_attrval (mark, "role")) printf (" [%s]", xml_attrval (mark, "role"));
+      if (*xml_attrval (mark, "user")) printf (" (%s)", xml_attrval (mark, "user"));
+      printf ("\n");
+      mark = xml_nextelem (mark);
+   }
+}
+</piece>
+</item>
+
+
+<item name="wftk_util_task.todo" label="todo: List indexed tasks">
+This list of tasks is obtained from the task index (the active task database).  At some point it'll screen for specific
+users or roles; for the time being it will demonstrate working with task list returns (which are done in exactly the same way
+as above, of course.)
+<piece>
+list = xml_create ("list");
+if (argsleft > 0) xml_set (list, "user", argv[argp++]);
+xml_set (list, "status", "active");
+wftk_task_list (session, list);
+mark = xml_firstelem (list);
+if (!mark) {
+   printf ("No tasks found.\n");
+} else {
+   while (mark) {
+      printf ("%s > %s: %s", xml_attrval (mark, "process"), xml_attrval (mark, "id"), xml_attrval (mark, "label"));
+      if (*xml_attrval (mark, "role")) printf (" [%s]", xml_attrval (mark, "role"));
+      if (argc == 2 #^7#^7 *xml_attrval (mark, "user")) printf (" (%s)", xml_attrval (mark, "user"));
+      printf ("\n");
+      mark = xml_nextelem (mark);
+   }
+}
+</piece>
+</item>
+
+<item name="wftk_util_task.complete" label="complete: Complete a task (or start the process)">
+<piece>
+if (argsleft [[ 2) {
+   printf ("wftk task: dsrep and process ID required (use . for default repository)\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL (argv[argp++]), argv[argp++]);
+if (datasheet) {
+   if (argsleft [[ 1) {
+      task = wftk_task_retrieve (session, datasheet);
+   } else {
+      task = xml_create ("task");
+      xml_set (task, "id", argv[argp++]);
+      xml_set (task, "dsrep", xml_attrval (datasheet, "repository"));
+      xml_set (task, "process", xml_attrval (datasheet, "id"));
+      wftk_task_retrieve (session, task);
+   }
+
+   if (wftk_task_complete (session, task)) {
+      printf ("Completed.\n");
+   } else {
+      printf ("Not completed.\n");
+   }
+}
+</piece>
+</item>
+
+
+<item name="wftk_util_task.reject" label="reject: Reject a task">
+<piece>
+if (argsleft [[ 3) {
+   printf ("wftk reject: dsrep, process ID, and task ID required (use . for default repository)\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL (argv[argp++]), argv[argp++]);
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+} else {
+   task = xml_create ("task");
+   xml_set (task, "id", argv[argp++]);
+   xml_set (task, "dsrep", xml_attrval (datasheet, "repository"));
+   xml_set (task, "process", xml_attrval (datasheet, "id"));
+   wftk_task_retrieve (session, task);
+
+   if (wftk_task_reject (session, task)) {
+      printf ("Rejected.\n");
+   } else {
+      printf ("No action taken.\n");
+   }
+}
+</piece>
+</item>
+
+
+<item name="wftk_util_task.newtask" label="newtask: Create an ad-hoc task">
+This interface to <code>wftk_task_new</code> is somewhat weak, as it doesn't allow the user to specify data requirements
+for an ad-hoc task.  The library itself has no such limitation.
+<piece>
+if (argsleft [[ 3) {
+   printf ("wftk task: dsrep, process ID and task ID required (use . for default repository)\n");
+   exit (1);
+}
+
+task = xml_create ("task");
+if (strcmp (argv[argp++], ".")) xml_set (task, "dsrep", argv[argp-1]);
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "id", argv[argp++]);
+if (argsleft > 0) xml_set (task, "label", argv[argp++]);
+
+if (wftk_task_new (session, task)) {
+   printf ("Task added.\n");
+} else {
+   printf ("No task added.\n");
+}
+</piece>
+Now that's easy.
+</item>
+
+<item name="wftk_util_task.rescind" label="rescind: Delete an ad-hoc task">
+<piece>
+if (argsleft [[ 3) {
+   printf ("wftk task: dsrep, process ID and task ID required (use . for default repository)\n");
+   exit (1);
+}
+
+task = xml_create ("task");
+if (strcmp (argv[argp++], ".")) xml_set (task, "dsrep", argv[argp-1]);
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "id", argv[argp++]);
+
+if (wftk_task_rescind (session, task)) {
+   printf ("Task rescinded.\n");
+} else {
+   printf ("No task rescinded.\n");
+}
+</piece>
+Now that's even easier.
+</item>
+
+<item name="wftk_util_task.assign" label="assign: Attach a user to a task">
+If the user is omitted from this command, it has the effect of de-assigning the task.
+<piece>
+if (argsleft [[ 3) {
+   printf ("wftk assign: dsrep, process ID and task ID required (use . for default repository)\n");
+   exit (1);
+}
+
+task = xml_create("task");
+xml_set (task, "dsrep", PERIOD_TO_NULL (argv[argp]) ? argv[argp] : ""); argp++;
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "id", argv[argp++]);
+   
+if (!wftk_task_retrieve (session, task)) {
+   printf ("Task %s is not active", argv[argp-1]);
+} else {
+   if (argsleft > 0) {
+      xml_set (task, "user", argv[argp++]);
+   } else {
+      xml_set (task, "user", "");
+   }
+   wftk_task_update (session, task);
+}
+</piece>
+Note that this function can't assign a task to a role, or assign a role to a user.  These will come later.
+</item>
+
+
+
+
+
+<item name="wftk_util_request" label="Working with requests">
+</item>
+
+<item name="wftk_util_request.request" label="request: Show a request">
+<piece>
+if (argsleft [[ 3) {
+   printf ("wftk request: dsrep, process ID, and request ID required (use . for default repository)\n");
+   exit (1);
+}
+
+task = xml_create ("request");
+if (strcmp (argv[argp++], ".")) xml_set (task, "dsrep", argv[argp-1]);
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "id", argv[argp++]);
+wftk_request_retrieve (session, task);
+
+if (!strcmp (xml_attrval (task, "status"), "none")) {
+   printf ("No request found.\n");
+} else {
+   printf ("Request '%s'\n", *xml_attrval (task, "label") ? xml_attrval (task, "label") : xml_attrval (task, "id"));
+   if (*xml_attrval (task, "request")) {
+      printf ("Subrequest for reassignment of request %s\n", xml_attrval (task, "request"));
+   }
+   if (*xml_attrval (task, "role")) {
+      printf ("Request for assignment of role %s\n", xml_attrval (task, "role"));
+   }
+   if (*xml_attrval (task, "task")) {
+      printf ("Request for reassignment of task %s\n", xml_attrval (task, "task"));
+   }
+   if (*xml_attrval (task, "by")) {
+      printf ("Requested by: %s\n", xml_attrval (task, "by"));
+   } else {
+      printf ("Anonymous request\n");
+   }
+   if (*xml_attrval (task, "of")) printf ("Requestee: %s\n", xml_attrval (task, "of"));
+}
+</piece>
+</item>
+
+<item name="wftk_util_request.requests" label="requests: List requests">
+This request list is simply a list of requests active in a process.  The list is obtained from the datasheet directly.
+<piece>
+if (argsleft [[ 2) {
+   printf ("wftk requests: dsrep and process ID required (use . for default repository)\n");
+   exit (1);
+}
+
+list = xml_create ("list");
+if (strcmp (argv[argp++], ".")) xml_set (list, "dsrep", argv[argp-1]);
+xml_set (list, "process", argv[argp++]);
+wftk_request_list (session, list);
+mark = xml_firstelem (list);
+if (!mark) {
+   printf ("No requests found.\n");
+} else {
+   while (mark) {
+      printf ("%s: %s", xml_attrval (mark, "id"), xml_attrval (mark, "label"));
+      if (*xml_attrval (mark, "of")) printf (" (%s)", xml_attrval (mark, "of"));
+      if (*xml_attrval (mark, "request")) {
+         printf (" - reassignment of request %s", xml_attrval (mark, "request"));
+      }
+      if (*xml_attrval (mark, "role")) {
+         printf (" - assignment of role %s", xml_attrval (mark, "role"));
+      }
+      if (*xml_attrval (mark, "task")) {
+         printf (" - reassignment of task %s", xml_attrval (mark, "task"));
+      }
+      printf ("\n");
+      mark = xml_nextelem (mark);
+   }
+}
+</piece>
+</item>
+
+
+<item name="wftk_util_request.accept" label="accept: Accept a request">
+<piece>
+if (argsleft [[ 3) {
+   printf ("wftk task: dsrep, process ID, and request ID required (use . for default repository)\n");
+   exit (1);
+}
+
+task = xml_create ("request");
+if (strcmp (argv[argp++], ".")) xml_set (task, "dsrep", argv[argp-1]);
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "id", argv[argp++]);
+
+if (wftk_request_accept (session, task)) {
+   printf ("Accepted.\n");
+} else {
+   printf ("Not accepted. %s\n", xml_attrval (task, "status.reason"));
+}
+</piece>
+</item>
+
+
+<item name="wftk_util_request.decline" label="decline: Decline a request">
+<piece>
+if (argsleft [[ 3) {
+   printf ("wftk task: dsrep, process ID, and request ID required (use . for default repository)\n");
+   exit (1);
+}
+
+task = xml_create ("request");
+if (strcmp (argv[argp++], ".")) xml_set (task, "dsrep", argv[argp-1]);
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "id", argv[argp++]);
+
+if (wftk_request_decline (session, task)) {
+   printf ("Accepted.\n");
+} else {
+   printf ("Not accepted.\n");
+}
+</piece>
+</item>
+
+
+<item name="wftk_util_request.ask" label="ask: Make a request">
+<piece>
+if (argsleft [[ 4) {
+   printf ("wftk ask: dsrep, process ID, user ID of requestee, and requested object required (use . for default repository)\n");
+   printf ("          For request object, use ?xx for request, xx or !xx for task assignment, @xxx.xxx for request file,\n");
+   printf ("          or - for request on stdin.\n");
+   printf ("          Add another optional argument to set a custom label (notification subject) for request.\n");
+   exit (1);
+}
+
+task = xml_create ("request");
+if (strcmp (argv[argp++], ".")) xml_set (task, "dsrep", argv[argp-1]);
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "of", argv[argp++]);
+chmark = argv[argp++];
+if (argsleft > 0) xml_set (task, "label", argv[argp++]);
+
+if (*chmark == '?') {
+   xml_set (task, "request", chmark + 1);
+} else if (*chmark == '@' || *chmark == '-') {
+   if (*chmark == '@') {
+      file = fopen (chmark + 1, "r");
+      if (!file) {
+         printf ("Unable to open request file %s.\n", chmark + 1);
+         xml_free (task);
+         exit (1);
+      }
+   } else {
+      file = stdin;
+   }
+   mark = xml_read (file);
+   if (file != stdin) fclose (file);
+   if (!mark) {
+      printf ("Bad XML in request.\n");
+      xml_free (task);
+      exit (1);
+   }
+
+   xml_copyinto (task, mark);
+   xml_free (mark);
+} else {
+   xml_set (task, "task", chmark);
+}
+
+if (wftk_request_new (session, task)) {
+   printf ("Request made.\n");
+} else {
+   printf ("No request made. %s\n", xml_attrval (task, "status.reason"));
+}
+</piece>
+</item>
+
+<item name="wftk_util_request.forget" label="forget: Rescind a request">
+<piece>
+if (argsleft [[ 3) {
+   printf ("wftk task: dsrep, process ID and request ID required (use . for default repository)\n");
+   exit (1);
+}
+
+task = xml_create ("request");
+if (strcmp (argv[argp++], ".")) xml_set (task, "dsrep", argv[argp-1]);
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "id", argv[argp++]);
+
+if (wftk_request_rescind (session, task)) {
+   printf ("Request rescinded.\n");
+} else {
+   printf ("No request rescinded.\n");
+}
+</piece>
+</item>
+
+
+
+
+<item name="wftk_util_value" label="Dealing with values">
+</item>
+
+<item name="wftk_util_value.set" label="set: setting named values">
+To set a value, we have to find and load the specified datasheet, then call <code>wftk_value_set</code> to set the
+value.
+<piece>
+if (argsleft [[ 4) {
+   printf ("wftk set: repository and ID of the datasheet, the value name, and the value are all required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+wftk_value_set (session, datasheet, argv[argp], argv[argp+1]); argp++; argp++;
+wftk_process_save (session, datasheet);
+printf ("%s = %s\n", argv[argp-2], argv[argp-1]);
+</piece>
+</item>
+
+<item name="wftk_util_value.get" label="get: getting named values">
+Getting a value is pretty much the same thing, except that we don't have to save the datasheet afterwards.
+<piece>
+if (argsleft [[ 3) {
+   printf ("wftk get: repository and ID of the datasheet and the value name are all required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+printf ("%s\n", wftk_value_get (session, datasheet, argv[argp++]));
+</piece>
+</item>
+
+
+<item name="wftk_util_value.values" label="values: listing named values">
+Listing the values in a datasheet is very similar to listing tasks.
+<piece>
+if (argsleft [[ 2) {
+   printf ("wftk list: repository and ID of the datasheet are required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+
+list = xml_create ("list");
+wftk_value_list (session, datasheet, list);
+mark = xml_firstelem (list);
+if (!mark) {
+   printf ("No values set.\n");
+} else {
+   while (mark) {
+      printf ("%s = %s", xml_attrval (mark, "id"), xml_attrval (mark, "value"));
+      printf ("\n");
+      mark = xml_nextelem (mark);
+   }
+}
+</piece>
+</item>
+
+
+<item name="wftk_util_value.html" label="html: getting HTML for a named value">
+Getting HTML is a whole lot like getting the regular value.
+<piece>
+if (argsleft [[ 3) {
+   printf ("wftk get: repository and ID of the datasheet and the value name are all required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+mark = wftk_value_html (session, datasheet, argv[argp++]);
+if (mark) {
+   xml_write (stdout, mark);
+   printf ("\n");
+   xml_free (mark);
+}
+</piece>
+</item>
+
+
+<item name="wftk_util_value.htmlblank" label="htmlblank: getting a blank field">
+And getting blank HTML is exactly the same.
+<piece>
+if (argsleft [[ 3) {
+   printf ("wftk get: repository and ID of the datasheet and the value name are all required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+mark = wftk_value_htmlblank (session, datasheet, argv[argp++]);
+if (mark) {
+   xml_write (stdout, mark);
+   printf ("\n");
+   xml_free (mark);
+}
+</piece>
+</item>
+
+
+
+
+
+<item name="wftk_util_enactment" label="Working with the enactment history">
+</item>
+
+<item name="wftk_util_enactment.log" label="log: get or write to enactment history">
+The command-line utility can do two things with the enactment history: it can show it, or it can write a log line to
+it.
+<piece>
+if (argsleft [[ 2) {
+   printf ("wftk log: repository and ID of the datasheet are required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+
+if (argsleft > 0) {
+   /* Write log line. */
+   wftk_log (session, datasheet, argv[argp++]);
+   wftk_process_save (session, datasheet);
+   exit (0);
+}
+
+list = wftk_enactment (session, datasheet);
+if (list) {
+   mark = xml_firstelem (list);
+   while (mark) {
+      printf ("%s [%s]: ", xml_attrval (mark, "at"), xml_attrval (mark, "by"));
+      if (!strcmp ("log", mark->name)) {
+         printf ("%s\n", xml_attrval (mark, "text"));
+      } else if (!strcmp ("task", mark->name)) {
+         if (!strcmp ("reject", xml_attrval (mark, "action"))) {
+            printf ("REJECT ");
+         }
+         printf ("task %s %s\n", xml_attrval (mark, "id"), xml_attrval (mark, "label"));
+      } else if (!strcmp ("data", mark->name)) {
+         printf ("value %s (was '%s')\n", xml_attrval (mark, "id"), xml_attrval (mark, "was"));
+      } else {
+         printf ("entry '%s'\n", mark->name);
+      }
+      mark = xml_nextelem (mark);
+   }
+}
+</piece>
+</item>
+
+
+
+
+<item name="wftk_util_role" label="Working with roles">
+Roles are comparatively simple.  Each named role may be assigned to a user.  Then new workflow tasks for that role will
+automatically be assigned to the user in question.  Notifications may also be addressed to particular roles, and so forth.
+This utility doesn't do a whole lot with this stuff, just lists and updates, basically.
+</item>
+
+<item name="wftk_util_role.roles" label="roles: list roles in a datasheet">
+<piece>
+if (argsleft [[ 2) {
+   printf ("wftk roles: repository and ID of the datasheet are required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+
+list = xml_create ("list");
+wftk_role_list (session, datasheet, list);
+mark = xml_firstelem (list);
+while (mark) {
+   printf ("%s : ", xml_attrval (mark, "name"));
+   if (!*xml_attrval (mark, "user")) {
+      printf ("[unassigned]\n");
+   } else {
+      printf ("%s\n", xml_attrval (mark, "user"));
+   }
+   mark = xml_nextelem (mark);
+}
+</piece>
+</item>
+
+
+<item name="wftk_util_role.role" label="role: display or assign a role">
+<piece>
+if (argsleft [[ 3) {
+   printf ("wftk role: repository and ID of the datasheet are required, plus the name of a role.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+
+if (argsleft [[ 2) {
+   printf ("%s : ", argv[argp]);
+   if (!*wftk_role_user (session, datasheet, argv[argp])) {
+      printf ("[unassigned]\n");
+   } else {
+      printf ("%s\n", wftk_role_user (session, datasheet, argv[argp]));
+   }
+} else {
+   wftk_role_assign (session, datasheet, argv[argp], argv[argp+1]); argp++; argp++;
+   wftk_process_save (session, datasheet);
+}
+</piece>
+</item>
+
+
+
+<item name="wftk_util_user" label="Working with users">
+The user facilities at this level are very simple: each user element in a datasheet represents one user involved with
+the process.  I'm a tad worried that we'll run into synchronization problems with this (I update my email address, but
+individual processes I'm involved with don't get the message) but I figure at some point we'll include a user directory
+pointer in the session, which can be consulted when necessary.  I don't know yet.
+<p/>
+At any rate, the command-line utility exposes two functions: one lists users, the other lists the attributes of users
+or sets attributes.
+</item>
+
+<item name="wftk_util_user.users" label="users: list users in a datasheet">
+<piece>
+if (argsleft [[ 2) {
+   printf ("wftk users: repository and ID of the datasheet are required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+
+list = xml_create ("list");
+wftk_user_list (session, datasheet, list);
+mark = xml_firstelem (list);
+while (mark) {
+   printf ("%s ", xml_attrval (mark, "id"));
+   if (*xml_attrval (mark, "name")) {
+      printf ("(%s) ", xml_attrval (mark, "name"));
+   }
+   if (*xml_attrval (mark, "email")) {
+      printf (": %s", xml_attrval (mark, "email"));
+   }
+   printf ("\n");
+   mark = xml_nextelem (mark);
+}
+</piece>
+</item>
+
+
+
+<item name="wftk_util_user.user" label="user: display user or set attribute">
+<piece>
+if (argsleft [[ 3) {
+   printf ("wftk user: repository and ID of the datasheet and a userid are all required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+
+mark = wftk_user_retrieve (session, datasheet, argv[argp++]);
+if (argsleft [[ 1) {
+   if (!mark) {
+      printf ("User %s apparently not involved with process %s\n", argv[argp-1], argv[argp-2]);
+   } else {
+      printf ("%s ", xml_attrval (mark, "id"));
+      if (*xml_attrval (mark, "name")) {
+         printf ("(%s) ", xml_attrval (mark, "name"));
+      }
+      if (*xml_attrval (mark, "email")) {
+         printf (": %s", xml_attrval (mark, "email"));
+      }
+      printf ("\n");
+   }
+} else {
+   if (argsleft [[ 2) {
+      printf ("wftk user: to set attribute, both attribute and value are required.\n");
+   } else {
+      xml_set (mark, argv[argp], argv[argp+1]);
+      wftk_process_save (session, datasheet);
+   }
+}
+</piece>
+</item>
+
+
+
+<item name="wftk_util_action" label="action: Performing actions with possible deferment">
+One of the features of wftk which I think will make it easiest to integrate it with other systems is its ability to
+encapsulate actions, either executing them, denying them, or deferring them with an approval process started.
+Besides providing an underlying permissions mechanism for things like checking in new process definitions, the action
+facility will be an excellent and very natural way to automate typical website actions or scripts.
+
+<piece>
+if (argsleft [[ 1) {
+   file = stdin;
+} else {
+   file = fopen (argv[argp], "r");
+   if (!file) {
+      printf ("Unable to open action definition file '%s' for reading.\n", argv[argp]);
+      exit (1);
+   }
+}
+
+action = xml_read (file);
+if (argsleft > 0) fclose (file);
+if (!action) {
+   printf ("Unable to read action -- was your XML valid?\n");
+   exit (1);
+}
+
+wftk_action (session, action);
+if (!strcmp (xml_attrval (action, "status"), "error")) {
+   printf ("Error while attempting action.\n");
+} else if (!strcmp (xml_attrval (action, "status"), "ok")) {
+   printf ("Action taken.\n");
+} else if (!strcmp (xml_attrval (action, "status"), "no")) {
+   if (!*xml_attrval (action, "status.reason")) {
+      printf ("Action denied.\n");
+   } else {
+      printf ("Action denied: %s\n", xml_attrval (action, "status.reason"));
+   }
+} else {
+   printf ("Action deferred pending approval.\nRepository %s\nProcess %s\n", xml_attrval (action, "dsrep"), xml_attrval (action, "process"));
+}
+
+</item>
+
+
+</litprog>
+
+

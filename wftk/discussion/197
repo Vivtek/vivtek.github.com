@@ -1,0 +1,14 @@
+SUBJECT>Re: openflow
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>1028268389
+EMAILNOTICES>no
+IP_ADDRESS>66.244.71.214
+PREVIOUS>193
+NEXT> 199
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Which is beter for production use?
+<P>OpenFlow is more mature. I think wftk is more flexible. So which is better depends a lot on your particular application.
+<P>Moreover, if you're working in Zope, you're almost certainly better off using OpenFlow, even though I grit my teeth while saying this, because they've been working with Zope for considerably longer than I.

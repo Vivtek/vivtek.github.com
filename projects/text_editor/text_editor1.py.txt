@@ -1,0 +1,215 @@
+import string
+import sys
+from wxPython.wx import *
+try:
+   input_filename = sys.argv[1]
+except:
+   input_filename = ''
+class main_window(wxFrame):
+    def __init__(self, parent, id, filename=input_filename):
+        h = 500
+        w = 500
+
+        wxFrame.__init__(self, parent, -1, 'Custom text editor #1', size = (w, h),
+                         style=wxDEFAULT_FRAME_STYLE|wxNO_FULL_REPAINT_ON_RESIZE)
+
+
+        # Set the filename.
+        self.textfile = filename
+        if filename == '':
+           notify_user ("Stupid user, invoke from the command line:\ntext_editor1 [text file name]")
+
+        # Create the text control, load the file, and set the font.
+        self.control = wxTextCtrl(self, 10, style=wxTE_MULTILINE|wxTE_RICH|wxHSCROLL)
+        if self.textfile != '': self.control.LoadFile (self.textfile)
+        self.control.SetStyle (0, self.control.GetLastPosition(), wxTextAttr(wxNullColour, wxNullColour, \
+                                                                             wxFont (9, wxMODERN, wxNORMAL, wxNORMAL, false)))
+
+        # Set up state variables.
+        self.typing_now = 1
+        self.selection = 0
+
+        # Define event handlers.
+        EVT_CLOSE(self, self.OnExit)
+        EVT_CHAR(self.control, self.EvtChar)
+        EVT_LEFT_UP(self.control, self.EvtLeftUp)
+        EVT_TEXT(self, 10, self.EvtText)
+
+        # Set the window to visible.
+        self.Show(true)
+
+    def EvtChar (self, event):
+        k = event.GetKeyCode()
+        if k == WXK_F3:
+           (start, end) = self.control.GetSelection()
+           (scol, sline) = self.control.PositionToXY(start)
+           line = self.control.GetLineText(sline)
+           if end - start == 1 and line[scol] == '?': sline = sline + 1
+           found = false
+           while not found:
+              line = self.control.GetLineText(sline)
+              loc = string.find (line, "\t?")
+              if loc > -1:
+                 found = true
+                 self.control.SetSelection (self.control.XYToPosition(loc+1, sline), self.control.XYToPosition(loc+2, sline))
+              else:
+                 sline = sline + 1
+        elif k == WXK_F2:
+           (start, end) = self.control.GetSelection()
+           (scol, sline) = self.control.PositionToXY(start)
+           line = self.control.GetLineText(sline)
+           while scol > 0 and scol < len(line) \
+                 and (string.find(string.whitespace, line[scol]) > -1 \
+                      or string.find(string.whitespace, line[scol-1]) == -1):
+              if string.find(string.whitespace, line[scol-1]) == -1: scol = scol - 1
+              if string.find(string.whitespace, line[scol]) > -1: scol = scol + 1
+
+           if wxTheClipboard.Open():
+              wxTheClipboard.SetData(wxTextDataObject(string.swapcase(line[scol])))
+              wxTheClipboard.Close()
+              self.control.SetSelection (self.control.XYToPosition(scol, sline), self.control.XYToPosition(scol+1, sline))
+              self.control.Paste()
+
+           self.control.SetSelection(start, end)
+
+        elif k == WXK_F4:
+           #self.control.SaveFile (self.textfile)
+           (start, end) = self.control.GetSelection()
+           self.control.Remove(start, end)
+        else:
+           self.typing_now = 1
+           self.selection = 0
+           event.Skip()
+    def EvtText (self, event):
+        if not self.typing_now:
+           (start, end) = self.control.GetSelection()
+           # Not the best drop detection.
+           if start != end:
+              # Find starting position
+              if self.last_selection[0] > start:
+                 where_started = self.last_selection[0] + end - start
+              else:
+                 where_started = self.last_selection[0]
+              (ocol, oline) = self.control.PositionToXY(where_started)
+              line = self.control.GetLineText(oline)
+
+              after_tab = false
+              if line[ocol - 1] == "\t": after_tab = true
+
+              # Remove orphaned whitespace and put selection back where it was
+              n = ocol
+              try:
+                 while string.find(string.whitespace, line[n]) > -1 and n < len(line): n = n+1
+              except:
+                 n = ocol
+                 where_started = where_started - 1
+                 ocol = ocol - 1
+              if (n != ocol):
+                 self.control.Remove(where_started, self.control.XYToPosition(n, oline))
+                 line = self.control.GetLineText(oline)
+                 if wxTheClipboard.Open():
+                    wxTheClipboard.SetData(wxTextDataObject(string.upper(line[ocol])))
+                    wxTheClipboard.Close()
+                    self.control.SetSelection(where_started, where_started+1)
+                    self.control.Paste()
+                 if where_started < start:
+                    start = start - n + ocol
+                    end = end - n + ocol
+                 self.control.SetSelection(start, end)
+
+              # Move selection to start or end of drop target word, and compensate whitespace
+              (scol, sline) = self.control.PositionToXY(start)
+              (ecol, eline) = self.control.PositionToXY(end)
+              line = self.control.GetLineText(sline)
+              dropped = line[scol:ecol]
+              if after_tab and dropped == string.capitalize(string.lower(dropped)): dropped = string.lower(dropped)
+              self.control.Remove(start, end)
+              line = self.control.GetLineText(sline)
+
+              if wxTheClipboard.Open():
+                  wxTheClipboard.SetData(wxTextDataObject(dropped))
+                  wxTheClipboard.Close()
+
+              if start < where_started: # Moved backwards; move to start of word.
+                 while scol > 0 and scol < len(line) \
+                       and (string.find(string.whitespace, line[scol]) > -1 \
+                            or string.find(string.whitespace, line[scol-1]) == -1):
+                    if string.find(string.whitespace, line[scol-1]) == -1: scol = scol - 1
+                    if string.find(string.whitespace, line[scol]) > -1: scol = scol + 1
+
+                 start = self.control.XYToPosition (scol, sline)
+                 if wxTheClipboard.Open():
+                     wxTheClipboard.SetData(wxTextDataObject(dropped + " "))
+                     wxTheClipboard.Close()
+              else:
+                 while scol > 0 and scol < len(line) - len(dropped) \
+                       and (string.find(string.whitespace, line[scol]) == -1 \
+                            or string.find(string.whitespace, line[scol-1]) > -1):
+                    if string.find(string.whitespace, line[scol]) == -1: scol = scol + 1
+                    if string.find(string.whitespace, line[scol-1]) > -1: scol = scol - 1
+
+                 start = self.control.XYToPosition (scol, sline)
+                 if wxTheClipboard.Open():
+                     wxTheClipboard.SetData(wxTextDataObject(" " + dropped))
+                     wxTheClipboard.Close()
+
+              self.control.SetInsertionPoint (start)
+              self.control.Paste ()
+
+              event.Skip()
+    def EvtLeftUp (self, event):
+        #print self.typing_now
+        self.typing_now = 0
+        event.Skip()
+
+        # Control received only after selection modified.  But *not* during drag and drop!
+        # Exception: if long selection, click in middle, turns into insertion point -- control received before collapse
+        (start, end) = self.control.GetSelection()
+        if start != end:
+           (scol, sline) = self.control.PositionToXY(start)
+           (ecol, eline) = self.control.PositionToXY(end)
+           #print "selected %s-%s to %s-%s" % (scol, sline, ecol, eline)
+
+           # Move start to start of word.
+           line = self.control.GetLineText(sline)
+           while scol > 0 and scol < len(line) \
+                 and (string.find(string.whitespace, line[scol]) > -1 \
+                      or string.find(string.whitespace, line[scol-1]) == -1):
+              #print "%s: '%s' and '%s'" % (scol, line[scol], line[scol-1])
+              if string.find(string.whitespace, line[scol]) > -1: scol = scol + 1
+              if string.find(string.whitespace, line[scol-1]) == -1: scol = scol - 1
+
+           start = self.control.XYToPosition (scol, sline)
+
+           if eline != sline:
+              ecol = len(line)
+              eline = sline
+           else:
+              # Move end to end of word.
+              line = self.control.GetLineText(eline)
+              while ecol > 0 and ecol < len(line) \
+                    and (string.find(string.whitespace, line[ecol]) == -1 \
+                         or string.find(string.whitespace, line[ecol-1]) > -1):
+                 #print "%s: '%s' and '%s'" % (ecol, line[ecol], line[ecol-1])
+                 if string.find(string.whitespace, line[ecol-1]) > -1: ecol = ecol - 1
+                 if string.find(string.whitespace, line[ecol]) == -1: ecol = ecol + 1
+
+           end = self.control.XYToPosition (ecol, eline)
+              
+           self.control.SetSelection (start, end)
+           self.last_selection = (start, end)
+    def OnExit (self, event):
+        if self.textfile != '': self.control.SaveFile(self.textfile)
+        event.Skip()
+def notify_user (line, frame=None):
+    dlg = wxMessageDialog(frame, line, 'Text editor #1', wxOK | wxICON_INFORMATION)
+                          #wxYES_NO | wxNO_DEFAULT | wxCANCEL | wxICON_INFORMATION)
+    dlg.ShowModal()
+    dlg.Destroy()
+class App(wxApp):
+    def OnInit(self):
+        frame = main_window(None, -1)
+        return true
+
+app = App(0)
+app.MainLoop()

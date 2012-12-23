@@ -1,0 +1,3 @@
+<character name="marx" label="Karl Marx" rel-h="50">
+<draw file="image-marx-1.bmp" type="image"/>
+</character>

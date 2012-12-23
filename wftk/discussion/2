@@ -1,0 +1,14 @@
+SUBJECT>Interesting Work
+POSTER>Bob Payne
+EMAIL>rpayne@ccpace.com
+DATE>959275373
+EMAILNOTICES>no
+IP_ADDRESS>host.ccpace.com
+PREVIOUS>
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>I am interested in the work that you are doing. Right now we are embarking on a project that will utilize Many Open Source components. We have requirements for a workflow engine in this project. We have used several of the &quot;Off the Shelf&quot; Workflow packages. Most of them suffer from the fact that Process, State, Data and Rolls are stored in relational db's. One particular package launches 32.5k queries to Launch 200 instances. This is inefficient at best.
+<P>We are particularly interested in the encapsulation that XML provides. XML also cleanly supports heterogeneous processes to be maintained in the same process store. We will do some initial modeling of our process using your DTD.
+<P>Bob Payne We have used one of the multi-many-K (Spendy) WorkFlow solutions.

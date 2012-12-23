@@ -1,0 +1,15 @@
+<cartoon rowformat="1" width="700" panel-h="150" character-base-url="http://www.vivtek.com/toonbots/characters/">
+<panel>
+<character name="Lenin"/>
+<dialog who="Lenin" font-size="12">Вот анекдот про Сталина.</dialog>
+</panel>
+<panel>
+<character name="Lenin" action="leaves"/>
+<dialog who="Lenin" font-size="12">Сталин разговаривает по телефону с Черчиллем:</dialog>
+</panel>
+<panel/>
+<panel>
+<character name="Lenin"/>
+<dialog who="Lenin" font-size="12">Unicode never works when I try to be funny.</dialog>
+</panel>
+</cartoon>

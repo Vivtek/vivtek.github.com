@@ -1,0 +1,10 @@
+<cartoon rowformat="1" width="700" panel-h="150" character-base-url="http://www.vivtek.com/toonbots/characters/">
+<panel>
+<character name="me" action="leaves"/>
+<dialog who="me" font-size="10" font-color="0,0,255">Hello, world.</dialog>
+</panel>
+<panel/>
+<panel>
+<caption font="Bitstream Charter:style=Bold Italic" font-color="255,0,0" location="lower right">NEXT: SOMETHING ELSE!</caption>
+</panel>
+</cartoon>

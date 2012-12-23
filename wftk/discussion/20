@@ -1,0 +1,13 @@
+SUBJECT>Workflow, Python and Zope
+POSTER>Arno Gross
+EMAIL>arno.gross@consotec.de
+DATE>967896428
+EMAILNOTICES>no
+IP_ADDRESS>p3E9E6D0B.dip.t-dialin.net
+PREVIOUS>
+NEXT> 23
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>As Josh already mentioned there is Zope and Python. Currently there is a discussion thread in the Zope mailing list (http://lists.zope.org/pipermail/zope-dev) and in egroups: http://www.egroups.com/messagesearch/zope?query=Workflow, discussing Generic Workflow. I am convinced that it would be a great shift to build a Workflow product on Zope with Python. There is already a small basis of a workflow, but maybe we could pull together the resources.
+<P>Arno Gross arno.gross@constotec.de

@@ -1,0 +1,14 @@
+<index>
+<item id="chair" curver="1" title="Chair (request purchase)" file="chair_1.xml" owner="michael">
+The original chair example.
+</item>
+<item id="closedproj" curver="1" title="Close-source project" file="closedproj_1.xml" owner="michael"/>
+<item id="ecomm" curver="1" title="Retail e-commerce order" file="ecomm_1.xml" owner="michael"/>
+<item id="openproj" curver="1" title="Open-source development" file="openproj_1.xml" owner="michael"/>
+<item id="tradeshow" curver="1" title="Trade show" file="tradeshow_1.xml" owner="michael"/>
+<item id="sxc" curver="1" title="SourceXchange project" file="sxc_1.xml" owner="michael"/>
+<item id="workflow_gen" curver="1" title="Randomly generated XML" file="workflow_gen_1.xml" owner="michael">
+This is some XML conforming to the DTD which VisualAge generated.  It doesn't make a lot of
+semantic sense.  You have been warned.
+</item>
+</index>

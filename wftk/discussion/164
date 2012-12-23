@@ -1,0 +1,18 @@
+SUBJECT>Re: Can wftk work with GUI or Web apps?
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>1011414762
+EMAILNOTICES>no
+IP_ADDRESS>as0-136.blm.bluemarble.net
+PREVIOUS>162
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Hi,
+<P>&gt; I'm planning to build an application. It'll be either in Delphi/Interbase
+<BR>> or Apache/Java/MySQL. Has anyone made wftk work in these 2 environments?
+<BR>> How? Any pointers would be very appreciated. Thanks a lot!
+<P>To work with Interbase, you'll need to write an adaptor; the MySQL adaptor, on the other hand, should be ready pretty soon (yeah, I've been saying that for a while.) On the flip side, running from Delphi should be relatively straightforward, as I believe Delphi can work with a DLL with no particular problems, but to run under Java you'll want to write a JNI wrapper or convince me to do so. I could be convinced, really.
+<P>For both environments, you'll probably find some of the formatting machinery useful which I've been working on -- unfortunately it's not quite ready for release, but if you give me an idea what you're trying to do, I can probably work up a reasonable response to it.
+<P>

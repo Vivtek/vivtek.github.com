@@ -1,0 +1,17 @@
+SUBJECT>Not quite...
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>995636943
+EMAILNOTICES>no
+IP_ADDRESS>line-211-206.dial.matav.net
+PREVIOUS>139
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Hello, my name is Leopoldo Cicero, I just would know if I need AOLServer
+<BR>> 2.1 to run WFTK ; if I need it, could someone send me it ? I looked for
+<BR>> AOLServer on its website, but the only version available is the latest
+<BR>> (3.xxxxx), and WFTK is incompatible with the latest version, it runs only
+<BR>> with version 2.1.
+<P>As I explained to Leopoldo in email, the *prototype* runs with an AOLserver front-end of sorts. The current version doesn't yet have any Web services. The front-runner in that arena appears to be Zope (I have the Python wrapper for XMLAPI complete and that's the first scripting language interface to date), but no promises; a Perl/CGI or C/CGI front end may also happen soon.

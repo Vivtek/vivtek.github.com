@@ -1,0 +1,47 @@
+<conf>
+ <adaptor name="dsrep">
+  <adaptor name="localxml">
+   <option name="directory" value="c:\projects\wftk\datasheets"/>
+   <option name="directory" value="c:\projects\wftk\datasheets"/>
+  </adaptor>
+ </adaptor>
+ <adaptor name="pdrep">
+  <adaptor name="localxml">
+   <option name="directory" value="c:\projects\wftk\procdefs"/>
+  </adaptor>
+ </adaptor>
+ <adaptor name="perms">
+  <adaptor name="localxml">
+   <option name="directory" value="c:\projects\wftk\perms"/>
+  </adaptor>
+ </adaptor>
+ <adaptor name="user">
+  <adaptor name="localxml">
+   <option name="directory" value="c:\projects\wftk\users"/>
+  </adaptor>
+ </adaptor>
+ <adaptor name="taskindex">
+  <value name="always" value="odbc:wftk;stdout"/>
+  <adaptor name="odbc">
+   <value name="default" value="wftk"/>
+   <option name="wftk">
+     <value name="conn" value="DSN=wftk"/>
+     <value name="tasktable" value="task"/>
+     <value name="processtable" value="process"/>
+     <value name="task.id" value="id"/>
+   </option>
+  </adaptor>
+  <adaptor name="stdout"/>
+  <adaptor name="postgres"/>
+ </adaptor>
+ <adaptor name="notify">
+  <value name="always" value=""/>
+  <value name="default" value="email"/>
+  <value name="email" value="smtp:www.vivtek.com"/>
+  <value name="system_from" value="wftk@vivtek.com"/>
+  <value name="system_name" value="WFTK workflow system"/>
+  <adaptor name="smtp">
+   <value name="server" value="www.vivtek.com"/>
+  </adaptor>
+ </adaptor>
+</conf>

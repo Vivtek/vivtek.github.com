@@ -1,0 +1,18 @@
+SUBJECT>Re: Presentation Layer
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>990413040
+EMAILNOTICES>no
+IP_ADDRESS>as0-024.blm.bluemarble.net
+PREVIOUS>109
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; What are the ideas regarding the presentation layer? It seems natural to
+<BR>> extend the XML definitions of a flow with the XML/XSLT presentation
+<BR>> generation. For example Velocity or indirect to tools like Jetspeed.
+<BR>> Thoughts/comments?
+<P>Well, there are really two parts to presentation: task management and procdef presentation. The procdef manager from the prototype is a CGI-based application and way too monolithic, which is why I've shrunk from recoding it to work with the New Era.
+<P>As you can see from the task management stuff, though, the lists return XML pieces -- I'm working out template-based ways to turn that into pages. I tend not to get really excited about most tools, because they seem to be too heavy for what they deliver, but certainly something XSL-like is in the cards.
+<P>That's where I'm coming from at the moment, anyway.

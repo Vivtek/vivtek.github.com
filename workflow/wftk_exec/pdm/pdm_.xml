@@ -1,0 +1,779 @@
+
+<item name="edit.get_location" label="Finding pieces of the item to edit">
+This piece of code is getting reused a lot.  It finds the specified piece of an item to
+present in one of the forms above.  The piece is pointed to by <code>xml</code>, and 
+<code>add_flag</code> is set if the piece is to be a new addition.
+<piece>
+if (strcmp ("", xml_attrval (query, "loc"))) {
+   xml = xml_loc (version, xml_attrval (query, "loc"));
+   if (!xml || xml == version) {
+      sprintf (sbuf, "The location %s doesn't exist in this item.", xml_attrval (query, "loc"));
+      complain ();
+      exit (1);
+   }
+   add_flag = 0;
+} else {
+   xml = xml_loc (version, xml_attrval (query, "parentloc"));
+   if (!xml) {
+      sprintf (sbuf, "The parent location %s doesn't exist in this item.", xml_attrval (query, "parentloc"));
+      complain();
+      exit (1);
+   }
+   add_flag = 1;
+   xml = xml_create ("dummy");
+}
+</piece>
+</item>
+
+
+<item name="edit_overview" label="Presenting the overview">
+This is the central view of a process.  It presents the process in the
+following sections:<ul>
+<li>Roles:<br/>The list of roles defined for the process.  These link
+to more specific editor pages.</li>
+<li>Data:<br/>The list of top-level data items used by the process.
+These items are considered necessary to start the process.  Like the
+role list, this list links to more specific editor pages.</li>
+<li>Outline:<br/>A sparse outline of the actions defined by the process.
+This is a nested list and likewise links to more specific editor pages.
+</li>
+</ul>
+The overview is designed primarily to act as a nav bar, so it also checks the "target" input
+to see where its links should go.  If there is no "target" input, then links stay local, 
+providing a no-frames editor as well.  Well, kind of.  It'll probably need some work if
+anybody actually tries to use it that way.
+<p/>
+But first, let's print a title:
+<piece>
+printf ("[[h1>Process \"%s\"[[/h1>\n", xml_attrval (version, "name"));
+printf ("[[a href=\"%s?command=edit#^7item=%s#^7ver=%s#^7view=description\"",
+        xml_attrval (environment, "SCRIPT_NAME"), xml_attrval (query, "item"),
+        xml_attrval (query, "ver"));
+if (strcmp ("", xml_attrval (query, "target"))) {
+   printf (" target=\"%s\"", xml_attrval (query, "target"));
+}
+printf (">Show descriptions[[/a>[[hr>\n");
+</piece>
+
+Presentation of the role list is pretty simple.  We get the first element child of the version
+file, and if it's a role, we present it.  Duh.  And really, there's just not much more to it
+than that.
+<piece>
+printf ("[[strong class=\"heading\">Roles[[/strong>\n");
+printf ("[[table>\n");
+holder = xml_firstelem (version);
+while (holder) {
+   if (!strcmp (holder->name, "role")) {
+      printf ("[[tr>[[td class=\"role\">[[img src=\"role.gif\">[[/td>");
+      printf ("[[td class=\"role\">[[a href=\"");
+      print_edit_command (holder);
+      printf ("\"");
+      print_target ();
+      printf (">%s[[/a>[[/td>", xml_attrval (holder, "name"));
+      printf ("[[td class=\"role\">[[a href=\"");
+      print_update_command ("moveup", holder, "");
+      printf ("\"");
+      print_target();
+      printf (">[[img src=\"up.gif\" alt=\"Move %s up the list\" border=0>[[/a>",
+              xml_attrval (holder, "name"));
+      printf ("[[a href=\"");
+      print_update_command ("movedn", holder, "");
+      printf ("\"");
+      print_target();
+      printf (">[[img src=\"dn.gif\" alt=\"Move %s down the list\" border=0>[[/a>[[/td>",
+              xml_attrval (holder, "name"));
+      printf ("[[/tr>\n");
+   }
+   holder = xml_nextelem (holder);
+}
+if (edit_perm) {
+   printf ("[[tr>[[td class=\"role\">#^7nbsp;[[/td>[[td class=\"addrole\">");
+   printf ("[[a href=\"%s?command=edit#^7item=%s#^7ver=%s#^7parentloc=workflow#^7view=role\"",
+           xml_attrval (environment, "SCRIPT_NAME"), xml_attrval (query, "item"),
+           xml_attrval (query, "ver"));
+   if (strcmp ("", xml_attrval (query, "target")))
+      printf (" target=\"%s\"", xml_attrval (query, "target"));
+   printf (">Add a role[[/a>[[/td>[[td class=\"role\">#^7nbsp;[[/td>[[/tr>\n");
+}
+printf ("[[/table>[[br>\n");
+</piece>
+
+Then we do the same for top-level data:
+<piece>
+printf ("[[strong class=\"heading\">Top-level data[[/strong>\n");
+printf ("[[table>\n");
+holder = xml_firstelem (version);
+while (holder) {
+   if (!strcmp (holder->name, "data")) {
+      printf ("[[tr>[[td class=\"data\">[[img src=\"data.gif\">[[/td>");
+      printf ("[[td class=\"data\">[[a href=\"");
+      print_edit_command (holder);
+      printf ("\"");
+      print_target ();
+      printf (">%s[[/a>[[/td>", xml_attrval (holder, "name"));
+      printf ("[[td class=\"data\">[[a href=\"");
+      print_update_command ("moveup", holder, "");
+      printf ("\"");
+      print_target();
+      printf (">[[img src=\"up.gif\" alt=\"Move %s up the list\" border=0>[[/a>",
+              xml_attrval (holder, "name"));
+      printf ("[[a href=\"");
+      print_update_command ("movedn", holder, "");
+      printf ("\"");
+      print_target();
+      printf (">[[img src=\"dn.gif\" alt=\"Move %s down the list\" border=0>[[/a>[[/td>",
+              xml_attrval (holder, "name"));
+      printf ("[[/tr>\n");
+   }
+   holder = xml_nextelem (holder);
+}
+if (edit_perm) {
+   printf ("[[tr>[[td>#^7nbsp;[[/td>[[td class=\"adddata\">");
+   printf ("[[a href=\"%s?command=edit#^7item=%s#^7ver=%s#^7parentloc=workflow#^7view=data\"",
+           xml_attrval (environment, "SCRIPT_NAME"), xml_attrval (query, "item"),
+           xml_attrval (query, "ver"));
+   if (strcmp ("", xml_attrval (query, "target")))
+      printf (" target=\"%s\"", xml_attrval (query, "target"));
+   printf (">Add a data item[[/a>[[/td>[[td>#^7nbsp;[[/td>[[/tr>\n");
+}
+printf ("[[/table>[[br>\n");
+</piece>
+
+And finally, we call a recursive formatting function to format the action.  The action formatter's
+structure resembles that of the wftk core engine's interpreter code.  Kind of neat.  If there
+aren't any actions added to the procdef yet, then we display a link to get things started; that
+link allows us to add a sequence or a parallel, and that's it.  (Instead of arbitrary actions.)
+<piece>
+printf ("[[strong class=\"heading\">Outline of action[[/strong>\n");
+if (!outline_format (version)) {
+   printf ("<p>The process has no actions defined yet.<br>\n");
+   printf ("[[a href=\"%s?command=edit#^7item=%s#^7ver=%s#^7parentloc=workflow#^7view=action\"",
+           xml_attrval (environment, "SCRIPT_NAME"), xml_attrval (query, "item"),
+           xml_attrval (query, "ver"));
+   if (strcmp ("", xml_attrval (query, "target")))
+      printf (" target=\"%s\"", xml_attrval (query, "target"));
+   printf (">Add an action[[/a>\n");
+}
+</piece>
+
+OK, and <i>finally</i> we toss in a little form to do checkins if the current user is allowed
+to check this thing in.
+<piece>
+if (current_user) {
+   sprintf (sbuf, "%s_%s", xml_attrval (query, "item"), xml_attrval (query, "ver"));
+   if (user_perm (current_user, "wftkpdm", sbuf, "checkin")) {
+      printf ("[[center>[[form action=\"%s\" method=post target=_top>\n",
+              xml_attrval (environment, "SCRIPT_NAME"));
+      printf ("[[input type=hidden name=command value=checkin>\n");
+      printf ("[[input type=hidden name=item value=%s>\n", xml_attrval (query, "item"));
+      printf ("[[input type=hidden name=ver value=%s>\n", xml_attrval (query, "ver"));
+      printf ("[[input type=submit value=\"Check in\">\n");
+      printf ("[[/form>[[/center>\n");
+   }
+}
+</piece>
+</item>
+
+
+<item name="format_element" label="Formatting elements">
+Here are a couple of helper functions for formatting elements here and there around the program.
+<piece>
+void print_element_graphic (XML * xml)
+{
+   if (!xml) return;
+   if (xml->name == NULL) return;
+   if (!strcmp (xml->name, "sequence")) { printf ("sequence.gif"); return; }
+   if (!strcmp (xml->name, "parallel")) { printf ("parallel.gif"); return; }
+   if (!strcmp (xml->name, "task")) { printf ("task.gif"); return; }
+   if (!strcmp (xml->name, "role")) { printf ("role.gif"); return; }
+   if (!strcmp (xml->name, "data")) { printf ("data.gif"); return; }
+   if (!strcmp (xml->name, "alert")) { printf ("alert.gif"); return; }
+   if (!strcmp (xml->name, "situation")) { printf ("sit.gif"); return; }
+   if (!strcmp (xml->name, "handle")) { printf ("sit.gif"); return; }
+   if (!strcmp (xml->name, "if")) { printf ("if.gif"); return; }
+   return;
+}
+void print_element_name (XML * xml)
+{
+   if (!xml) return;
+   if (xml->name == NULL) return;
+   if (!strcmp (xml->name, "sequence")) { printf ("sequence"); return; }
+   if (!strcmp (xml->name, "parallel")) { printf ("parallel"); return; }
+   if (!strcmp (xml->name, "task")) { printf ("%s", xml_attrval (xml, "label")); return; }
+   if (!strcmp (xml->name, "role")) { printf ("%s", xml_attrval (xml, "name")); return; }
+   if (!strcmp (xml->name, "data")) { printf ("%s", xml_attrval (xml, "name")); return; }
+   if (!strcmp (xml->name, "alert")) { printf ("alert"); return; }
+   if (!strcmp (xml->name, "situation")) { printf ("%s", xml_attrval (xml, "name")); return; }
+   if (!strcmp (xml->name, "handle")) { printf ("%s", xml_attrval (xml, "situation")); return; }
+   if (!strcmp (xml->name, "if")) { printf ("decision"); return; }
+   return;
+}
+void print_target ()
+{
+   if (!strcmp ("", xml_attrval (query, "target"))) return;
+   printf (" target=\"%s\"", xml_attrval (query, "target"));
+}
+</piece>
+
+And finally, one which prints an HTMLized description of the element it's given.
+<piece>
+void print_element (XML * xml)
+{
+   if (!xml) return;
+   if (xml->name == NULL) return;
+   if (!strcmp (xml->name, "sequence")) { printf ("[[u>Sequence[[/u>"); return; }
+   if (!strcmp (xml->name, "parallel")) { printf ("[[u>Parallel[[/u>"); return; }
+   if (!strcmp (xml->name, "task"))
+   {
+      printf ("[[b>%s[[/b>", xml_attrval (xml, "label"));
+      return;
+   }
+   if (!strcmp (xml->name, "role")) { printf ("%s", xml_attrval (xml, "name")); return; }
+   if (!strcmp (xml->name, "data")) { printf ("%s", xml_attrval (xml, "name")); return; }
+   if (!strcmp (xml->name, "alert")) {
+      printf ("Alert %s", xml_attrval (xml, "to"));
+      return;
+   }
+   if (!strcmp (xml->name, "situation")) {
+      printf ("[[i>Situation: %s[[/i>", xml_attrval (xml, "name"));
+      return;
+   }
+   if (!strcmp (xml->name, "handle")) {
+      printf ("[[i>Handle \"%s\"[[/i>", xml_attrval (xml, "situation"));
+      return;
+   }
+   if (!strcmp (xml->name, "if")) {
+      printf ("[[b>If[[/b> %s", xml_attrval (xml, "expr"));
+      return;
+   }
+   return;
+}
+</piece>
+</item>
+
+<item name="format_update_command" label="Building command hrefs">
+The exact URL used to invoke an update command contains the command <code>update</code>, the
+item and version to update, the action to take, the location affected, and possibly arbitrary
+other data.  So it's convenient to use a function to format it into sbuf and then return
+sbuf.  (The sbuf buffer is my global scratch buffer.  Sorry.)
+<piece>
+void print_update_command (char * action, XML * location, char * arbitrary)
+{
+   printf ("%s?command=update&item=%s&ver=%s&action=%s&loc=",
+           xml_attrval (environment, "SCRIPT_NAME"),
+           xml_attrval (query, "item"),
+           xml_attrval (query, "ver"),
+           action);
+   xml_getloc (location, sbuf, sizeof (sbuf));
+   printf ("%s", sbuf);
+   if (arbitrary) if (*arbitrary) {
+      printf ("&%s", arbitrary);
+   }
+}
+</piece>
+
+On the other hand, an edit command for a piece of the workflow can be built purely from the
+piece itself (plus the CGI environment, of course).
+
+<piece>
+void print_edit_command (XML * location)
+{
+   printf ("%s?command=edit&item=%s&ver=%s&view=%s&loc=",
+           xml_attrval (environment, "SCRIPT_NAME"),
+           xml_attrval (query, "item"), xml_attrval (query, "ver"),
+           location->name);
+   xml_getloc (location, sbuf, sizeof (sbuf));
+   printf ("%s", sbuf);
+}
+</piece>
+</item>
+
+<item name="outline_format" label="Formatting outlines and such">
+The <code>outline_format</code> function is used for, well, formatting outlines which correspond
+to actions in the process.  There may be other uses at some point.
+<p/>
+It returns an integer value which is the number of nodes displayed.  The primary
+use of this is to do something special if there are no nodes.  (As is the case when a fresh
+procdef is created and we display its empty action outline.)
+<piece>
+int outline_format (XML * action)
+{
+   XML * child;
+   int count = 0;
+
+   if (!strcmp (action->name, "workflow")) {
+      printf ("[[table border=0 cellpadding=0 cellborder=0>\n");
+      child = xml_firstelem (action);
+      while (child) {
+         if (strcmp (child->name, "data") #^7#^7 strcmp (child->name, "role")) {
+            count += outline_format (child);
+         }
+         child = xml_nextelem (child);
+      }
+      printf ("[[/table>\n");
+   } else if (!strcmp (action->name, "sequence")) {
+      count ++;
+      printf ("[[tr>[[td valign=top align=center>[[img src=sequence.gif>[[/td>[[td>[[a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">");
+      print_element (action);
+      printf ("[[/a>\n");
+      printf ("[[table border=0 cellpadding=0 cellborder=0>\n");
+      child = xml_firstelem (action);
+      while (child) {
+         count += outline_format (child);
+         child = xml_nextelem (child);
+      }
+      printf ("[[/table>[[/td>[[/tr>\n");
+   } else if (!strcmp (action->name, "parallel")) {
+      count ++;
+      printf ("[[tr>[[td valign=top align=center>[[img src=parallel.gif>[[/td>[[td>[[a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">");
+      print_element (action);
+      printf ("[[/a>\n");
+      printf ("[[table border=0 cellpadding=0 cellborder=0>\n");
+      child = xml_firstelem (action);
+      while (child) {
+         count += outline_format (child);
+         child = xml_nextelem (child);
+      }
+      printf ("[[/table>[[/td>[[/tr>\n");
+   } else if (!strcmp (action->name, "task")) {
+      count ++;
+      printf ("[[tr>[[td valign=top align=center>[[img src=task.gif>[[/td>[[td>[[a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">");
+      print_element (action);
+      printf ("[[/a> (%s)\n", xml_attrval (action, "role"));
+      printf ("[[table border=0 cellpadding=0 cellborder=0>\n");
+      child = xml_firstelem (action);
+      while (child) {
+         if (!strcmp (child->name, "data")) {
+            printf ("[[tr>[[td class=\"data\">[[img src=\"result.gif\">[[/td>");
+            printf ("[[td class=\"data\">[[a href=\"");
+            print_edit_command (child);
+            printf ("\"");
+            print_target ();
+            printf (">%s[[/a>[[/td>", xml_attrval (child, "name"));
+            printf ("[[/tr>\n");
+            count ++;
+         }
+         child = xml_nextelem (child);
+      }
+      printf ("[[/table>[[/td>[[/tr>\n");
+   } else if (!strcmp (action->name, "if")) {
+      count ++;
+      printf ("[[tr>[[td valign=top align=center>[[img src=if.gif>[[/td>[[td>[[a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">[[b>If[[/b> %s[[/a>\n", xml_attrval (action, "expr"));
+      printf ("[[table border=0 cellpadding=0 cellborder=0>\n");
+      child = xml_firstelem (action);
+      while (child) {
+         count += outline_format (child);
+         child = xml_nextelem (child);
+      }
+      printf ("[[/table>[[/td>[[/tr>\n");
+   } else if (!strcmp (action->name, "alert")) {
+      count ++;
+      printf ("[[tr>[[td valign=top align=center>[[img src=alert.gif>[[/td>[[td>[[a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">");
+      print_element (action);
+      printf ("[[/a>[[/td>[[/tr>\n");
+   } else if (!strcmp (action->name, "data")) {
+      count ++;
+      printf ("[[tr>[[td valign=top align=center>[[img src=data.gif>[[/td>[[td>[[a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">");
+      print_element (action);
+      printf ("[[/a>[[/td>[[/tr>\n");
+   } else if (!strcmp (action->name, "situation")) {
+      count ++;
+      printf ("[[tr>[[td valign=top align=center>[[img src=sit.gif>[[/td>[[td>[[a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">");
+      print_element (action);
+      printf ("[[/a>[[/td>[[/tr>\n");
+   } else if (!strcmp (action->name, "handle")) {
+      count ++;
+      printf ("[[tr>[[td valign=top align=center>[[img src=sit.gif>[[/td>[[td>[[a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">");
+      print_element (action);
+      printf ("[[/a>\n");
+      printf ("[[table border=0 cellpadding=0 cellborder=0>\n");
+      child = xml_firstelem (action);
+      while (child) {
+         count += outline_format (child);
+         child = xml_nextelem (child);
+      }
+      printf ("[[/table>[[/td>[[/tr>\n");
+   }
+   return (count);
+}
+</piece>
+</item>
+
+<item name="update" label="update: Actually changing procdef versions!">
+And hey!  Here's the code that makes this whole thing an editor!  You knew it had to come along
+some time, right?  Like the editor presentation code, the update code looks at a switch
+parameter to see what it's supposed to be doing.  It does what it's supposed to do, then it
+has to figure out where to send the user in order to support a usable interface.  (This is the
+hardest part of Web app design; the coordination of frames and when to reload things.)
+<p/>
+The best mechanism I know of for having one frame reload another in the same frameset is to
+include a piece of Javascript in the first frame's HTML.  This can serve rather well to keep
+frames in synch while working on complex data structures -- but it only works if you have
+Javascript available and enabled.  But I don't see a more usable way of doing things, so you'll
+see a lot of little Javascript snippets here and there in this code.
+<p/>
+The first thing we're going to do is to check that the current user has the authority to
+update.
+<piece>
+sprintf (sbuf, "%s_%s", xml_attrval (query, "item"), xml_attrval (query, "ver"));
+if (!user_perm (current_user, "wftkpdm", sbuf, "edit")) {
+   printf ("[[h2>No edit authorization[[/h2>[[hr>");
+   printf ("Sorry, your current user id (%s) doesn't have permission to edit this item version.",
+           xml_attrval (current_user, "name"));
+   printf ("  You might want to check with the version owner or with an administrator if you think that this is in error.");
+   exit (0);
+}
+</piece>
+
+So OK, we're authorized to make changes to the version if we've gotten this far.  Let's go
+ahead and load the version file and mark it as dirty so that it'll be saved after we make
+our changes.
+<piece>
+sprintf (version_file, "%s%s_%s.xml", PROCESS_DEFINITION_REPOSITORY, xml_attrval (query, "item"), xml_attrval (query, "ver"));
+file = fopen (version_file, "r");
+if (!file) {
+   printf ("Unable to open procdef version file %s.\n", sbuf);
+   return (1);
+}
+version = xml_read (file);
+fclose (file);
+version_dirty = 1;
+</piece>
+Now let's go ahead and display a heading in case this is being viewed outside a frame or
+something weird like that, and switch off to the various action handling code.
+<piece>
+printf ("[[html>[[head>[[title>wftk update - %s[[/title>[[LINK href=\"pdm.css\" rel=\"stylesheet\" type=\"text/css\">[[/head>\n", xml_attrval (version, "name"));
+printf ("[[body bgcolor=\"ffffff\">\n");
+
+if (!strcmp ("updatedescription", xml_attrval (query, "action"))) {
+   <insert name=".updatedescription"/>
+} else if (!strcmp ("moveup", xml_attrval (query, "action"))) {
+   <insert name=".moveup"/>
+} else if (!strcmp ("movedn", xml_attrval (query, "action"))) {
+   <insert name=".movedn"/>
+} else if (!strcmp ("role", xml_attrval (query, "action"))) {
+   <insert name=".role"/>
+} else if (!strcmp ("data", xml_attrval (query, "action"))) {
+   <insert name=".data"/>
+} else if (!strcmp ("task", xml_attrval (query, "action"))) {
+   <insert name=".task"/>
+} else if (!strcmp ("if", xml_attrval (query, "action"))) {
+   <insert name=".if"/>
+} else if (!strcmp ("alert", xml_attrval (query, "action"))) {
+   <insert name=".alert"/>
+} else if (!strcmp ("handle", xml_attrval (query, "action"))) {
+   <insert name=".handle"/>
+} else if (!strcmp ("sequence", xml_attrval (query, "action"))) {
+   <insert name=".sequence"/>
+} else if (!strcmp ("parallel", xml_attrval (query, "action"))) {
+   <insert name=".parallel"/>
+} else if (!strcmp ("delete", xml_attrval (query, "action"))) {
+   <insert name=".delete"/>
+}
+printf ("[[/body>[[/html>\n\n");
+</piece>
+</item>
+
+<item name="update.updatedescription" label="Updating descriptions">
+As described above in the editor presentation, there are four places where description info
+is stashed in a workflow item.  The first is the name of the item, so I'm going to handle that
+quickly.  We've got "title", "description", "instancetitle", and "instancedescription" coming
+in.
+
+<piece>
+updated_flag = 0;
+if (strcmp (xml_attrval (version, "name"), xml_attrval (query, "title"))) {
+   xml_set (version, "name", xml_attrval (query, "title"));
+   if (!updated_flag) {
+      printf ("[[h2>Description updated[[/h2>[[hr>[[ul>\n");
+   }
+   printf ("[[li> Title was changed to '%s'\n", xml_attrval (query, "title"));
+   updated_flag = 1;
+}
+</piece>
+
+After the update has been made, we need to reload the overview form; otherwise I guess
+displaying an acknowledgement will suffice.
+
+<piece>
+if (!updated_flag) {
+   printf ("[[h2>Description not updated[[/h2>[[hr>\n");
+   printf ("No update was necessary.\n");
+} else {
+   printf ("[[/ul>\n");
+   printf ("[[script>parent.frames[0].location = parent.frames[0].location.href;[[/script>\n");
+}
+</piece>
+</item>
+
+<item name="update.moveup" label="Moving things up in lists">
+</item>
+<item name="update.movedn" label="Moving things down in lists">
+</item>
+
+<item name="update.role" label="Adding and modifying roles">
+Roles are only found at the top level, so they have special handling.  Actually, I think that
+<i>each</i> separate type of element will end up with special handling.  We'll see.  At any
+rate, I don't simply want to append roles onto the end of the workflow list; I want to have
+all the roles right up at the top.  The easy way out is just to prepend new roles, and I
+suppose that's what I'll do for now.
+<piece>
+<insert name="update.get_location"/>
+if (add_flag) xml = xml_create ("role");
+
+xml_set (xml, "name", xml_attrval (query, "name"));
+xml_set (xml, "local", xml_attrval (query, "local"));
+if (!add_flag) {
+   while (holder = xml_first (xml)) xml_delete (holder);
+}
+xml_append (xml, xml_createtext (xml_attrval (query, "content")));
+
+if (add_flag) xml_prepend (version, xml);
+
+printf ("[[h2>Role %s %s[[/h2>[[hr>\n", xml_attrval (xml, "name"), add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("[[script>parent.frames[0].location = parent.frames[0].location.href;[[/script>\n");
+</piece>   
+</item>
+
+<item name="update.data" label="Adding and modifying data items">
+Data items (and data manipulation actions, which are also data elements) may appear basically
+anywhere in the workflow.  I fear that my data item editor is too simple, but until I have
+the prototype finished I don't want to sit down and really think it through.
+<piece>
+<insert name="update.get_location"/>
+if (add_flag) xml = xml_create ("data");
+
+xml_set (xml, "name", xml_attrval (query, "name"));
+xml_set (xml, "type", xml_attrval (query, "type"));
+if (!add_flag) {
+   while (holder = xml_first (xml)) xml_delete (holder);
+}
+if (strcmp ("", xml_attrval (query, "content")))
+   xml_append (xml, xml_createtext (xml_attrval (query, "content")));
+
+if (add_flag) xml_append (parent, xml);
+
+printf ("[[h2>Data item %s %s[[/h2>[[hr>\n", xml_attrval (xml, "name"), add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("[[script>parent.frames[0].location = parent.frames[0].location.href;[[/script>\n");
+</piece>   
+</item>
+
+<item name="update.task" label="Adding and modifying tasks">
+Tasks consist of two parts: there is a form editor for the name and role of the task, but
+there is also a list of data items gathered during the task.  The list is handled separately;
+this segment of the update is only concerned with the task attributes themselves.
+<piece>
+<insert name="update.get_location"/>
+if (add_flag) xml = xml_create ("task");
+
+xml_set (xml, "label", xml_attrval (query, "label"));
+xml_set (xml, "role", xml_attrval (query, "role"));
+
+if (add_flag) xml_append (parent, xml);
+
+printf ("[[h2>Task %s %s[[/h2>[[hr>\n", xml_attrval (xml, "label"), add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("[[script>parent.frames[0].location = parent.frames[0].location.href;[[/script>\n");
+</piece>   
+</item>
+
+<item name="update.if" label="Adding and modifying decisions">
+Like tasks, decisions are two-part items.  Like the task updater, the decision updater only
+fields changes from the form (i.e. the expression to be evaluated.)
+<piece>
+<insert name="update.get_location"/>
+if (add_flag) xml = xml_create ("if");
+
+xml_set (xml, "if", xml_attrval (query, "if"));
+
+if (add_flag) xml_append (parent, xml);
+
+printf ("[[h2>Decision %s[[/h2>[[hr>\n", add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("[[script>parent.frames[0].location = parent.frames[0].location.href;[[/script>\n");
+</piece>   
+</item>
+
+<item name="update.alert" label="Adding and modifying alerts">
+Alerts are just like data items: some attributes and then the content is just handled as
+text.
+<piece>
+<insert name="update.get_location"/>
+if (add_flag) xml = xml_create ("alert");
+
+xml_set (xml, "type", xml_attrval (query, "type"));
+xml_set (xml, "to", xml_attrval (query, "to"));
+if (!add_flag) {
+   while (holder = xml_first (xml)) xml_delete (holder);
+}
+xml_append (xml, xml_createtext (xml_attrval (query, "content")));
+
+if (add_flag) xml_append (parent, xml);
+
+printf ("[[h2>Alert %s[[/h2>[[hr>\n", add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("[[script>parent.frames[0].location = parent.frames[0].location.href;[[/script>\n");
+</piece>   
+</item>
+
+<item name="update.handle" label="Adding and modifying situation handlers">
+Situation handlers have a form editor for the name of the situation they handle.
+<piece>
+<insert name="update.get_location"/>
+if (add_flag) xml = xml_create ("handle");
+
+xml_set (xml, "situation", xml_attrval (query, "situation"));
+
+if (add_flag) xml_append (parent, xml);
+
+printf ("[[h2>Handler for %s %s[[/h2>[[hr>\n", xml_attrval (xml, "situation"), add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("[[script>parent.frames[0].location = parent.frames[0].location.href;[[/script>\n");
+</piece>   
+</item>
+
+<item name="update.sequence" label="Adding and modifying sequences">
+The basic sequence is undecorated, but a loop is marked by having repeat="yes" and an optional
+index variable which will contain the number of times the loop has already been executed.
+Remember that loops are terminated by situations, and you can't go wrong.
+<p/>
+Actually, it's rather fortunate that there is <i>some</i> attribute for sequences and parallels,
+otherwise the UI for adding them would have been ugly.  (And actually, I was going to cut a
+corner on the UI for adding them until I realized that that would have been even uglier...)
+<piece>
+<insert name="update.get_location"/>
+if (add_flag) xml = xml_create ("sequence");
+
+xml_set (xml, "repeat", xml_attrval (query, "repeat"));
+xml_set (xml, "index", xml_attrval (query, "index"));
+
+if (add_flag) xml_append (parent, xml);
+
+printf ("[[h2>Sequence %s[[/h2>[[hr>\n", add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("[[script>parent.frames[0].location = parent.frames[0].location.href;[[/script>\n");
+</piece>   
+</item>
+
+<item name="update.parallel" label="Adding and modifying parallels">
+And of course the parallel block, as in all other respects, is handled identically to sequences.
+<piece>
+<insert name="update.get_location"/>
+if (add_flag) xml = xml_create ("parallel");
+
+xml_set (xml, "repeat", xml_attrval (query, "repeat"));
+xml_set (xml, "index", xml_attrval (query, "index"));
+
+if (add_flag) xml_append (parent, xml);
+
+printf ("[[h2>Parallel %s[[/h2>[[hr>\n", add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("[[script>parent.frames[0].location = parent.frames[0].location.href;[[/script>\n");
+</piece>   
+</item>
+
+<item name="update.delete" label="Deleting pieces">
+Actually, deletions are pretty simple.
+<piece>
+<insert name="update.get_location"/>
+if (add_flag) {
+   printf ("[[h2>Huh?[[/h2>[[hr>Trying to delete without a location doesn't even make sense.\n");
+   exit(0);
+}
+
+xml_delete (xml);
+
+printf ("[[h2>Delete complete[[/h2>[[hr>\n");
+printf ("The version has been updated.\n");
+printf ("[[script>parent.frames[0].location = parent.frames[0].location.href;[[/script>\n");
+</piece>   
+</item>
+
+<item name="update.get_location" label="Finding pieces of the item to update">
+This differs slightly from its edit presentation counterpart.  The location, if given (for
+modification) ends up in <code>xml</code>, just as with editing, but if the parent location is
+given instead, then it is preserved, and is passed in <code>parent</code>.  No dummy XML is
+needed to fool the form builder, so it's not created.
+<piece>
+if (strcmp ("", xml_attrval (query, "loc"))) {
+   xml = xml_loc (version, xml_attrval (query, "loc"));
+   if (!xml || xml == version) {
+      sprintf (sbuf, "The location %s doesn't exist in this item.", xml_attrval (query, "loc"));
+      complain ();
+      exit (1);
+   }
+   add_flag = 0;
+} else {
+   parent = xml_loc (version, xml_attrval (query, "parentloc"));
+   if (!parent) {
+      sprintf (sbuf, "The parent location %s doesn't exist in this item.", xml_attrval (query, "parentloc"));
+      complain();
+      exit (1);
+   }
+   add_flag = 1;
+}
+</piece>
+</item>
+
+
+<item name="string_incr" label="Definition of string_incr()">
+A handy little string utility function.  I like alpha-only markers (think of them as base-26
+numbers.)
+
+<piece>
+char * string_incr (char * string)
+{
+   if (!*string) {
+      string[0] = 'a';
+      string[1] = '\0';
+      return (string);
+   }
+
+   if (*string == 'z') {
+      string[0] = 'a';
+      string_incr (string + 1);
+      return (string);
+   }
+
+   string[0]++;
+   return (string);
+}
+</piece>
+</item>
+
+
+</litprog>

@@ -1,0 +1,3 @@
+<workflow name="Computer Purchase" created="anthony"><role name="Approver" local="Anthony">The guy who approves it.</role><role name="Purchaser" local="Kevin">The guy who orders it
+</role><role name="Requestor" local="User 1">This is the person who wants the computer
+</role><note type="description"/><data name="Requestor's name" type="string">asdf</data><data name="Location" type="string"/><data name="Due Date" type="date"/><data name="Date Ordered" type="date"/><data name="Price" type="string"/><sequence repeat="no" index=""><task label="Approve Request" role="Approver"/></sequence></workflow>

@@ -1,0 +1,59 @@
+<workflow name="Purchase request" author="Michael michael@vivtek.com">
+<role name="Supervisor">The supervisor is the immediate supervisor of the requestor.  A weird way to do this, but them's the specs.</role>
+<role name="Purchasing"/>
+<role name="Accounting"/>
+<role name="Receiving"/>
+
+<data id="Product requested"/>
+<data id="Reason for request"/>
+<data id="Requester's email"/>
+
+<sequence>
+<task label="Approval" role="Supervisor">
+<data id="Approval code" type="option">
+<option value="yes">Yes</option>
+<option value="no">No</option>
+</data>
+</task>
+
+<decide>
+<if value="${Approval code}" equal="no">
+<alert to="${Requester's email}">
+Your request for ${Product requested} has been rejected
+by your supervisor.  And you're a loser.
+</alert>
+<task label="Request rejected"/>
+</if>
+</decide>
+
+<task label="Order item" role="Purchasing">
+<data id="Purchasing record"/>
+</task>
+
+<alert to="${Requester's email}" subject="Request for ${Product requested}">
+Your request for the purchase of ${Product requested} has been approved and the
+order was placed.  The purchasing record is ${Purchasing record} if you need to
+contact Purchasing for inquiries.
+</alert>
+
+<parallel>
+<sequence>
+<task label="Receive ${Product requested}" role="Receiving"/>
+<alert to="${Requester's email}">
+Your requested ${Product requested} has arrived.
+Congratulations!
+</alert>
+</sequence>
+
+<task label="File invoice" role="Accounting">
+<data id="Invoice number"/>
+</task>
+</parallel>
+
+<task label="Pay invoice" role="Accounting"/>
+<alert type="role" to="Purchasing">
+The purchase has been paid.
+</alert>
+</sequence>
+
+</workflow>

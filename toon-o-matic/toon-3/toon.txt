@@ -1,0 +1,14 @@
+character base http://www.vivtek.com/toonbots/characters/
+panels 3
+panel 1
+font size=10 color=0,0,255
+lenin says Hello, world.
+lenin leaves
+font clear
+panel 2
+panel 3
+dot appears
+caption (top middle, size=8) *yawn* Did I miss anything?<br/>... Dammit, I'm invisible.  Does ANYBODY do any debugging<br/>around here?
+font Bitstream Charter:style=Bold Italic
+font color=255,0,0
+caption (lower right) NEXT: SOMETHING ELSE!

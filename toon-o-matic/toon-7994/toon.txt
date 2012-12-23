@@ -1,0 +1,34 @@
+panels 5
+panel 1
+font size=10 color=0,0,255
+Proxybot appears
+mao says Hey, Fred
+font clear
+panel 2
+font size=10
+Proxybot says cymbalta lawsuits solicitation
+mao says ?
+panel 3
+font size=09
+Proxybot says Dear Dane,<br>How about buying yourself a two<br>Omega watches the same day?<br>It's not impossible
+font clear
+font size=10 color=0,0,255
+mao says Exit, stage left.
+mao leaves
+font clear
+panel 5
+font size=10
+will appears 
+will says Gad and zounds!<br>Thou maligns me as a melancholy Dane?<br>I am not Marmaduke, forsooth!  
+font Bitstream Charter:style=Bold Italic
+font color=255,0,0
+font clear
+will leaves
+Proxybot leaves
+panel 5
+font size=9
+mouse says michael, I think the bot needs to be despammed again.
+font clear
+font size=12 color=255,0,0
+caption (lower right) NEXT: MORE SPAM!
+ 

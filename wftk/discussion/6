@@ -1,0 +1,52 @@
+SUBJECT>Re: XML Storage of Task/State
+POSTER>Bob Payne
+EMAIL>rpayne@ccpace.com
+DATE>959286662
+EMAILNOTICES>no
+IP_ADDRESS>host.ccpace.com
+PREVIOUS>5
+NEXT> 21
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Whoo! You make it sound like such a rational process! Heh.
+<P>Even Chaos can be rationalized. Why not a software developement process.
+<P>&gt; Well, to a certain extent, it's just a kneejerk reaction to stash things
+<BR>> in a database. But I'm also concerned with usability --
+<P>&gt; -- usability. Right. The additional constraint that I was interested in
+<BR>> with regards to the present task manager is that I wanted a component that
+<BR>> could reasonably stand on its own without reference to the core engine at
+<BR>> all.
+<BR>> This ... eh, OK, it's maybe a strange decision, given the relative sizes
+<BR>> of the task manager and the core engine. But I'm looking at task
+<BR>> management from a slightly different perspective. Whereas real workflow is
+<BR>> certainly the main thrust of the project, I think that it's going to be
+<BR>> important to be able to capture the day-to-day ad-hoc activities as well,
+<BR>> to document them, organize them, etc.
+<P>XMLQuery might allow you to store the task list in nearly the same format and query multiple/many XML files to pull out all the Tasks that belong to ME (loged in user) This can effectivly return a group of tasks that can be manipulated as you see fit.
+<P>&gt; So I see the task manager as supporting a spectrum of activity, ranging
+<BR>> from completely one-off ad-hoc tasks that I simply manually place in my
+<BR>> to-do list, all the way up to hierarchically organized processes. Only in
+<BR>> this way are we going to be able to speak to the full range of the market:
+<BR>> from the individual wanting to organize multiple projects (i.e. me) to
+<BR>> being a backend for active websites (such as retail e-commerce), and so
+<BR>> forth.
+<P>If the two are split i think that you should have an abstraction layer that is somewhat agnostic to the persistance method of the Workflow Engine. This could lead to data redundancy between the Task Manager and the Workflow Engine. Holding the Task/State info in the WF Engine allows it to be more of a Black Box solution.
+<P>If the Task Manager has a life of it's own..it seems a shame to have the WF Engine sitting at home waiting for the task manager to give it some attention. Maybe it should put on a new interface and go out on the town looking for other work to flow.
+<P>&gt; I couldn't agree more. I'm not quite sure how to implement it yet, but the
+<BR>> code is quite flexible in this regard: basically the current state of a
+<BR>> given process instance is embodied in a datasheet . The datasheet can
+<BR>> store individual data values attached to processes or tasks within the
+<BR>> process, and now it also stores the active task queue. I'm considering
+<BR>> using it to store an enactment log as well.
+<P>I still have to look at the system some more to see how things are working.
+<P>&gt; The point of the datasheet is, it's a completely free-form XML document.
+<BR>> The core engine loads it when something needs to be done, sticks new stuff
+<BR>> in and removes old stuff, and *doesn't care* if you toss arbitrary
+<BR>> structured data into the thing for other purposes. Complete flexibility.
+<BR>> So yeah, I think there's a great opportunity there.
+<P>&gt; Well, the WfMC documentation defines some interfaces along these lines,
+<BR>> and the Big Boys support them to greater or lesser degrees, but I don't
+<BR>> have a good picture of the market yet, either.
+<P>Most often they expose some API for getting/setting the WF properties and move tasks along. I'm not aware of any that have anything that could transfer the process and state of a workflow from one server to another. Especialy in a platform agnostic fashion.
+<P>&gt; I'll keep you posted on development, of course.

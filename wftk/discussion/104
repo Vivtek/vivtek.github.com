@@ -1,0 +1,16 @@
+SUBJECT>expat compatibility
+POSTER>Dan Connelly
+EMAIL>danc@prosoft-tech.com
+DATE>990024091
+EMAILNOTICES>no
+IP_ADDRESS>prosoft-tech.com
+PREVIOUS>
+NEXT> 105
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>I downloaded expat 1.95.1 from SourceForge, not from the suggested James Clark ftp site that you suggest.
+<P>The latest expat from SourceForge is not entirely compatibile with the WfTK Makefile.
+<P>First, there is a trivial re-arrangement of the directory structure. The major headache, however, is that hashtable.o is not in expat 1.95.1.
+<P>It seems a little weird that I should have to revert to an older expat just to get a hashtable. Is there an alternative source for compatible hashtable code, or should I just use the out-of-date expat?? (Alternatively, would you consider converting WfTK to C++ and STL? Just asking.)
+<P>BTW, I am building on Solaris 2.8 and intend to attach WfTK to Java servlet front-end, probably using an MVC framework like Apache/Jakarta Struts to structure the Java application code. I will just use a &quot;script&quot; interface to WfTK. No plans (yet) to generalize this with a J2EE DAO interface.

@@ -1,0 +1,30 @@
+<cartoon width="700" rowformat="1" character-base-url="http://www.vivtek.com/toonbots/characters/" panel-h="150">
+<panel>
+<character action="leaves" name="mouse"/>
+<dialog who="mouse" font-size="12">Are you aware of all Internet traditions?</dialog>
+</panel>
+<panel>
+<character action="leaves" name="al"/>
+<dialog who="al" font-size="12">I am aware of all Internet traditions!</dialog>
+</panel>
+<panel>
+<character action="leaves" name="mao"/>
+<dialog who="mao" font-size="12">I am aware of all Internet traditions.</dialog>
+</panel>
+<panel>
+<character action="leaves" name="yoda"/>
+<dialog who="yoda" font-size="12">Aware of all Internet traditions I am.</dialog>
+</panel>
+<panel>
+<character action="leaves" name="osama"/>
+<dialog who="osama" font-size="12">I am not aware of your decadent traditions.</dialog>
+</panel>
+<panel>
+<character action="leaves" name="mouse"/>
+<dialog who="mouse" font-size="12">Shouldn't you be aware of<br/>all Internet traditions?</dialog>
+</panel>
+<panel>
+<caption location="middle" font-color="255,0,0" font-size="16,">Brought to you by the Society<br/>for Internet Tradition Awareness</caption>
+<caption location="bottom middle" font-color="0,0,255" font-size="12">Because an Internet tradition is a terrible thing to waste.</caption>
+</panel>
+</cartoon>

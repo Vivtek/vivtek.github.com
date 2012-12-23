@@ -1,0 +1,1883 @@
+<litprog>
+<object name="xmlapi.h" language="c" item="h"/>
+<object name="xmlapi.c" language="c" item="main"/>
+
+
+<format name="index">
+<html><head><title>XML manipulation library "xmlapi"</title></head>
+<body>
+<h2>xmlapi: XML manipulation library</h2>
+<center>
+[ <a href="xmlapi.zip">download</a> ] [ <a href="xmlapi.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/xml/discuss.pl">discussion</a> ]
+</center>
+<hr/>
+This is another spinoff of the <a href="http://www.vivtek.com/wftk.html">open-source
+workflow toolkit</a>.  <a href="http://www.vivtek.com/expat.html">expat</a> is great for
+parsing XML files -- but what do you do with them once parsed?  For the wftk and for other
+projects, I needed a flexible set of functions which could load an XML data structure into
+memory and then <i>do things to it</i>.  This library is the result.
+<p/>
+(08/11/00) One of the things I did to it was to write the <a href="xmlcgi.html">XMLCGI</a>
+interface to CGI.  It takes all the salient information about the current CGI environment and
+sticks it into an XMLAPI structure.  Makes it easy to do CGI in C.  At least for me.
+<p/>
+[##itemlist##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<format name="default">
+<html><head><title>xmlapi: [##label##]</title></head>
+<body>
+<h2>[##label##]</h2>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="index.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="index.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<item name="index" label="index" format="index">
+</item>
+
+<item name="h" label="Definitions">
+I define three basic datastructures for dealing with XML: the element, the attribute, and the
+element list.  Each of these has a <code>struct</code> definition (<code>_element</code>,
+<code>_attr</code>, and <code>_list</code> respectively) and a pointer typedef (<code>XML</code>,
+<code>ATTR</code>, and <code>ELEMENTLIST</code>).  My apologies that the names don't match up,
+but it makes sense to me: the <code>struct</code> names reflect a lower-level appreciation
+for what the objects are, while the typedefs relect a higher-level view of what they're to be
+used for.  Yeah.  Anyway, that's my left-brain rationalization for an essentially right-brained
+nomenclature.
+<p/>
+<i>July 18, 2001</i>: I've included a valsize in the attribute structure; this will allow us
+to make use of dynamic allocation to do things like xml_attrcat, which will concatenate a string
+onto the attribute value.  If valsize is zero, then we can't assume anything about the allocated
+piece; if we're asked to concatenate onto it, we'll just realloc on the spot.
+<piece>
+typedef struct _element XML;
+typedef struct _attr ATTR;
+typedef ATTR XML_ATTR;
+typedef struct _list ELEMENTLIST;
+
+struct _element {
+   char * name;
+   ATTR * attrs;
+   XML * parent;
+   ELEMENTLIST * children;
+   void * extra;
+};
+
+struct _attr {
+   char * name;
+   char * value;
+   int valsize; /* For dynamic allocation; we track the buffer. */
+   ATTR * next;
+};
+
+struct _list {
+   XML * element;
+   ELEMENTLIST * next;
+   ELEMENTLIST * prev;
+};
+</piece>
+
+Those datastructures suffice to represent an XML file in memory, semi-efficiently (although
+hash lookup for element and attribute names will be a nice feature at some later date) and
+completely.
+<p/>
+In Windows, the XMLAPI compiles to a DLL (well, optionally).  Since you need to specify which functions
+should be exported from a DLL (that is, visible to linkers), we need to define a special API spec
+<code>XMLAPI</code>.  If told nothing else, we'll assume that the <code>XMLAPI</code> spec should
+simply be ignored:
+<piece>
+#ifndef XMLAPI
+#define XMLAPI
+#endif
+</piece>
+
+But we can define <code>XMLAPI</code> on the compiler's command line to export API functions from 
+the DLL.
+
+<p/>
+Anyway, the XML API itself consists of quite a little list of functions, as follows:
+
+<piece>
+XMLAPI void xml_write (FILE * file, XML * xml);
+XMLAPI void xml_writecontent (FILE * file, XML * xml);
+XMLAPI void xml_writehtml (FILE * file, XML * xml);
+XMLAPI void xml_writecontenthtml (FILE * file, XML * xml);
+XMLAPI int  xml_output (char * file, XML * xml, int mode);
+XMLAPI char * xml_string (XML * xml);
+XMLAPI char * xml_stringcontent (XML * xml);
+XMLAPI char * xml_stringhtml (XML * xml);
+XMLAPI char * xml_stringcontenthtml (XML * xml);
+XMLAPI void xml_prepend (XML * parent, XML * child);
+XMLAPI void xml_append (XML * parent, XML * child);
+XMLAPI void xml_replace (XML * xml, XML * newxml);
+XMLAPI void xml_replacecontent (XML * parent, XML * child);
+XMLAPI XML * xml_loc (XML * start, const char * loc);
+XMLAPI XML * xml_locf (XML * start, const char * loc, ...);
+XMLAPI void xml_getloc (XML * xml, char *loc, int len);
+XMLAPI char * xml_getlocbuf (XML * xml);
+XMLAPI void xml_set (XML * xml, const char * name, const char * value);
+XMLAPI void xml_setf (XML * xml, const char * name, const char * format, ...);
+XMLAPI void xml_setnum (XML * xml, const char *attr, int number);
+XMLAPI void xml_attrcat (XML * xml, const char *name, const char *value);
+XMLAPI void xml_attrncat (XML * xml, const char *name, const char *value, int len);
+XMLAPI void xml_set_nodup (XML * xml, const char * name, char * value);
+XMLAPI const char * xml_attrval (XML * element,const char * name);
+XMLAPI int xml_attrvalnum (XML * element,const char * name);
+XMLAPI XML_ATTR * xml_attrfirst (XML * element);
+XMLAPI XML_ATTR * xml_attrnext  (XML_ATTR * attr);
+XMLAPI const char * xml_attrname (XML_ATTR * attr);
+XMLAPI const char * xml_attrvalue (XML_ATTR * attr);
+XMLAPI XML * xml_create (const char * name);
+XMLAPI XML * xml_createtext (const char * value);
+XMLAPI XML * xml_createtextf (const char * format, ...);
+XMLAPI XML * xml_createtextlen (const char * value, int len);
+XMLAPI XML * xml_createtext_nodup (char * value);
+XMLAPI void xml_textcat (XML * xml, const char * value);
+XMLAPI void xml_textncat (XML * xml, const char * value, int len);
+XMLAPI void xml_free (XML * xml);
+XMLAPI void xml_delete(XML * piece);
+XMLAPI int   xml_is (XML * xml, const char * name);
+XMLAPI int   xml_is_element (XML * xml);
+XMLAPI const char * xml_name (XML * xml);
+XMLAPI XML * xml_parent (XML * xml);
+XMLAPI XML * xml_first (XML * xml);
+XMLAPI XML * xml_firstelem (XML * xml);
+XMLAPI XML * xml_last (XML * xml);
+XMLAPI XML * xml_lastelem (XML * xml);
+XMLAPI XML * xml_next (XML * xml);
+XMLAPI XML * xml_nextelem (XML * xml);
+XMLAPI XML * xml_prev (XML * xml);
+XMLAPI XML * xml_prevelem (XML * xml);
+XMLAPI XML * xml_copy (XML * xml);
+XMLAPI XML * xml_copyinto (XML * target, XML * source);
+XMLAPI XML * xml_read (FILE * file);
+XMLAPI XML * xml_read_error (FILE * file);
+XMLAPI XML * xml_parse (const char * buf);
+XMLAPI XML * xml_parse_general (void * data, size_t (*get_buf) (char * buf, size_t num, size_t chunk, void *data));
+</piece>
+</item>
+
+<item name="main" label="Functions except for xml_read">
+So here's my budding XML manipulation API.  First, the include files, then a list of pieces
+of code (defined on other pages) which get pulled in to build the source file.
+<p/>
+<i>July 18, 2001</i>: Note that I'm getting more agnostic about the memory allocation used
+by XMLAPI; originally, of course, it was exclusively malloc-based, but with the Python wrapper
+I decided it was time to allow the compiler to specify variants.
+<p/>
+Also for the Python wrapper, I'm not including any reference to the external expat library;
+these functions will be reimplemented on the pyexpat module instead, in native Python.  This
+avoids a double linkage, as Python already includes its own version of expat.
+<p/>
+These changes haven't been tested yet, or incorporated into the Python wrapper, so don't get
+too bent out of shape if they don't work.
+
+<piece>
+#include [[stdio.h>
+
+#ifdef PYTHON
+#define XMLAPI_MALLOC_PYTHON
+#undef XMLAPI_MALLOC_NATIVE
+#endif
+
+#ifndef XMLAPI_MALLOC_NATIVE
+#define XMLAPI_MALLOC_NATIVE
+#endif
+
+#ifdef XMLAPI_MALLOC_NATIVE
+#include [[malloc.h>
+#define MALLOC(x) malloc(x)
+#define REALLOC(x,y) realloc((x),(y))
+#define FREE(x) free(x)
+#endif
+
+#ifdef XMLAPI_MALLOC_PYTHON
+#include [[python.h>
+#define MALLOC(x) PyMem_Malloc(x)
+#define REALLOC(x,y) PyMem_Realloc((x),(y))
+#define FREE(x,y) PyMem_Free(x)
+#endif
+
+#include [[string.h>
+#include [[stdlib.h>
+#include [[stdarg.h>
+
+#ifndef PYTHON
+#include "expat.h"
+#endif
+
+#include "xmlapi.h"
+
+<insert name="xml_string"/>
+
+<insert name="xml_create"/>
+<insert name="xml_set"/>
+<insert name="xml_prepend"/>
+<insert name="xml_append"/>
+<insert name="xml_replace"/>
+<insert name="xml_insert"/>
+<insert name="xml_createtext"/>
+<insert name="xml_write"/>
+<insert name="xml_free"/>
+<insert name="xml_delete"/>
+<insert name="xml_first"/>
+<insert name="xml_next"/>
+<insert name="xml_loc"/>
+#ifndef PYTHON
+<insert name="xml_read"/>
+#endif
+<insert name="xml_copy"/>
+<insert name="xml_attr"/>
+<insert name="xml_is"/>
+</piece>
+</item>
+
+<item name="xml_write" label="xml_write: Writing XML data to disk">
+Writing the contents of one of our XML structures out into a file is simple.  We've got two
+different variants on this function; one writes the entire element (<code>xml_write</code>)
+and the other writes just the content of the element (<code>xml_writecontent</code>).
+<piece>
+XMLAPI void xml_write (FILE * file, XML * xml)
+{
+   ATTR * attr;
+   ELEMENTLIST * list;
+</piece>
+
+First, if the element we're working on is plain text, we just write it out.
+<piece>
+   if (xml->name == NULL) {
+      fprintf (file, "%s", xml->attrs->value);
+      return;
+   }
+</piece>
+
+It's a regular element, so we open the element and write the name.
+<piece>
+   fprintf (file, "[[%s", xml->name);
+   attr = xml->attrs;
+   while (attr != NULL) {
+      fprintf (file, " %s=\"%s\"", attr->name, attr->value);
+      attr = attr->next;
+   }
+</piece>
+
+If the element has no children (this includes text), then we close the tag as an empty tag,
+and we're finished.
+<piece>
+   if (xml->children == NULL) {
+      fprintf (file, "/>");
+      return;
+   } else  fprintf (file, ">");
+</piece>
+
+Otherwise we track down the list of children and write each of them, recursively.
+<piece>
+   xml_writecontent (file, xml);
+</piece>
+
+And finally, if there were children, then we need to close the tag with the full close.
+<piece>
+   fprintf (file, "[[/%s>", xml->name);
+}
+</piece>
+
+The weakness of this function currently is that in the absence of plain text there will never
+be a line break.  Not good -- but I don't see a good algorithm for doing it better while
+ruling out the possibility of inserting line breaks where they'll be errors. <i>(May 27, 2001):</i>
+Lately I've just been inserting linefeeds when I want pretty printing.  The problem with <i>that</i>,
+of course, is the Unix/Windows CRLF issue.  I'm still not sure how best to handle it.
+<p/>
+Oh, well.  Let's go ahead and define our xml_writecontent.
+<piece>
+XMLAPI void xml_writecontent (FILE * file, XML * xml)
+{
+   ELEMENTLIST * list;
+
+   list = xml->children;
+   while (list) {
+      xml_write (file, list->element);
+      list = list->next;
+   }
+}
+</piece>
+
+<i>(May 27, 2001)</i>: we need similar functions to write valid (or pretty good, anyway) HTML given an 
+XML-ish input.  I should probably go look up the XHTML standard, but I'm too busy.  If you use this
+library and want to tell me off, do so.
+<piece>
+XMLAPI void xml_writehtml (FILE * file, XML * xml)
+{
+   ATTR * attr;
+   ELEMENTLIST * list;
+
+   if (xml->name == NULL) {
+      fprintf (file, "%s", xml->attrs->value);
+      return;
+   }
+
+   fprintf (file, "[[%s", xml->name);
+   attr = xml->attrs;
+   while (attr != NULL) {
+      fprintf (file, " %s=\"%s\"", attr->name, attr->value);
+      attr = attr->next;
+   }
+</piece>
+
+If the element has no children (this includes text), then in XML we would close the tag as an empty tag, but in
+HTML we don't.  That's difference number one.  Also, a couple of tags should get full closes even if they're empty,
+so we'll handle that here.
+<piece>
+   fprintf (file, ">");
+   if (xml->children == NULL) {
+      if (!strcmp (xml->name, "p") ||
+          !strcmp (xml->name, "a")) {
+         fprintf (file, "[[/%s>", xml->name);
+      }
+      return;
+   }
+
+   xml_writecontenthtml (file, xml);
+</piece>
+
+And finally, if there were children, then only some HTML elements get a close tag, and others don't.  That's the
+other difference, from the point of view of writing.  (From the point of view of parsing, HTML is much, much
+uglier, which is the motivation for XML in the first place, really.)
+<piece>
+   if (!strcmp (xml->name, "li") ||
+       !strcmp (xml->name, "opt")) {
+   } else fprintf (file, "[[/%s>", xml->name);
+}
+</piece>
+
+And of course we need the same thing for content-only:
+<piece>
+XMLAPI void xml_writecontenthtml (FILE * file, XML * xml)
+{
+   ELEMENTLIST * list;
+
+   list = xml->children;
+   while (list) {
+      xml_writehtml (file, list->element);
+      list = list->next;
+   }
+}
+</piece>
+
+<i>(July 22, 2001)</i> Due to Microsoft's lovely distinction between the file handles in the
+LIBC and MSVCRT runtimes (static and dynamic linking respectively), a simple xml_write can
+often fail if you've opened the file with a different runtime library than XMLAPI is using.
+Thus I came up with xml_output for handy debugging; I'm sure there are other uses as well, but
+that's what prompted me actually to write the function.
+<piece>
+XMLAPI int xml_output (char * f, XML * xml, int mode)
+{
+   FILE * file;
+
+   file = fopen (f, "w");
+   if (!file) return 0;
+
+   switch (mode) {
+      case 1: xml_writecontent (file, xml); break;
+      case 2: xml_writehtml (file, xml); break;
+      case 3: xml_writecontenthtml (file, xml); break;
+      default: xml_write (file, xml); break;
+   }
+
+   fclose (file);
+   return 1;
+}
+</piece>
+</item>
+
+
+<item name="xml_string" label="xml_string: Writing XML data to strings in memory">
+<i>(March 30, 2001)</i>: It's taken me a long time to get to this in C (the Perl XMLAPI had this right from day one)
+but boy have I wanted it a lot!  It does the obvious: instead of writing the XML to a stream, it builds a malloc'd string
+buffer instead.  The caller must free the buffer.  Just as with the stream writer, we have a regular version and one which
+just writes the content of the element given (useful for retrieving the content of text-only elements.)
+<p/>
+Just to make things easy, our functions allocate in 256-byte blocks.  Most of the work is done in the helper functions
+<code>_xml_string_tackon</code> and <code>_xml_string_append</code>.  The first takes a buffer and a string to add to it,
+and grows the buffer if necessary before appending the data.  The second does the work of moving through the XML tree
+to build the return buffer.<p/>
+<i>(May 27, 2001)</i>: I'm extending this with an additional <code>_xml_string_format</code> call to be used in the <code>*f</code>
+functions.  And I've also included HTML versions of the string and stringcontent functions.  See the <code>xml_writehtml</code>
+implementation for a short discussion of what's different between HTML and XML writing.
+<piece>
+char * _xml_string_tackon (char * buffer, int * cursize, int * curptr, const char * data)
+{
+   int len;
+
+   if (!data) return (buffer);
+   if (!*data) return (buffer);
+
+   len = strlen (data);
+   if (len + *curptr + 1 > *cursize) {
+      *cursize += 256;
+      buffer = (char *) REALLOC ((void *) buffer, *cursize);
+   }
+   *curptr += len;
+   strcat (buffer, data);
+   return (buffer);
+}
+char * _xml_string_tackonn (char * buffer, int * cursize, int * curptr, const char * data, int len)
+{
+   if (!len) return (buffer);
+   if (len + *curptr + 1 > *cursize) {
+      *cursize += 256;
+      buffer = (char *) REALLOC ((void *) buffer, *cursize);
+   }
+   strncpy (buffer + *curptr, data, len);
+   *curptr += len;
+   buffer[*curptr] = '\0';
+   return (buffer);
+}
+
+char * _xml_string_format (const char * format, va_list args)
+{
+   char * buffer = (char *) MALLOC (256);
+   int cursize = 256;
+   int curptr = 0;
+   char * colon;
+   char * strarg;
+   int intarg;
+   char numbuf[sizeof (int) * 3 + 1];
+
+   while (colon = strchr (format, '%')) {
+      buffer = _xml_string_tackonn (buffer, &cursize, &curptr, format, colon - format);
+      format = colon;
+      format ++;
+      switch (*format) {
+         case 's':
+            strarg = va_arg (args, char *);
+            buffer = _xml_string_tackon (buffer, &cursize, &curptr, strarg);
+            break;
+         case 'd':
+            intarg = va_arg (args, int);
+            sprintf (numbuf, "%d", intarg);
+            buffer = _xml_string_tackon (buffer, &cursize, &curptr, numbuf);
+            break;
+         default:
+            buffer = _xml_string_tackonn (buffer, &cursize, &curptr, format, 1);
+            break;
+      }
+      format ++;
+   }
+
+   buffer = _xml_string_tackon (buffer, &cursize, &curptr, format);
+   return (buffer);
+}
+
+char * _xml_string_append (char * buffer, int * cursize, int * curptr, XML * xml)
+{
+   ATTR * attr;
+   ELEMENTLIST * list;
+
+   if (xml->name == NULL) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, xml->attrs->value);
+      return (buffer);
+   }
+
+   buffer = _xml_string_tackon (buffer, cursize, curptr, "[[");
+   buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name);
+   attr = xml->attrs;
+   while (attr != NULL) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, " ");
+      buffer = _xml_string_tackon (buffer, cursize, curptr, attr->name);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "=\"");
+      buffer = _xml_string_tackon (buffer, cursize, curptr, attr->value);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "\"");
+      attr = attr->next;
+   }
+
+   if (xml->children == NULL) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "/>");
+      return (buffer);
+   } else buffer = _xml_string_tackon (buffer, cursize, curptr, ">");
+
+   list = xml->children;
+   while (list) {
+      buffer = _xml_string_append (buffer, cursize, curptr, list->element);
+      list = list->next;
+   }
+
+   buffer = _xml_string_tackon (buffer, cursize, curptr, "[[/");
+   buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name);
+   buffer = _xml_string_tackon (buffer, cursize, curptr, ">");
+
+   return (buffer);
+}
+
+XMLAPI char * xml_string (XML * xml)
+{
+   char * ret;
+   int cursize;
+   int curptr;
+
+   ret = (char *) MALLOC (256);
+   *ret = '\0';
+   cursize = 256;
+   curptr = 0;
+
+   return (_xml_string_append (ret, &cursize, &curptr, xml));
+}
+
+
+XMLAPI char * xml_stringcontent (XML * xml)
+{
+   char * ret;
+   int cursize;
+   int curptr;
+   ELEMENTLIST * list;
+
+   ret = (char *) MALLOC (256);
+   *ret = '\0';
+   cursize = 256;
+   curptr = 0;
+
+   list = xml->children;
+   while (list) {
+      ret = _xml_string_append (ret, &cursize, &curptr, list->element);
+      list = list->next;
+   }
+
+   return (ret);
+}
+
+char * _xml_string_appendhtml (char * buffer, int * cursize, int * curptr, XML * xml)
+{
+   ATTR * attr;
+   ELEMENTLIST * list;
+
+   if (xml->name == NULL) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, xml->attrs->value);
+      return (buffer);
+   }
+
+   buffer = _xml_string_tackon (buffer, cursize, curptr, "[[");
+   buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name);
+   attr = xml->attrs;
+   while (attr != NULL) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, " ");
+      buffer = _xml_string_tackon (buffer, cursize, curptr, attr->name);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "=\"");
+      buffer = _xml_string_tackon (buffer, cursize, curptr, attr->value);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "\"");
+      attr = attr->next;
+   }
+
+   buffer = _xml_string_tackon (buffer, cursize, curptr, ">");
+   if (xml->children == NULL) {
+      if (!strcmp (xml->name, "p") ||
+          !strcmp (xml->name, "a")) {
+         buffer = _xml_string_tackon (buffer, cursize, curptr, "[[/");
+         buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name);
+         buffer = _xml_string_tackon (buffer, cursize, curptr, ">");
+      }
+      return (buffer);
+   }
+
+   list = xml->children;
+   while (list) {
+      buffer = _xml_string_appendhtml (buffer, cursize, curptr, list->element);
+      list = list->next;
+   }
+
+   if (!strcmp (xml->name, "li") ||
+       !strcmp (xml->name, "opt")) {
+      /* Do nothing. */
+   } else {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "[[/");
+      buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, ">");
+   }
+
+   return (buffer);
+}
+
+XMLAPI char * xml_stringhtml (XML * xml)
+{
+   char * ret;
+   int cursize;
+   int curptr;
+
+   ret = (char *) MALLOC (256);
+   *ret = '\0';
+   cursize = 256;
+   curptr = 0;
+
+   return (_xml_string_appendhtml (ret, &cursize, &curptr, xml));
+}
+
+
+XMLAPI char * xml_stringcontenthtml (XML * xml)
+{
+   char * ret;
+   int cursize;
+   int curptr;
+   ELEMENTLIST * list;
+
+   ret = (char *) MALLOC (256);
+   *ret = '\0';
+   cursize = 256;
+   curptr = 0;
+
+   list = xml->children;
+   while (list) {
+      ret = _xml_string_appendhtml (ret, &cursize, &curptr, list->element);
+      list = list->next;
+   }
+
+   return (ret);
+}
+</piece>
+</item>
+
+
+
+<item name="xml_prepend" label="xml_prepend: Inserting elements">
+Prepending to a linked list is, of course, very easy.
+<piece>
+XMLAPI void xml_prepend (XML * parent, XML * child)
+{
+   ELEMENTLIST * list;
+
+   child->parent = parent;
+
+   list = (ELEMENTLIST *) MALLOC (sizeof(struct _list));
+   list->element = child;
+   list->prev = NULL;
+   list->next = parent->children;
+   parent->children = list;
+}
+</piece>
+</item>
+
+<item name="xml_append" label="xml_append: Inserting elements">
+It's <i>ap</i>pending where we run into problems.
+<piece>
+XMLAPI void xml_append (XML * parent, XML * child)
+{
+   ELEMENTLIST * list;
+   ELEMENTLIST * ch;
+
+   child->parent = parent;
+
+   list = (ELEMENTLIST *) MALLOC (sizeof(struct _list));
+   list->element = child;
+   list->prev = NULL;
+   list->next = NULL;
+
+   if (parent->children == NULL) {
+      parent->children = list;
+      return;
+   }
+
+   ch = parent->children;
+   while (ch->next != NULL) ch = ch->next;
+   list->prev = ch;
+   ch->next = list;
+}
+</piece>
+</item>
+
+
+<item name="xml_replace" label="xml_replace and xml_replacecontent: Replacing an element with another.">
+This is pretty straightforward; the linked list of the parent is traversed until the current XML is found, and it's
+swapped in.  The parent pointer of the new child is modified, and the old child is deleted.
+<piece>
+XMLAPI void xml_replace (XML * xml, XML * newxml)
+{
+   ELEMENTLIST * list;
+
+   if (xml == NULL) return;
+   if (xml->parent == NULL) return;
+   if (newxml == NULL) xml_delete (xml);
+
+   list = xml->parent->children;
+   while (list != NULL #^7#^7 list->element != xml) list = list->next;
+   if (list == NULL) return;
+
+   newxml->parent = xml->parent;
+   list->element = newxml;
+
+   xml_free (xml);
+}
+</piece>
+
+To replace all contents, we just delete all the contents, then append the new piece.
+<piece>
+XMLAPI void xml_replacecontent (XML * parent, XML * child)
+{
+   XML * first;
+
+   if (parent == NULL) return;
+   while (first = xml_first (parent)) {
+      xml_delete (first);
+   }
+   if (child != NULL) xml_prepend (parent, child);
+}
+</piece>
+</item>
+
+
+<item name="xml_loc" label="Bookmarking things: xml_loc and xml_getloc">
+The XML bookmarking feature of the XMLAPI may well be unique among XML libraries.  I haven't done any real searching, but I've never
+heard of anything like it.  What it allows us to do is take an XML snippet and derive a locator for it, then use that locator at a later
+date to find the snippet again.  The advantage over explicit naming is that we needn't think of naming things in advance; the disadvantage
+is that the locator is naturally position-dependent, so that if the XML document changes we may end up finding a different snippet than
+the one we started with.  Then again, maybe that's not such a horrible problem; if our application says we need the first data item, then
+a locator ".data(0)" is exactly what we need.
+<p/>
+There are two forms to the location function, <code>xml_loc</code> and <code>xml_locf</code>.  The first takes a literal locator, while
+the second is a <code>printf</code>-style formatted function.  The only formatting directives it recognizes, however, are %s for strings
+and %d for integers.  Anything else will be ignored.
+<p/>
+There are also two forms for the locator finding function: <code>xml_getloc</code> and <code>xml_getlocbuf</code>.  The first takes an
+explicit buffer for the locator to be retrieved, while the second builds the buffer using <code>malloc</code> and returns it.  The result
+must be freed when the caller is done with it.
+<piece>
+XMLAPI XML * xml_loc (XML * start, const char * loc)
+{
+   char * mark;
+   const char * attrval;
+   char piece[64];
+   int i;
+   int count;
+
+   if (!loc) return (start);
+   if (!*loc) return (start);
+
+   if (*loc == '.') return (xml_loc (xml_first (start), loc + 1));
+
+   while (start #^7#^7 start->name == NULL) start = xml_next (start);
+   if (!start) return (NULL);
+
+   while (*loc == ' ') loc++;
+   i = 0;
+   while (*loc #^7#^7 *loc != '.') piece[i++] = *loc++;
+   piece[i] = '\0';
+   if (*loc) loc++;
+   while (*loc == ' ') loc++;
+
+   mark = strchr (piece, ']');
+   if (mark) *mark = '\0';
+   mark = strchr (piece, '(');
+   if (mark) {
+      *mark++ = '\0';
+      count = atoi (mark);
+      mark = NULL;
+   } else {
+      count = 0;
+      mark = strchr (piece, '[');
+      if (mark) {
+         *mark++ = '\0';
+      }
+   }
+
+   while (start) {
+      if (start->name == NULL) {
+         start = xml_next (start);
+         continue;
+      }
+      if (strcmp (start->name, piece)) {
+         start = xml_next (start);
+         continue;
+      }
+      if (count) {
+         count --;
+         start = xml_next (start);
+         continue;
+      }
+      if (!mark) {
+         if (*loc) return (xml_loc (xml_first (start), loc));
+         return (start);
+      }
+      attrval = xml_attrval(start, "id");
+      if (attrval) {
+         if (strcmp (attrval, mark)) {
+            start = xml_next (start);
+            continue;
+         }
+         if (*loc) return (xml_loc (xml_first(start), loc));
+         return (start);
+      }
+      attrval = xml_attrval(start, "name");
+      if (attrval) {
+         if (strcmp (attrval, mark)) {
+            start = xml_next (start);
+            continue;
+         }
+         if (*loc) return (xml_loc (xml_first(start), loc));
+         return (start);
+      }
+   }
+   return (NULL);
+}
+
+XMLAPI XML * xml_locf (XML *start, const char * loc, ...)
+{
+   va_list args;
+   char * locator;
+   XML * found;
+
+   va_start (args, loc);
+   locator = _xml_string_format (loc, args);
+   va_end (args);
+
+   found = xml_loc (start, locator);
+   FREE (locator);
+   return (found);
+}
+</piece>
+
+Building our locator is recursive.  We build our parent's locator, append a
+dot, and qualify it.  We've got two flavors of this function; one takes a buffer and size,
+and the other builds the buffer as it goes using <code>_xml_string_tackon</code>
+<piece>
+XMLAPI void xml_getloc (XML * xml, char *loc, int len)
+{
+   int s;
+   int count;
+   XML * sib;
+   if (xml->parent != NULL) {
+      xml_getloc (xml->parent, loc, len);
+   } else {
+      *loc = '\0';
+   }
+   s = strlen (loc);
+   if (s > 0 #^7#^7 s #^lt# len-1) { strcat (loc, "."); s++; }
+   len -= s;
+   loc += s;
+   if (strlen(xml->name) #^lt# len) {
+      strcpy (loc, xml->name);
+   } else {
+      strncpy (loc, xml->name, len-1);
+      loc[len-1] = '\0';
+   }
+   if (xml->parent == NULL) return;
+   sib = xml_first(xml->parent);
+   count = 0;
+   while (sib != xml #^7#^7 sib != NULL) {
+      if (sib->name != NULL) {
+         if (!strcmp (sib->name, xml->name)) count ++;
+      }
+      sib = xml_next(sib);
+   }
+   if (count > 0 #^7#^7 s > 4) {
+      strcat (loc, "(");
+      sprintf (loc + strlen(loc), "%d", count);
+      strcat (loc, ")");
+   }
+}
+</piece>
+
+The build-as-you-go version needs a helper function to hide its recursion baggage.
+
+<piece>
+char * _xml_getlocbuf_buf (XML * xml, char *buffer, int *cursize, int *curptr)
+{
+   int s;
+   int count;
+   XML * sib;
+   char countbuf[sizeof(int) * 3 + 1];
+
+   if (xml->parent != NULL) {
+      _xml_getlocbuf_buf (xml->parent, buffer, cursize, curptr);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, ".");
+   }
+
+   buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name);
+
+   if (xml->parent == NULL) return (buffer);
+
+   sib = xml_first(xml->parent);
+   count = 0;
+   while (sib != xml #^7#^7 sib != NULL) {
+      if (sib->name != NULL) {
+         if (!strcmp (sib->name, xml->name)) count ++;
+      }
+      sib = xml_next(sib);
+   }
+   if (count > 0) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "(");
+      sprintf (countbuf, "%d", count);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, countbuf);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, ")");
+   }
+
+   return (buffer);
+}
+
+XMLAPI char * xml_getlocbuf (XML * xml)
+{
+   char * buf = (char *) MALLOC (256);
+   int  cursize = 256;
+   int  curptr = 0;
+
+   *buf = '\0';
+   return (_xml_getlocbuf_buf (xml, buf, &cursize, &curptr));
+}
+</piece>
+</item>
+
+<item name="xml_set" label="Working with attributes: xml_set and xml_attrval">
+Setting an attribute is a little complicated.  If the attribute is already represented in the
+element's attribute list, then we free the old value, allocate space for a copy of the new
+value, and copy it.  Otherwise we allocate a new attribute holder and copy both name and
+value into it.
+<p/>
+This function comes in three varieties for your viewing pleasure: <code>xml_set</code> just uses <code>strdup</code>
+to make a copy of the value you give it, <code>xml_setf</code> treats its second parameter as a <code>printf</code>-style
+format and builds the value, and <code>xml_setnum</code> takes an integer and formats it into a string.  As you can imagine,
+I did <code>xml_setnum</code> before I even thought of <code>xml_setf</code>.
+<p/>
+Oh -- another variant.  The <code>xml_set_nodup</code> function can be used to take over management of a malloc'd string buffer.
+It works exactly the same as <code>xml_set</code> except that the string is not duplicated.  Useful for when you save locations
+obtained from <code>xml_getlocbuf</code>, for instance.
+<p/>
+<i>July 18, 2001</i>: Yet another variant: xml_attrcat tacks strings onto the
+end of already-set attribute values.  It uses valsize to grow the allocated buffer accordingly.
+This is support for a better version of wftk_value_interpret, by the way.
+<piece>
+XMLAPI void xml_set (XML * xml, const char * name, const char * value)
+{
+   ATTR * attr;
+
+   attr = xml->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) break;
+      attr = attr->next;
+   }
+
+   if (attr) {
+      FREE ((void *) (attr->value));
+      attr->value = strdup (value);
+      attr->valsize = strlen (value) + 1;
+      return;
+   }
+
+   if (xml->attrs == NULL) {
+      attr = (ATTR *) MALLOC (sizeof (struct _attr));
+      xml->attrs = attr;
+   } else {
+      attr = xml->attrs;
+      while (attr->next) attr = attr->next;
+      attr->next = (ATTR *) MALLOC (sizeof (struct _attr));
+      attr = attr->next;
+   }
+
+   attr->next = NULL;
+   attr->name = strdup (name);
+   attr->value = strdup (value);
+   attr->valsize = strlen (value + 1);
+}
+XMLAPI void xml_setf (XML * xml, const char *name, const char *format, ...)
+{
+   ATTR * attr;
+   va_list args;
+   char * value;
+
+   va_start (args, format);
+   value = _xml_string_format (format, args);
+   va_end (args);
+
+   attr = xml->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) break;
+      attr = attr->next;
+   }
+
+   if (attr) {
+      FREE ((void *) (attr->value));
+      attr->value = value;
+      attr->valsize = 0;
+      return;
+   }
+
+   if (xml->attrs == NULL) {
+      attr = (ATTR *) MALLOC (sizeof (struct _attr));
+      xml->attrs = attr;
+   } else {
+      attr = xml->attrs;
+      while (attr->next) attr = attr->next;
+      attr->next = (ATTR *) MALLOC (sizeof (struct _attr));
+      attr = attr->next;
+   }
+
+   attr->next = NULL;
+   attr->name = strdup (name);
+   attr->value = value;
+   attr->valsize = 0;
+}
+XMLAPI void xml_setnum (XML * xml, const char *attr, int number)
+{
+   char buf[sizeof(number) * 3 + 1];
+   sprintf (buf, "%d", number);
+   xml_set (xml, attr, buf);
+}
+XMLAPI void xml_set_nodup (XML * xml, const char * name, char * value)
+{
+   ATTR * attr;
+
+   attr = xml->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) break;
+      attr = attr->next;
+   }
+
+   if (attr) {
+      FREE ((void *) (attr->value));
+      attr->value = value;
+      attr->valsize = 0;
+      return;
+   }
+
+   if (xml->attrs == NULL) {
+      attr = (ATTR *) MALLOC (sizeof (struct _attr));
+      xml->attrs = attr;
+   } else {
+      attr = xml->attrs;
+      while (attr->next) attr = attr->next;
+      attr->next = (ATTR *) MALLOC (sizeof (struct _attr));
+      attr = attr->next;
+   }
+
+   attr->next = NULL;
+   attr->name = strdup (name);
+   attr->value = value;
+   attr->valsize = 0;
+}
+XMLAPI void xml_attrcat (XML * xml, const char * name, const char * value)
+{
+   ATTR * attr;
+   int len;
+
+   attr = xml->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) break;
+      attr = attr->next;
+   }
+
+   if (!attr) xml_set (xml, name, value);
+   else {
+      len = strlen (attr->value) + strlen (value) + 1;
+      if (len > attr->valsize) {
+         while (attr->valsize < len) attr->valsize += 256;
+         attr->value = (char *) REALLOC (attr->value, attr->valsize);
+      }
+      strcat (attr->value, value);
+   }
+}
+XMLAPI void xml_attrncat (XML * xml, const char * name, const char * value, int length)
+{
+   ATTR * attr;
+   int len;
+
+   attr = xml->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) break;
+      attr = attr->next;
+   }
+
+   if (!attr) {
+      xml_set (xml, name, "");
+      attr = xml->attrs;
+      while (attr) {
+         if (!strcmp (attr->name, name)) break;
+         attr = attr->next;
+      }
+   }
+   if (!attr) return; /* This is probably a dumb way to handle low-mem situations, but... */
+
+   len = strlen (attr->value) + length + 1;
+   if (len > attr->valsize) {
+      while (attr->valsize < len) attr->valsize += 256;
+      attr->value = (char *) REALLOC (attr->value, attr->valsize);
+   }
+   strncat (attr->value, value, length);
+}
+</piece>
+
+Retrieving a value, on the other hand, is rather simple.  So simple, in fact, that we only have
+two different ways to do it (instead of six or more).
+<piece>
+XMLAPI const char * xml_attrval (XML * element,const char * name)
+{
+   ATTR * attr;
+
+   attr = element->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) return (attr->value);
+      attr = attr->next;
+   }
+   return ("");
+}
+XMLAPI int xml_attrvalnum (XML * element, const char * name)
+{
+   return (atoi (xml_attrval (element, name)));
+}
+</piece>
+</item>
+
+<item name="xml_create" label="xml_create: Creating an empty element">
+Creation of an element is nothing more than allocating the space, then allocating space for
+a copy of the name and copying it.
+<p/>
+For extra credit, determine how omitting the initialization of <code>ret->parent</code>
+would screw up <code>xml_read</code> later on.  But only sometimes.  That stupid omission
+cost me a rather horrible evening in July of 2000.
+<piece>
+XMLAPI XML * xml_create (const char * name)
+{
+   XML * ret;
+
+   ret = (XML *) MALLOC (sizeof (struct _element));
+   ret->name = strdup (name);
+   ret->attrs = NULL;
+   ret->children = NULL;
+   ret->parent = NULL;
+
+   return (ret);
+}
+</piece>
+</item>
+
+<item name="xml_createtext" label="xml_createtext: a shortcut for plain text">
+I represent character data (plain old text) as an element with no name.  The first (nameless)
+attribute contains the text.  Instead of using xml_create to do this, then using xml_set
+to set the attribute, I'm defining a special create function for plain text chunks.
+<p/>
+And for easy compatibility with expat, there's a version which takes a pointer and length
+instead of assuming null termination.
+<p/>
+To make things really convenient, I've included (May 27, 2001) a new function to format values:
+<code>xml_createtextf</code>.  Pretty soon this library is going to be really, really convenient!
+<p/>
+<i>July 18, 2001</i>: More and more convenient.  I figured this would be another good place
+to support concatenation, even though wftk_value_interpret doesn't really use it.  Although
+I suppose it could.  Also, it turned out that I should have included xml_createtext_nodup back
+in May after all -- I need it today anyway (that's the way API design always is.  If you leave
+something out, you'll be back.)  The _nodup variant, like xml_set_nodup, does exactly the
+same as its nondecorated cousin, except it pulls in the value and makes it its own (this avoids
+making the caller free up a value that was created just for calling us anyway.)
+<piece>
+XMLAPI XML * xml_createtext (const char * value)
+{
+   XML * ret;
+
+   ret = (XML *) MALLOC (sizeof (struct _element));
+   ret->name = NULL;
+   ret->children = NULL;
+   ret->parent = NULL;
+   ret->attrs = (ATTR *) MALLOC (sizeof (struct _attr));
+   ret->attrs->name = NULL;
+   ret->attrs->next = NULL;
+   ret->attrs->value = strdup (value);
+   ret->attrs->valsize = strlen (value) + 1;
+
+   return (ret);
+}
+XMLAPI XML * xml_createtext_nodup (char * value)
+{
+   XML * ret;
+
+   ret = (XML *) MALLOC (sizeof (struct _element));
+   ret->name = NULL;
+   ret->children = NULL;
+   ret->parent = NULL;
+   ret->attrs = (ATTR *) MALLOC (sizeof (struct _attr));
+   ret->attrs->name = NULL;
+   ret->attrs->next = NULL;
+   ret->attrs->value = value;
+   ret->attrs->valsize = strlen (value) + 1;
+
+   return (ret);
+}
+XMLAPI XML * xml_createtextlen (const char * value, int len)
+{
+   XML * ret;
+
+   ret = (XML *) MALLOC (sizeof (struct _element));
+   ret->name = NULL;
+   ret->children = NULL;
+   ret->attrs = (ATTR *) MALLOC (sizeof (struct _attr));
+   ret->attrs->name = NULL;
+   ret->attrs->next = NULL;
+   ret->attrs->value = (char *) MALLOC (len + 1);
+   ret->attrs->valsize = len + 1;
+   strncpy (ret->attrs->value, value, len);
+   ret->attrs->value[len] = '\0';
+
+   return (ret);
+}
+XMLAPI XML * xml_createtextf (const char * format, ...)
+{
+   XML * ret;
+   char * value;
+   va_list args;
+
+   va_start (args, format);
+   value = _xml_string_format (format, args);
+   va_end (args);
+
+   ret = (XML *) MALLOC (sizeof (struct _element));
+   ret->name = NULL;
+   ret->children = NULL;
+   ret->parent = NULL;
+   ret->attrs = (ATTR *) MALLOC (sizeof (struct _attr));
+   ret->attrs->name = NULL;
+   ret->attrs->next = NULL;
+   ret->attrs->value = value;
+   ret->attrs->valsize = strlen (value) + 1;
+
+   return (ret);
+}
+XMLAPI void xml_textcat (XML * xml, const char * value)
+{
+   ATTR * attr;
+   int len;
+
+   if (xml_is_element (xml)) return; /* We refuse to work with non-elements. */
+
+   attr = xml->attrs;
+   if (!attr) return; /* This shouldn't happen, but... */
+
+   len = strlen (attr->value) + strlen (value) + 1;
+   if (len > attr->valsize) {
+      while (attr->valsize < len) attr->valsize += 256;
+      attr->value = (char *) REALLOC (attr->value, attr->valsize);
+   }
+   strcat (attr->value, value);
+}
+XMLAPI void xml_textncat (XML * xml, const char * value, int length)
+{
+   ATTR * attr;
+   int len;
+
+   if (xml_is_element (xml)) return; /* We refuse to work with non-elements. */
+
+   attr = xml->attrs;
+   if (!attr) return; /* This shouldn't happen, but... */
+
+   len = strlen (attr->value) + length + 1;
+   if (len > attr->valsize) {
+      while (attr->valsize < len) attr->valsize += 256;
+      attr->value = (char *) REALLOC (attr->value, attr->valsize);
+   }
+   strncat (attr->value, value, length);
+}
+</piece>
+</item>
+
+<item name="xml_free" label="xml_free: Cleaning up afterwards">
+To free an XML element, we free its name, each of its attributes (and their names and
+values), each child (recursively) and the list element which held the child, and finally
+we can free the XML element itself.
+<piece>
+XMLAPI void xml_free (XML * xml)
+{
+   ATTR * attr;
+   ELEMENTLIST * list;
+
+   if (xml == NULL) return;
+
+   if (xml->name != NULL) FREE ((void *) (xml->name));
+   while (xml->attrs) {
+      attr = xml->attrs;
+      xml->attrs = xml->attrs->next;
+      if (attr->name != NULL) FREE ((void *) (attr->name));
+      if (attr->value != NULL) FREE ((void *) (attr->value));
+      xml->attrs = attr->next;
+      FREE ((void *) attr);
+   }
+
+   while (xml->children) {
+      list = xml->children;
+      xml->children = list->next;
+      if (list->element != NULL) xml_free (list->element);
+      FREE ((void *) list);
+   }
+   FREE ((void *) xml);
+}
+</piece>
+</item>
+
+<item name="xml_delete" label="Deleting pieces: xml_delete">
+Deleting a piece out of an XML structure is more than just freeing it; we have to
+close ranks before and after as well.
+<piece>
+XMLAPI void xml_delete(XML * piece)
+{
+   ELEMENTLIST * list;
+   if (!piece) return;
+   if (piece->parent != NULL) {
+      list = piece->parent->children;
+      while (list != NULL && list->element != piece) list = list->next;
+      if (list != NULL) {
+         if (list->next != NULL) list->next->prev = list->prev;
+         if (list->prev != NULL) list->prev->next = list->next;
+      }
+      if (list == piece->parent->children) piece->parent->children = list->next;
+      if (list != NULL) FREE ((void *) list);
+   }
+   xml_free (piece);
+}
+</piece>
+</item>
+
+<item name="xml_first" label="Children: xml_first and xml_last">
+Finding the first child is, of course, <i>very</i> easy.  The last is less so.
+<p/>
+I've also tossed in a function <code>xml_firstelem</code> which is just lie <code>xml_first</code>
+except that it doesn't see plain text elements.
+<piece>
+XMLAPI XML * xml_first(XML * xml)
+{
+   if (xml == NULL) return NULL;
+   if (xml->children == NULL) return NULL;
+   return (xml->children->element);
+}
+XMLAPI XML * xml_firstelem(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return NULL;
+   list = xml->children;
+   while (list != NULL) {
+      if (list->element->name != NULL) break;
+      list = list->next;
+   }
+   if (list != NULL) return (list->element);
+   return NULL;
+}
+
+XMLAPI XML * xml_last(XML *xml)
+{
+   ELEMENTLIST *list;
+   list = xml->children;
+   if (list == NULL) return NULL;
+   while (list->next != NULL) list = list->next;
+   return (list->element);
+}
+XMLAPI XML * xml_lastelem(XML *xml)
+{
+   ELEMENTLIST *list;
+   list = xml->children;
+   if (list == NULL) return NULL;
+   while (list->next != NULL) list = list->next;
+   while (list != NULL) {
+      if (list->element->name != NULL) break;
+      list = list->prev;
+   }
+   if (list != NULL) return (list->element);
+   return NULL;
+}
+</piece>
+</item>
+
+<item name="xml_next" label="Siblings: xml_next and xml_prev">
+For next and previous, we have to find the current element in its parent's children list,
+and then we're good to go.  Each function comes in two flavors: one sees plain text and the
+other (e.g. xml_nextelem) doesn't.
+
+<piece>
+XMLAPI XML * xml_next(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return (NULL);
+   if (xml->parent == NULL) return (NULL);
+   list = xml->parent->children;
+   while (list != NULL && list->element != xml) list = list->next;
+   if (list == NULL) return (NULL);
+   if (list->next == NULL) return (NULL);
+   return (list->next->element);
+}
+XMLAPI XML * xml_nextelem(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return (NULL);
+   if (xml->parent == NULL) return (NULL);
+   list = xml->parent->children;
+   while (list != NULL && list->element != xml) list = list->next;
+   if (list == NULL) return (NULL);
+   while (list->next != NULL) {
+      if (list->next->element->name != NULL) break;
+      list = list->next;
+   }
+   if (list->next == NULL) return (NULL);
+   return (list->next->element);
+}
+XMLAPI XML * xml_prev(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return (NULL);
+   if (xml->parent == NULL) return (NULL);
+   list = xml->parent->children;
+   while (list != NULL && list->element != xml) list = list->next;
+   if (list == NULL) return (NULL);
+   if (list->prev == NULL) return (NULL);
+   return (list->prev->element);
+}
+XMLAPI XML * xml_prevelem(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return (NULL);
+   if (xml->parent == NULL) return (NULL);
+   list = xml->parent->children;
+   while (list != NULL #^7#^7 list->element != xml) list = list->next;
+   if (list == NULL) return (NULL);
+   while (list->prev != NULL) {
+      if (list->prev->element->name != NULL) break;
+      list = list->prev;
+   }
+   if (list->prev == NULL) return (NULL);
+   return (list->prev->element);
+}
+</piece>
+</item>
+
+<item name="xml_insert" label="inserting things: xml_insertbefore and xml_insertafter">
+I don't need this just at the moment, so I'll skip it for now.
+</item>
+
+
+<item name="xml_copy" label="xml_copy: making fresh copies of XML">
+Since an XML element knows its parent, you run into problems when you want an element to
+be moved from one tree into another: if you free the first, the second is broken.  To avoid
+this kind of unpleasantness, use <code>xml_copy</code>.
+
+<piece>
+XMLAPI XML * xml_copy (XML * orig)
+{
+   XML * copy = NULL;
+   char * text;
+   XML * child;
+   ATTR * attr;
+
+   if (!orig) return copy;
+
+   if (!orig->name) {
+      text = xml_string (orig);
+      copy = xml_createtext (text);
+      FREE (text);
+      return copy;
+   }
+
+   copy = xml_create (orig->name);
+   attr = orig->attrs;
+   while (attr) {
+      xml_set (copy, attr->name, attr->value);
+      attr = attr->next;
+   }
+
+   child = xml_first (orig);
+   while (child) {
+      xml_append (copy, xml_copy (child));
+      child = xml_next (child);
+   }
+
+   return (copy);
+}
+</piece>
+
+Similarly, there arise plenty of situations (at least in wftk) where you want to copy over attributes
+and content from one XML into another, but want to leave existing attributes alone.
+
+<piece>
+XMLAPI XML * xml_copyinto (XML * target, XML * source)
+{
+   char * text;
+   XML * child;
+   ATTR * attr;
+
+   if (!source) return target;
+   if (!source->name) {
+      text = xml_string (source);
+      if (target) {
+         xml_append (target, xml_createtext (text));
+         FREE (text);
+         return (target);
+      }
+      target = xml_createtext (text);
+      return (target);
+   }
+
+   if (!target) target = xml_create (source->name);
+
+   attr = source->attrs;
+   while (attr) {
+      xml_set (target, attr->name, attr->value);
+      attr = attr->next;
+   }
+
+   child = xml_first (source);
+   while (child) {
+      xml_append (target, xml_copy (child));
+      child = xml_next (child);
+   }
+
+   return (target);
+}
+</piece>
+
+</item>
+
+
+
+
+
+<item name="xml_attr" label="xml_attr*: Working with attributes">
+<i>(May 27, 2001)</i>: it's turning out that the only place the wftk really knows anything about the internals of the XMLAPI is when
+it has to iterate through attributes.  This is a bad situation, because it prevents me from creating alternate XMLAPI libraries to
+work with different environments (this all occurred to me as I was musing about the best way to make an XMLAPI that takes advantage of
+the Perl heap manager when working in a Perl environment).  So the attribute functions will be <code>xml_attrfirst</code>,
+<code>xml_attrnext</code>, <code>xml_attrname</code> and <code>xml_attrvalue</code>.  The unfortunate similarity to <code>xml_attrval</code>
+is, well, unfortunate, but I've written too much code that works with <code>xml_attrval</code> to go back and change it now.  Them's the
+breaks when you design an API on the fly, I guess.
+<p/>
+Let's do the iteration functions first; they're interesting.  The other two are boring.
+<piece>
+XMLAPI XML_ATTR * xml_attrfirst (XML * element)
+{
+   if (!element) return NULL;
+   return element->attrs;
+}
+XMLAPI XML_ATTR * xml_attrnext (XML_ATTR * attr)
+{
+   if (!attr) return NULL;
+   return attr->next;
+}
+</piece>
+
+OK, let's mop up the boring pieces, then.
+<piece>
+const char *xml_attrname  (XML_ATTR * attr) { return (attr->name);  }
+const char *xml_attrvalue (XML_ATTR * attr) { return (attr->value); }
+</piece>
+
+So, OK, it's pretty stupid that I never got around to writing code of <i>that</i> much complexity...  Sheesh.
+</item>
+
+
+
+<item name="xml_is" label="xml_is: Checking an object's name">
+<i>(July 8, 2001)</i>: OK, there was <i>one</i> more reason that XML * can't just be a void *.
+Eventually, XML structure will be completely opaque to the caller.
+<piece>
+XMLAPI int xml_is (XML * xml, const char * name)
+{
+   if (!xml) return 0;
+   if (!xml->name) return 0;
+   if (!strcmp (xml->name, name)) return 1;
+   return 0;
+}
+XMLAPI int xml_is_element (XML * xml)
+{
+   if (!xml) return 0;
+   if (!xml->name) return 0;
+   return 1;
+}
+</piece>
+
+<i>July 18, 2001</i>: Sheesh.  This was a dumb omission.
+<piece>
+XMLAPI const char * xml_name (XML * xml)
+{
+   if (!xml) return 0;
+   return xml->name;
+}
+</piece>
+
+<i>July 23, 2001</i>: This has got to stop!
+<piece>
+XMLAPI XML * xml_parent (XML * xml)
+{
+   if (!xml) return 0;
+   return xml->parent;  /* Null if none, guaranteed. */
+}
+</piece>
+</item>
+
+
+<item name="xml_read" label="xml_read: Using expat to parse XML files into memory">
+The basic structure of the parser is identical to any expat application.  We create the
+parser and pass in a pointer to the XML we're building up as the user data.  We register
+the handlers for elements and for plain text, and we're not interested in anything else.
+<p/>
+Then we simply throw pieces of the input stream at the parser until we're through with it.
+The handlers do all the work of creating and inserting XML pieces into the growing structure.
+If we encounter an error, we free all the stuff we've already done; otherwise we return the
+structure at the conclusion of the parse.
+<piece>
+<insert name=".startElement"/>
+<insert name=".endElement"/>
+<insert name=".charData"/>
+
+XMLAPI XML * xml_read (FILE * file)
+{
+   XML_Parser parser;
+   char buf[BUFSIZ];
+   int done;
+   XML * ret;
+   size_t len;
+
+   ret = NULL;
+   parser = XML_ParserCreate(NULL);
+
+   XML_SetUserData (parser, (void *) &ret);
+
+   XML_SetElementHandler(parser, startElement, endElement);
+   XML_SetCharacterDataHandler(parser, charData);
+
+   done = 0;
+
+   do {
+      len = fread(buf, 1, sizeof(buf), file);
+      done = len #^lt# sizeof(buf);
+      if (!XML_Parse(parser, buf, len, done)) {
+         xml_free (ret);
+         XML_ParserFree(parser);
+         return NULL;
+      }
+   } while (!done);
+   XML_ParserFree(parser);
+
+   return (ret);
+}
+</piece>
+
+The plain-vanilla <code>xml_read</code> function was my first expat application, so I wasn't too sure how to
+handle error cases.  Originally it wrote an error function to <code>stderr</code>, but that's worse than useless
+in most situations.  So now the original <code>xml_read</code> function simply throws up its hands and returns a
+NULL pointer, but if you need error feedback, use <code>xml_read_error</code>, which in case of error returns something
+of the form:
+<pre>
+&lt;xml-error message="This is the message" code="400" line="19"/&gt;
+</pre>
+<piece>
+XMLAPI XML * xml_read_error (FILE * file)
+{
+   XML_Parser parser;
+   char buf[BUFSIZ];
+   int done;
+   XML * ret;
+   size_t len;
+
+   ret = NULL;
+   parser = XML_ParserCreate(NULL);
+
+   XML_SetUserData (parser, (void *) &ret);
+
+   XML_SetElementHandler(parser, startElement, endElement);
+   XML_SetCharacterDataHandler(parser, charData);
+
+   done = 0;
+
+   do {
+      len = fread(buf, 1, sizeof(buf), file);
+      done = len #^lt# sizeof(buf);
+      if (!XML_Parse(parser, buf, len, done)) {
+         xml_free (ret);
+         ret = xml_create ("xml-error");
+         xml_setnum (ret, "code", XML_GetErrorCode(parser));
+         xml_set    (ret, "message", XML_ErrorString(XML_GetErrorCode(parser)));
+         xml_setnum (ret, "line", XML_GetCurrentLineNumber(parser));
+         done = 1;
+      }
+   } while (!done);
+   XML_ParserFree(parser);
+
+   return (ret);
+}
+</piece>
+
+Finally, to complete the reading portion of the API, we define <code>xml_parse</code>, which reads an XML structure from a string
+instead of from a file stream.  It does the same error handling as <code>xml_read_error</code>, because that's really probably the
+way to handle errors.  I suppose if you might or might not be reading actual string encodings of <code>xml-error</code> elements,
+you might find this inconvenient.  Try looking at the string before you parse it, I suppose.
+<piece>
+XMLAPI XML * xml_parse (const char * buf)
+{
+   XML_Parser parser;
+   int done;
+   XML * ret;
+   size_t len;
+
+   ret = NULL;
+   parser = XML_ParserCreate(NULL);
+
+   XML_SetUserData (parser, (void *) &ret);
+
+   XML_SetElementHandler(parser, startElement, endElement);
+   XML_SetCharacterDataHandler(parser, charData);
+
+   done = 0;
+
+   len = strlen (buf);
+   if (!XML_Parse(parser, buf, len, done)) {
+      xml_free (ret);
+      ret = xml_create ("xml-error");
+      xml_setnum (ret, "code", XML_GetErrorCode(parser));
+      xml_set    (ret, "message", XML_ErrorString(XML_GetErrorCode(parser)));
+      xml_setnum (ret, "line", XML_GetCurrentLineNumber(parser));
+   }
+   XML_ParserFree(parser);
+
+   return (ret);
+}
+</piece>
+
+<i>July 18, 2001</i>: OK, <i>this</i> completes the reading portion (I hope).  I'm writing this
+portion in order to support things like reading XML from database large objects, where we may
+have a perfectly good function to retrieve a buffer's worth of data, without it necessarily
+being represented as a stream.  It takes, therefore, a function of the same type profile as
+<code>fread</code> does, except that the function takes a void * as its data.
+<piece>
+XMLAPI XML * xml_parse_general (void * data, size_t (*get_buf) (char * buf, size_t chunk, size_t num, void *data))
+{
+   XML_Parser parser;
+   char buf[BUFSIZ];
+   int done;
+   XML * ret;
+   size_t len;
+
+   ret = NULL;
+   parser = XML_ParserCreate(NULL);
+
+   XML_SetUserData (parser, (void *) &ret);
+
+   XML_SetElementHandler(parser, startElement, endElement);
+   XML_SetCharacterDataHandler(parser, charData);
+
+   done = 0;
+
+   do {
+      len = (*get_buf)(buf, 1, sizeof(buf), data);
+      done = len #^lt# sizeof(buf)-1; /* Worst that can happen: we call get_buf for an empty buffer. */
+      if (len > strlen (buf)) len = strlen (buf);
+      if (len == 0) break;
+      if (!XML_Parse(parser, buf, len, done)) {
+         if (ret) xml_free (ret);
+         ret = xml_create ("xml-error");
+         xml_setnum (ret, "code", XML_GetErrorCode(parser));
+         xml_set    (ret, "message", XML_ErrorString(XML_GetErrorCode(parser)));
+         xml_setnum (ret, "line", XML_GetCurrentLineNumber(parser));
+         done = 1;
+      }
+   } while (!done);
+   XML_ParserFree(parser);
+
+   if (!ret) {
+      ret = xml_create ("xml-error");
+      xml_setnum (ret, "code", 3);
+      xml_set    (ret, "message", "no data received");
+      xml_setnum (ret, "line", 0);
+   }
+
+   return (ret);
+}
+</piece>
+
+</item>
+
+
+<item name="xml_read.startElement" label="Handling elements: startElement">
+The <code>startElement</code> handler, then, does a great deal of the work of creating
+XML data structures.  The <code>userData</code> parameter points to the immediate parent
+of the node being encountered.  When we open a new node, we allocate the data structure
+and copy attributes, append the new node to its parent, then we set userData to point to the
+new node -- when the element closes, we move userData up the chain back to the parent.
+<p/>
+In the case of an empty element, expat fortunately calls first the open handler, then the
+close handler, so whether we have an explicitly empty element or not doesn't matter.
+<p/>
+It's astounding how much simpler this <code>startElement</code> is than the corresponding
+<a href="http://www.vivtek.com/xmltools/startElement.html">handler in xmltools</a>!
+<p/>
+An interesting note: originally I had the call to <code>xml_set</code> below incrementing
+the <code>atts</code> pointer twice, like <code>**atts++, *atts++</code>.  This worked fine on
+Solaris with gcc, but oddly, when I took it to Windows with MSVC, it appeared not to increment
+until after the call.  Must be a slightly overzealous "optimization"...  At any rate, the new code
+works fine.
+<piece>
+void startElement(void *userData, const char *name, const char **atts)
+{
+   XML ** parent;
+   XML * element;
+
+   element = xml_create (name);
+   while (*atts) {
+      xml_set(element, atts[0], atts[1]);
+      atts += 2;
+   }
+
+   parent = (XML **) userData;
+   if (*parent != NULL) xml_append (*parent, element);
+   *parent = element;
+}
+</piece>
+</item>
+
+<item name="xml_read.endElement" label="Handling elements: endElement">
+At the close of the element, we just jump up the tree to the parent.  If there is no
+parent, then we stay put.  Thus if there are for some reason two root elements in the input,
+the structure won't reflect the input, but the first root element won't get stranded, either.
+<piece>
+void endElement(void *userData, const char *name)
+{
+   XML ** element;
+
+   element = (XML **) userData;
+   if ((*element)->parent != NULL) *element = (*element)->parent;
+}
+</piece>
+</item>
+
+<item name="xml_read.charData" label="Handling non-element data: charData">
+Character data is even easier.  We just create a new text structure and append it onto the
+parent.  End of story.
+<piece>
+void charData (void *userData, const XML_Char *s, int len) {
+   XML ** parent;
+
+   parent = (XML **) userData;
+   xml_append (*parent, xml_createtextlen ((char *) s, len));
+}
+</piece>
+</item>
+
+
+
+</litprog>

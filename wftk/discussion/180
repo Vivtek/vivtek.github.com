@@ -1,0 +1,17 @@
+SUBJECT>Re: MS-Visual Basic adaptor is required?
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>1024102207
+EMAILNOTICES>no
+IP_ADDRESS>as0-038.blm.bluemarble.net
+PREVIOUS>176
+NEXT> 184
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Your WFTK is a nice idea. I am working on porting it to MS-Visual Basic
+<BR>> 6.0. My question : &quot;is there any need of devoping an adaptor to work
+<BR>> like wftk_get_adaptor function to be written in Visual Basic 6.0?&quot;. I
+<BR>> am using ActiveX dlls. Please advise.
+<P>This is a general question for scripting environments, actually -- I think the answer is a qualified &quot;no&quot;. The question is really &quot;how can I write adaptors in a non-C language&quot;, right? The answer depends on the language. If your language can create a DLL, then you're basically already finished; the Windows version of the wftk can dynamically link to it as required. That's assuming you have a compiled language (which I believe is possible with VB, right?)
+<P>The other possibility is that you have a special &quot;Python wftk&quot;, say. I realize this isn't relevant to you, Prashanth, but it might be relevant to others. If you have the wftk embedded in Python, ideally you'd like to be able to include support for adaptors written in Python. I haven't really tackled that yet, but it seems that in *that* case you'd want a smarter wftk_get_adaptor, *or* you'd have something like an &quot;adaptor wrapper&quot; which would provide a go-between. So I'd specify a data storage adaptor as python:something, and do something in the config file to ensure that the adaptor wrapper would know what in Python to execute, and then things should work transparently. I think. Since I haven't actually done it yet, I may be wrong, but that's what I have in mind. Eventually.

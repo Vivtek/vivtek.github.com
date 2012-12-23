@@ -1,0 +1,2 @@
+lpml.pl todomgr.xml
+cp todomgr.tcl ../../../tcl

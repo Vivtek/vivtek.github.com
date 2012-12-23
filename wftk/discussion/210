@@ -1,0 +1,22 @@
+SUBJECT>Re: building problem
+POSTER>ClearScreen
+EMAIL>clearscreen@free.fr
+DATE>1039681751
+EMAILNOTICES>no
+IP_ADDRESS>AToulouse-104-1-4-164.abo.wanadoo.fr
+PREVIOUS>209
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Hi, All
+<P>Hi
+<P>&gt; root@tptest&gt; make make -C xmlapi all make[1]: Entering directory
+<BR>> `/export/home/root/wf/wftk-1.0pre2/src/xmlapi' gcc -O2 -o tester -lexpat
+<BR>> -lsocket -lnsl -R/usr/local/lib test.o xmlapi.o ld: fatal: library
+<BR>> -lexpat: not found ld: fatal: File processing errors. No output written to
+<BR>> tester collect2: ld returned 1 exit status make[1]: *** [tester] Error 1
+<BR>> make[1]: Leaving directory `/export/home/root/wf/wftk-1.0pre2/src/xmlapi'
+<BR>> make: *** [build_core] Error 2
+<P>Look at the fourth line : &quot;-lexpat: not found ld: fatal&quot; That's mean that libexpat is not found in your library path. Verify you installed libexpat, or consider adding the path to this library in Makefile.conf (line LINKFLAGS=).
+<P>Charles

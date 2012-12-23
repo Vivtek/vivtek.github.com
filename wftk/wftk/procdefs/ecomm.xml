@@ -1,0 +1,11 @@
+<item ver="1" title="Retail e-commerce order">
+<owner name="michael">Michael michael@vivtek.com</owner>
+<edits/>
+<versions>
+<version id="1" file="ecomm_1.xml">
+The original version of the retail ecommerce scenario.
+For more information see <a href="http://www.vivtek.com/wftk/usage/ecomm.html">the
+ecommerce scenario</a>.
+</version>
+</versions>
+</item>

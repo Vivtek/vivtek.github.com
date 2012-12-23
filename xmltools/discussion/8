@@ -1,0 +1,22 @@
+SUBJECT>Re: Please talk to me!
+POSTER>Sundeep Misra
+EMAIL>sundeep.misra@gs.com
+DATE>995400153
+EMAILNOTICES>no
+IP_ADDRESS>figment9.gs.com
+PREVIOUS>1
+NEXT> 12
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>I am trying to get Expat API understand importing for XML files using the ]&gt;
+<P>&amp;test.cfg;
+<P>In the above example all the xml tags from file www.abc.com/test.xml should become part of one XML document and we must be able to read the imported tags. The contents of included file look like:
+<P>12345 Sun
+<P>This works just fine in my Java XML parser but I am havig trouble to get it to work with expat C/C++ XML parser on Sun Solaris. If you can provide some insight into it It will be greate help.
+<P>Thanks in advance. -Sundeep.
+<BR>> This board is here for bug/enhancement discussion. If you find xmltools
+<BR>> useful, tell me. If not, um.. tell me gently. But sticking this here is my
+<BR>> attempt to make things easy. If you have problems making the tools or
+<BR>> whatever, bring it up. If you've got patches, mail me.
+<P>&gt; Thanks! Michael

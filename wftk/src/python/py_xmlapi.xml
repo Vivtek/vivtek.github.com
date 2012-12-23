@@ -1,0 +1,1196 @@
+<litprog>
+<object name="py_xmlapi.c" language="c" item="py_xmlapi"/>
+
+
+<format name="index">
+<html><head><title>XMLAPI Python wrapper</title></head>
+<body>
+<h2>XMLAPI: Python wrapper</h2>
+<center>
+[<a href="index.html">wftk-Python</a> ] [ <a href="py_xmlapi.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr/>
+<p/>
+[##body##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+
+<item name="py_xmlapi" label="XMLAPI Python wrapper" format="index">
+This is a wrapper for the <a href="../xmlapi/index.html">XMLAPI</a> XML manipulation library.
+The XMLAPI is the way that <a href="http://www.vivtek.com/wftk.html">the wftk</a> deals with its
+internal XML-based data structures, so the first thing I needed to do to wrap wftk in Python was
+to wrap the XMLAPI in Python.
+<p/>
+I had considered rewriting the XLMAPI to use some of Python's standard XML modules, and at some
+point, maybe that'll be an option.  Certainly I prefer the idea of using the Python expat library
+instead of calling expat directly, as I suspect that's going to end up being more stable, and
+I believe that Python links its own separate expat anyway, so we'd be wasting resources by not
+using that one.
+<p/>
+Anyway, down to business.  Let's include all we need to include first off.
+
+<piece>
+#include [[python.h>
+#include "../xmlapi/xmlapi.h"
+</piece>
+
+To expose a set of functions to Python, we have to build a method table.
+The first thing we need to do in order to make that work is to declare all our functions.  We
+basically have one Python function for each C function in the XMLAPI.  However, the handling
+of arguments is actually going to be handled in the wrapper function, so each has the same
+C arguments.  Additionally, the wrapper functions, although they're exposed to Python with the
+same names as their C contents, can't actually have the same names (otherwise how would we link?)
+So they've all got <code>py_</code> tacked on the front.
+
+<piece>
+static PyObject *py_xml_write(PyObject *self, PyObject *args);
+static PyObject *py_xml_writecontent(PyObject *self, PyObject *args);
+static PyObject *py_xml_writehtml(PyObject *self, PyObject *args);
+static PyObject *py_xml_writecontenthtml(PyObject *self, PyObject *args);
+static PyObject *py_xml_string(PyObject *self, PyObject *args);
+static PyObject *py_xml_stringcontent(PyObject *self, PyObject *args);
+static PyObject *py_xml_stringhtml(PyObject *self, PyObject *args);
+static PyObject *py_xml_stringcontenthtml(PyObject *self, PyObject *args);
+static PyObject *py_xml_prepend(PyObject *self, PyObject *args);
+static PyObject *py_xml_append(PyObject *self, PyObject *args);
+static PyObject *py_xml_replace(PyObject *self, PyObject *args);
+static PyObject *py_xml_replacecontent(PyObject *self, PyObject *args);
+static PyObject *py_xml_loc(PyObject *self, PyObject *args);
+static PyObject *py_xml_getloc(PyObject *self, PyObject *args);
+static PyObject *py_xml_set(PyObject *self, PyObject *args);
+static PyObject *py_xml_attrval(PyObject *self, PyObject *args);
+static PyObject *py_xml_attrlist(PyObject *self, PyObject *args);
+static PyObject *py_xml_attrs(PyObject *self, PyObject *args);
+static PyObject *py_xml_create(PyObject *self, PyObject *args);
+static PyObject *py_xml_createtext(PyObject *self, PyObject *args);
+static PyObject *py_xml_delete(PyObject *self, PyObject *args);
+static PyObject *py_xml_is(PyObject *self, PyObject *args);
+static PyObject *py_xml_name(PyObject *self, PyObject *args);
+static PyObject *py_xml_is_element(PyObject *self, PyObject *args);
+static PyObject *py_xml_first(PyObject *self, PyObject *args);
+static PyObject *py_xml_firstelem(PyObject *self, PyObject *args);
+static PyObject *py_xml_last(PyObject *self, PyObject *args);
+static PyObject *py_xml_lastelem(PyObject *self, PyObject *args);
+static PyObject *py_xml_next(PyObject *self, PyObject *args);
+static PyObject *py_xml_nextelem(PyObject *self, PyObject *args);
+static PyObject *py_xml_prev(PyObject *self, PyObject *args);
+static PyObject *py_xml_prevelem(PyObject *self, PyObject *args);
+static PyObject *py_xml_copy(PyObject *self, PyObject *args);
+static PyObject *py_xml_copyinto(PyObject *self, PyObject *args);
+static PyObject *py_xml_read(PyObject *self, PyObject *args);
+static PyObject *py_xml_parse(PyObject *self, PyObject *args);
+</piece>
+
+If you've looked at the C-language XMLAPI, you'll note that some functions are already
+missing.  For instance, there's no need for xml_setf, because Python can format strings
+better than the XMLAPI can, anyway.  I'm also calling xml_read_error for xml_read, because
+there's no need to support existing code which depends on buggy behavior.  That sort of thing.
+<p/>
+
+Anyway, now we're ready to build a method table, so let's do so.  I toyed with the idea of
+dropping the <code>xml_</code> prefix from all the functions, but I'm used to it.  So I left it.
+Anyway, this lets me do "from xmlapi import *" instead of just "import xmlapi".
+
+<piece>
+static PyMethodDef XMLAPIMethods[] = {
+    {"xml_write",             py_xml_write,             METH_VARARGS},
+    {"xml_writecontent",      py_xml_writecontent,      METH_VARARGS},
+    {"xml_writehtml",         py_xml_writehtml,         METH_VARARGS},
+    {"xml_writecontenthtml",  py_xml_writecontenthtml,  METH_VARARGS},
+    {"xml_string",            py_xml_string,            METH_VARARGS},
+    {"xml_stringcontent",     py_xml_stringcontent,     METH_VARARGS},
+    {"xml_stringhtml",        py_xml_stringhtml,        METH_VARARGS},
+    {"xml_stringcontenthtml", py_xml_stringcontenthtml, METH_VARARGS},
+    {"xml_prepend",           py_xml_prepend,           METH_VARARGS},
+    {"xml_append",            py_xml_append,            METH_VARARGS},
+    {"xml_replace",           py_xml_replace,           METH_VARARGS},
+    {"xml_replacecontent",    py_xml_replacecontent,    METH_VARARGS},
+    {"xml_loc",               py_xml_loc,               METH_VARARGS},
+    {"xml_getloc",            py_xml_getloc,            METH_VARARGS},
+    {"xml_set",               py_xml_set,               METH_VARARGS},
+    {"xml_attrval",           py_xml_attrval,           METH_VARARGS},
+    {"xml_attrlist",          py_xml_attrlist,          METH_VARARGS},
+    {"xml_attrs",             py_xml_attrs,             METH_VARARGS},
+    {"xml_create",            py_xml_create,            METH_VARARGS},
+    {"xml_createtext",        py_xml_createtext,        METH_VARARGS},
+    {"xml_delete",            py_xml_delete,            METH_VARARGS},
+    {"xml_is",                py_xml_is,                METH_VARARGS},
+    {"xml_name",              py_xml_name,              METH_VARARGS},
+    {"xml_is_element",        py_xml_is_element,        METH_VARARGS},
+    {"xml_first",             py_xml_first,             METH_VARARGS},
+    {"xml_firstelem",         py_xml_firstelem,         METH_VARARGS},
+    {"xml_next",              py_xml_next,              METH_VARARGS},
+    {"xml_nextelem",          py_xml_nextelem,          METH_VARARGS},
+    {"xml_last",              py_xml_last,              METH_VARARGS},
+    {"xml_lastelem",          py_xml_lastelem,          METH_VARARGS},
+    {"xml_prev",              py_xml_prev,              METH_VARARGS},
+    {"xml_prevelem",          py_xml_prevelem,          METH_VARARGS},
+    {"xml_copy",              py_xml_copy,              METH_VARARGS},
+    {"xml_copyinto",          py_xml_copyinto,          METH_VARARGS},
+    {"xml_read",              py_xml_read,              METH_VARARGS},
+    {"xml_parse",             py_xml_parse,             METH_VARARGS},
+    {NULL, NULL}
+ };
+</piece>
+
+OK.  So.  That was really boring.  But we had to suffer through it.  Now follows the function
+which Python will call in order to obtain that table:
+
+<piece>
+void initxmlapi()
+{
+    (void) Py_InitModule("xmlapi", XMLAPIMethods);
+}
+</piece>
+
+Since there's no other initialization that the XMLAPI needs, that function is pretty darned
+simple.  It could be more involved if there were more to be done.  We'll see what the wrapper
+for the main wftk library will require, maybe initialization of the adaptor configuration or
+something.
+<p/>
+
+What follows is simply the implementation of each function in the wrapper; most of them are
+going to be pretty straightforward.  I'm going to present the wrappers in the order I actually
+write them, with some commentary.  First off, I'm going to write xml_parse and xml_string, and
+then I'm going to write one simple something-or-other so I can have a module that I can test,
+by parsing a string, modifying it, then turning it back into a string.
+<p/>
+
+Note the cleanup function.  I had originally used a simple VoidPtr call with xml_free; but later,
+it turned out that I was probably testing the description incorrectly; I had hoped that a
+VoidPtr constructor would set the description to NULL, but now I think it's safer to do it
+explicitly and use the same cleanup function for all XML.  (Of course, Python doesn't like
+NULL descriptions, so I'm forced to use Py_None instead).  This function would be a good
+candidate for an actual <i>replacement</i> of xml_free that would leave existing references
+as root trees; that would eliminate the problem of dangling references when XML chunks are
+deleted, for instance.
+
+<piece>
+static void py_xml_cleanup (void * xml, void *parent)
+{
+   if (parent) Py_DECREF ((PyObject *) parent);
+   else (xml_free (xml));
+}
+static PyObject *py_xml_parse(PyObject *self, PyObject *args)
+{
+   char * xml_in;
+   XML * xml_out;
+
+   if (!PyArg_ParseTuple(args, "s", &xml_in)) return NULL;
+   xml_out = xml_parse (xml_in);
+   if (xml_is (xml_out, "xml-error")) {
+      PyErr_SetString(PyExc_IOError, xml_attrval (xml_out, "message"));
+      xml_free (xml_out);
+      return NULL;
+   }
+   return PyCObject_FromVoidPtrAndDesc (xml_out, (void *) Py_None, py_xml_cleanup);
+}
+static PyObject *py_xml_string(PyObject *self, PyObject *args)
+{
+   PyObject * arg;
+   char * xml_out;
+
+   if (!PyArg_ParseTuple(args, "O", &arg)) return NULL;
+   if (!PyCObject_Check (arg)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   xml_out = xml_string ((XML *) (PyCObject_AsVoidPtr (arg)));
+   arg = Py_BuildValue ("s", xml_out);
+   free (xml_out);
+   return arg;
+}
+</piece>
+
+Now let's take a look at what we can learn from those two functions.  I'm musing here on two
+different themes: first, this is my first meaningful Python extension, and so that aspect is
+still interesting -- but second, this is my first meaningful Python extension, so I'm seeing
+the places where a more Python-centric XMLAPI might work better.
+<p/>
+First, note that I'm stashing pointers to the malloc'd XML structures into Python CObjects.
+This is kind of dangerous.  Since some of the later functions will return pointers into the
+XML tree, what happens if Python decides to garbage collect the whole tree?  That would surely
+break things egregiously.  So we'll have to do some kind of reference counting when we grab
+child pointers out; then when the child pointer is cleaned up, it can decrement the reference
+counter on its topmost parent.
+<p/>
+Second, XMLAPI uses malloc/free for memory management.  A more Python-aware XMLAPI would at least
+be allocating from the Python heap, and might be, say, using a dictionary for all the element
+names (it would save space.)  We can revisit this sort of point in a later version, of course.
+
+<p/>
+As an initial test function, let's do xml_set (sets attributes).  That's easy to write and
+easy to test.  It's also our first multi-parameter function.  The same ParseTuple call, of course,
+is used to unpack all our arguments up front.
+
+<piece>
+static PyObject *py_xml_set(PyObject *self, PyObject *args)
+{
+   PyObject * xml_obj;
+   char * attr;
+   char * value;
+
+   if (!PyArg_ParseTuple(args, "Oss", &xml_obj, &attr, &value)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   xml_set ((XML *) PyCObject_AsVoidPtr (xml_obj), attr, value);
+   return Py_None;
+}
+</piece>
+
+Getting the above to work was a chore; I'm developing on Windows (yeah, OK, but I <i>like</i>
+Windows), and Python2.1 is compiled with MSVC 6.0.  However, stick in the mud that I am, I still
+use MSVC 5.0.  Turns out the library binary format has changed somewhat.  In their infinite
+wisdom, Microsoft provides a patch in Service Pack 3.  All 90MB of it.  (Of which surely at least
+1MB applied to me.)  Two days of downloading later, my Python extension links.  <i>That</i> was
+fun!  Whee!
+<p/>
+
+Now the following works fine:
+<blockquote><pre>
+>>> from xmlapi import *
+>>> f = xml_parse ('&lt;test>&lt;element attr="this">&lt;/test>')
+>>> xml_string (f)
+'&lt;test>&lt;element attr="this">&lt;/test>'
+>>> xml_set (f, "testattr", "new value")
+>>> xml_string (f)
+'&lt;test testattr="new value">&lt;element attr="this">&lt;/test>'
+>>> f
+&lt;PyCObject object at 00764F20>
+</pre></blockquote>
+It'd be nice for the string conversion to happen automatically; to do that, though, we have to
+define a new type, because only a dedicated type object has slots for the functions to handle
+things like string representation.  As it happens, we get some other nice benefits from maintaining
+our own type, too, like an arbitrary number of fields in the struct used to store the object;
+this provides enough flexibility to deal with the garbage collector without having to change the
+XMLAPI itself.  (Yet.)
+<p/>
+
+Now that XMLAPI is actually working from Python, I'm more disturbed about garbage collection, so
+let's implement xml_loc and play around with internal elements, to see what happens when a
+parent goes out of scope.  Here's a naive xml_loc (warning: this is <i>not</i> the active version!)
+
+<blockquote><pre>
+static PyObject *py_xml_loc(PyObject *self, PyObject *args)
+{
+   PyObject * xml_obj;
+   XML * found;
+   char * loc;
+
+   if (!PyArg_ParseTuple(args, "Os", &xml_obj, &loc)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   found = xml_loc ((XML *) PyCObject_AsVoidPtr (xml_obj), loc);
+
+   if (found)
+      return PyCObject_FromVoidPtrAndDesc ((void *) found, (void *) Py_None, py_xml_cleanup);
+   else
+      return NULL;
+}
+</pre></blockquote>
+
+This naive try simply called xml_loc on the locator and built a new object on the returned
+pointer.  But the following test shows the problem with the naive approach:
+<pre>
+>>> f=xml_parse ('[[test>[[element id="me"/>[[/test>')
+>>> c=xml_loc (f, ".element(0)")
+>>> xml_string (c)
+'[[element id="me">'
+>>> f=xml_parse ('[[blargh>')
+>>> xml_string (c)
+</pre>
+Boom.  Python dumps core on attempting to reference 'c', because when 'f' goes out of scope
+it's diligently cleaned up, and 'c' was after all simply a reference into 'f'.  If we do things
+the other way around, when 'c' goes out of scope it'll leave 'f' in an inconsistent state, and
+equally dire consequences will follow.
+<p/>
+
+So, just as I'd suspected at the outset, we have to be cleverer than this; internal references
+should <i>not</i> attempt to clean up, but should instead just work with the parent's
+reference count.  Fortunately, CObjects have a handy place to stash an extra void pointer, and
+we can use that for the root of any tree; if NULL, this simply means that the current object
+is itself the root.
+<p/>
+
+This stash pointer is called the "descriptor" and is set by creating the object using a different
+API, PyCObject_FromVoidPtrAndDesc (instead of PyCObject_FromVoidPtr).  This is somewhat
+awkward, as it's going to create problems when we use it for xml_append, which takes an XML
+object with no parent and inserts it into an existing tree.  The CObject is still going to be
+hanging there with a reference to the XML object.  The best solution is to use a special cleanup
+function which refuses to clean up trees with parents, probably.
+
+<piece>
+static PyObject *py_xml_loc(PyObject *self, PyObject *args)
+{
+   PyObject * xml_obj;
+   PyObject * parent;
+   XML * found;
+   char * loc;
+
+   if (!PyArg_ParseTuple(args, "Os", &xml_obj, &loc)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   parent = PyCObject_GetDesc (xml_obj);
+   if (parent == Py_None) parent = xml_obj;
+
+   found = xml_loc ((XML *) PyCObject_AsVoidPtr (xml_obj), loc);
+
+   if (found) {
+      Py_INCREF (parent);
+      return PyCObject_FromVoidPtrAndDesc ((void *) found, (void *) parent, py_xml_cleanup);
+   } else {
+      PyErr_SetString (PyExc_IndexError, "location not found");
+      return NULL;
+   }
+}
+</piece>
+
+This implementation worked perfectly once I realized I'd reversed the parameters on the py_xml_cleanup
+function.  That was an entertaining little episode.  Moral of the story: when typecasting, be
+sure to get positional parameters in the right position.
+<p/>
+
+For my next trick, let's look at appending elements into parents.  Here, we have something new
+to worry about in the garbage collection department.  (I alluded to this just a couple of
+paragraphs ago, but that was yesterday for me) To wit, the parent of an XML tree changes when
+it's appended somewhere.  Unfortunately, as the CObject which contains it is immutable, we can't
+modify the parent pointer for GC cleanup.  The only solution I can see is to copy the XML to be
+appended so that no CObject is involved.  Then references needn't change at all.  I worry that
+there's going to be a lot of overhead involved in this, and I'm going to miss the reference
+semantics from the C library, but I don't see any way around it; as
+always, if you see one, <a href="mailto:wftk@vivtek.com">tell me</a>.
+<p/>
+
+Also, for appending I see a really nice little opportunity for some type overloading: if the
+caller gives us a string instead of an XML object to append to an element, we can tell that,
+parse the string, and go on.  Actually, now that I've extended the C library with xml_parse,
+that might be a nice addition to the C API, too.  But in Python it's easy to overload, so we
+can do it with no further fuss.
+
+<piece>
+static PyObject *py_xml_append(PyObject *self, PyObject *args)
+{
+   PyObject * parent;
+   PyObject * child;
+   XML * chi;
+
+   if (!PyArg_ParseTuple(args, "OO", &parent, &child)) return NULL;
+   if (!PyCObject_Check (parent)) {
+      PyErr_SetString (PyExc_TypeError, "parent not XML object");
+      return NULL;
+   }
+
+   if (PyCObject_Check (child)) {
+      chi = xml_copy ((XML *) PyCObject_AsVoidPtr (child));
+   } else if (PyString_Check (child)) {
+      chi = xml_parse (PyString_AsString (child));
+      if (xml_is (chi, "xml-error")) {
+         PyErr_SetString(PyExc_IOError, xml_attrval (chi, "message"));
+         xml_free (chi);
+         return NULL;
+      }
+   } else {
+      PyErr_SetString (PyExc_TypeError, "appendee not XML object or string");
+      return NULL;
+   }
+
+   xml_append ((XML *) PyCObject_AsVoidPtr (parent), chi);
+   return Py_None;
+}
+</piece>
+
+And <i>that</i> function, I'm pleased to report, worked perfectly on the first try.  Since it
+did work so well, let's go ahead and do the same thing for all the append-like functions.  At
+this point, we're mostly going to just start slogging through the API, because most of the
+tricky parts are probably already out of the way.
+
+<piece>
+static PyObject *py_xml_prepend(PyObject *self, PyObject *args)
+{
+   PyObject * parent;
+   PyObject * child;
+   XML * chi;
+
+   if (!PyArg_ParseTuple(args, "OO", &parent, &child)) return NULL;
+   if (!PyCObject_Check (parent)) {
+      PyErr_SetString (PyExc_TypeError, "parent not XML object");
+      return NULL;
+   }
+
+   if (PyCObject_Check (child)) {
+      chi = xml_copy ((XML *) PyCObject_AsVoidPtr (child));
+   } else if (PyString_Check (child)) {
+      chi = xml_parse (PyString_AsString (child));
+      if (xml_is (chi, "xml-error")) {
+         PyErr_SetString(PyExc_IOError, xml_attrval (chi, "message"));
+         xml_free (chi);
+         return NULL;
+      }
+   } else {
+      PyErr_SetString (PyExc_TypeError, "prependee not XML object or string");
+      return NULL;
+   }
+
+   xml_prepend ((XML *) PyCObject_AsVoidPtr (parent), chi);
+   return Py_None;
+}
+
+static PyObject *py_xml_replace(PyObject *self, PyObject *args)
+{
+   PyObject * parent;
+   PyObject * child;
+   XML * chi;
+
+   if (!PyArg_ParseTuple(args, "OO", &parent, &child)) return NULL;
+   if (!PyCObject_Check (parent)) {
+      PyErr_SetString (PyExc_TypeError, "replacee not XML object");
+      return NULL;
+   }
+
+   if (PyCObject_Check (child)) {
+      chi = xml_copy ((XML *) PyCObject_AsVoidPtr (child));
+   } else if (PyString_Check (child)) {
+      chi = xml_parse (PyString_AsString (child));
+      if (xml_is (chi, "xml-error")) {
+         PyErr_SetString(PyExc_IOError, xml_attrval (chi, "message"));
+         xml_free (chi);
+         return NULL;
+      }
+   } else {
+      PyErr_SetString (PyExc_TypeError, "replacement not XML object or string");
+      return NULL;
+   }
+
+   xml_replace ((XML *) PyCObject_AsVoidPtr (parent), chi);
+   return Py_None;
+}
+
+static PyObject *py_xml_replacecontent(PyObject *self, PyObject *args)
+{
+   PyObject * parent;
+   PyObject * child;
+   XML * chi;
+
+   if (!PyArg_ParseTuple(args, "OO", &parent, &child)) return NULL;
+   if (!PyCObject_Check (parent)) {
+      PyErr_SetString (PyExc_TypeError, "parent not XML object");
+      return NULL;
+   }
+
+   if (PyCObject_Check (child)) {
+      chi = xml_copy ((XML *) PyCObject_AsVoidPtr (child));
+   } else if (PyString_Check (child)) {
+      chi = xml_parse (PyString_AsString (child));
+      if (xml_is (chi, "xml-error")) {
+         PyErr_SetString(PyExc_IOError, xml_attrval (chi, "message"));
+         xml_free (chi);
+         return NULL;
+      }
+   } else {
+      PyErr_SetString (PyExc_TypeError, "replacement not XML object or string");
+      return NULL;
+   }
+
+   xml_replacecontent ((XML *) PyCObject_AsVoidPtr (parent), chi);
+   return Py_None;
+}
+static PyObject *py_xml_copyinto(PyObject *self, PyObject *args) {
+   PyObject * parent;
+   PyObject * child;
+   XML * chi;
+
+   if (!PyArg_ParseTuple(args, "OO", &parent, &child)) return NULL;
+   if (!PyCObject_Check (parent)) {
+      PyErr_SetString (PyExc_TypeError, "parent not XML object");
+      return NULL;
+   }
+
+   if (PyCObject_Check (child)) {
+      xml_copyinto ((XML *) PyCObject_AsVoidPtr(parent), (XML *) PyCObject_AsVoidPtr (child));
+      return Py_None;
+   } else if (PyString_Check (child)) {
+      chi = xml_parse (PyString_AsString (child));
+      if (xml_is (chi, "xml-error")) {
+         PyErr_SetString(PyExc_IOError, xml_attrval (chi, "message"));
+         xml_free (chi);
+         return NULL;
+      }
+      xml_copyinto ((XML *) PyCObject_AsVoidPtr (parent), chi);
+      xml_free (chi);
+      return Py_None;
+   }
+
+   PyErr_SetString (PyExc_TypeError, "replacement not XML object or string");
+   return NULL;
+}
+</piece>
+
+Here's a worry with respect to the replacement functions above: they delete what gets replaced.
+If you have outstanding references to the replaced section, they're now dangling.  This applies
+equally well to the C library, but somehow I'm more concerned in Python.  Anyway, a more
+Python-savvy XMLAPI would maintain an extra pointer on every node, which would point to the
+CObject reference to that node (if any).  If there was still an outstanding reference that
+hadn't yet been garbage collected, we could just pretend that the tree from there on down was
+a root from the start (by cancelling its parentage instead of freeing it.)
+<p/>
+
+That'll come later.  In the meantime, we want to get a functional wrapper around the existing
+XMLAPI, so let's get down to business.  Let's polish off the rest of the string-output functions.
+They're exactly like xml_string, except they each wrap a different function.
+
+<piece>
+static PyObject *py_xml_stringcontent(PyObject *self, PyObject *args) {
+   PyObject * arg;
+   char * xml_out;
+
+   if (!PyArg_ParseTuple(args, "O", &arg)) return NULL;
+   if (!PyCObject_Check (arg)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   xml_out = xml_stringcontent ((XML *) (PyCObject_AsVoidPtr (arg)));
+   arg = Py_BuildValue ("s", xml_out);
+   free (xml_out);
+   return arg;
+}
+static PyObject *py_xml_stringhtml(PyObject *self, PyObject *args) {
+   PyObject * arg;
+   char * xml_out;
+
+   if (!PyArg_ParseTuple(args, "O", &arg)) return NULL;
+   if (!PyCObject_Check (arg)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   xml_out = xml_stringhtml ((XML *) (PyCObject_AsVoidPtr (arg)));
+   arg = Py_BuildValue ("s", xml_out);
+   free (xml_out);
+   return arg;
+}
+static PyObject *py_xml_stringcontenthtml(PyObject *self, PyObject *args) {
+   PyObject * arg;
+   char * xml_out;
+
+   if (!PyArg_ParseTuple(args, "O", &arg)) return NULL;
+   if (!PyCObject_Check (arg)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   xml_out = xml_stringcontenthtml ((XML *) (PyCObject_AsVoidPtr (arg)));
+   arg = Py_BuildValue ("s", xml_out);
+   free (xml_out);
+   return arg;
+}
+</piece>
+
+And some other miscellaneous string-oriented kinds of things (they're not much of a challenge
+at this point, are they?)  The two testing functions are also simple
+(xml_is tests the element name, and
+is_element checks to see whether a node is an element or text.)
+
+<piece>
+static PyObject *py_xml_getloc(PyObject *self, PyObject *args) {
+   PyObject * arg;
+   char * str_out;
+
+   if (!PyArg_ParseTuple(args, "O", &arg)) return NULL;
+   if (!PyCObject_Check (arg)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   str_out = xml_getlocbuf ((XML *) (PyCObject_AsVoidPtr (arg)));
+   arg = Py_BuildValue ("s", str_out);
+   free (str_out);
+   return arg;
+}
+static PyObject *py_xml_attrval(PyObject *self, PyObject *args) {
+   PyObject * arg;
+   char * attr;
+   const char * str_out;
+
+   if (!PyArg_ParseTuple(args, "Os", &arg, &attr)) return NULL;
+   if (!PyCObject_Check (arg)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   str_out = xml_attrval ((XML *) (PyCObject_AsVoidPtr (arg)), attr);
+   arg = Py_BuildValue ("s", str_out);
+   return arg;
+}
+static PyObject *py_xml_create(PyObject *self, PyObject *args) {
+   char * str_in;
+   XML * xml_out;
+
+   if (!PyArg_ParseTuple(args, "s", &str_in)) return NULL;
+   xml_out = xml_create (str_in);
+   return PyCObject_FromVoidPtrAndDesc (xml_out, (void *) Py_None, py_xml_cleanup);
+}
+static PyObject *py_xml_createtext(PyObject *self, PyObject *args) {
+   char * str_in;
+   XML * xml_out;
+
+   if (!PyArg_ParseTuple(args, "s", &str_in)) return NULL;
+   xml_out = xml_createtext (str_in);
+   return PyCObject_FromVoidPtrAndDesc (xml_out, (void *) Py_None, py_xml_cleanup);
+}
+static PyObject *py_xml_is(PyObject *self, PyObject *args) {
+   PyObject * xml_obj;
+   char * name;
+
+   if (!PyArg_ParseTuple(args, "Os", &xml_obj, &name)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   if (xml_is ((XML *) PyCObject_AsVoidPtr (xml_obj), name))
+      return Py_BuildValue ("i", 1);
+   else
+      return Py_None;
+}
+static PyObject *py_xml_name(PyObject *self, PyObject *args) {
+   PyObject * xml_obj;
+
+   if (!PyArg_ParseTuple(args, "O", &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   return PyString_FromString (xml_name ((XML *) PyCObject_AsVoidPtr (xml_obj)));
+}
+static PyObject *py_xml_is_element(PyObject *self, PyObject *args) {
+   PyObject * xml_obj;
+
+   if (!PyArg_ParseTuple(args, "O", &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   if (xml_is_element ((XML *) PyCObject_AsVoidPtr (xml_obj)))
+      return Py_BuildValue ("i", 1);
+   else
+      return Py_None;
+}
+</piece>
+
+The xml_copy function don't work with strings, just with XML, basically.  It makes a new XML
+ structure, so it's a top-level (no parent pointer).
+Rather arbitrarily, I've decided to support the string overloading for xml_copy.  This means that
+xml_parse and xml_copy are basically the same thing under Python.  Which is kinda neat, when
+you think about it.
+
+<piece>
+static PyObject *py_xml_copy(PyObject *self, PyObject *args) {
+   PyObject * src;
+   XML * xml_out;
+
+   if (!PyArg_ParseTuple(args, "O", &src)) return NULL;
+   if (PyCObject_Check (src)) {
+      xml_out = xml_copy ((XML *) PyCObject_AsVoidPtr (src));
+   } else if (PyString_Check (src)) {
+      xml_out = xml_parse (PyString_AsString (src));
+      if (xml_is (xml_out, "xml-error")) {
+         PyErr_SetString(PyExc_IOError, xml_attrval (xml_out, "message"));
+         xml_free (xml_out);
+         return NULL;
+      }
+   } else {
+      PyErr_SetString (PyExc_TypeError, "source not XML object or string");
+      return NULL;
+   }
+
+   return PyCObject_FromVoidPtrAndDesc (xml_out, (void *) Py_None, py_xml_cleanup);
+}
+</piece>
+
+Delete can be a dangerous thing.  I'm not entirely sure it's safe to include in the
+Python API due to garbage-collection collisions; as long as the caller doesn't refer to
+a handle after deletion, though, I think we're OK.  Here it might make sense to extend
+the overloading to deal with a tuple (XML, locator) so that we <i>know</i> we're not stepping
+on the garbage collector's toes.
+<p/>
+This function shouldn't be called on a top-level XML structure; in fact, we can ascertain that,
+so let's raise an exception if the caller tries it.  That way we're a little safer.
+
+<piece>
+static PyObject *py_xml_delete(PyObject *self, PyObject *args) {
+   PyObject * xml_obj;
+
+   if (!PyArg_ParseTuple(args, "O", &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+   if (!PyCObject_GetDesc (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "xml_delete can't be called on top-level XML structure");
+      return NULL;
+   }
+
+   xml_delete ((XML *) PyCObject_AsVoidPtr (xml_obj));
+   return Py_None;
+}
+</piece>
+
+Now we have a new challenge: file I/O.  Here, we can take either a file object or a string.
+If a string, we open the file, write the object, close the file; if a file object, then we
+just write the object and go our merry way.  The same applies to reading.  The writers don't
+overload the XML with strings, because to write strings, we'd just write the strings.
+
+<piece>
+static PyObject *py_xml_write(PyObject *self, PyObject *args) {
+   PyObject * file;
+   FILE * f;
+   PyObject * xml_obj;
+   XML * xml;
+
+   if (!PyArg_ParseTuple(args, "OO", &file, &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "parent not XML object");
+      return NULL;
+   }
+   xml = (XML *) PyCObject_AsVoidPtr (xml_obj);
+
+   if (PyFile_Check(file)) {
+      xml_write (PyFile_AsFile (file), xml);
+      return Py_None;
+   }
+
+   if (PyString_Check(file)) {
+      f = fopen (PyString_AsString (file), "w");
+      if (!f) {
+         PyErr_SetString (PyExc_IOError, "can't open file for output");
+         return NULL;
+      }
+      xml_write (f, xml);
+      fclose (f);
+      return Py_None;
+   }
+
+   PyErr_SetString (PyExc_TypeError, "file neither file object nor path string");
+   return NULL;
+}
+static PyObject *py_xml_writecontent(PyObject *self, PyObject *args) {
+   PyObject * file;
+   FILE * f;
+   PyObject * xml_obj;
+   XML * xml;
+
+   if (!PyArg_ParseTuple(args, "OO", &file, &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "parent not XML object");
+      return NULL;
+   }
+   xml = (XML *) PyCObject_AsVoidPtr (xml_obj);
+
+   if (PyFile_Check(file)) {
+      xml_write (PyFile_AsFile (file), xml);
+      return Py_None;
+   }
+
+   if (PyString_Check(file)) {
+      f = fopen (PyString_AsString (file), "w");
+      if (!f) {
+         PyErr_SetString (PyExc_IOError, "can't open file for output");
+         return NULL;
+      }
+      xml_write (f, xml);
+      fclose (f);
+      return Py_None;
+   }
+
+   PyErr_SetString (PyExc_TypeError, "file neither file object nor path string");
+   return NULL;
+}
+static PyObject *py_xml_writehtml(PyObject *self, PyObject *args) {
+   PyObject * file;
+   FILE * f;
+   PyObject * xml_obj;
+   XML * xml;
+
+   if (!PyArg_ParseTuple(args, "OO", &file, &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "parent not XML object");
+      return NULL;
+   }
+   xml = (XML *) PyCObject_AsVoidPtr (xml_obj);
+
+   if (PyFile_Check(file)) {
+      xml_write (PyFile_AsFile (file), xml);
+      return Py_None;
+   }
+
+   if (PyString_Check(file)) {
+      f = fopen (PyString_AsString (file), "w");
+      if (!f) {
+         PyErr_SetString (PyExc_IOError, "can't open file for output");
+         return NULL;
+      }
+      xml_write (f, xml);
+      fclose (f);
+      return Py_None;
+   }
+
+   PyErr_SetString (PyExc_TypeError, "file neither file object nor path string");
+   return NULL;
+}
+static PyObject *py_xml_writecontenthtml(PyObject *self, PyObject *args) {
+   PyObject * file;
+   FILE * f;
+   PyObject * xml_obj;
+   XML * xml;
+
+   if (!PyArg_ParseTuple(args, "OO", &file, &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "parent not XML object");
+      return NULL;
+   }
+   xml = (XML *) PyCObject_AsVoidPtr (xml_obj);
+
+   if (PyFile_Check(file)) {
+      xml_write (PyFile_AsFile (file), xml);
+      return Py_None;
+   }
+
+   if (PyString_Check(file)) {
+      f = fopen (PyString_AsString (file), "w");
+      if (!f) {
+         PyErr_SetString (PyExc_IOError, "can't open file for output");
+         return NULL;
+      }
+      xml_write (f, xml);
+      fclose (f);
+      return Py_None;
+   }
+
+   PyErr_SetString (PyExc_TypeError, "file neither file object nor path string");
+   return NULL;
+}
+static PyObject *py_xml_read(PyObject *self, PyObject *args) {
+   PyObject * file;
+   FILE * f;
+   XML * xml_out;
+
+   if (!PyArg_ParseTuple(args, "O", &file)) return NULL;
+
+   if (PyFile_Check(file)) {
+      xml_out = xml_read (PyFile_AsFile (file));
+   } else if (PyString_Check(file)) {
+      f = fopen (PyString_AsString (file), "r");
+      if (!f) {
+         PyErr_SetString (PyExc_IOError, "can't open file for input");
+         return NULL;
+      }
+      xml_out = xml_read (f);
+      fclose (f);
+   } else {
+      PyErr_SetString (PyExc_TypeError, "file neither file object nor path string");
+      return NULL;
+   }
+
+   if (xml_is (xml_out, "xml-error")) {
+      PyErr_SetString(PyExc_IOError, xml_attrval (xml_out, "message"));
+      xml_free (xml_out);
+      return NULL;
+   }
+   return PyCObject_FromVoidPtrAndDesc (xml_out, (void *) Py_None, py_xml_cleanup);
+
+}
+</piece>
+
+The last piece of the API is iterators; in C, iteration is commonly done by getting the
+first member of a series, then getting successive ones (by individual function calls)
+until no more are to be found.  This is simply because C has no built-in list type.  Python,
+of course, does.  So iteration under Python is more commonly done with the <code>for <i>x</i>
+in <i>list</i></code> construct.
+<p/>
+The XMLAPI has two iterator categories: one for an element's attributes, and one for its
+subelements.  The latter has two flavors: one which includes text subelements, and one which
+excludes them.  For the attribute iterator, I think it's more appropriate to return a list to
+Python, so I'm not going to expose the full set of iterator functions.  Technically, this is
+a loss of functionality, since duplicate attributes can't be read.  However, since the XMLAPI
+exposes no way to <i>create</i> duplicate attributes, and since they aren't supported by XML
+anyway, this isn't really a weakness, in my humble opinion.
+
+<piece>
+static PyObject *py_xml_attrlist(PyObject *self, PyObject *args)
+{
+   PyObject * xml_obj;
+   XML * xml;
+   XML_ATTR * attr;
+   PyObject * list;
+
+   if (!PyArg_ParseTuple(args, "O", &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+   xml = (XML *) PyCObject_AsVoidPtr (xml_obj);
+
+   list = PyList_New (0);
+
+   attr = xml_attrfirst (xml);
+   while (attr) {
+      PyList_Append (list, PyString_FromString (xml_attrname (attr)));
+      attr = xml_attrnext (attr);
+   }
+
+   return (list);
+}
+</piece>
+
+Come to think of it, we should also return a dictionary if asked.  This is Python, after all.
+<piece>
+static PyObject *py_xml_attrs(PyObject *self, PyObject *args)
+{
+   PyObject * xml_obj;
+   XML * xml;
+   XML_ATTR * attr;
+   PyObject * dict;
+
+   if (!PyArg_ParseTuple(args, "O", &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+   xml = (XML *) PyCObject_AsVoidPtr (xml_obj);
+
+   dict = PyDict_New ();
+
+   attr = xml_attrfirst (xml);
+   while (attr) {
+      PyDict_SetItem (dict, PyString_FromString (xml_attrname (attr)), PyString_FromString (xml_attrvalue (attr)));
+      attr = xml_attrnext (attr);
+   }
+
+   return (dict);
+}
+</piece>
+
+The element iterators could just as well be wrapped in a list-return function, and maybe I'll
+do that, but I think it makes since to expose the first-next iterator to while loops as well,
+so that's all I'm going to do on the first run.
+
+<piece>
+static PyObject *py_xml_first(PyObject *self, PyObject *args) {
+   PyObject * xml_obj;
+   PyObject * parent;
+   XML * found;
+
+   if (!PyArg_ParseTuple(args, "O", &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   parent = PyCObject_GetDesc (xml_obj);
+   if (parent == Py_None) parent = xml_obj;
+
+   found = xml_first ((XML *) PyCObject_AsVoidPtr (xml_obj));
+
+   if (found) {
+      Py_INCREF (parent);
+      return PyCObject_FromVoidPtrAndDesc ((void *) found, (void *) parent, py_xml_cleanup);
+   } else {
+      return Py_None;
+   }
+}
+static PyObject *py_xml_firstelem(PyObject *self, PyObject *args) {
+   PyObject * xml_obj;
+   PyObject * parent;
+   XML * found;
+
+   if (!PyArg_ParseTuple(args, "O", &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   parent = PyCObject_GetDesc (xml_obj);
+   if (parent == Py_None) parent = xml_obj;
+
+   found = xml_firstelem ((XML *) PyCObject_AsVoidPtr (xml_obj));
+
+   if (found) {
+      Py_INCREF (parent);
+      return PyCObject_FromVoidPtrAndDesc ((void *) found, (void *) parent, py_xml_cleanup);
+   } else {
+      return Py_None;
+   }
+}
+static PyObject *py_xml_last(PyObject *self, PyObject *args) {
+   PyObject * xml_obj;
+   PyObject * parent;
+   XML * found;
+
+   if (!PyArg_ParseTuple(args, "O", &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   parent = PyCObject_GetDesc (xml_obj);
+   if (parent == Py_None) parent = xml_obj;
+
+   found = xml_last ((XML *) PyCObject_AsVoidPtr (xml_obj));
+
+   if (found) {
+      Py_INCREF (parent);
+      return PyCObject_FromVoidPtrAndDesc ((void *) found, (void *) parent, py_xml_cleanup);
+   } else {
+      return Py_None;
+   }
+}
+static PyObject *py_xml_lastelem(PyObject *self, PyObject *args) {
+   PyObject * xml_obj;
+   PyObject * parent;
+   XML * found;
+
+   if (!PyArg_ParseTuple(args, "O", &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   parent = PyCObject_GetDesc (xml_obj);
+   if (parent == Py_None) parent = xml_obj;
+
+   found = xml_lastelem ((XML *) PyCObject_AsVoidPtr (xml_obj));
+
+   if (found) {
+      Py_INCREF (parent);
+      return PyCObject_FromVoidPtrAndDesc ((void *) found, (void *) parent, py_xml_cleanup);
+   } else {
+      return Py_None;
+   }
+}
+static PyObject *py_xml_next(PyObject *self, PyObject *args) {   PyObject * xml_obj;
+   PyObject * parent;
+   XML * found;
+
+   if (!PyArg_ParseTuple(args, "O", &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   parent = PyCObject_GetDesc (xml_obj);
+   if (parent == Py_None) parent = xml_obj;
+
+   found = xml_next ((XML *) PyCObject_AsVoidPtr (xml_obj));
+
+   if (found) {
+      Py_INCREF (parent);
+      return PyCObject_FromVoidPtrAndDesc ((void *) found, (void *) parent, py_xml_cleanup);
+   } else {
+      return Py_None;
+   }
+}
+static PyObject *py_xml_nextelem(PyObject *self, PyObject *args) {
+   PyObject * xml_obj;
+   PyObject * parent;
+   XML * found;
+
+   if (!PyArg_ParseTuple(args, "O", &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   parent = PyCObject_GetDesc (xml_obj);
+   if (parent == Py_None) parent = xml_obj;
+
+   found = xml_nextelem ((XML *) PyCObject_AsVoidPtr (xml_obj));
+
+   if (found) {
+      Py_INCREF (parent);
+      return PyCObject_FromVoidPtrAndDesc ((void *) found, (void *) parent, py_xml_cleanup);
+   } else {
+      return Py_None;
+   }
+}
+static PyObject *py_xml_prev(PyObject *self, PyObject *args) {
+   PyObject * xml_obj;
+   PyObject * parent;
+   XML * found;
+
+   if (!PyArg_ParseTuple(args, "O", &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   parent = PyCObject_GetDesc (xml_obj);
+   if (parent == Py_None) parent = xml_obj;
+
+   found = xml_prev ((XML *) PyCObject_AsVoidPtr (xml_obj));
+
+   if (found) {
+      Py_INCREF (parent);
+      return PyCObject_FromVoidPtrAndDesc ((void *) found, (void *) parent, py_xml_cleanup);
+   } else {
+      return Py_None;
+   }
+}
+static PyObject *py_xml_prevelem(PyObject *self, PyObject *args) {
+   PyObject * xml_obj;
+   PyObject * parent;
+   XML * found;
+
+   if (!PyArg_ParseTuple(args, "O", &xml_obj)) return NULL;
+   if (!PyCObject_Check (xml_obj)) {
+      PyErr_SetString (PyExc_TypeError, "arg not XML object");
+      return NULL;
+   }
+
+   parent = PyCObject_GetDesc (xml_obj);
+   if (parent == Py_None) parent = xml_obj;
+
+   found = xml_prevelem ((XML *) PyCObject_AsVoidPtr (xml_obj));
+
+   if (found) {
+      Py_INCREF (parent);
+      return PyCObject_FromVoidPtrAndDesc ((void *) found, (void *) parent, py_xml_cleanup);
+   } else {
+      return Py_None;
+   }
+}
+</piece>
+
+And with that, my monolithic, one-page presentation of the Python engulfment of the XMLAPI
+C library is done.  I learned a lot about Python.  There's lots more to come later, though.
+
+</item>
+
+</litprog>
+
+

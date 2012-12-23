@@ -1,0 +1,28 @@
+SUBJECT>Re: Purchase Request: Just do it ??
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>991438574
+EMAILNOTICES>no
+IP_ADDRESS>as0-139.blm.bluemarble.net
+PREVIOUS>131
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Can I do this with a shell script only?
+<P>Yes, that's my testing mode at present.
+<P>&gt; Now what?? It is time for the Supervisor's Approval to happen. How do I do
+<BR>> it?? What action is needed to select from an &quot;option&quot; list?
+<BR>> Tried wftk set &quot;Approval code&quot; Yes. Didn't work.
+<P>Should be wftk set . 5 &quot;Approval code&quot; Yes -- but I think that's what you meant.
+<P>&gt; &quot;wftk tasks . 5&quot; shows me that &quot;10: Approval
+<BR>> [Supervisor]&quot; is an outstanding task.
+<P>&gt; How do I initiate the &quot;Approval&quot; task?? Still totally
+<BR>> &quot;blocked&quot; on &quot;Approval&quot; task. And the containing
+<BR>> sequence. And the containing workflow. Totally blocked.
+<P>The task is already there, and active. So you need to complete it:
+<P>wftk complete . 5 10
+<P>For verisimilitude, you'd be a user:
+<P>wftk -u mrsupervisor complete . 5 10
+<P>In a &quot;real&quot; interface, the task's associated data items would be updated at the same time the task is completed. The command-line interface doesn't support that, which is why you have to call wftk set a whole lot.
+<P>Does that make sense?

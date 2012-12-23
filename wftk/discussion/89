@@ -1,0 +1,22 @@
+SUBJECT>Re: Wf-XML
+POSTER>Marc-Olivier Bernard
+EMAIL>mob@pmc.polytechnique.fr
+DATE>985285286
+EMAILNOTICES>no
+IP_ADDRESS>ABoulogne-102-1-1-213.abo.wanadoo.fr
+PREVIOUS>60
+NEXT> 134
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>I completely agree with Matt Hicks. Wf-XML is just a very basic (u. maybe non very mature) DTD to exchange messages between engines.
+<P>&gt; I've looked over the Wf-XML and (correct me if I'm wrong) the standard
+<BR>> deals exclusively with communication between WFMS, not actual process
+<BR>> definition. Has anyone seen process definition in the standard where I
+<BR>> have not?
+<P>&gt; On a similar note, it would be nice to see the XML for process definition
+<BR>> in wftk resemble more closely the Interface 1 standard of the WfMC. If
+<BR>> that were the case, the process definition interface for wftk might then
+<BR>> instantly be capable of producing definition that any WfMC Interface 1
+<BR>> compliant WFMS could interpret (not that I know which MFMS are).
+<P>

@@ -1,0 +1,1 @@
+<workflow title="Test add of process" name="Test thingy"><role name="Joe" local=""/><role name="Jim" local=""/><task label="Work" role="Jim"/><task label="More work" role="Jim"/></workflow>

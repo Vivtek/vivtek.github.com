@@ -1,0 +1,122 @@
+sub getargs { # Optional tagset tells us where to put expected files.
+   $input = $ENV{QUERY_STRING};
+   $tagset{_input_content_type} = lc($ENV{CONTENT_TYPE});
+   if (lc($ENV{CONTENT_TYPE}) eq 'application/x-www-form-urlencoded') {
+      $input .= "&" if $input ne '';
+      while (<>) {
+        chomp;
+        $input .= $_;
+      }
+   }
+
+   @input = split /&/, $input;
+
+   foreach $i (@input) {
+      @t = split /=/, $i, 2;
+      
+      $t[1] =~ tr/+/ /;
+      $t[1]=~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
+      $tagset{$t[0]} = $t[1];
+   }
+
+   return \%tagset if (lc($ENV{CONTENT_TYPE}) !~ m'multipart/form-data;');
+
+   # OK, handle upload-type form
+   my $uploads = shift @_;
+   my ($junk,$boundary) = split /=/, $tagset{_input_content_type}, 2;
+   $boundary =~ s/\n//;
+   $boundary = "--$boundary";
+   my $line;
+   my $lines;
+   my $name;
+   my $type;
+   my $filename;
+   my $file = 0;
+   my $localname;
+
+LINE: while (<>) {
+      last if ($_ eq "${boundary}--\r\n");
+      if ($_ eq "$boundary\r\n") {
+         # Close any open temp file.
+         close _GETARGS_TEMP;
+
+         $line=<>; # Get first line of headers.
+         $line =~ s/.*?; //; # Chop off the Content-Disposition part, we don't need it.
+         ($name, $filename) = split /; /, $line, 2;
+         ($junk, $name) = split /"/, $name;
+         $file = 0;
+         $lines = 0;
+         if ($filename ne "") {
+            ($junk, $filename) = split /"/, $filename;
+            $tagset{"_details_$name"} = $filename;
+            $line=<>;
+            chomp $line;
+            ($junk, $type) = split ": ", $line;
+            $type =~ s/\r*//g;
+            $file = 1;
+            if ($filename ne '') {
+               $tagset{$name} = getargs_makefilename ($$uploads{file}, \%tagset, $name);
+               $ext = $$uploads{mime}{$type};
+               if ($ext eq '') {
+                  $ext = $filename;
+                  $ext =~ s/^.*\.//;
+               }
+               if ($ext ne '') { $tagset{$name} .= ".$ext"; }
+               $localname = "$$uploads{base}/$tagset{$name}";
+               $tagset{"_details_$name"} .= "|" . $type;
+               if ($localname ne '') {
+                  if (open _GETARGS_TEMP, ">$localname") {
+                     $tagset{"_details_$name"} .= "|" . $localname;
+                  }
+               }
+            } else { # No file was uploaded; we may want to preserve what was already there.
+               $tagset{$name} = '';
+               if ($tagset{"_keep_$name"} ne '') {
+                  $tagset{$name} = $tagset{"_existing_$name"};
+               }
+            }
+         }
+         while ($line=<>) { next LINE if $line == "\n"; }
+      }
+
+      if ($file) {
+         # Write the line to the temp file.
+         print _GETARGS_TEMP $_;
+      } else {
+         s/[\r\n]*$//;
+         if ($lines > 0) {$tagset{$name} .= "\n"; }
+         $tagset{$name} .= $_;
+         $lines ++;
+      }
+   }
+   close _GETARGS_TEMP;
+
+   return \%tagset;
+}
+
+sub getargs_makefilename {
+   my $spec = shift(@_);
+   my $object = shift(@_);
+   my $field = shift(@_);
+
+   while ($spec =~ /\[(.*?)\]/) {
+      $tag = $1;
+      if ($tag eq '(field)') {
+         $val = $field;
+      } elsif ($tag eq '(date)') {
+         $val = now();
+      } else {
+         $val = $$object{$tag};
+      }
+      $val =~ tr/ /_/;
+      $val =~ s/[&!"']//g;
+      $tag =~ s/\(/\\(/g;
+      $tag =~ s/\)/\\)/g;
+      $spec =~ s/\[$tag\]/$val/g;
+   }
+
+   return $spec;
+}
+
+
+1;

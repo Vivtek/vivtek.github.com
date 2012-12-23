@@ -1,0 +1,17 @@
+SUBJECT>Repository solutions?
+POSTER>Donovan Baarda
+EMAIL>abo@minkirri.apana.org.au
+DATE>966408794
+EMAILNOTICES>no
+IP_ADDRESS>myalla0.connect.com.au
+PREVIOUS>
+NEXT> 40
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Please excuse a helpless newbie's first glance comments...
+<P>I've noticed that in various places you have mentioned repositorys for version controlling documents/tasks as they transition through their states. You appear to be using a version-number-in-filename approach for at least some data.
+<P>Why not use an existing revision control system. You get fine-grain version control, with delta-based compression, and even networked distribution support.
+<P>I believe CVS could do the trick, but if you're willing to try something more interesting, have a look at PRCS. This is a fair bit simpler to use than CVS and in some ways more powerful. Although it's currently using RCS as a backend, the next version will be using xdelta. Xdelta uses efficient binary deltas (rsync algorithm), has an application-level filesystem interface, database backend, and support for CVSup type remote updates between arbitary versions. Perhaps Xdelta alone would be useful?
+<P>http://www.cs.berkeley.edu/~jmacd/prcs.html
+<P>All these fancy low level features are cool, but the main benefit for you would be a nice version controlled repository that could be used for everything with a dead-simple interface.

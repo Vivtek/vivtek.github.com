@@ -1,0 +1,4 @@
+<config>
+<value name="fullname" type="string" desc="Full name"/>
+<value name="email" type="string" desc="Email address"/>
+</config>

@@ -1,0 +1,23 @@
+SUBJECT>This week, pretty much.
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>984277706
+EMAILNOTICES>no
+IP_ADDRESS>spider-wg083.proxy.aol.com
+PREVIOUS>86
+NEXT> 92
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; GREAT WORK Michael!
+<P>No, it's just a prototype. What I'm working on now (v1.0) is much, much nicer, and nearly ready to release.
+<P>&gt; ...even more valuable if only we could de-couple taskmgr from AOLServer
+<BR>> and the like.
+<P>Nearly there, actually (see below).
+<P>&gt; Wouldn't be interesting a Perl interface for &quot;taskmgr&quot; &amp;
+<BR>> &quot;user ? (usable, for example, via mod_perl, etc)
+<P>Indeed, and that's why all the workflow functionality is now wrapped in a library. I hope that Perl, Python, and Tcl interfaces will be relatively easy to accomplish, and Java via JNI will be along those lines, too.
+<P>What I've done at this point is to define a wftk API, which I'll publish this week. Interfaces to individual external systems are wrapped into adaptors, which are very narrowly defined APIs, and easy to customize. Examples of adaptors are the datasheet repository interface (in the prototype, a file system), procdef repository (same), task index (the database).
+<P>This stuff is good. It's really good. It makes the prototype look like some amateur wrote it. One of the nice things is that interfacing to the database works right from the core engine, so that AOLserver isn't necessary at all. You can run workflow entirely from the command line if you want (so right there, it's interfaceable from anything). Writing CGI versions of the task manager will be trivial.
+<P>I figure I have about 12 full days left before I can call version 1.0 ready. This week I *hope* to have the first bits of it done, and I'll try to set up a CVS server, now that things are squared away.
+<P>This is good stuff, and I'm pumped about it. More later this week.

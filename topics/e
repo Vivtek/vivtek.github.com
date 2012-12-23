@@ -1,0 +1,18 @@
+#!/usr/bin/perl
+
+$no = $ARGV[0];
+
+if ($no eq '' || $no eq 'new') {
+   $no = 'new';
+   open N, ">raw/page_body_new.txt";
+   print N <<"EOF";
+# title: New page title
+# id: new
+# url: /new_page.html
+
+EOF
+   close N;
+}
+
+system "vi raw/page_body_$no.txt";
+system "perl content_update.pl raw/content_body_$no.txt";

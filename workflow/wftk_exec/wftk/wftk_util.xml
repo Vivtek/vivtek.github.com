@@ -1,0 +1,134 @@
+<litprog>
+<object name="wftk_util.c" language="c" item="tester"/>
+
+
+<format name="index">
+<html><head><title>wftk command-line utility</title></head>
+<body>
+<h2>wftk: wftk command-line utility</h2>
+<center>
+[ <a href="wftk_engine.zip">download</a> ] [ <a href="wftk_util.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr/>
+The command-line utility is first of all a convenient way to test the library after compilation.  But in addtion to that,
+it provides a dandy way for shell scripts to interact with workflow (not the least of which is to enable scripts to start
+processes.  Cool stuff, man.)  It also lets you interface wftk with <i>anything</i> that can do a system call.
+<p/>
+Here's how we do all this stuff:
+[##itemlist##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<format name="default">
+<html><head><title>wftk command-line utility: [##label##]</title></head>
+<body>
+<h2>[##label##]</h2>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="wftk_util.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="wftk_util.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<item name="wftk_util" label="wftk command-line utility" format="index">
+</item>
+
+<item name="tester" label="main()">
+Boy, this thing is almost too simple.  Well, once I reflect the entire wftk library in it, it won't be.  But what I'm
+interested in is a program whereby I invoke it like this:
+
+<blockquote><code>
+wftk_util create . thingle
+</code></blockquote>
+
+and it creates a datasheet 'thingle' for me.  Then I continue to call it:
+
+<blockquote><code>
+wftk_util define . thingle . thingle_class<br>
+wftk_util require . thingle<br>
+wftk_util complete . thingle<br>
+wftk_util complete . thingle 14<br>
+</code></blockquote>
+
+and so on.  Good way to test new datasheet repositories, too.
+
+<piece>
+#include "wftk.h"
+#include [[string.h>
+
+main (int argc, char * argv[])
+{
+   if (argc [[ 2) {
+      printf ("Loser!  You need a command!  create, define, complete, reject, or setvalue (for now).\n");
+      exit (1);
+   }
+
+   if (!strcmp (argv[1], "create")) {
+      <insert name="wftk_util_create/>
+   } else if (!strcmp (argv[1], "define")) {
+      <insert name="wftk_util_define/>
+   } else if (!strcmp (argv[1], "complete")) {
+      <insert name="wftk_util_complete/>
+   } else if (!strcmp (argv[1], "reject")) {
+      <insert name="wftk_util_reject/>
+   } else if (!strcmp (argv[1], "setvalue")) {
+      <insert name="wftk_util_setvalue/>
+   }
+}
+</piece>
+</item>
+
+<item name="wftk_util_create" label="create: Make a new datasheet">
+</item>
+
+
+<item name="wftk_util_define" label="define: Attach a procdef">
+</item>
+
+
+<item name="wftk_util_complete" label="complete: Complete a task (or start the process)">
+</item>
+
+
+<item name="wftk_util_reject" label="reject: Reject a task">
+</item>
+
+
+<item name="wftk_util_setvalue" label="setvalue: Set a value (of course)">
+</item>
+
+
+
+
+</litprog>
+
+

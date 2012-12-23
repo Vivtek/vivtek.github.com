@@ -1,0 +1,16 @@
+SUBJECT>Re: Notifications
+POSTER>Michael
+EMAIL>toonbots@vivtek.com
+DATE>1024710753
+EMAILNOTICES>no
+IP_ADDRESS>as0-002.blm.bluemarble.net
+PREVIOUS>186
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Hello, This project looks very good. Pls help me with using Notifications
+<BR>> with wftk. I need to inform the user about a request. Thanks in advance,
+<BR>> warm regards, Sharath
+<P>Thanks! You ain't seen nothing yet. I'm going to kick this thing back into high gear now that it's starting to generate some interest at long last. Java ho!
+<P>At any rate, sorry for the thin documentation set. Look at the chair procdef (chair_a.xml) in the distribution for an example of a notification. You can also read the code for how notifications are processed at http://www.vivtek.com/wftk/src/wftk/wftk_notify.html -- I will warn you that I haven't put a lot into notifications in a long time. It may well be that you discover that it is flawed. If so, tell me. I hope to update early and often as my schedule allows.

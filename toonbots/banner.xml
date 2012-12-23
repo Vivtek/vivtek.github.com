@@ -1,0 +1,16 @@
+<cartoon gradient="slategray2-slateblue" height="75" width="200" rowformat="1">
+<panel>
+  <character name="toonbot" rel-h="40" rel-w="100"/>
+  <character name="dot" rel-h="1" rel-w="100"/>
+  <character name="al" rel-w="60"/>
+  <character name="dubya" rel-w="40"/>
+  <character name="toonbot" action="leaves"/>
+  <character name="dot" action="leaves"/>
+  <character name="dubya" action="leaves"/>
+  <character name="al" action="leaves"/>
+</panel>
+<panel>
+  <caption fgcolor="blue" size="20" location="middle">Toonbots.  Are you cool enough?</caption>
+</panel>
+</cartoon>
+

@@ -1,0 +1,13 @@
+SUBJECT>Presentation Layer
+POSTER>Dirk
+EMAIL>dirk_hamstra@yahoo.com
+DATE>990134902
+EMAILNOTICES>no
+IP_ADDRESS>bosgate.amer.iona.com
+PREVIOUS>
+NEXT> 127
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>What are the ideas regarding the presentation layer? It seems natural to extend the XML definitions of a flow with the XML/XSLT presentation generation. For example Velocity or indirect to tools like Jetspeed. Thoughts/comments?
+<P>-Dirk

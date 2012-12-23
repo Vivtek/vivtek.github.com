@@ -1,0 +1,12 @@
+#!/usr/local/bin/perl
+
+require "_navbar";
+
+print "!! @ARGV\n";
+
+$st = navbar_getstate (@ARGV);
+print "--> $st \n";
+
+$stuff = navbar_switchstate (@ARGV);
+
+ print " >> $stuff <<\n";

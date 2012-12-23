@@ -1,0 +1,59 @@
+<svg width="702" height="780">
+<rect width="700" style="fill: white" height="780"/>
+<polyline transform="" points="1,471 699,471 699,621 1,621 1,471" style="fill:none; stroke:black; stroke-width:1" arrow=""/>
+<polyline transform="" points="1,1 699,1 699,151 1,151 1,1" style="fill:none; stroke:black; stroke-width:1" arrow=""/>
+<polyline transform="" points="1,314 699,314 699,464 1,464 1,314" style="fill:none; stroke:black; stroke-width:1" arrow=""/>
+<polyline transform="" points="1,157 699,157 699,307 1,307 1,157" style="fill:none; stroke:black; stroke-width:1" arrow=""/>
+<polyline transform="" points="1,628 699,628 699,778 1,778 1,628" style="fill:none; stroke:black; stroke-width:1" arrow=""/>
+<g transform="translate(1,1)"/>
+<g transform="translate(1,1)"><g y="45" w="64.7191011235955" h="90" x="316.640449438202">
+<image y="45" width="64.7191011235955" xlink:href="image-fidel-1.bmp" x="316.640449438202" height="90"/>
+</g>
+<g>
+<polyline style="stroke:black; stroke-width:1; fill:white" points="381.359550561798,25 670.359550561798,25 670.359550561798,45 535.859550561798,45 386.359550561798,90 515.859550561798,45 381.359550561798,45 381.359550561798,25"/>
+<image y="2" width="269" transform="translate(381.359550561798,25)" xlink:href="dialog-1-1.png" x="10" height="16"/>
+</g>
+</g>
+<g transform="translate(1,157)"/>
+<g transform="translate(1,157)"><g y="52.5" w="72.3913043478261" h="75" x="312.804347826087">
+<image y="52.5" width="72.3913043478261" xlink:href="image-will-1.bmp" x="312.804347826087" height="75"/>
+</g>
+<g>
+<polyline style="stroke:black; stroke-width:1; fill:white" points="385.195652173913,17.5 703.195652173913,17.5 703.195652173913,52.5 554.195652173913,52.5 390.195652173913,90 534.195652173913,52.5 385.195652173913,52.5 385.195652173913,17.5"/>
+<image y="2" width="298" transform="translate(385.195652173913,17.5)" xlink:href="dialog-2-2.png" x="10" height="31"/>
+</g>
+</g>
+<g transform="translate(1,314)"/>
+<g transform="translate(1,314)"><g y="52.5" w="72.3913043478261" h="75" x="312.804347826087">
+<image y="52.5" width="72.3913043478261" xlink:href="image-will-1.bmp" x="312.804347826087" height="75"/>
+</g>
+<g>
+<polyline style="stroke:black; stroke-width:1; fill:white" points="385.195652173913,13.5 699.195652173913,13.5 699.195652173913,52.5 552.195652173913,52.5 390.195652173913,90 532.195652173913,52.5 385.195652173913,52.5 385.195652173913,13.5"/>
+<image y="2" width="294" transform="translate(385.195652173913,13.5)" xlink:href="dialog-3-3.png" x="10" height="35"/>
+</g>
+</g>
+<g transform="translate(1,471)"/>
+<g transform="translate(1,471)"><g y="60" w="64.3137254901961" h="60" x="200.509803921569">
+<image y="60" width="64.3137254901961" xlink:href="image-mouse-1.bmp" x="200.509803921569" height="60"/>
+</g>
+<g>
+<polyline style="stroke:black; stroke-width:1; fill:white" points="264.823529411765,29 588.823529411765,29 588.823529411765,60 436.823529411765,60 269.823529411765,90 416.823529411765,60 264.823529411765,60 264.823529411765,29"/>
+<image y="2" width="304" transform="translate(264.823529411765,29)" xlink:href="dialog-4-4.png" x="10" height="27"/>
+</g>
+<g y="52.5" w="72.3913043478261" h="75" x="429.13768115942">
+<image y="52.5" width="72.3913043478261" xlink:href="image-will-1.bmp" x="429.13768115942" height="75"/>
+</g>
+</g>
+<g transform="translate(1,628)"/>
+<g transform="translate(1,628)"><g y="120" w="680" transform="translate(0,120)" h="30" x="0">
+<rect y="0" width="680" style="stroke:black; stroke-width:1; fill:white" x="0" height="30"/>
+<image y="2" width="660" xlink:href="caption-5-1.png" x="10" height="26"/>
+</g>
+<g y="52.5" w="72.3913043478261" h="75" x="196.471014492754">
+<image y="52.5" width="72.3913043478261" xlink:href="image-will-1.bmp" x="196.471014492754" height="75"/>
+</g>
+<g y="60" w="64.3137254901961" h="60" x="433.176470588235">
+<image y="60" width="64.3137254901961" xlink:href="image-mouse-1.bmp" x="433.176470588235" height="60"/>
+</g>
+</g>
+</svg>

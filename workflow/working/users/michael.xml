@@ -1,0 +1,15 @@
+<user name="michael" fullname="Michael Roberts" password="blah" email="michael@vivtek.com">
+<group name="testgroup"/>
+<object class="workflow" object="chair2" permission="own" label="Second chair example"/>
+<object class="workflow" object="chair3" permission="own"/>
+
+<object class="wftkpdm" object="chair2_d" permission="own"/>
+
+
+
+
+
+
+
+
+<object class="workflow" object="e" permission="own"/><object class="workflow" object="f" permission="own"/><object class="workflow" object="g" permission="own"/><object class="workflow" object="h" permission="own"/><object class="user" object="anthony" permission="edit"/><group name="everybody"/></user>

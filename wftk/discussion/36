@@ -1,0 +1,20 @@
+SUBJECT>Re: very fine-grained workflow?
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>970638325
+EMAILNOTICES>no
+IP_ADDRESS>tc7-230.blm.bluemarble.net
+PREVIOUS>27
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Very cool. You've clearly put a lot of thought into this!
+<P>Thanks.
+<P>&gt; Performance is usually pretty straightforward to solve, but there may be
+<BR>> more subtle architectural issues that prevent wftk from working in this
+<BR>> context, so I'll ask. Do you think that wftk would be useful for this sort
+<BR>> of computer-driven workflow, or is it better suited for more traditional
+<BR>> business workflow?
+<P>Absolutely. One of the most important points for me is that wftk embodies a scripting language with the ability to express human intervention. In other words, when something goes wrong, things don't just break, or log an error and die -- they tell you what's up and you can fix it and everything goes right along. No data is lost because everything's in the datasheet, accessible and documented.
+<P>The beauty of workflow is that you can represent human decision-making with it -- but it's still automation. So even though this isn't what the current paying customer is paying for, I've been giving a lot of careful thought to that aspect. I can easily see processes which happen very quickly and completely automatically 99% of the time, only escalating to human intervention when necessary. Man, can I see it. Hoo-boy, sysadmin work will never be the same. Just give me five years.

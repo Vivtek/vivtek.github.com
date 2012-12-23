@@ -1,0 +1,27 @@
+sub getargs {
+   my %tagset;
+   my @t;
+   my $i;
+
+   my $input = $ENV{QUERY_STRING};
+   if (lc($ENV{CONTENT_TYPE}) eq 'application/x-www-form-urlencoded') {
+      while (<>) {
+        chomp;
+        $input .= $_;
+      }
+   }
+
+   my @input = split /&/, $input;
+
+   foreach $i (@input) {
+      @t = split /=/, $i, 2;
+      
+      $t[1] =~ tr/+/ /;
+      $t[1]=~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
+      $tagset{$t[0]} = $t[1];
+   }
+
+   return \%tagset;
+}
+
+1;

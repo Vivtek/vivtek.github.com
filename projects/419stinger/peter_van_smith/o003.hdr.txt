@@ -1,0 +1,17 @@
+Return-Path: <peter.vansmitheltbui@yahoo.de>
+Received: from yahoo.de ([211.179.16.124])
+	by despammed.com (8.11.6/8.11.6) with SMTP id l09Gf9A21591
+	for <michael@despammed.com>; Tue, 9 Jan 2007 11:41:10 -0500
+Message-ID: <073d01c733d8$8264dff0$8c65ae54@peter.vansmitheltbui>
+Reply-To: "Peter van Smith" <peter.vansmitheltbui@yahoo.de>
+From: "Peter van Smith" <peter.vansmitheltbui@yahoo.de>
+To: <michael@despammed.com>
+Subject: [despammed] Urgent Response Required
+Date: Tue, 09 Jan 2007 10:25:39 +0600
+MIME-Version: 1.0
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-MSMail-Priority: Normal
+X-Mailer: Microsoft Outlook Express 6.00.2800.1106
+X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1106

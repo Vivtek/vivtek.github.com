@@ -1,0 +1,14 @@
+SUBJECT>Doubts
+POSTER>Ashutosh Sapre
+EMAIL>toast_sapre@yahoo.com
+DATE>985034215
+EMAILNOTICES>no
+IP_ADDRESS>206.25.64.126
+PREVIOUS>
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>I have downloaded expat1-95.1 and also sucessfully ran the scripts ./configure make make install
+<P>Now how do i compile a C program ?
+<P>2) I want to write a C program which will accept XML documents , Parse it ( Parsing via Expat Xml Parser) and then by mapping it to some structure i will send it on a queue ? Now how to go about getting XML documents and parsing it ... Can u help me out with the code ...?

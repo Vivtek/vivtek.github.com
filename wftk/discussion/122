@@ -1,0 +1,22 @@
+SUBJECT>Mutl-threaded WfTK service ??
+POSTER>Dan Connelly
+EMAIL>danc@prosoft-tech.com
+DATE>990382232
+EMAILNOTICES>no
+IP_ADDRESS>prosoft-tech.com
+PREVIOUS>
+NEXT> 125
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>For Solaris, a command line invocation is cool if there is only one thread of control. Multiple, concurrent invocations (same config) are in big trouble I suspect. They would have separate heaps but continually write to shared files, stomping on one another.
+<P>What you want is a single invocation with multiple threads of control using the same heap (session). Does the session management take care of this? I don't see it if it does.
+<P>If WfTK were written as a Java servlet and run in a servlet container like Apache/Tomcat, then the outer layer of thread control would come &quot;free&quot;. You would still need to synchronize the heap usage to enforce mutual exclusion on critical sections. I bet the Java XML guys have this figured out already.
+<P>(So, because your heap usage is not synchronized, the code to generate a unique ID is not thread safe. &quot;Unique&quot; IDs they are not. Not always, at any rate.)
+<P>I don't know much about the AOL or Zope web servers. Does either one of these put a multi-threaded harness around single-threaded C code? I doubt it. But these web servers will certainly expose the WfTK application to a high degree concurrency. Vanilla CGI does not take care of this. Beware!
+<P>But, an Apache module for WfTK...., now that would be stellar. Try going there if you insist on toughing it out in C. I'm serious. But, you could convince me (maybe) that Python threading in Zope is good enough. (Are you just itching to re-write WfTK in Python? As opposed to Java?)
+<P>BTW, the idea of a Solaris port, as opposed to an AIX or a Linux port, implies Solaris threads, not pthreads (posix threads) in a multi-threaded application, which is certainly what WfTK must try to become. Threads differ across unices. But Solaris threads are &quot;a good thing&quot; and you should embrace them, especially if a &quot;Solaris port&quot; is to mean anything. I'd like to see it.
+<P>----------
+<P>Oh, no. I just grep'ed the code for &quot;thread&quot;. You don't know diddly for threads.
+<P>Why am I not surprised?
+<P>

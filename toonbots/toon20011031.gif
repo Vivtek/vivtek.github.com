@@ -1,0 +1,92 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+
+<head>
+   <title>Toonbots: a kind of daily kind of comic strip</title>
+<META NAME="description" CONTENT="An online comic strip.  Nonsense humor and automatic drawing tools.">
+<meta name="keywords" content="Web toons, Webtoons, cartoons, comics, comic strip, robots, tools, graphics software">
+<style>[##style##]</style>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+[##navlogo##]
+
+<center><table><tr><td>
+<h2><u>Toonbots archive: episode published 30 March, 2001</u></h2>
+<center>
+
+[&nbsp;<a href="http://www.vivtek.com/toonbots/">toonbots home</a>&nbsp;]
+
+[&nbsp;<a href="http://www.vivtek.com/toonbots/toon-o-matic.html">the toon-o-matic software</a>&nbsp;] [&nbsp;<a href="http://www.vivtek.com/toonbots/discuss.pl">forum</a>&nbsp;]
+</center>
+</td></tr>
+
+<tr><td>
+
+<center>
+<img src="toon20010330.gif">
+<br>
+<a href="toon20001021.html">First toon</a>
+&nbsp;&nbsp;
+<a href="toon20010325.html">Previous toon</a>
+&nbsp;&nbsp;
+<a href="toon20010401.html">Next toon</a>
+&nbsp;&nbsp;
+<a href="index.html">Today's toon</a>
+<br>
+<table width="50%"><tr><td><font face="arial">
+Ever with his thumb on the pulse of current affairs, the metacartoonist unveils
+another off-the-cuff masterpiece, replete with the subtle give and take of
+sophisticated political commentary.
+
+</font></td></tr></table>
+<br>
+<u>The script used to make this toon:</u>
+<table><tr><td><pre>
+&lt;cartoon height="450" width="550" rowformat="2"&gt;
+&lt;panel&gt;
+   &lt;character name="hick" aspect="lookright"/&gt;
+   &lt;character name="chick" aspect="lookright"/&gt;
+   &lt;character name="dubya" aspect="2"/&gt;
+   &lt;caption fgcolor="grey" location="top left"&gt;Hey, Dubya!  How many Supreme Court Justices...&lt;/caption&gt;
+   &lt;caption fgcolor="blue" location="bottom middle"&gt;...does it take to screw in a dim bulb?&lt;/caption&gt;
+&lt;/panel&gt;
+&lt;panel&gt;
+   &lt;character name="hick" aspect="lookright"/&gt;
+   &lt;character name="chick" aspect="lookleft"/&gt;
+   &lt;caption fgcolor="blue" location="bottom middle" size="16"&gt;Was he looking up my ...&lt;/caption&gt;
+   &lt;character name="dubya" aspect="3"/&gt;
+&lt;/panel&gt;
+&lt;panel&gt;
+   &lt;character name="chick" aspect="lookleft" action="modify"&gt;
+     &lt;draw name="lefteye" center="up 5"/&gt;&lt;draw name="righteye" center="up 5"/&gt;
+   &lt;/character&gt;
+   &lt;character name="dubya" aspect="4"/&gt;
+   &lt;caption fgcolor="red" location="top right"&gt;I don't know, how ma--&lt;/caption&gt;
+&lt;/panel&gt;
+&lt;panel&gt;
+   &lt;character name="hick" aspect="normal" action="modify"&gt;
+     &lt;draw name="smile" fill="white" type="ellipse" rel-h="40" rel-w="50" center="bridge up 10" start="50" end="130"/&gt;
+   &lt;/character&gt;
+   &lt;character name="chick" aspect="normal" action="modify"&gt;
+     &lt;draw name="smile" fill="white" type="ellipse" rel-h="40" rel-w="50" center="bridge up 10" start="50" end="130"/&gt;
+   &lt;/character&gt;
+   &lt;character name="dubya" aspect="1"/&gt;
+   &lt;caption fgcolor="red" size="68" location="top right"&gt;HEY!&lt;/caption&gt;
+&lt;/panel&gt;
+&lt;/cartoon&gt;
+
+
+</pre></td></tr></table>
+</center>
+
+</td></tr>
+
+</table>
+
+
+[##cr_fill##]
+</center>
+</body>
+
+</html>

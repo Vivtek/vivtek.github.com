@@ -1,0 +1,12 @@
+character base http://www.vivtek.com/toonbots/characters/
+panels 3
+panel 1
+font size=10 color=0,0,255
+me says Hello, world.
+me leaves
+font clear
+panel 2
+panel 3
+font Bitstream Charter:style=Bold Italic
+font color=255,0,0
+caption (lower right) NEXT: SOMETHING ELSE!

@@ -1,0 +1,17 @@
+SUBJECT>Re: XML Storage of Task/State
+POSTER>Brian Brown
+EMAIL>Brian.Brown@emergent-it.com
+DATE>968337752
+EMAILNOTICES>no
+IP_ADDRESS>csco-fw1.emergent-it.com
+PREVIOUS>6
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>[cut]
+<P>&gt; Most often they expose some API for getting/setting the WF properties and
+<BR>> move tasks along. I'm not aware of any that have anything that could
+<BR>> transfer the process and state of a workflow from one server to another.
+<BR>> Especialy in a platform agnostic fashion.
+<P>One possibility is using the Jabber platform as an external messaging infrastructure - Jabber is basically a modular XML processing engine with instant messaging being the first thing they used it for. Modules that interfaced to other workflow and/or non-workflow systems could be built, and the client code could be integrated into this project..... hmmm, this could be interesting!

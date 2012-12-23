@@ -1,0 +1,14 @@
+SUBJECT>Re: expat compatibility
+POSTER>Dan Connelly
+EMAIL>danc@prosoft-tech.com
+DATE>990025235
+EMAILNOTICES>no
+IP_ADDRESS>prosoft-tech.com
+PREVIOUS>104
+NEXT> 107
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Even the suggested ftp has the problem with hashtable.
+<P>The hashtable code has been folded into the xmlparse code as static functions. Well the work-around hack is simple enough.
+<P>Perhaps WfTK should remove its dependency on expat's internal hashtable code.

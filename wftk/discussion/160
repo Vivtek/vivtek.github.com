@@ -1,0 +1,12 @@
+SUBJECT>WPDL / FDL and wftk
+POSTER>Martijn Hooimeijer
+EMAIL>hooimeijerm@logica.com
+DATE>1010407452
+EMAILNOTICES>no
+IP_ADDRESS>194.151.163.35
+PREVIOUS>
+NEXT> 165
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Hi. I am using IBM MQSeries Workflow which can import and export to a standard Flow Definition Language (FDL), or the more general Workflow Process Definition Language(WPDL). I do not find any reference to such a definition language in the wftk documentation or material. Any plans to implement an interface to include WPDL/FDL compatibility?

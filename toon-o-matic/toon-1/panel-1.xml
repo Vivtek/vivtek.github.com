@@ -1,0 +1,4 @@
+<panel>
+<character name="me"/>
+<dialog who="me">Hello, World.</dialog>
+</panel>

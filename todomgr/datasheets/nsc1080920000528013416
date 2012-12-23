@@ -1,0 +1,4 @@
+<datasheet procdef="chair_1.xml" process="nsc1080920000528013416"><data name="Product requested" type="string">Chair</data><data name="Requester's email" type="string">michael@vivtek.com</data><data name="Reason for request" type="text">Because I'm sitting on my
+trashcan right now.  I want a
+chair.
+</data><state idcount="11"><queue><item id="0" type="workflow" loc="workflow" cur="workflow.sequence" block="yes"/><item id="9" type="sequence" loc="workflow.sequence" parent="0" cur="workflow.sequence.task" block="yes"/><item id="10" type="task" loc="workflow.sequence.task" parent="9" block="yes"/></queue></state><task id="nsc1080920000528013416:10"><data id="Approval code" type="string"/></task></datasheet>

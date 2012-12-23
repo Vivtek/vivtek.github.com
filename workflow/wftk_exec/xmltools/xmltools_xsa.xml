@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!DOCTYPE xsa PUBLIC "-//LM Garshol//DTD XML Software Autoupdate 1.0//EN//XML" 
+                     "http://www.garshol.priv.no/download/xsa/xsa.dtd">
+
+<xsa>
+  <vendor>
+    <name>Vivtek</name>
+    <email>michael@vivtek.com</email>
+    <url>http://www.vivtek.com/</url>
+  </vendor>
+
+  <product id="xmltools">
+    <name>xmltools</name>
+    <version>0.1</version>
+    <last-release>20000515</last-release>
+    <info-url>http://www.vivtek.com/xmltools/</info-url>
+    <changes>
+ - now available
+    </changes>
+  </product>
+</xsa>

@@ -1,0 +1,2 @@
+doit.pl lpml_alpha.xml
+zip lpml_alpha.zip README COPYING lpml.pl *.html lpml_alpha.xml blank.xml

@@ -1,0 +1,23 @@
+panel
+font size=12
+mouse says Are you aware of all Internet traditions?
+mouse leaves
+panel
+al says I am aware of all Internet traditions!
+al leaves
+panel
+mao says I am aware of all Internet traditions.
+mao leaves
+panel
+yoda says Aware of all Internet traditions I am.
+yoda leaves
+panel
+osama says I am not aware of your decadent traditions.
+osama leaves
+panel
+mouse says Shouldn't you be aware of<br/>all Internet traditions?
+mouse leaves
+panel
+caption (middle, size=16, color=255,0,0) Brought to you by the Society<br/>for Internet Tradition Awareness
+caption (bottom middle, color=0,0,255) Because an Internet tradition is a terrible thing to waste.
+

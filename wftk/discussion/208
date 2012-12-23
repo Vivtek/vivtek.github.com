@@ -1,0 +1,16 @@
+SUBJECT>Installation
+POSTER>Montgomery Barroso Franca
+EMAIL>mont@inf.ufrgs.br
+DATE>1038943652
+EMAILNOTICES>no
+IP_ADDRESS>143.54.10.159
+PREVIOUS>
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Hi, I found a link to Installation in http://www.vivtek.com/doc/install.html . It is written that it is obsolete, but I haven't found other one.There is a lot of things that I don't understand.
+<P>1- You said that wftk works with windows and linux. It depends on AOLserver. But AOlserver (in http://aolserver.com/docs/admin/install.html) does not say that it runs on Windows. So, I am installing in Linux.
+<P>2- In the 3-rd item, you said that I have to compile in the 3 C-language directories, but which are them? I didn't find the c files. I don't know if I need Perl, or if it is only to windows's users. And, in this case, what can I do ?
+<P>3 - For the readme file, I didn't understand if I (on Linux) have to install the expat.
+<P>Thank you for your attention.

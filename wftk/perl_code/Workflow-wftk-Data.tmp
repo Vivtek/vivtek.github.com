@@ -1,0 +1,527 @@
+package Workflow::wftk::Data;
+
+use warnings;
+use strict;
+
+use lib './lib'; # Locally defined data types can be added here.
+
+use Workflow::wftk::Record;
+use Text::Table;
+use Scalar::Util qw(looks_like_number);
+
+
+
+=head1 NAME
+
+Workflow::wftk::Data - Provides a common data-access model, the list, for use by workflows and other tools
+                       in the wftk.
+
+=head1 VERSION
+
+Version 0.01
+
+
+I<Implementation>:
+
+
+   our $VERSION = '0.01';
+
+
+=head1 SYNOPSIS
+
+The C<Workflow::wftk::Data> module is almost always subclassed.  Given a data classname and a data definition which the
+individual class driver knows how to interpret, a Data object can be opened and browsed, filtered and published,
+and so on.
+
+(If the module isn't subclassed, W::w::Data will create an in-memory virtual list, useful for cursors or intermediate
+results, but not too convincing as, you know, a workflow system.)
+
+=head1 FUNCTIONS
+
+=head2 new
+
+
+I<Implementation>:
+
+   sub new {
+      my ($classname, $wftk, $list, $def) = @_;
+
+      my $self = undef;
+      my $needs_connect = 0;
+
+      $def = $wftk->list_conf($list, $def) unless $def and ref $def;
+
+      if ($classname eq 'Workflow::wftk::Data') {
+         my $list_type = $def->get('type');
+
+         if ($list_type ne 'memory') {
+            $needs_connect = 1;
+            # Look in local lib/Data directory first.
+            if (-e "lib/Data/$list_type.pm") {
+               eval 'use Data::' . $list_type . '; $self = Data::'. $list_type . '->new($wftk, $list, $def);';
+               if ($@) {
+                  warn "Unable to load custom data handler '$list_type': $@";
+                  return undef;
+               }
+            }
+            # Next, try module's own installation directory.
+            if (not defined $self and -e "$wftk->{module}/Data/$list_type.pm") {
+               eval 'use Workflow::wftk::Data::' . $list_type . '; $self = Workflow::wftk::Data::' . $list_type . '->new($wftk, $list, $def);';
+               if ($@) {
+                  warn "Unable to load standard data handler '$list_type': $@";
+                  return undef;
+               }
+            }
+            if (not defined $self) {
+               # Perhaps we've been given a full module name?
+               if ($list_type =~ /::/) {
+                  eval 'use ' . $list_type . '; $self = ' . $list_type .'->new($wftk, $list, $def);';
+                  if ($@) {
+                     warn "Unable to load data handler '$list_type': $@";
+                     return undef;
+                  }
+               } else {
+                  # Then again, maybe the caller just screwed up entirely.
+                  warn "No data handler '$list_type' found.\n";
+                  return undef;
+               }
+            }
+         }
+      }
+
+      unless ($self) {
+         $self = { # Default values
+                    cache_keys => 0,
+                    sort_keys => 1,
+                    repos => $wftk,
+                    list => $list,
+                    keys => [],
+                    fields => $def->get('fields') || [],
+                    sql_fields => undef,
+                    values => {},
+                    nextkey => 1,
+                    mask => '#',
+                    conf => $def,
+                 };
+         bless($self, $classname);
+         $self->describe($self);
+      }
+
+      $wftk->{lists}->{$list} = $self;
+
+      $self->connect($def) if $needs_connect;
+      return $self;
+   }
+
+=head2 connect
+
+The C<connect> method connects to, say, a database, or opens a file, or does whatever the driver needs to do in order to access records.
+The memory "connect" doesn't do anything.
+
+
+I<Implementation>:
+
+
+   sub connect { }
+
+=head2 read_conf
+
+The C<read_conf> command is global, providing a tool to read a standard configuration string.  The first part of the string is returned as
+the return value; anything after semicolons is written into $self->{config}.
+
+
+I<Implementation>:
+
+
+   sub read_conf {
+      my ($self, $def) = @_;
+
+      return '' unless $def;
+
+      my @parts = split / *; */, $def;
+      my $ret;
+      if ($parts[0] =~ /=/) {
+         $ret = '';
+      } else {
+         $ret = shift @parts;
+      }
+      foreach (@parts) {
+         my ($k,$v) = split / *= */, $_, 2;
+         $v = 1 unless defined $v;
+         if ($k eq 'fields') {
+            my @fields = split /[ ,]+/, $v;
+            $self->{fields} = \@fields;
+         } else {
+            $self->{config}->{$k} = $v;
+         }
+      }
+      return $ret;
+   }
+
+=head2 describe
+
+The C<describe> method sets a description and returns it.  If no string is given, it just returns the stored one.
+
+
+I<Implementation>:
+
+
+   sub describe {
+      my ($self, $description) = @_;
+      $self->{description} = $description if $description;
+      $self->{description};
+   }
+
+
+=head2 keys
+
+The C<keys> method returns a list of keys to objects in the list.  They're returned in the natural order of the list.  The presumption is
+that the list will be relatively small, of course -- if not, set a limit.  (TODO: limit setting)  For our in-memory list, this is a pretty
+safe shortcut.
+
+
+I<Implementation>:
+
+
+   sub keys {
+      my $self = shift;
+      return @{$self->{keys}} if $self->{cache_keys};
+      return sort (keys (%{$self->{values}})) if $self->{sort_keys};
+      return keys (%{$self->{values}});
+   }
+
+=head2 first_key and next_key
+
+A more reasonable approach for large lists, of course, is C<first_key> and C<next_key>, which do what you think they'll do.  Note that
+these are also used for FIRSTKEY and NEXTKEY to implement hash tying.  Did I mention I love Perl?
+
+
+I<Implementation>:
+
+
+   sub first_key {
+      my $self = shift;
+      if ($self->{cache_keys}) {
+         my $keys = scalar $self->keys();
+         $self->{iterator} = 1;
+         return $self->{keys}->[0];
+      }
+      my $keys = scalar CORE::keys %{$self->{values}};
+      return each %{$self->{values}};
+   }
+
+
+   sub next_key {
+      my ($self, $last_key) = @_;
+      return $self->{keys}->[$self->{iterator}++] if $self->{cache_keys};
+      return each %{$self->{values}};
+   }
+
+=head2 fields
+
+The C<fields> method returns a list of the fields (column names) defined for the list.
+
+
+I<Implementation>:
+
+
+   sub fields {
+      my $self = shift;
+      return @{$self->{sql_fields}} if $self->{sql_fields};
+      return @{$self->{fields}};
+   }
+
+=head2 add_fields
+
+The C<add_fields> method can be called explicitly to define a list on the fly.  This
+implementation is for the in-memory table, and I'm frankly not sure what other
+adapters should do with it.  We'll see as we go, I suppose.
+
+
+I<Implementation>:
+
+
+   sub add_fields {
+      my $self = shift;
+
+      foreach my $f (@_) {
+         unless (grep {$_ eq $f} @{$self->{fields}}) {
+            push @{$self->{fields}}, $f;
+         }
+      }
+   }
+
+=head2 get, get_sql
+
+The C<get> method returns a L<Workflow::wftk::Record> containing the values for a particular record.
+The C<get_sql> does the same thing for just the fields exposed to SQL.  For an in-memory table, that's
+the same thing, but some adapters have more expensive retrieval that is avoided until absolutely
+necessary.
+
+
+I<Implementation>:
+
+
+   sub get_sql {
+      my ($self, $key) = @_;
+      return undef if not defined $key;
+      return $self->{values}->{$key};
+   }
+   sub get {
+      my $self = shift;
+      $self->get_sql(@_);
+   }
+
+=head2 exists
+
+The C<exists> method is provided more or less for completeness in the tie specification (to cover
+EXISTS).  In the memory version, it just checks for existence in the value hash.
+
+
+I<Implementation>:
+
+
+   sub exists {
+      my ($self, $key) = @_;
+      exists $self->{values}->{$key};
+   }
+
+=head2 get_new
+
+The C<get_new> method builds a blank record that matches the list's definition.  The shell can
+then call an editor to edit that record in text format.
+
+
+I<Implementation>:
+
+
+   sub get_new {
+      my ($self, $level) = @_;
+      Workflow::wftk::Record->new_for_list($self, $level);
+   }
+
+=head2 put, add, mod,
+
+The C<put> method takes a record object and writes it to the list.  This is just the internal part; outside, we call
+C<add> or C<mod> to create data modification events, which may invoke workflow, and the implementation of those
+methods are (1) very complex and (2) available for all subclasses of W::w::Data.  Put, on the other hand, is
+implementation-specific.
+
+
+I<Implementation>:
+
+
+   sub put {
+      my ($self, $key, $record) = @_;
+      $record = Workflow::wftk::Record->make_record($record, $self);
+      if (defined $key) {
+         if (looks_like_number($key) && $key >= $self->{nextkey}) {
+            $self->{nextkey} = $key + 1;
+         }
+      } else {
+         $key = $self->{nextkey}++;
+      }
+      push @{$self->{keys}}, $key if $self->{cache_keys} and not grep {$_ eq $key} @{$self->{keys}};
+      if ($record->{body} and not $self->{body}) {
+         $self->{body} = $record->{body};
+      } elsif ($record->{body} and $self->{body} ne $record->{body}) {
+         $record->{values}->{$self->{body}} = $record->{values}->{$record->{body}};
+         delete $record->{values}->{$record->{body}};
+         $record->{body} = $self->{body};
+      }
+      $self->{values}->{$key} = $record;
+      $self->add_fields($record->fields()) unless $self->{sql_fields};
+      return $key;
+   }
+
+   #TODO: flesh these out, later.
+   sub add {
+      my ($self, $record) = @_;
+      return $self->put (undef, $record);
+   }
+
+   sub mod {
+      my ($self, $key, $record) = @_;
+      return $self->put ($key, $record);
+   }
+
+=head2 genkey
+
+The C<genkey> method generates a key for a given record.  Currently it just increments the numeric nextkey, but
+later it will be able to use a mask to generate some of the key from the data in the record.
+
+
+I<Implementation>:
+
+
+   sub genkey {
+      my ($self, $rec) = @_;
+      $self->{nextkey}++;
+   }
+
+=head2 patch
+
+The C<patch> method takes a partial record containing a subset of the fields in the original record, and only updates the
+ones it's given.
+
+
+I<Implementation>:
+
+
+   sub patch {
+      my ($self, $key, $record) = @_;
+      return $self->put ($key, $record);  # TODO: this is obviously not written.
+   }
+
+
+=head2 delete, del
+
+The C<delete> method, given a key, deletes the record.  Again, this is the internal part, to be overridden for
+other implementations.  The C<del> method is called for properly workflowized deletion of records.
+
+
+I<Implementation>:
+
+
+   sub delete {
+      my ($self, $key) = @_;
+      if ($self->{cache_keys}) {
+         my @remaining = grep {$_ ne $key} @{$self->{keys}};
+         $self->{keys} = \@remaining;
+      }
+      delete $self->{values}->{$key};
+   }
+
+   #TODO: flesh this out, later.
+   sub del {
+      my ($self, $key) = @_;
+      $self->delete($key);
+   }
+
+=head2 close
+
+The C<close> method doesn't do anything in the memory implementation.
+
+
+I<Implementation>:
+
+
+   sub close { }
+
+=head2 as_text
+
+The C<as_text> method uses the brilliant Text::Table to format a handy text-based aligned list like MySQL.
+Have I mentioned, in this file, how much I love Perl?
+
+
+I<Implementation>:
+
+
+   sub as_text {
+      my ($self) = @_;   # TODO: we could consider some parameterization of this formatter.
+
+      my $select = 0;
+      $select = 1 if $self->describe() =~ /^select /i;
+
+      my @c;
+      my @fields = $self->fields();
+      if ($select) {
+         @c = (\'| ', shift @fields);
+      } else {
+         @c = (\'| ', 'key');
+      }
+      foreach my $c (@fields) {
+         push @c, \' | ', $c;
+      }
+      push @c, \' |';
+
+      my $t = Text::Table->new(@c);
+      foreach my $key ($self->keys()) {
+         if ($select) {
+            $t->add (map { $self->get_sql($key)->get($_) } $self->fields());
+         } else {
+            $t->add ($key, map { $self->get_sql($key)->get($_) } $self->fields());
+         }
+      }
+
+      my $text = $t->rule ('-', '+');
+      $text .= $t->table(0);
+      $text .= $t->rule ('-', '+');
+
+      foreach ($t->table(1, $t->body_height)) {
+         $text .= $_;
+      }
+      $text .= $t->rule ('-', '+');
+      return $text;
+   }
+
+=head2 Hash interface
+
+The hash interface implements the following in order to allow the list to be tied to a hash:
+
+=over
+
+=item TIEHASH
+
+=item SCALAR
+
+=item CLEAR
+
+=item FIRSTKEY
+
+=item NEXTKEY
+
+=item FETCH
+
+=item EXISTS
+
+=item STORE
+
+=item DELETE
+
+=back
+
+
+I<Implementation>:
+
+
+   sub TIEHASH  { new(@_); }
+   sub SCALAR   { $_[0]->as_text; }
+   sub CLEAR    { $_[0]->connect; } # TODO: see what should actually be here.
+   sub FIRSTKEY { $_[0]->first_key; }
+   sub NEXTKEY  { $_[0]->next_key; }
+   sub FETCH    { $_[0]->get($_[1]); }
+   sub EXISTS   { $_[0]->exists ($_[1]); }
+   sub STORE    { $_[0]->mod($_[1], $_[2]) }
+   sub DELETE   { $_[0]->del($_[1]) }
+
+=head1 AUTHOR
+
+Michael Roberts, C<< <michael at vivtek.com> >>
+
+=head1 BUGS
+
+Please report any bugs or feature requests to C<bug-workflow-wftk at rt.cpan.org>, or through
+the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Workflow-wftk>.  I will be notified, and then you'll
+automatically be notified of progress on your bug as I make changes.
+
+
+=head1 SUPPORT
+
+You can find documentation for this module with the perldoc command.
+
+    perldoc Workflow::wftk::Data
+
+=head1 COPYRIGHT & LICENSE
+
+Copyright 2008 Vivtek, all rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+
+
+I<Implementation>:
+
+
+   1; # End of Workflow::wftk::Data

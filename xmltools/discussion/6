@@ -1,0 +1,12 @@
+SUBJECT>stoping parser
+POSTER>byoussef
+EMAIL>b_youssef2@caramail.com
+DATE>985686689
+EMAILNOTICES>no
+IP_ADDRESS>host.60.82.23.62.rev.coltfrance.com
+PREVIOUS>
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Im using expat to parse a buffer and to build at the same time a dynamic structure to hold data ; but i want to know if i can stop the parser and return error message when a memory allocation error occurs . Thanx

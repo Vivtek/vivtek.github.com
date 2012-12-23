@@ -1,0 +1,314 @@
+import wftk
+import wxpywf
+import string
+import os.path
+from wxPython.wx import *
+
+ui = """
+<ui>
+
+<list id="files">
+<field id="path" label="Full path"/>
+<field id="name" label="Name or nickname"/>
+<field id="description" label="Description"/>
+<field id="tags" label="List of tags"/>
+</list>
+
+<menubar id="main">
+  <menu label="&amp;File">
+     <item cmd="add" label="&amp;Add a file" help="Add a file to the database"/>
+     <item cmd="mod" label="&amp;Edit file info" help="Edit a file's information in the database"/>
+     <item cmd="del" label="&amp;Delete a file" help="Delete a file from the database"/>
+     <separator/>
+     <item cmd="exit" label="E&amp;xit" help="Quit the program"/>
+  </menu>
+</menubar>
+
+<frame id="main" menu="main" title="File tagger" onfiledrop="add %s">
+  <tabset edge="bottom" field="tabshown">
+    <tab label="Cloud">
+       <html field="html"/>
+    </tab>
+    <tab label="Files">
+       <splitter split="vertical" minpanesize="40" sashpos="80">
+         <panel>
+           <box id="box1" dir="vertical"/>
+           <radio-group label="Display:" dir="vertical" field="selection" box="box1" box-weight="0">
+              <radio value="all" label="All tags"/>
+              <radio value="some" label="Some tags"/>
+           </radio-group>
+           <listbox field="tags" box="box1" box-weight="1">
+              <value value="test1"/>
+              <value value="test2"/>
+           </listbox>
+           <button label="Show" box="box1" box-weight="0" cmd="update_list"/>
+           <button label="test" box="box1" box-weight="1" cmd="test blah blargh"/>
+         </panel>
+         <list list="files" field="filelist">
+           <col label="Name" field="name"/>
+           <col label="Tags" field="tags"/>
+           <col label="Description" field="description"/>
+         </list>
+       </splitter>
+    </tab>
+  </tabset>
+</frame>
+
+<dialog id="add" title="Adding files" h="300" w="300">
+  <box id="box1" dir="vertical"/>
+  <static box="box1" format="yes">You are adding [numfiles] files.</static>
+  <static box="box1">Tags to apply to all files (separate with spaces):</static>
+  <text box="box1" field="tags" multiline="yes"/>
+  <static box="box1">Description for all files:</static>
+  <text box="box1" field="description" multiline="yes"/>
+  <checkbox box="box1" field="edit_each" label="Do you want to edit each file separately?"
+             on="yes" off="no"/>
+  <box id="box2" box="box1" dir="horizontal"/>
+  <button box="box2" label="Add" value="ok"/>
+  <button box="box2" label="Cancel" value="cancel"/>
+</dialog>
+
+<dialog id="mod" title="Editing file info" h="300" w="300">
+  <box id="box1" dir="vertical"/>
+  <static box="box1" format="yes">Path: [path]</static>
+  <box id="box1a" box="box1" dir="horizontal"/>
+  <static box="box1a">Nickname:</static>
+  <text box="box1a" field="name"/>
+  <static box="box1">Tags (separated by spaces):</static>
+  <text box="box1" field="tags" multiline="yes"/>
+  <static box="box1">Description:</static>
+  <text box="box1" field="description" multiline="yes"/>
+  <box id="box2" box="box1" dir="horizontal"/>
+  <button box="box2" label="Update" value="ok"/>
+  <button box="box2" label="Cancel" value="cancel"/>
+</dialog>
+
+
+
+</ui>
+"""
+
+defn = wftk.xml (ui)
+defn['command-line'] = sys.argv
+sys.argv.pop(0)
+if len(sys.argv) > 0 and sys.argv[0][0] == '-':
+   flags = sys.argv.pop(0)[1:]
+   while flags != '':
+      if flags[0] == 'f': defn['show'] = 'Files'
+      if flags[0] == 'c': defn['show'] = 'Clouds'
+      if flags[0] == 's': defn['silent'] = 'yes'
+      if flags[0] == 't':
+         defn['selection'] = 'some'
+         defn['tags'] = flags[1:]
+         break
+      flags = flags[1:]
+try:
+   defn['datafile'] = sys.argv.pop(0)
+except:
+   defn['datafile'] = 'default.ftg'
+if len(sys.argv):
+   args = []
+   for a in sys.argv[1:]:
+      if a.index(' ') > -1:
+         args.append ('"%s"' % a)
+      else:
+         args.append (a)
+   defn['startcmd'] = sys.argv[0] + ' ' + ' '.join(args)   # I just love this groovy syntax!
+try:
+   infile = open(defn['datafile'])
+   data = wftk.xmlobj()
+   data.read (infile)
+except IOError, message:
+   data = wftk.xmlobj (str="""
+<data>
+<files/>
+<tags/>
+<cloud/>
+</data>
+""")
+except wftk.ParseError, message:
+   # TODO: delve into the many layers between here and expat, and format better messages; py_xmlapi isn't doing the best it could.
+   defn['datafile-error'] = "%s is corrupted XML (%s).  Quit before making any changes if you think you can save it." \
+                             % (defn['datafile'], message)
+   data = wftk.xmlobj (str="""
+<data>
+<files/>
+<tags/>
+<cloud/>
+</data>
+""")
+
+defn.append_pretty (data)
+class g: pass
+dataindex = g()
+dataindex.filelist = {}
+dataindex.tags = ['tags']
+dataindex.tag_counts = {}
+def reindex():
+   dataindex.filelist = {}
+   dataindex.tags = []
+   dataindex.tag_counts = {}
+   for f in data.loc('.files').elements():
+      dataindex.filelist[f['path']] = f
+      for tag in f['tags'].split():
+         try:
+            if dataindex.tags.index(tag) > -1: dataindex.tag_counts[tag] = dataindex.tag_counts[tag] + 1
+         except:
+            dataindex.tags.append(tag)
+            dataindex.tag_counts[tag] = 1
+reindex()
+class mycli(wftk.cli):
+   def __init__ (self, defn):
+      self.defn = defn
+      self.mode = 0
+      self.commands={}
+      self.commands['initialize']   = ['initialize',   self.initialize,   0,  0, '']
+      self.commands['update_list']  = ['update_list',  self.update_list,  0,  0, '']
+      self.commands['find_tags']    = ['find_tags',    self.find_tags,    0,  0, '']
+      self.commands['update_cloud'] = ['update_cloud', self.update_cloud, 0,  0, '']
+      self.commands['save']         = ['save',         self.save,         0,  0, '']
+      self.commands['show_tag']     = ['show_tag',     self.show_tag,     1,  1, '[tag]']
+      self.commands['add']          = ['add',          self.add,          0, -1, '[list of files]']
+      self.commands['mod']          = ['mod',          self.mod,          0, -1, '[file] [changes]']
+      self.commands['del']          = ['del',          self.delete,       0, -1, '[list of files]']
+      self.commands['test']         = ['test',         self.test,         0, -1, '']
+
+
+   def initialize(self, context, action, obj):
+      self.frame.do (context, 'find_tags')
+      if defn['show']      != '': self.frame.do (context, "set tabshown %s" % defn['show'])
+      if defn['selection'] != '': self.frame.do (context, "set selection %s" % defn['selection'])
+      if defn['tags']      != '': self.frame.do (context, "set tags %s" % defn['tags'])
+      self.frame.do (context, 'update_list')
+      self.frame.do (context, 'update_cloud')
+      if defn['startcmd']  != '': self.frame.do (context, defn['startcmd'])
+      if defn['silent'] == 'yes': self.frame.do (context, 'exit')  # TODO: should this be standard WxPyWf behavior?
+
+   def save(self, context, action, obj):
+      data.write(defn['datafile'])
+
+   def test(self, context, action, obj):
+      wxpywf.notify_user (self.frame['html'])
+
+   def show_tag(self, context, action, obj):
+      self.frame.do (context, "set selection some")
+      self.frame.do (context, "set tags %s" % action['parm(0)'])
+      self.frame.do (context, "set tabshown Files")
+      self.frame.do (context, "update_list")
+
+   def update_list(self, context, action, obj):
+      if context['selection'] == 'all':
+         file_list = [(f, f['path']) for f in data.loc('.files').elements()]
+      else:
+         file_list = []
+         for file in data.loc('.files').elements():
+            keys = file['tags'].split()
+            try:
+               if keys.index(context['tags']) > -1:
+                  #print "keys %s contains %s" % (keys, context['tags'])
+                  file_list.append ((file, file['path']))
+            except:
+               pass
+      self.frame.getboundfield('filelist').reload(file_list)
+   def find_tags(self, context, action, obj):
+      keys = dataindex.tags
+      keys.sort()
+      self.frame.getboundfield('tags').new_listbox_values('tags', keys)
+   def update_cloud(self, context, action, obj):
+      if len(dataindex.tags) == 0:
+         self.frame['html'] = "There are no files in the database.<br>Add some by switching to the Files tab below."
+         return true
+      sm = 3.0
+      lg = 8.0
+      delta = lg - sm
+      links = []
+      maxcount = 0
+      for key in dataindex.tags:
+         if dataindex.tag_counts[key] > maxcount:
+            maxcount = dataindex.tag_counts[key]
+      for key in dataindex.tags:
+         weight = dataindex.tag_counts[key] * 1.0 / maxcount
+         font = int(sm + delta * weight)
+         links.append ('<a href="cmd:show_tag %s"><font size="%d">%s</font></a>' \
+                       % (key, font, key))
+      self.frame['html'] = '\n'.join(links)
+   def add(self, context, action, obj):
+      files = [action['parm(%s)' % i] for i in range(int(action['parms']))] # Note: this syntax is scarily beautiful.  See below.
+      if len(files) == 0:
+         dlg = wxFileDialog(self.frame, "Choose a file or files to add to the database", ".", "", "*.*", wxOPEN|wxMULTIPLE)
+         if dlg.ShowModal() == wxID_OK:
+            for path in dlg.GetPaths():
+               files = files + [path]
+         dlg.Destroy()
+
+      if len(files) == 0:
+         return true
+      elif len(files) == 1:
+         filerec = wftk.xmlobj (str="<file/>")
+         filerec['path'] = files[0]
+         filerec['name'] = os.path.basename(filerec['path'])
+         if context['selection'] == 'some': filerec['tags'] = context['tags']
+         if wxpywf.call_dialog(defn.search('dialog', 'id', 'mod'), self.frame, self.frame, \
+                               rec=filerec, title='Add file to database'):
+            data.loc('.files').append_pretty(filerec)
+      else:
+         filesrec = wftk.xmlobj()
+         filesrec['numfiles'] = `len(files)`
+         if context['selection'] == 'some': filesrec['tags'] = context['tags']
+         filesrec['edit_each'] = 'yes'
+         if defn['silent'] == 'yes' or \
+            wxpywf.call_dialog(defn.search('dialog', 'id', 'add'), self.frame, self.frame, \
+                               rec=filesrec, title='Add multiple files to database'):
+            for file in files:
+               filerec = wftk.xmlobj (str="<file/>")
+               filerec['path'] = file
+               filerec['name'] = os.path.basename(filerec['path'])
+               for field in ('tags', 'description'): filerec[field] = filesrec[field]
+               if filesrec['edit_each'] == 'yes':
+                  if not wxpywf.call_dialog(defn.search('dialog', 'id', 'mod'), self.frame, \
+                                            self.frame, rec=filerec, \
+                                            title='Adding file to database'):
+                     next
+               data.loc('.files').append_pretty(filerec)
+      reindex()
+      self.frame.do (context, 'update_list')
+      self.frame.do (context, 'find_tags')
+      self.frame.do (context, 'update_cloud')
+      self.frame.do (context, 'save')
+   def mod(self, context, action, obj):
+      try:
+         rec = dataindex.filelist[context['filelist']]
+      except KeyError:
+         wxpywf.notify_user("There is no file selected in the file list.")
+         return true
+
+      if wxpywf.call_dialog(defn.search ('dialog', 'id', 'mod'), self.frame, self.frame, rec):
+         reindex()
+         self.frame.do (context, 'update_list')
+         self.frame.do (context, 'find_tags')
+         self.frame.do (context, 'update_cloud')
+         self.frame.do (context, 'save')
+   def delete(self, context, action, obj):
+      try:
+         rec = dataindex.filelist[context['filelist']]
+      except KeyError:
+         wxpywf.notify_user("There is no file selected in the file list.")
+         return true
+      if wxpywf.ask_user("Delete file %s from the database?\n(This will not delete the file itself.)" \
+                         % context['filelist'], title="Deleting file") == wxID_YES:
+         rec.delete()
+         reindex()
+         self.frame.do (context, 'update_list')
+         self.frame.do (context, 'find_tags')
+         self.frame.do (context, 'update_cloud')
+         self.frame.do (context, 'save')
+
+class App(wxApp):
+   def OnInit(self):
+      frame = wxpywf.frame(None, defn, defn.search ('frame', 'id', 'main'), cli_list=[mycli(defn)])
+      self.SetTopWindow(frame)
+      if defn['datafile-error']: wxpywf.notify_user(defn['datafile-error'])
+      return true
+
+app = App(0)
+app.MainLoop()

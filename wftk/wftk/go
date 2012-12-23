@@ -1,0 +1,5 @@
+lpml.pl wftk.xml
+cp wftk.xml wftk_xml.txt
+/usr/local/bin/indent -kr -sob -i3 -lp -ts100 wftk.c
+zip wftk_engine wftk.xml *.html wftk.c Makefile lpml.pl
+make

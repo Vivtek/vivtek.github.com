@@ -1,0 +1,18 @@
+Return-Path: <p.vansmith01gvbkaokckvbt@hotmail.com>
+Received: from hotmail.com (220-137-73-64.dynamic.hinet.net [220.137.73.64])
+	by despammed.com (8.11.6/8.11.6) with SMTP id l0FGc7N10232
+	for <despammed@despammed.com>; Mon, 15 Jan 2007 11:38:09 -0500
+Message-ID: <5deb01c7388d$794b2320$dec10bb6@p.vansmith01gvbkaokckvbt>
+Reply-To: "Peter van Smith" <p.vansmith01gvbkaokckvbt@hotmail.com>
+From: "Peter van Smith" <p.vansmith01gvbkaokckvbt@hotmail.com>
+To: <despammed@despammed.com>
+Subject: [despammed] Waiting For Your Response
+Date: Mon, 15 Jan 2007 10:11:07 +0600
+MIME-Version: 1.0
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+X-Priority: 3
+X-MSMail-Priority: Normal
+X-Mailer: Microsoft Outlook Express 6.00.2800.1158
+X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2800.1158

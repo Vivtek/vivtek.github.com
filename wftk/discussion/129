@@ -1,0 +1,18 @@
+SUBJECT>Re: MySQL
+POSTER>Dirk
+EMAIL>dirk_hamstra@yahoo.com
+DATE>990642256
+EMAILNOTICES>no
+IP_ADDRESS>bosgate.amer.iona.com
+PREVIOUS>128
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; I guess I could install MySQL and try to do all three at once. We're only
+<BR>> talking about a day's work or so.
+<P>Great looking forward to that.
+<P>&gt; And if you find one, I'd like to get a pointer as well. Thanks!
+<P>Well regarding this XML-store I'm not sure. There are a bunch of OSS XML persistent stores out there - most notably http://www.dbxml.org. Now I thought that wftk is more a state machine than anything else. If so the amount of data required to update is limited. I take the overhead of storing an XML doc in an rdb initially to ensure that I don't have two persistent stores to manage.
+<P>Comments?
+<P>-Dirk

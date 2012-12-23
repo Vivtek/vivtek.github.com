@@ -1,0 +1,18 @@
+SUBJECT>Re: WPDL / FDL and wftk
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>1011414951
+EMAILNOTICES>no
+IP_ADDRESS>as0-136.blm.bluemarble.net
+PREVIOUS>160
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Hi. I am using IBM MQSeries Workflow which can import and export to a
+<BR>> standard Flow Definition Language (FDL), or the more general Workflow
+<BR>> Process Definition Language(WPDL). I do not find any reference to such a
+<BR>> definition language in the wftk documentation or material. Any plans to
+<BR>> implement an interface to include WPDL/FDL compatibility?
+<P>Well, the answer is: yes, definitely -- but I don't know when. In principle, it should be pretty easy to do; all you'd do is to write a procdef repository adaptor which would read the WPDL/FDL description of the process and convert it to the wftk procdef language before returning it to the library. There will certainly be more to the matter than that, but that's how I'd start to attack it.
+<P>I just don't know when I'll have the time.

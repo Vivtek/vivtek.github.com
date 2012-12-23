@@ -1,0 +1,34 @@
+SUBJECT>Re: MS-Visual Basic adaptor is required?
+POSTER>André Luis
+EMAIL>andre@multiplaconsultoria.com.br
+DATE>1024419105
+EMAILNOTICES>no
+IP_ADDRESS>200.157.16.237
+PREVIOUS>180
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; This is a general question for scripting environments, actually -- I think
+<BR>> the answer is a qualified &quot;no&quot;. The question is really &quot;how
+<BR>> can I write adaptors in a non-C language&quot;, right? The answer depends
+<BR>> on the language. If your language can create a DLL, then you're basically
+<BR>> already finished; the Windows version of the wftk can dynamically link to
+<BR>> it as required. That's assuming you have a compiled language (which I
+<BR>> believe is possible with VB, right?)
+<P>&gt; The other possibility is that you have a special &quot;Python wftk&quot;,
+<BR>> say. I realize this isn't relevant to you, Prashanth, but it might be
+<BR>> relevant to others. If you have the wftk embedded in Python, ideally you'd
+<BR>> like to be able to include support for adaptors written in Python. I
+<BR>> haven't really tackled that yet, but it seems that in *that* case you'd
+<BR>> want a smarter wftk_get_adaptor, *or* you'd have something like an
+<BR>> &quot;adaptor wrapper&quot; which would provide a go-between. So I'd
+<BR>> specify a data storage adaptor as python:something, and do something in
+<BR>> the config file to ensure that the adaptor wrapper would know what in
+<BR>> Python to execute, and then things should work transparently. I think.
+<BR>> Since I haven't actually done it yet, I may be wrong, but that's what I
+<BR>> have in mind. Eventually.
+<P>Hi,
+<P>Can you send me a source code? I'm trying make a WFTK work with VB, but i unknow how. Please, if you can, send for my e-mail: andre@multiplaconsultoria.com.br
+<P>Thank You
+<P>André Luis

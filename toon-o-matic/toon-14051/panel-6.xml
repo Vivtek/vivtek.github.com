@@ -1,0 +1,4 @@
+<panel>
+<character name="mouse" action="leaves"/>
+<dialog who="mouse" font-size="12">Shouldn't you be aware of<br/>all Internet traditions?</dialog>
+</panel>

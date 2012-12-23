@@ -1,0 +1,15 @@
+SUBJECT>Java implementation
+POSTER>Michael
+EMAIL>m.homeijer@hccnet.nl
+DATE>1022239275
+EMAILNOTICES>no
+IP_ADDRESS>193.173.193.195
+PREVIOUS>
+NEXT> 178
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Hi,
+<P>I need a workflow engine that will be accessed from a web content management framework build in Java (J2EE). The options are now to implement a simple engine, buy a commercial one, find an open-source implementation (which isn't available in Java) or use an open-source implementation as an example.
+<P>On your &quot;on the horizon&quot; section I saw you mentioned a migration to Java/EJB. Have you allready given this more thought? I think a lot of people will be interested in an open-source workflow engine in Java because you can use it in a wide range of applications and there's no implementation yet.
+<P>TIA Michael

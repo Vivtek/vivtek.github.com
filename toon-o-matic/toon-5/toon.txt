@@ -1,0 +1,22 @@
+panels 3
+panel 1
+font size=10 color=0,0,255
+fidel says Mon dieu! Como esta tallez vous con carne?
+fidel leaves
+font clear
+panel 2
+font size=9
+will appears
+will says Forsooth, inactivity doth affect<br>the marrow of the bone, the appetite of the stomach...
+panel 3
+font size=11
+will says And the residuals from all those PBS shows,<br>may they go to blazes! 
+font clear
+panel 4
+mouse appears
+mouse says wow. it's a world of code again. 
+font Bitstream Charter:style=Bold Italic
+font color=255,0,0
+panel 5
+caption (bottom) NEXT: IF YOU LIKE BIRDS AND ANIMALS, WE'VE GOT MUSIC TOO!
+

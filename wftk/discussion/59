@@ -1,0 +1,17 @@
+SUBJECT>Re: UI suggestion
+POSTER>Brian Ewins (again)
+EMAIL>Brian.Ewins@btinternet.com
+DATE>972486640
+EMAILNOTICES>no
+IP_ADDRESS>132.146.14.56
+PREVIOUS>58
+NEXT> 61
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Just making sure I wasnt teaching my granny to suck eggs, I took a gander at your code. Unfortunately I dont speaka da TCL well enough to contribute, but I really think your code would be helped immensely by the modularisation suggestions in my previous message.
+<P>However there is a larger issue here, which is that the UI code is tightly bound to the storage (I'm looking at taskmgr.tcl . I understand this well enough to read...). I think you're shooting yourself in the foot here. It makes it very had to write (eg) a tk, perl or java ui (a java cleint could have been easy using jacl) on top of your engine. It also makes the ui code fragile to changes in the RDBMS schema. Hide all your SQL behind an API and you win all over.
+<P>Another suggestion from experience: even if you're not going to use stylesheets, you can achieve much better reuse and look-and-feel consistency by working to functions instead of writing html tags directly as in your code. In my own case I wrote table code to use report_header_row(), report_body_row(), which in turn generated report_header_cell(), report_body_cell(), which in turn embedded their content in td's, tr's of the desired style. This is a bit primitive compared to proper report formatters but a significant improvement over writing html directly. If you need to change style, its a one-line change.
+<P>In practice I ended up passing the row number to report_body_xxx calls as I used an odd/even colour scheme for tables (like Siebels). I also had a heading level parameter in the report_header_xxx calls to allow for subheading styles. You don't need the latter in your tables as you don't do grouping. (I never bothered with section footers but thats the obvious next step to making this a full report formatter).
+<P>I hope you take the criticism as constructive, I realise these are still early days.
+<P>-Baz

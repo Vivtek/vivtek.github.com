@@ -1,0 +1,49 @@
+<?xml version='1.0'?>
+<!-- Created by IBM's XMLGenerator
+
+	numberLevels=7, maxRepeats=3, Random seed=951636699120
+	fixedOdds=4, impliedOdds=4, defaultOdds=4
+	maxIdRefs=3, maxEntities=3, maxNMTokens=3
+	entConfigFile=null, entOdds=1
+	isExplicitRoot=true
+-->
+<workflow last_modified="defaultCDATA0" original_date="defaultCDATA1" author="defaultCDATA2" name="defaultCDATA3">
+  <role name="defaultCDATA4"/>
+  <role name="defaultCDATA5"/>
+  <data readonly="defaultCDATA6" type="defaultCDATA7" value="defaultCDATA8" storage="defaultCDATA9" name="defaultCDATA10"/>
+  <alert type="defaultCDATA11" to="defaultCDATA12">
+    <note/>level 1</alert>
+  <handle situation="defaultCDATA13">
+    <handle>
+      <resume/>
+      <handle>
+        <if expr="defaultCDATA14">
+          <alert type="defaultCDATA15" to="defaultCDATA16">level 5</alert>
+          <elseif expr="defaultCDATA17"/>
+          <task role="defaultCDATA18" label="defaultCDATA19">
+            <data readonly="defaultCDATA20" type="defaultCDATA21" value="defaultCDATA22" storage="defaultCDATA23" name="defaultCDATA24"/>
+            <data readonly="defaultCDATA25" type="defaultCDATA26" name="defaultCDATA27">level 6<list>
+                <list>
+                  <data readonly="defaultCDATA28" value="defaultCDATA29"/>
+                </list>
+              </list>
+              <note/>
+            </data>
+            <data readonly="defaultCDATA30" type="defaultCDATA31" value="defaultCDATA32" storage="defaultCDATA33" name="defaultCDATA34"/>
+          </task>
+          <if expr="defaultCDATA35">
+            <note/>
+            <elseif expr="defaultCDATA36"/>
+            <situation name="a0" break="yes"/>
+          </if>
+        </if>
+        <alert type="defaultCDATA37" to="defaultCDATA38"/>
+      </handle>
+    </handle>
+    <start completion="defaultCDATA39">
+      <note/>
+      <note/>
+    </start>
+    <resume/>
+  </handle>
+</workflow>

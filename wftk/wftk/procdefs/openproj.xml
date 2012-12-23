@@ -1,0 +1,11 @@
+<item ver="1" title="Open-source project">
+<owner name="michael">Michael michael@vivtek.com</owner>
+<edits/>
+<versions>
+<version id="1" file="openproj_1.xml">
+The original version of the open source development scenario.
+For more information see <a href="http://www.vivtek.com/wftk/usage/openproj.html">the
+open source development scenario</a>.
+</version>
+</versions>
+</item>

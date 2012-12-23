@@ -1,0 +1,17 @@
+SUBJECT>Re: LPML
+POSTER>Frank
+EMAIL>
+DATE>1000455423
+EMAILNOTICES>no
+IP_ADDRESS>pD9001BB2.dip.t-dialin.net
+PREVIOUS>
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Regarding my previous message:
+<P>I indeed did not find the following page when I first visited this site, but not I have found it.
+<P>http://www.vivtek.com/lpml/language.html
+<P>So, I have to modify my previous statement. The page above /is/ a language specification.
+<P>The remaining suggestion would be as follows, I have found an introductory topic on XML and IIRC on literate programming but not on LPML. This should be the other way round. Because more readers will already know XML and literate programming than LPML. So there should be a short LPML tutorial for readers who already know XML and the concept of literate programming, while an XML and literate programming tutorial is less needed.
+<P>This tutorial should include a very small simple example, showing the LPML input and the source of the outputs within the same tutorial page. When HTML or XML is contained in a file ending with &quot;.txt&quot; some browser still will not display it as text, so it will not always be readable as intended.

@@ -1,0 +1,715 @@
+<litprog>
+<object name="wftk_lib.c" language="c" item="library"/>
+<object name="wftk.h" language="c" item="wftk_h"/>
+<object name="wftk_lib.h" language="c" item="wftk_internals"/>
+
+
+<format name="index">
+<html><head><title>wftk core engine</title></head>
+<body>
+<h2>wftk: wftk core engine</h2>
+<center>
+[ <a href="wftk_engine.zip">download</a> ] [ <a href="wftk_lib.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr/>
+The wftk core library, defined here, is the core workflow functionality of the whole wftk system.  Everything
+else just supports this stuff, basically.  It's implemented as a library so we can build it into other systems.
+<p/>
+The library consists of: <ul>
+<li> Basic workflow functions.</li>
+<li> HTML presentation functions.</li>
+<li> Datasheet repository functions (datasheet load/save).</li>
+<li> Places to put adaptors.</li>
+</ul>
+
+<strong><font size=+1>Adaptors</font></strong><br>
+
+The core engine uses the following adaptors:<ul>
+<li> <code>config</code>: Configuration</li>
+<li> <code>dsrep</code>: Datasheet repository.</li>
+<li> <code>pdrep</code>: Procdef repository.</li>
+<li> <code>user</code>: User/permission module.</li>
+<li> <code>db</code>: Database interface.</li>
+<li> <code>notify</code>: Notification mechanisms.</li>
+<li> <code>script</code>: Scripting languages.</li>
+<li> <code>datatype</code>: Data types.</li>
+<li> <code>debug</code>: What to do with debugging output.</li>
+</ul>
+
+The point of these adaptors is to create as flexible and modular a system as possible.  The
+<a href="http://www.aolserver.com">AOLserver</a> database driver system has been a great influence on
+me here -- with AOLserver it's almost trivial to write a database driver to allow seamless (well, ideally)
+access to database functionality from scripts.
+<p/>
+I guess I could be a little clearer about some of those adaptors, though.  The datasheet repository,
+for example, is where datasheets are stored.  The procdef repository is where process definitions are
+stored.  In the prototype, each of these was implemented as a fairly simple system of files and
+directories.  In the case of the procdef repository, however, there are already good solutions to things
+like version control -- CVS is a good example.  Ideally, if CVS is available, the procdef repository
+should be able to use it for "real" version control and also for all the integration possibilities
+which are already there.  Thus the procdef repository is implemented as an adaptor.
+<p/>
+The configuration adaptor is unique to a given installation, and could be as simple as a bunch of
+compiled settings, or as complex as the location of an XML file to be loaded based on some kind of
+context.  On Windows it will read the Registry.
+<p/>
+The user adaptor allows the core engine (and its CGI implementations) to ask a directory who the
+current user is and what permissions the current user has.  Naturally, the <a href="../user/index.html">user
+module</a> included with the wftk is the preferred one, if that's the right word, but once I've
+learned something about LDAP I'm sure I'll want to integrate with it.  More to the point, if your
+organization already has something in place that can do user authentication and permission
+definitions, then wftk should work with it.
+<p/>
+The db adaptor provides an interface to a task manager.  The overview talks about the difference between
+core workflow and task management.  Suffice it to say here that the db adaptor allows us to specify a
+set of databases to which current status of tasks and processes can be written so that other systems
+can also use that information.
+<p/>
+The notification adaptor provides a way to adapt wftk to existing messaging protocols.  I'm implementing
+email and a database-based task manager notification methods, but you can easily imagine others, like
+Outlook integration or alpanumeric pagers.
+<p/>
+The scripting language adaptor is going to be one of the most exciting parts of wftk.  Particularly once
+I drop this engine into Python, it's going to be nice to be able to run Python snippets from inside a
+process.  The same thing applies to Perl, Java, Tcl, or what have you.  (OK, Java might be a little
+trickier since it's compiled.  I'll see how that all works out.)  The default "scripting language" will
+be something very simple to allow basic data value manipulation without having to compile a scripting
+engine into the basic configuration.
+<p/>
+Likewise, the data manipulation facilities will be extensible via a datatype adaptor.  The details of
+this (like the scripting adaptor) are pretty fuzzy at this point.
+<p/>
+
+<strong><font size=+1>Data sources used</font></strong><br>
+Besides its commands, the engine has two sources of input: the process definition and the
+datasheet.  The procdef stores information about a class of processes; the datasheet stores
+information about the current instance of that class.  Both documents are XML documents, and
+the core engine interprets these documents using James Clark's
+<a href="http://www.vivtek.com/expat.html">expat parser</a>, a stable and fairly simple parser.
+<p/>
+Commands can be performed either by calling individual action functions, or passing a <i>very</i>
+simple list of commands in an XML format to a general command doer thingy function.
+<p/>
+Here's how we do all this stuff:
+[##itemlist##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<format name="default">
+<html><head><title>wftk core library: [##label##]</title></head>
+<body>
+<h2>[##label##]</h2>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="wftk_lib.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="wftk_lib.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<item name="wftk_lib" label="wftk core library" format="index">
+</item>
+
+<item name="wftk_h" label="Include file (and API definition)">
+The API presented by the wftk core library is really pretty simple.  It consists
+basically of workflow actions and HTML presentation functions (defaults, really).
+So here, with no further ado, is the include file in its entirety.
+<p/>
+Note that it's not Windows-ized yet.  That'll come soon.
+
+<piece>
+#ifndef WFTK_H
+#define WFTK_H
+#include <stdio.h>
+#include "../xmlapi.h"
+
+void wftk_htmlout_summary (FILE * out, XML * datasheet);
+void wftk_htmlout_active (FILE * out, XML * datasheet);
+void wftk_htmlout_task (FILE * out, XML * datasheet);
+void wftk_htmlout_progress (FILE * out, XML * datasheet);
+
+XML * wftk_list_users (XML * datasheet);
+XML * wftk_list_active (XML * datasheet);
+XML * wftk_list_enactment (XML * datasheet);
+
+XML * wftk_task_requirements (XML * datasheet, char * task_id);
+
+XML * wftk_action_create (char * dprep, char * datasheet_id);
+int   wftk_action_define (XML * datasheet, char * pdrep, char * procdef_id);
+void wftk_action_complete (XML * datasheet, XML * procdef, char * task_id);
+void wftk_action_abort (XML * datasheet, XML * procdef, char * task_id);
+void wftk_action_setvalue (XML * datasheet, char * name, char * value);
+
+void wftk_action (XML * datasheet, XML * procdef, XML * command);
+
+XML * wftk_datasheet_load (char * dprep, char * datasheet_id);
+void  wftk_datasheet_save (XML * datasheet);
+
+XML * wftk_procdef_load (XML * datasheet);
+
+void wftk_notify (const char * type, const char * to, const char * from, const char * subject, XML * message);
+#endif
+</piece>
+</item>
+
+<item name="wftk_internals" label="Internal definitions">
+Here are a few things that the library functions will use (and adaptor code as well) but that don't really need
+to be exposed to the cold, hard world.  First are the IDs for the types of adaptor.
+
+<piece>
+#define DSREP         0
+#define PDREP         1
+#define USER          2
+#define DB            3
+#define NOTIFY        4
+#define SCRIPT        5
+#define DATATYPE      6
+#define DEBUG         7
+#define CONFIG        8
+
+</piece>
+
+And the other is the definition of the WFTK_ADAPTOR structure used to pass APIs back and forth.  Sort of a poor
+man's ActiveX, I guess.
+
+<piece>
+typedef struct _wftk_adaptor WFTK_ADAPTOR;
+struct _wftk_adaptor {
+   int dummy;
+};
+
+</piece>
+
+Whoops, almost forgot prototypes for the adaptor functions.  (Now to figure out where I want to define the functions.)
+
+<piece>
+WFTK_ADAPTOR * wftk_get_adaptor (int type, const char * name);
+XML * wftk_call_adaptor (WFTK_ADAPTOR * ad, const char * funcname, ...);
+</piece>
+
+Cool, that varargs thing for <code>wftk_call_adaptor</code>, isn't it?
+</item>
+
+
+<item name="library" label="Function definitions">
+Our library will consist of the <code>wftk_lib.c</code> file, defined here, along with
+at least one file for each of the adaptors listed earlier.  Most of the nitty-gritty
+will of course be in the various adaptor definitions, the most important content of
+this file being the procdef interpreter.
+<p/>
+Really the HTML presentation stuff should be a completely different library, and 
+probably I'll end up doing that at some point.  It makes sense (to me) to stash
+it here for now.
+
+<piece>
+#include "wftk.h"
+#include "wftk_lib.h"
+<insert name="wftk_interpreter"/>
+<insert name="wftk_action"/>
+<insert name="wftk_list"/>
+<insert name="wftk_htmlout"/>
+<insert name="wftk_dsrep"/>
+<insert name="wftk_pdrep"/>
+</piece>
+</item>
+
+
+<item name="wftk_action" label="Taking action and interpreting command streams"/>
+Interpreting commands and interpreting process definitions in order to complete tasks and advance processes
+is, of course, the whole point of workflow.  And really, it's not all that hard.
+Let's start with the individual actions, and then we'll do a little command list interpreter.  Command lists
+are simply XML structures containing command elements which correspond to calls to the individual action
+functions, so there's not a lot to that.
+<p/>
+The way I'm implementing state bears mentioning.  Each active task has an entry in a task queue.  As tasks get
+activated, they are added to this queue.  The queue is an element in a state, which is itself a top-level
+element of the datasheet.  Thus the state and queue are in-memory structures during interpretation, but
+get saved out to the datasheet repository after each round of processing.
+<p/>
+A processing round is initiated by calling one of the action functions.  Of the four, 'create' and 'setvalue'
+don't initiate processing, but 'complete' and 'abort', since they change task status, do -- if an active
+task is closed, then processing proceeds by removing it from the queue, finding its description in the procdef,
+and activating whatever comes next (or doing notifications, or closing sequences, continuing loops, whatever.)
+<p/>
+The action functions in this section are the chief component of the UI (along with wftk_task_requirements).
+In general, to "do workflow" a calling application will take the following steps:
+<ol>
+<li> Call <code>wftk_action_create</code> to create a datasheet.</li>
+<li> Call <code>wftk_action_define</code> to attach a procdef to the datasheet.</li>
+<li> Call <code>wftk_task_requirements</code> with NULL as the task ID, in order to find out
+what the process requires for initial startup data.</li>
+<li> Call <code>wftk_action_setvalue</code> zero or more times to write the initial data.</li>
+<li> Call <code>wftk_action_complete</code> with NULL as the task ID.  This starts the process.
+</ol>
+
+Now the process is fully active and tasks are active.  To continue, the application completes tasks as they're
+ready.
+
+<piece>
+<insert name=".wftk_action_create"/>
+<insert name=".wftk_action_define"/>
+<insert name=".wftk_action_complete"/>
+<insert name=".wftk_action_abort"/>
+<insert name=".wftk_action_setvalue"/>
+<insert name=".wftk_action"/>
+
+/* TODO: Implement wftk_action, if anybody really cares. */
+void wftk_action (XML * datasheet, XML * procdef, XML * command) {}
+</piece>
+</item>
+
+
+<item name="wftk_action.wftk_action_create" label="Definition of wftk_action_create">
+Creating a datasheet is really simple.  In fact, it's incredibly simple as far as the core library is
+concerned: we just call the datasheet repository adaptor and poof!  It happens.  The result is the
+new datasheet, and the repository makes sure that the ID for the datasheet will be unique.
+<p/>
+If there's a problem, NULL is returned.
+
+<piece>
+XML * wftk_action_create (char * dsrep, char * datasheet_id)
+{
+   WFTK_ADAPTOR * ad;
+
+   ad = wftk_get_adaptor (DSREP, dsrep);
+   if (!ad) return NULL;
+
+   return (wftk_call_adaptor (ad, "create", datasheet_id));
+}
+</piece>
+</item>
+
+
+<item name="wftk_action.wftk_action_define" label="Definition of wftk_action_define">
+Attaching a process definition to a datasheet is likewise simple (actually it's almost the
+same thing, with a different adaptor.)  You might be asking why it makes sense to split datasheet
+creation and attachment to a procdef into two steps -- why not just define a datasheet from the
+procdef directly?  The answer is that ad-hoc processes may <i>have</i> no definition, but they
+still need data storage, and at some point, an ad-hoc process may be attached to a procdef for
+completion.
+<p/>
+Note the use of a value holder for the version: a value holder is just a little HTML element like
+this: &lt;value name="name" value="value"&gt;.  It's a cheap and tawdry way to encapsulate
+values without having to worry about managing buffers.  The current version of the XMLAPI does
+a lousy job of buffer management, but when I improve it, the improvement will help us out
+here, too.
+<p/>
+It's been said that any sufficiently complex program implemented in C contains most of an
+implementation of LISP.  (The implication being that you might as well save time and write
+LISP to start with.)  I'm starting to believe this.  But I <i>still</i> think this code is
+much more readable than the equivalent LISP would be.
+
+<piece>
+int wftk_action_define (XML * datasheet, char * pdrep, char * procdef_id)
+{
+   WFTK_ADAPTOR * ad;
+   XML * version;
+
+   ad = wftk_get_adaptor (PDREP, pdrep);
+   if (!ad) return 0;
+
+   version = wftk_call_adaptor (ad, "version", procdef_id);
+   if (!version) return 0;
+
+   xml_set (datasheet, "pdrep", pdrep);
+   xml_set (datasheet, "procdef", procdef_id);
+   xml_set (datasheet, "version", xml_attrval (version, "value"));
+
+   xml_free (version);
+}
+</piece>
+</item>
+
+
+<item name="wftk_action.wftk_action_complete" label="Definition of wftk_action_complete">
+OK.  Here's some actual workflow.  When we complete an action, we do two things, basically: we
+update any databases which are associated with the process, and we mark the task as complete in the
+queue.  Then we run the procdef (if any) until it all blocks again.
+If the 
+<piece>
+void wftk_action_complete (XML * datasheet, XML * procdef, char * task_id)
+{
+   XML * state;
+   XML * queue;
+   int  queue_fresh = 0;
+   char tasklocbuf[64];
+   XML * item;
+
+   /* TODO: Inform databases of change to task status. */
+
+   state = xml_loc (datasheet, "datasheet.state");
+   if (!state) {
+      state = xml_create ("state");
+      xml_append (datasheet, state);
+   }
+   queue = xml_loc (datasheet, "datasheet.state.queue");
+   if (!queue) {
+      queue = xml_create ("queue");
+      xml_append (state, queue);
+      queue_fresh = 1;
+   }
+
+   if (task_id && *task_id) {
+      sprintf (tasklocbuf, "queue.item[%s]", task_id);
+      item = xml_loc (queue, tasklocbuf);
+      if (item) {
+         xml_set (item, "block", "resume");
+      }
+   } else {
+      if (queue_fresh) {
+         queue_procdef (datasheet, state, queue, procdef);
+      } else {
+         /* TODO: Ask queued tasks who's now satisfied. */
+      }
+   }
+
+   process_procdef (datasheet, state, queue, procdef);
+
+   /* TODO: Inform databases of any changes to process status. */
+}
+</piece>
+</item>
+
+
+<item name="wftk_action.wftk_action_abort" label="Definition of wftk_action_abort">
+Well, I'm still not quite sure what to do about aborting tasks.  So this won't do anything yet.
+<piece>
+void wftk_action_abort (XML * datasheet, XML * procdef, char * task_id)
+{
+
+}
+</piece>
+</item>
+
+
+<item name="wftk_action.wftk_action_setvalue" label="Definition of wftk_action_setvalue">
+To complete our bag of tricks, we have the setvalue function.  All this does is to take a named value
+and write it to the datasheet.  If necessary it will create the value.  In the prototype task manager,
+values could be associated with either the process as a whole or with individual tasks.  At this point
+that seems a needless complication, especially if tasks now know their own requirements.  So for now,
+anyway, we're just going to have process values.  That may change in the future.
+<piece>
+void wftk_action_setvalue (XML * datasheet, char * name, char * value)
+{
+   XML * data;
+   char valuelocbuf[128];
+
+   sprintf (valuelocbuf, "datasheet.data[%s]", name);
+   data = xml_loc (datasheet, valuelocbuf);
+
+   if (!data) {
+      data = xml_create ("data");
+      xml_set (data, "id", name);
+      xml_append (datasheet, data);
+   }
+
+   xml_append (data, xml_createtext (value));
+}
+</piece>
+</item>
+
+
+
+<item name="wftk_interpreter" label="The interpreter: figuring out what to do next"/>
+The interpreter consists of two functions, <code>queue_procdef</code> and <code>process_procdef</code>.  Both work
+from the queue which is part of the state of the process.  The <code>queue_procdef</code> function takes a procdef
+or piece of one and adds it to the queue.  Simple enough.  The <code>process_procdef</code> function, then, does
+the bulk of the work.  It runs through the queue, looking at each queued item in turn.  If the "block" attribute
+of an item is "yes", then it's skipped; otherwise it is consumed.  Various actions, of course, can then queue
+other items.  The function returns only when the queue is empty (at which point the process is complete) or everything
+in the queue is blocked, meaning that there are only tasks waiting on further input.
+<p/>
+Let's look at <code>queue_procdef</code> first.
+<piece>
+XML * queue_procdef (XML * datasheet, XML * state, XML * queue, XML * action)
+{
+   XML * item;
+   int  idcount;
+   char action_loc[1024];
+
+   if (action == NULL) return NULL;
+
+   idcount = atoi (xml_attrval (state, "idcount"));
+   idcount++;
+   xml_setnum (state, "idcount", idcount);
+
+   item = xml_create("item");
+   xml_setnum (item, "id", idcount);
+   xml_set (item, "type", action->name);
+   xml_getloc (action, action_loc, 1023);
+   xml_set (item, "loc", action_loc);
+   xml_append (queue, item);
+   return (item);
+}
+</piece>
+
+That's pretty straightforward, right?  It assumes that the state and queue have already been found or created, but
+it can handle a state which doesn't have an idcount yet.  The idcount value is used to ensure that item identifiers
+in the queue are unique, by the simple expedient of counting them.
+
+<p/>
+
+OK.  So what does it take to do the interpretation itself?  Not too much, actually.  Let's look at the overall structure of
+<code>process_procdef</code>, then talk about why it's the way it is, and then we'll fill in the various actions afterwards.
+
+<piece>
+void process_procdef(XML * datasheet, XML * state, XML * queue, XML * procdef)
+{
+   XML * item;
+   XML * def;
+   XML * holder;
+   XML * task;
+   XML * data;
+   XML * next;
+   const char * type;
+   int count;
+   int keep;
+   char sbuf[1024];
+
+   item = xml_firstelem (queue);
+
+   while (item != NULL) {
+      if (!strcmp("yes", xml_attrval(item, "block"))) {
+         item = xml_nextelem(item);
+         continue;
+      }
+      def = xml_loc (procdef, xml_attrval(item, "loc"));
+      type = xml_attrval (item, "type");
+
+      keep = 0;
+      if (!strcmp(type, "workflow") || !strcmp(type, "sequence")) {
+         <insert name=".sequence"/>
+      } else if (!strcmp (type, "parallel")) {
+         <insert name=".parallel"/>
+      } else if (!strcmp (type, "task")) {
+         <insert name=".task"/>
+      } else if (!strcmp (type, "data")) {
+         <insert name=".data"/>
+      } else if (!strcmp (type, "situation")) {
+         <insert name=".situation"/>
+      } else if (!strcmp (type, "if") || !strcmp (type, "elseif")) {
+         <insert name=".if"/>
+      } else if (!strcmp (type, "alert")) {
+         <insert name=".alert"/>
+      } else if (!strcmp (type, "start")) {
+         <insert name=".start"/>
+      }
+
+      if (keep) {
+         xml_set (item, "block", "yes");
+         item = xml_nextelem(item);
+      } else {
+         if (strcmp ("workflow", type)) {
+            sprintf (sbuf, "queue.item[%d]", xml_attrvalnum (item, "parent"));
+            next = xml_loc (queue, sbuf);
+            xml_delete (item);
+            item = next;
+            xml_set (item, "block", "no");
+         } else {
+            xml_delete (item);
+            item = NULL;
+         }
+      }
+   }
+}
+</piece>
+
+As you can see, the whole thing is the loop which walks along the queue.  If an item is blocked, we skip it, otherwise
+we process it.  The details of processing are below, and remember that processing might entail the queuing of new items.
+Once the item has been processed, it may either be blocked, in which case we block it, or it's finished and we delete it.
+If it's finished, control returns to its parent, if it has one, and things go on.  If the parent decides to block, then
+the queue continues.  Pretty neat, actually.  The "parent" here is not the parent node of the procdef action, but rather
+the parent <i>item</i> of the completed item in the queue.  Its identifier is thus a number created by
+<code>queue_procdef</code>.
+</item>
+
+<item name="wftk_interpreter.sequence" label="Handling sequence">
+So let's look at the individual action handlers for the above, starting with the sequence handler.
+The sequence handler takes care of the sequence tag and also the contents of the outer
+workflow tag (which are executed sequentially).  If the "cur" attribute is not yet set, then
+this is the first time we've encountered this sequence, and we queue up the first child of
+the sequence (and note its location with "cur", of course).  Otherwise, we find the child
+located by "cur", find its next sibling, and queue that up.
+<p/>
+If something gets queued, then we block.  Remember, we signify blocking by setting <code>keep</code> to 1.
+<piece>
+if (!strcmp ("", xml_attrval (item, "cur"))) {
+   next = xml_firstelem (def);
+} else {
+   next = xml_loc (procdef, xml_attrval (item, "cur"));
+   next = xml_nextelem (next);
+}
+
+if (next) {
+   xml_set (queue_procdef (datasheet, state, queue, next), "parent", xml_attrval (item, "id"));
+   xml_getloc (next, sbuf, sizeof(sbuf) - 1);
+   xml_set (item, "cur", sbuf);
+   keep = 1;
+} else if (!strcmp (type, "workflow")) {
+   /* TODO: notify database about completion? */
+}
+</piece>
+</item>
+
+<item name="wftk_interpreter.parallel" label="Handling parallel">
+The parallel item queues up all its children, then blocks.  When a child completes, it counts
+the number of children complete; when its counter decrements to zero, it completes.
+<piece>
+if (!strcmp ("", xml_attrval (item, "remaining"))) {
+   count = 0;
+   next = xml_firstelem (def);
+   while (next != NULL) {
+      count ++;
+      xml_set (queue_procdef (datasheet, state, queue, next), "parent", xml_attrval (item, "id"));
+      next = xml_nextelem (next);
+   }
+} else {
+   count = xml_attrvalnum (item, "remaining");
+   count--;
+}
+xml_setnum (item, "remaining", count);
+if (count > 0) keep = 1;
+</piece>
+</item>
+
+<item name="wftk_interpreter.task" label="Handling task">
+Doing a task is nothing more than setting up task data and telling the task manager that the
+task has been activated.  We'll take as the task ID the process ID plus our internal task ID;
+this will make things easier to handle in the task manager, as it means our task IDs will 
+always be unique (well, assuming the task manager always gives us unique process IDs.)
+<piece>
+if (strcmp (xml_attrval (item, "block"), "resume")) {
+   sprintf (sbuf, "%s:%s", xml_attrval (datasheet, "process"), xml_attrval (item, "id"));
+   task = xml_create ("task");
+   xml_set (task, "id", sbuf);
+   xml_append (datasheet, task);
+   /*output ('A', "%s-%s-%s", sbuf, xml_attrval (def, "role"), xml_attrval (def, "label"));*/
+
+   holder = xml_firstelem (def);
+   while (holder != NULL) {
+      if (!strcmp (holder->name, "data")) {
+         data = xml_create ("data");
+         xml_set (data, "id", xml_attrval (holder, "name"));
+         xml_set (data, "type", xml_attrval (holder, "type"));
+         xml_append (task, data);
+      }
+      holder = xml_nextelem (holder);
+   }
+   keep = 1;
+}
+</item>
+
+<item name="wftk_interpreter.data" label="Handling data">
+To be implemented later.
+</item>
+
+<item name="wftk_interpreter.situation" label="Handling situation">
+To be implemented later.
+</item>
+
+<item name="wftk_interpreter.if" label="Handling if and elseif">
+Yes, to be implemented later.
+</item>
+
+<item name="wftk_interpreter.alert" label="Handling alerts">
+Alerts use the function <code>wftk_notify</code>, which is basically a wrapper for notification adaptors.
+The nice thing about this is that it allows us to expose the function itself, which makes it a convenient little
+addition to the library.
+<piece>
+wftk_notify (xml_attrval (item, "type"), xml_attrval (item, "to"), xml_attrval (item, "from"), 
+             xml_attrval (item, "subject"), item);
+</piece>
+</item>
+
+<item name="wftk_interpreter.start" label="start: Starting subprocesses">
+To be implemented later.
+</item>
+
+
+
+
+<item name="wftk_list" label="Distilling summary lists from datasheets"/>
+Now that we've got the actual workflow stuff out of the way, let's define some nice little utility functions used
+to display and manipulate datasheets.  Among these is the function <code>wftk_task_requirements</code>, which plays
+an important part in nearly all interfaces -- it tells the caller which data items are required for a given task to
+complete.  If no task is given, it lists the data items required to start the process.  The other list functions are
+more peripheral, like the users associated with a process.
+</item>
+
+<item name="wftk_htmlout" label="Writing HTML descriptions of processes, tasks, and so on"/>
+I'm <i>still</i> not sure that HTML output belongs in this library, but I'll go ahead and leave it here for now.  I
+suspect I'm going to end up with a much more general output formatting library, but that's not there yet.
+</item>
+
+<item name="wftk_dsrep" label="Dealing with datasheet repositories"/>
+A couple of silly little functions without which the whole thing would be useless: how to load and save datasheets.
+These functions are really very simple wrappers around the adaptor.
+<piece>
+XML * wftk_datasheet_load (char * dsrep, char * datasheet_id)
+{
+   WFTK_ADAPTOR * ad;
+
+   ad = wftk_get_adaptor (DSREP, dsrep);
+   if (!ad) return NULL;
+
+   return (wftk_call_adaptor (ad, "load", datasheet_id));
+}
+void wftk_datasheet_save (XML * datasheet)
+{
+   WFTK_ADAPTOR * ad;
+   ad = wftk_get_adaptor (DSREP, xml_attrval (datasheet, "repository"));
+   if (!ad) return;
+
+   wftk_call_adaptor (ad, "save", datasheet);
+}
+</piece>
+</item>
+
+<item name="wftk_pdrep" label="Dealing with procdef repositories"/>
+And here's a function to load the procdef version associated with a datasheet.  Again, it's largely a wrapper for
+an adaptor.
+<piece>
+XML * wftk_procdef_load (XML * datasheet)
+{
+   WFTK_ADAPTOR * ad;
+   ad = wftk_get_adaptor (PDREP, xml_attrval (datasheet, "pdrep"));
+   if (!ad) return NULL;
+
+   return (wftk_call_adaptor (ad, "load", xml_attrval (datasheet, "procdef"), xml_attrval (datasheet, "version")));
+}
+</piece>
+
+Should this sort of thing be defined in the adaptor code?  I'm no longer sure.
+</item>
+
+</litprog>
+
+

@@ -1,0 +1,64 @@
+<workflow name="Purchase request" author="Michael michael@vivtek.com">
+<role name="Supervisor">The supervisor is the immediate supervisor of the requestor.  A weird way to do this, but them's the specs.</role>
+<role name="Purchasing"></role>
+<role name="Accounting"></role>
+<role name="Receiving"></role>
+
+<data name="Product requested" type="string"></data>
+<data name="Reason for request" type="string"></data>
+<data name="Requester's email" type="string"></data>
+
+<sequence>
+<task label="Approval" role="Supervisor">
+<data name="Approval code" type="string"></data>
+<!-- You know, something like an HTML select box would be appropriate here. -->
+</task>
+
+<if expr="${Approval code} == 'No'">
+<situation name="Request rejected"></situation>
+</if>
+
+<task label="Order item" role="Purchasing">
+<data name="Purchasing record" type="string"></data>
+</task>
+
+<alert type="email" to="${Requester's email}">
+Your request for the purchase of ${Product requested} has been approved and the
+order was placed.  The purchasing record is ${Purchasing record} if you need to
+contact Purchasing for inquiries.
+</alert>
+
+<alert type="role" to="Accounting">
+An order for ${Product requested} has been placed.
+</alert>
+
+<alert type="role" to="Receiving">
+An order for ${Product requested} has been placed.  Expect delivery.
+</alert>
+
+<parallel>
+<sequence>
+<task label="Receive ${Product requested}" role="Receiving"></task>
+<alert type="email" to="${Requester's email}">
+Your requested ${Product requested} has arrived.
+</alert>
+</sequence>
+
+<task label="File invoice" role="Accounting">
+<data name="Invoice number" type="string">INV309843</data>
+</task>
+</parallel>
+
+<task label="Pay invoice" role="Accounting"></task>
+<alert type="role" to="Purchasing">
+The purchase has been paid.
+</alert>
+</sequence>
+
+<handle situation="Request rejected">
+<alert type="email" to="${Requester's email}">
+Your request for ${Product requested} has been rejected by your supervisor.
+</alert>
+</handle>
+</workflow>
+

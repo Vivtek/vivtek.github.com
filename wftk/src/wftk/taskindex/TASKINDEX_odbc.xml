@@ -1,0 +1,1704 @@
+<litprog>
+<object name="TASKINDEX_odbc.c" language="c" item="TASKINDEX_odbc"/>
+
+
+<format name="index">
+<html><head><title>TASKINDEX adaptor: ODBC</title></head>
+<body>
+<h2>TASKINDEX adaptor: ODBC</h2>
+<hr/>
+<p/>
+[##body##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+
+<item name="TASKINDEX_odbc" label="TASKINDEX adaptor: ODBC" format="index">
+The ODBC taskindex adaptor is the first database-oriented work I'm doing.  This isn't any secret initiative on the part
+of Microsoft, it's just that my desktop and laptop both run Windows (long habit and it's not going to change soon) and so
+whipping up an Access database is a quick way for me to do prototyping.  As soon as this works, I'm going to go over to
+my Solaris box and do a PostgreSQL adaptor, really. (<i>July 18, 2001</i>: well, it turned
+out that Oracle was up first.  Go figure.)
+<p/>
+Anyway, this is the second taskindex adaptor I'm writing; the first is the simple stdout notification-only indexer.  This
+is the first which will be searchable.
+
+<piece>
+#include [[stdio.h>
+#include [[stdarg.h>
+#include [[string.h>
+#include [[time.h>
+#include [[stdlib.h>
+#include [[sys/types.h>
+#include [[sys/stat.h>
+#include [[io.h>
+#include [[errno.h>
+#include [[windows.h> /* Boy, *this* feels weird! */
+#include [[sql.h>
+#include [[sqlext.h>
+#include [[sqltypes.h>
+#include "xmlapi.h"
+#include "../wftk_internals.h"
+</piece>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<piece>
+static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+
+   "insert",
+   "select",
+   "update",
+   "delete",
+   "colget",
+   "colput",
+   "xmlget",
+   "xmlput",
+
+   "procnew",
+   "procdel",
+   "procget",
+   "procput",
+   "proclist",
+   "proccomplete",
+   "procerror",
+
+   "tasknew",
+   "taskdel",
+   "taskget",
+   "taskput",
+   "tasklist",
+   "taskcomplete",
+   "taskreject",
+
+   "reqnew",
+   "reqdel",
+   "reqget",
+   "reqput",
+   "reqlist",
+   "reqaccept",
+   "reqdecline"
+};
+
+XML * TASKINDEX_odbc_init (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_free (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_info (WFTK_ADAPTOR * ad, va_list args);
+
+XML * TASKINDEX_odbc_insert (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_select (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_update (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_delete (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_colget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_colput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_xmlget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_xmlput (WFTK_ADAPTOR * ad, va_list args);
+
+XML * TASKINDEX_odbc_procnew (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_procdel (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_procget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_procput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_proclist (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_proccomplete (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_procerror (WFTK_ADAPTOR * ad, va_list args);
+
+XML * TASKINDEX_odbc_tasknew (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_taskdel (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_taskget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_taskput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_tasklist (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_taskcomplete (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_taskreject (WFTK_ADAPTOR * ad, va_list args);
+
+XML * TASKINDEX_odbc_reqnew (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_reqdel (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_reqget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_reqput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_reqlist (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_reqaccept (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_odbc_reqdecline (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   TASKINDEX_odbc_init,
+   TASKINDEX_odbc_free,
+   TASKINDEX_odbc_info,
+
+   TASKINDEX_odbc_insert,
+   TASKINDEX_odbc_select,
+   TASKINDEX_odbc_update,
+   TASKINDEX_odbc_delete,
+   TASKINDEX_odbc_colget,
+   TASKINDEX_odbc_colput,
+   TASKINDEX_odbc_xmlget,
+   TASKINDEX_odbc_xmlput,
+
+   TASKINDEX_odbc_procnew,
+   TASKINDEX_odbc_procdel,
+   TASKINDEX_odbc_procget,
+   TASKINDEX_odbc_procput,
+   TASKINDEX_odbc_proclist,
+   TASKINDEX_odbc_proccomplete,
+   TASKINDEX_odbc_procerror,
+
+   TASKINDEX_odbc_tasknew,
+   TASKINDEX_odbc_taskdel,
+   TASKINDEX_odbc_taskget,
+   TASKINDEX_odbc_taskput,
+   TASKINDEX_odbc_tasklist,
+   TASKINDEX_odbc_taskcomplete,
+   TASKINDEX_odbc_taskreject,
+
+   TASKINDEX_odbc_reqnew,
+   TASKINDEX_odbc_reqdel,
+   TASKINDEX_odbc_reqget,
+   TASKINDEX_odbc_reqput,
+   TASKINDEX_odbc_reqlist,
+   TASKINDEX_odbc_reqaccept,
+   TASKINDEX_odbc_reqdecline
+};
+
+static struct adaptor_info _TASKINDEX_odbc_info =
+{
+   32,
+   names,
+   vtab
+};
+</piece>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<piece>
+struct adaptor_info * TASKINDEX_odbc_get_info ()
+{
+   return & _TASKINDEX_odbc_info;
+}
+</piece>
+
+Thus concludes the communication with the config module.  Now on with the actual implementation
+of functionality.  Initialization of an ODBC connection isn't brain surgery, but it's not trivial, either.  In fact,
+this is the first adaptor which needs to stash binary information somewhere.  So I added the <code>bindata</code> member
+of the <code>WFTK_ADAPTOR</code> structure.
+
+<piece>
+struct _TASKINDEX_odbc_handles {
+   SQLHENV henv;
+   SQLHDBC hdbc;
+   int ok;
+};
+XML * TASKINDEX_odbc_init (WFTK_ADAPTOR * ad, va_list args) {
+   SQLRETURN rslt;
+   const char * parms;
+   char spec[256];
+   char buf[1024];
+   SQLSMALLINT junk;
+   struct _TASKINDEX_odbc_handles *handles = (struct _TASKINDEX_odbc_handles *) malloc (sizeof (struct _TASKINDEX_odbc_handles));
+
+   if (!handles) {
+      xml_set (ad->parms, "error", "Unable to allocate binary stash.");
+      return (XML *) 0;
+   }
+   ad->bindata = (void *) handles;
+   handles->henv = SQL_NULL_HANDLE;
+   handles->hdbc = SQL_NULL_HANDLE;
+   handles->ok = 0;
+
+   parms = xml_attrval (ad->parms, "parm");
+   if (!*parms) parms = config_get_value (ad->session, "taskindex.odbc.default");
+   if (!*parms) {
+      xml_set (ad->parms, "error", "No connection specified and no default connection configured.");
+      free ((void *) handles);
+      ad->bindata = 0;
+      return (XML *) 0;
+   }
+
+   strcpy (spec, "odbc:");
+   strcat (spec, parms);
+   xml_set (ad->parms, "spec", spec);
+   if (strchr (parms, '=')) {
+      xml_set (ad->parms, "conn", parms);
+   } else {
+      sprintf (buf, "taskindex.odbc.%s.conn", parms);
+      xml_set (ad->parms, "conn", config_get_value (ad->session, buf));
+   }
+
+   /* OK, let's connect to this database specified. */
+   rslt = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &(handles->henv));  /* My first C ODBC statement ever! */
+   if (rslt == SQL_ERROR) {
+      xml_set (ad->parms, "error", "Unable to allocate ODBC environment handle.");
+      free ((void *) handles);
+      ad->bindata = 0;
+      return (XML *) 0;
+   }
+   SQLSetEnvAttr (handles->henv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER) SQL_OV_ODBC2, 0);
+
+   rslt = SQLAllocHandle (SQL_HANDLE_DBC, handles->henv, &(handles->hdbc));
+   if (rslt == SQL_ERROR) {
+      xml_set (ad->parms, "error", "Unable to allocate ODBC connection handle.");
+      SQLFreeHandle (SQL_HANDLE_ENV, handles->henv);
+      free ((void *) handles);
+      ad->bindata = 0;
+      return (XML *) 0;
+   }
+
+   rslt = SQLDriverConnect (handles->hdbc, NULL, (char *) xml_attrval (ad->parms, "conn"), (SQLSMALLINT) strlen (xml_attrval (ad->parms, "conn")), buf, (SQLSMALLINT) sizeof(buf), &junk, SQL_DRIVER_NOPROMPT);
+   if (rslt == SQL_ERROR) {
+      xml_set (ad->parms, "error", "Unable to connect to database specified.");
+      SQLFreeHandle (SQL_HANDLE_DBC, handles->hdbc);
+      SQLFreeHandle (SQL_HANDLE_ENV, handles->henv);
+      free ((void *) handles);
+      ad->bindata = 0;
+      return (XML *) 0;
+   }
+
+   handles->ok = 1;   
+   return (XML *) 0;
+}
+</piece>
+
+Freeing the ODBC adaptor is the first significant freeing function I've yet written in the wftk.
+<piece>
+XML * TASKINDEX_odbc_free (WFTK_ADAPTOR * ad, va_list args) {
+   struct _TASKINDEX_odbc_handles * handles = (struct _TASKINDEX_odbc_handles *) (ad->bindata);
+   if (handles) {
+      SQLDisconnect (handles->hdbc);
+      SQLFreeHandle (SQL_HANDLE_DBC, handles->hdbc);
+      SQLFreeHandle (SQL_HANDLE_ENV, handles->henv);
+      free (handles);
+      ad->bindata = (void *) 0;
+   }
+   return (XML *) 0;
+}
+</piece>
+
+Info is also straightforward, as always.
+
+<piece>
+XML * TASKINDEX_odbc_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "taskindex");
+   xml_set (info, "name", "odbc");
+   xml_set (info, "ver", "1.1.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</piece>
+
+So now we just work our way down the list of functions and basically execute a simple SQL query for each one.  The
+searches will be a little more complicated than that, as they'll have to build XML for the result sets, but that's the
+basic idea here.
+
+<p/>
+Before we get started, here's a little function that will build an error message using the ODBC <code>SQLGetDiagRec</code>
+call.
+
+<piece>
+void _TASKINDEX_odbc_builderrmsg (XML * ap, SQLHSTMT stmt)
+{
+   char buf[1024];
+   char msg[128];
+   SQLSMALLINT len;
+   char code[16];
+   SQLINTEGER native;
+
+   SQLGetDiagRec (SQL_HANDLE_STMT, stmt, 1, code, &native, msg, sizeof(msg), &len);
+   sprintf (buf, "%s[%s %d] %s", xml_attrval (ap, "error"), code, native, msg);
+   xml_set (ap, "error", buf);
+}
+</piece>
+
+<i>(July 18, 2001)</i> While doing the Oracle implementation, I realized that all this copying
+and pasting I was doing in the old ODBC driver was pretty silly; moreover, it didn't expose any
+of the basic database functionality to the outside, meaning that a DSREP_database driver
+(which is my current goal) would have no way to talk to the database.  Pretty silly.  So I
+rearranged the adaptor, and now I'm pulling that arrangement back into the ODBC adaptor.
+It's pretty boring work, really.  ODBC work, like any Win32 programming, is sort of like
+peeling paint or something.  It's very detail-oriented and sort of hypnotic.
+<p/>
+
+Anyway, each of the SQL functions takes an XML parameter.  This structure defines the query.
+One thing which I'm implementing today in ODBC (which I skipped earlier in Oracle) is the
+large-text handling stuff; we need that for storing things like datasheets in the database,
+because most databases have a separate API for large objects.  (Oracle and Postgres do, anyway,
+so that's enough reason for me.)
+<p/>
+These functions will take and return XML structures, which will be written directly into the
+large objects in the database.  Slick.
+<p/>
+
+So.  Inserts first; I'm copying from the Oracle adaptor here.  As explained there, I'm exposing
+two functions from each adaptor; these are a convenient call-based structure for internal
+use, and an adaptor-function wrapper for the wftk core.  One feature which the original
+Oracle adaptor didn't have was the ability to return the ID of a newly inserted field that has
+an autoincrementing key.  Unfortunately, ODBC doesn't support that feature very well (Oracle,
+PostgreSQL, and MySQL do; I checked.)  So we're going to simulate it, still with the guarantee
+that the key field is unique and generated during the insert: if given a return-key parameter,
+we'll generate a trial key value; if insertion fails (i.e. the key is already present) then
+we'll try another.  Eventually one will succeed.  Not too elegant, but it'll work; I've used
+similar dodges before.
+<p/>
+
+A fully-specified insert command, then, might look like this:<pre>
+&lt;sql query="insert into process (id, title, status, started) values (?, ?, ?, {fn NOW()})"&gt;
+   &lt;value name="id" return="yes"&gt;
+   &lt;value name="title" value="My Process"&gt;
+   &lt;value name="status" value="active"&gt;
+&lt;/sql&gt;
+</pre>
+This form asks the adaptor to generate a value for id and make sure it's unique.
+<p/>
+The only really disappointing thing here is that the query is still adaptor-specific.  So
+insertion of a process by the dsrep-on-db adaptor is still going to require the taskindex
+adaptor to do the procnew.  Thus procnew needs to be aware of the case where we call it with
+no key.  <i>And</i> it has to be careful not to re-add the row when called later.  Tricky
+indeed.  I'm not entirely sure how I'll solve it.
+<piece>
+void _TASKINDEX_odbc_insert (WFTK_ADAPTOR * ad, XML * query)
+{
+   struct _TASKINDEX_odbc_handles *handles = (struct _TASKINDEX_odbc_handles *) ad->bindata;
+   SQLHSTMT stmt;
+   SQLRETURN rslt;
+   char namebuf[64];
+   char state[6];
+   char unique[32];
+   char buf[1024];
+   SQLSMALLINT junk;
+   XML * ret = NULL;
+   UWORD i; int ir;
+   SDWORD * len;
+   const char *value;
+   XML * parm;
+
+   if (!handles) return;
+   if (!handles->ok) return;
+
+   rslt = SQLAllocHandle (SQL_HANDLE_STMT, handles->hdbc, &stmt);
+   if (rslt != SQL_ERROR) {
+      parm = xml_firstelem (query); i = 1;
+      while (parm) {
+         if (xml_is (parm, "parm")) i++;
+         parm = xml_nextelem (parm);
+      }
+
+      len = malloc (i * sizeof (int));
+      parm = xml_firstelem(query); i = 1;
+      while (parm) {
+         if (xml_is (parm, "parm")) {
+            if (!*xml_attrval (parm, "return")) {
+               len[i] = strlen (xml_attrval (parm, "value"));
+               SQLBindParameter (stmt, i, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, len[i], 0, (void *) xml_attrval (parm, "value"), len[i], &(len[i]));
+            } else {
+               len[i] = sizeof(unique) - 1;
+               ir = i;
+               SQLBindParameter (stmt, i, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, sizeof (unique) - 1, 0, (void *) unique, sizeof (unique)-1, &(len[i]));
+               srand ((unsigned) time (NULL));
+               ret = parm;
+            }
+            i++;
+         }
+         parm = xml_nextelem (parm);
+      }
+
+      rslt = SQL_ERROR;
+      while (rslt == SQL_ERROR) {
+         if (ret) {
+            sprintf (unique, "%d%d", time(NULL), rand() * 100 / RAND_MAX);
+            len[ir] = strlen (unique);
+            xml_set (ret, "value", unique);
+         }
+         rslt = SQLExecDirect (stmt, (char *)xml_attrval (query, "query"), SQL_NTS);
+         if (rslt == SQL_ERROR) {
+            SQLError (SQL_NULL_HENV, SQL_NULL_HDBC, stmt, state, NULL, NULL, 0, 0);
+            if (strcmp (state, "23000") || !ret) {  /* Integrity constraint: try again. */
+               xml_set (ad->parms, "error", "SQL error performing insertion ");
+               _TASKINDEX_odbc_builderrmsg (ad->parms, stmt);
+               break;
+            }
+         }
+      }
+      SQLTransact (handles->henv, handles->hdbc, SQL_COMMIT);
+      SQLFreeHandle (SQL_HANDLE_STMT, stmt);
+   }
+   return;
+}
+XML * TASKINDEX_odbc_insert (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * query = (XML *) 0;
+
+   if (args) query = va_arg (args, XML *);
+   if (!query) {
+      xml_set (ad->parms, "error", "No query given.");
+      return (XML *) 0;
+   }
+
+   _TASKINDEX_odbc_insert (ad, query);
+   return (XML *) 0;
+}
+</piece>
+
+The delete function is almost identical to the insert; in fact, as I'm writing this, it is
+<i>precisely</i> identical, but as deletion doesn't need the same key-reporting facility
+which insert will have, by the time this is released, it will no longer be identical.
+
+<piece>
+void _TASKINDEX_odbc_delete (WFTK_ADAPTOR * ad, XML * query)
+{
+   struct _TASKINDEX_odbc_handles *handles = (struct _TASKINDEX_odbc_handles *) ad->bindata;
+   SQLHSTMT stmt;
+   SQLRETURN rslt;
+   char namebuf[64];
+   UWORD i;
+   SDWORD * len;
+   const char *value;
+   XML * parm;
+
+   if (!handles) return;
+   if (!handles->ok) return;
+
+   rslt = SQLAllocHandle (SQL_HANDLE_STMT, handles->hdbc, &stmt);
+   if (rslt != SQL_ERROR) {
+      parm = xml_firstelem (query); i = 1;
+      while (parm) {
+         if (xml_is (parm, "parm")) i++;
+         parm = xml_nextelem (parm);
+      }
+
+      len = malloc (i * sizeof (int));
+      parm = xml_firstelem(query); i = 1;
+      while (parm) {
+         if (xml_is (parm, "parm")) {
+            len[i] = strlen (xml_attrval (parm, "value"));
+            SQLBindParameter (stmt, i, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, len[i], 0, (void *) xml_attrval (parm, "value"), len[i], &(len[i]));
+            i++;
+         }
+         parm = xml_nextelem (parm);
+      }
+
+      rslt = SQLExecDirect (stmt, (char *)xml_attrval (query, "query"), SQL_NTS);
+      if (rslt == SQL_ERROR) {
+         xml_set (ad->parms, "error", "SQL error performing delete ");
+         _TASKINDEX_odbc_builderrmsg (ad->parms, stmt);
+      }
+      SQLTransact (handles->henv, handles->hdbc, SQL_COMMIT);
+      SQLFreeHandle (SQL_HANDLE_STMT, stmt);
+   }
+   return;
+}
+XML * TASKINDEX_odbc_delete (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * query = (XML *) 0;
+
+   if (args) query = va_arg (args, XML *);
+   if (!query) {
+      xml_set (ad->parms, "error", "No query given.");
+      return (XML *) 0;
+   }
+
+   _TASKINDEX_odbc_delete (ad, query);
+   return (XML *) 0;
+}
+</piece>
+
+Now updates.  As I explain more fully in the Oracle adaptor, updates have two queries: if the
+original update query affects no rows, you can include a fallback insert to insert the row
+you'd intended to update.  Under Oracle, which has named parameters in its queries, the format
+of the fallback query is rather flexible; under ODBC, the two queries <i>must</i> have the same
+formats <i>in the same order</i> or society will collapse.  And you wouldn't that on your
+conscience, now would you?
+
+<piece>
+void _TASKINDEX_odbc_update (WFTK_ADAPTOR * ad, XML * query)
+{
+   struct _TASKINDEX_odbc_handles *handles = (struct _TASKINDEX_odbc_handles *) ad->bindata;
+   SQLHSTMT stmt;
+   SQLHSTMT stmt2;
+   SQLRETURN rslt;
+   SDWORD rows;
+   char namebuf[64];
+   UWORD i;
+   SDWORD * len;
+   const char *value;
+   XML * parm;
+
+   if (!handles) return;
+   if (!handles->ok) return;
+
+   rslt = SQLAllocHandle (SQL_HANDLE_STMT, handles->hdbc, &stmt);
+   if (rslt != SQL_ERROR) {
+      parm = xml_firstelem (query); i = 1;
+      while (parm) {
+         if (xml_is (parm, "parm")) i++;
+         parm = xml_nextelem (parm);
+      }
+
+      len = malloc (i * sizeof (int));
+      parm = xml_firstelem(query); i = 1;
+      while (parm) {
+         if (xml_is (parm, "parm")) {
+            len[i] = strlen (xml_attrval (parm, "value"));
+            SQLBindParameter (stmt, i, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, len[i], 0, (void *) xml_attrval (parm, "value"), len[i], &(len[i]));
+            i++;
+         }
+         parm = xml_nextelem (parm);
+      }
+
+      rslt = SQLExecDirect (stmt, (char *)xml_attrval (query, "query"), SQL_NTS);
+      if (rslt != SQL_ERROR) {
+         SQLRowCount (stmt, &rows);
+         if (rows == 0 #^7#^7 strcmp ("", xml_attrval (query, "fallback"))) {
+            rslt = SQLExecDirect (stmt, (char *)xml_attrval (query, "fallback"), SQL_NTS);
+         }
+      }
+      if (rslt == SQL_ERROR) {
+         xml_set (ad->parms, "error", "SQL error performing update ");
+         _TASKINDEX_odbc_builderrmsg (ad->parms, stmt);
+      }
+      SQLTransact (handles->henv, handles->hdbc, SQL_COMMIT);
+      SQLFreeHandle (SQL_HANDLE_STMT, stmt);
+   }
+   return;
+}
+XML * TASKINDEX_odbc_update (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * query = (XML *) 0;
+
+   if (args) query = va_arg (args, XML *);
+   if (!query) {
+      xml_set (ad->parms, "error", "No query given.");
+      return (XML *) 0;
+   }
+
+   _TASKINDEX_odbc_update (ad, query);
+   return (XML *) 0;
+}
+</piece>
+
+Now for the select.  Again, the details of how this works can be seen in the Oracle adaptor.
+One thing to note: getting values <i>out</i> of ODBC data sources is a <i>lot</i> easier than
+with Oracle!  The data retrieval portion of this function is half the size of that in the
+Oracle adaptor.
+
+<piece>
+XML * _TASKINDEX_odbc_select (WFTK_ADAPTOR * ad, XML * query, XML * list)
+{
+   struct _TASKINDEX_odbc_handles *handles = (struct _TASKINDEX_odbc_handles *) ad->bindata;
+   XML * ret = NULL;
+   XML * map = NULL;
+   XML * parm;
+   UWORD i;
+   SQLHSTMT stmt;
+   SQLRETURN rslt;
+   const char * name;
+   SDWORD * len;
+   char column[64];  SQLSMALLINT column_len;
+   char value[256];  long value_len;
+   SQLUSMALLINT binding = 1;
+   SQLSMALLINT numcols;
+   SQLSMALLINT col;
+   int count = 0;
+
+   if (!handles) return (XML *) 0;
+   if (!handles->ok) return (XML *) 0;
+
+   rslt = SQLAllocHandle (SQL_HANDLE_STMT, handles->hdbc, &stmt);
+   if (rslt != SQL_ERROR) {
+      parm = xml_firstelem (query); i = 1;
+      while (parm) {
+         if (xml_is (parm, "map")) map = parm;
+         if (xml_is (parm, "parm")) i++;
+         parm = xml_nextelem (parm);
+      }
+
+      len = malloc (i * sizeof (int));
+      parm = xml_firstelem(query); i = 1;
+      while (parm) {
+         if (xml_is (parm, "parm")) {
+            len[i] = strlen (xml_attrval (parm, "value"));
+            SQLBindParameter (stmt, i, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, len[i], 0, (void *) xml_attrval (parm, "value"), len[i], &(len[i]));
+            i++;
+         }
+         parm = xml_nextelem (parm);
+      }
+
+      rslt = SQLExecDirect (stmt, (char *)xml_attrval (query, "query"), SQL_NTS);
+      if (rslt == SQL_ERROR) {
+         xml_set (ad->parms, "error", "SQL error selecting data ");
+         _TASKINDEX_odbc_builderrmsg (ad->parms, stmt);
+      } else {
+         /* Here's where we build the list. */
+         SQLNumResultCols (stmt, &numcols);
+         while (SQL_SUCCESS == SQLFetch (stmt)) {
+            ret = xml_create (*xml_attrval (query, "element") ? xml_attrval (query, "element") : "elem");
+            count++;
+
+            for (col=1; col < numcols; col++) {
+               SQLColAttribute (stmt, col, SQL_DESC_NAME, column, sizeof(column), &column_len, NULL);
+               strlwr (column);
+               name = column;
+               if (map) {
+                  if (*xml_attrval (map, column)) {
+                     name = xml_attrval (map, column);
+                     if (!strcmp (name, "!hide")) continue;
+                  }
+               }
+               value_len = sizeof(value);
+               SQLGetData (stmt, col, SQL_C_CHAR, value, sizeof(value), &value_len);
+               xml_set (ret, name, value);
+            }
+
+            if (list) xml_append (list, ret);
+            else      break; /* If no list is passed in, we just get the first row returned. */
+         }
+      }
+
+      if (list) xml_setnum (list, "count", count);
+      SQLFreeHandle (SQL_HANDLE_STMT, stmt);
+   } else {
+      xml_set (ad->parms, "error", "Unable to allocate statement handle.");
+   }
+
+   return (ret);  /* Note side effect: last row retrieved is always returned. */
+}
+XML * TASKINDEX_odbc_select (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * query = (XML *) 0;
+   XML * list = (XML *) 0;
+
+   if (args) query = va_arg (args, XML *);
+   if (!query) {
+      xml_set (ad->parms, "error", "No query given.");
+      return (XML *) 0;
+   }
+   list = va_arg (args, XML *);
+
+   return (_TASKINDEX_odbc_select (ad, query, list));
+}
+</piece>
+
+I'm taking the cheap way out for xmlput, by building a string and binding it to a query.
+The Oracle version will use the Oracle CLOB functions, of course -- but ODBC doesn't do that,
+really.  It does have the data-at-execution mode of binding, but I don't see that as being
+particularly convincing.
+
+<piece>
+void _TASKINDEX_odbc_xmlput (WFTK_ADAPTOR * ad, char * table, char * keycol, char * keyval, char * col, XML * val)
+{
+   struct _TASKINDEX_odbc_handles *handles = (struct _TASKINDEX_odbc_handles *) ad->bindata;
+   SQLHSTMT stmt;
+   SQLRETURN rslt;
+   SDWORD len;
+   int keylen;
+   const char *value;
+   XML * query;
+
+   if (!handles) return;
+   if (!handles->ok) return;
+
+   rslt = SQLAllocHandle (SQL_HANDLE_STMT, handles->hdbc, &stmt);
+   if (rslt != SQL_ERROR) {
+      value = xml_string (val);  /* TODO: see if there's a more scalable way to do this with ODBC. */
+      len = strlen (value);
+      SQLBindParameter (stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_LONGVARCHAR, len, 0, (void *) value, len, &len);
+      keylen = strlen (keyval);
+      SQLBindParameter (stmt, 2, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, keylen, 0, (void *) keyval, keylen, &keylen);
+
+      query = xml_create ("sql");
+      xml_setf (query, "query", "update %s set %s=? where %s=?", table, col, keycol);
+      rslt = SQLExecDirect (stmt, (char *)xml_attrval (query, "query"), SQL_NTS);
+      if (rslt == SQL_ERROR) {
+         xml_set (ad->parms, "error", "SQL error performing xmlput ");
+         _TASKINDEX_odbc_builderrmsg (ad->parms, stmt);
+      }
+      SQLTransact (handles->henv, handles->hdbc, SQL_COMMIT);
+      SQLFreeHandle (SQL_HANDLE_STMT, stmt);
+      free ((void *)value);
+      xml_free (query);
+   }
+   return;
+}
+XML * TASKINDEX_odbc_xmlput (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * table = NULL;
+   char * keycol = NULL;
+   char * keyval = NULL;
+   char * col = NULL;
+   XML * val = (XML *) 0;
+
+   if (!args) return (XML *) 0;
+   table  = va_arg (args, char *);
+   keycol = va_arg (args, char *);
+   keyval = va_arg (args, char *);
+   col    = va_arg (args, char *);
+   val    = va_arg (args, XML *);
+
+   _TASKINDEX_odbc_xmlput (ad, table, keycol, keyval, col, val);
+   return (XML *) 0;
+}
+</piece>
+
+Last is the xmlget function, which is the first chance I've had to test general XML parsing.
+General XML parsing is the same as xml_read, but it takes an arbitrary function to grab a
+buffer full of data; thus we eliminate overhead for large XML objects in tables.  For ODBC,
+since I've cut corners on xmlput, this isn't so crucial, but we want to develop it for Oracle
+anyway, so here goes:
+
+<piece>
+size_t _TASKINDEX_odbc_xmlget_fetch (char * buf, size_t chunk, size_t num, void * stmt)
+{
+   size_t retval;
+   SQLRETURN rslt;
+   size_t value_len = num * chunk;
+
+   rslt = SQLGetData (stmt, 1, SQL_C_CHAR, buf, num * chunk, &value_len);
+   if (value_len == SQL_NULL_DATA) return 0;
+   if (rslt == SQL_NO_DATA_FOUND) return 0;
+   if (rslt == SQL_SUCCESS_WITH_INFO) return num;
+   return value_len / chunk;
+}
+XML * _TASKINDEX_odbc_xmlget (WFTK_ADAPTOR * ad, char * table, char * keycol, char * keyval, char * col)
+{
+   struct _TASKINDEX_odbc_handles *handles = (struct _TASKINDEX_odbc_handles *) ad->bindata;
+   SQLHSTMT stmt;
+   SQLRETURN rslt;
+   SDWORD keylen;
+   XML * query;
+   XML * ret;
+
+   if (!handles) return ((XML *) 0);
+   if (!handles->ok) return ((XML *) 0);
+
+   rslt = SQLAllocHandle (SQL_HANDLE_STMT, handles->hdbc, &stmt);
+   if (rslt != SQL_ERROR) {
+      keylen = strlen (keyval);
+      SQLBindParameter (stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, keylen, 0, (void *) keyval, keylen, &keylen);
+
+      query = xml_create ("sql");
+      xml_setf (query, "query", "select %s from %s where %s=?", col, table, keycol);
+      rslt = SQLExecDirect (stmt, (char *)xml_attrval (query, "query"), SQL_NTS);
+      if (rslt == SQL_ERROR) {
+         xml_set (ad->parms, "error", "SQL error performing xmlget ");
+         _TASKINDEX_odbc_builderrmsg (ad->parms, stmt);
+      } else {
+         if (SQL_SUCCESS == SQLFetch (stmt)) {
+            ret = xml_parse_general ((void *) stmt, _TASKINDEX_odbc_xmlget_fetch);
+            if (xml_is (ret, "xml-error")) {
+               if (xml_attrvalnum (ret, "code") != 3) {
+                  xml_setf (ad->parms, "error", "Unable to parse %s from %s with %s '%s': (%s) %s", col, table, keycol, keyval, xml_attrval (ret, "code"), xml_attrval (ret, "message"));
+               }
+               xml_free (ret);
+               ret = 0;
+            }
+         } else {
+            xml_setf (ad->parms, "error", "Unable to locate %s with %s '%s'", table, keycol, keyval);
+         }
+      }
+      SQLFreeHandle (SQL_HANDLE_STMT, stmt);
+      xml_free (query);
+   }
+   return ret;
+}
+XML * TASKINDEX_odbc_xmlget (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * table = NULL;
+   char * keycol = NULL;
+   char * keyval = NULL;
+   char * col = NULL;
+
+   if (!args) return (XML *) 0;
+   table  = va_arg (args, char *);
+   keycol = va_arg (args, char *);
+   keyval = va_arg (args, char *);
+   col    = va_arg (args, char *);
+
+   return _TASKINDEX_odbc_xmlget (ad, table, keycol, keyval, col);
+}
+</piece>
+
+Only after working on the DATASTORE_currecord adaptor did I realize I had no database-agnostic
+way to deal with getting and writing single simple columns.  So here are colget and colput, and
+I <i>hope</i> these are the <i>last</i> database functions!
+
+<piece>
+void _TASKINDEX_odbc_colput (WFTK_ADAPTOR * ad, char * table, char * keycol, char * keyval, char * col, char * value)
+{
+   struct _TASKINDEX_odbc_handles *handles = (struct _TASKINDEX_odbc_handles *) ad->bindata;
+   SQLHSTMT stmt;
+   SQLRETURN rslt;
+   SDWORD len;
+   SDWORD keylen;
+   XML * query;
+
+   if (!handles) return;
+   if (!handles->ok) return;
+
+   rslt = SQLAllocHandle (SQL_HANDLE_STMT, handles->hdbc, &stmt);
+   if (rslt != SQL_ERROR) {
+      len = strlen (value);
+      SQLBindParameter (stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, len, 0, (void *) value, len, &len);
+      keylen = strlen (keyval);
+      SQLBindParameter (stmt, 2, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, keylen, 0, (void *) keyval, keylen, &keylen);
+
+      query = xml_create ("sql");
+      xml_setf (query, "query", "update %s set %s=? where %s=?", table, col, keycol);
+      rslt = SQLExecDirect (stmt, (char *)xml_attrval (query, "query"), SQL_NTS);
+      if (rslt == SQL_ERROR) {
+         xml_set (ad->parms, "error", "SQL error performing colput ");
+         _TASKINDEX_odbc_builderrmsg (ad->parms, stmt);
+      }
+      SQLTransact (handles->henv, handles->hdbc, SQL_COMMIT);
+      SQLFreeHandle (SQL_HANDLE_STMT, stmt);
+      xml_free (query);
+   }
+   return;
+}
+XML * TASKINDEX_odbc_colput (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * table = NULL;
+   char * keycol = NULL;
+   char * keyval = NULL;
+   char * col = NULL;
+   char * value = NULL;
+
+   if (!args) return (XML *) 0;
+   table  = va_arg (args, char *);
+   keycol = va_arg (args, char *);
+   keyval = va_arg (args, char *);
+   col    = va_arg (args, char *);
+   value  = va_arg (args, char *);
+
+   _TASKINDEX_odbc_colput (ad, table, keycol, keyval, col, value);
+   return (XML *) 0;
+}
+</piece>
+
+Last <i>really</i> is the colget function.
+
+<piece>
+XML * _TASKINDEX_odbc_colget (WFTK_ADAPTOR * ad, char * table, char * keycol, char * keyval, char * col)
+{
+   struct _TASKINDEX_odbc_handles *handles = (struct _TASKINDEX_odbc_handles *) ad->bindata;
+   SQLHSTMT stmt;
+   SQLRETURN rslt;
+   SDWORD keylen;
+   char buf[256];
+   int buf_len;
+   
+   XML * query;
+   XML * ret = NULL;
+
+   if (!handles) return ((XML *) 0);
+   if (!handles->ok) return ((XML *) 0);
+
+   rslt = SQLAllocHandle (SQL_HANDLE_STMT, handles->hdbc, &stmt);
+   if (rslt != SQL_ERROR) {
+      keylen = strlen (keyval);
+      SQLBindParameter (stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, keylen, 0, (void *) keyval, keylen, &keylen);
+
+      query = xml_create ("sql");
+      xml_setf (query, "query", "select %s from %s where %s=?", col, table, keycol);
+      rslt = SQLExecDirect (stmt, (char *)xml_attrval (query, "query"), SQL_NTS);
+      if (rslt == SQL_ERROR) {
+         xml_set (ad->parms, "error", "SQL error performing xmlget ");
+         _TASKINDEX_odbc_builderrmsg (ad->parms, stmt);
+      } else {
+         if (SQL_SUCCESS == SQLFetch (stmt)) {
+            buf_len = sizeof (buf);
+            rslt = SQLGetData (stmt, 1, SQL_C_CHAR, buf, buf_len, &buf_len);
+            ret = xml_create ("value");
+            xml_set (ret, "value", buf);
+         } else {
+            xml_setf (ad->parms, "error", "Unable to locate %s with %s '%s'", table, keycol, keyval);
+         }
+      }
+      SQLFreeHandle (SQL_HANDLE_STMT, stmt);
+      xml_free (query);
+   }
+   return ret;
+}
+XML * TASKINDEX_odbc_colget (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * table = NULL;
+   char * keycol = NULL;
+   char * keyval = NULL;
+   char * col = NULL;
+
+   if (!args) return (XML *) 0;
+   table  = va_arg (args, char *);
+   keycol = va_arg (args, char *);
+   keyval = va_arg (args, char *);
+   col    = va_arg (args, char *);
+
+   return _TASKINDEX_odbc_colget (ad, table, keycol, keyval, col);
+}
+</piece>
+
+OK.  Here we go with actual function implementations.  These are now, of course, far simpler,
+as the hard work is done in the database layer above.  Something new, however, compared to the
+Oracle adaptor we're cribbing from at this point: if the datasheet to be added by procnew
+doesn't already have an ID, we're going to ask the insert handler to generate one for us and
+return it.
+<p/>
+Wait, first let's define a little query-parameter setter.  That'll simplify the code
+below a lot.  It can be a macro, though.
+<piece>
+#define SET_PARM(p,v) \
+  parm = xml_create ("parm"); \
+  xml_set(parm, "name", p); \
+  xml_set(parm, "value", v); \
+  xml_append(sql, parm);
+</piece>
+
+Of course, there needs to be an 'sql' and a 'parm' variable defined for that to work.
+
+<piece>
+XML * TASKINDEX_odbc_procnew (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * datasheet = (XML *) 0;
+   XML * sql;
+   XML * parm;
+   XML * idparm;
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "insert into process (id, title, status, started) values (?, ?, ?, {fn NOW()})");
+
+   SET_PARM ("id", xml_attrval (datasheet, "id"));
+   if (*xml_attrval (datasheet, "id")) {
+      xml_set (parm, "value", xml_attrval (datasheet, "id"));
+   } else {
+      xml_set (parm, "return", "yes");
+   }
+   idparm = parm;
+
+   SET_PARM ("title", xml_attrval (datasheet, "label"));
+   SET_PARM ("status", xml_attrval (datasheet, "status"));
+   if (!*xml_attrval (parm, "value")) xml_set (parm, "value", "active"); /* Default status is active. */
+
+   _TASKINDEX_odbc_insert (ad, sql);
+
+   if (!*xml_attrval (datasheet, "id")) {
+      xml_set (datasheet, "id", xml_attrval (idparm, "value"));
+   }
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+
+XML * TASKINDEX_odbc_procdel (WFTK_ADAPTOR * ad, va_list args)
+{
+   char *id = NULL;
+   XML * sql;
+   XML * parm;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "delete from process where id=?");
+   SET_PARM ("id", id);
+   _TASKINDEX_odbc_delete (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_odbc_procget (WFTK_ADAPTOR * ad, va_list args) {
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+   XML * proc = (XML *) 0;
+   char * stuff;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "element", "proc");
+   xml_set (sql, "query", "select * from process where id=?");
+   parm = xml_create ("map");
+   xml_set (parm, "title", "label");
+   xml_set (parm, "owner", "user");
+   xml_set (parm, "datasheet", "!hide");
+   xml_append (sql, parm);
+
+   SET_PARM ("id", id);
+   proc = _TASKINDEX_odbc_select (ad, sql, NULL);
+
+   xml_free (sql);
+   return proc;
+}
+XML * TASKINDEX_odbc_procput (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * datasheet = NULL;
+   XML * sql;
+   XML * parm;
+   XML * idparm;
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   if (*xml_attrval (datasheet, "id")) {
+      xml_set (sql, "query",    "update process set title=?, status=? where id=?");
+      xml_set (sql, "fallback", "insert into process (title, status, id, started) values (?, ?, ?, {fn NOW()})");
+      SET_PARM ("title", xml_attrval (datasheet, "label"));
+      SET_PARM ("status", xml_attrval (datasheet, "status"));
+      if (!*xml_attrval (parm, "value")) xml_set (parm, "value", "active"); /* Default status is active. */
+      SET_PARM ("id", xml_attrval (datasheet, "id"));
+      _TASKINDEX_odbc_update (ad, sql);
+   } else {
+      xml_set (sql, "query", "insert into process (id, title, status, started) values (?, ?, ?, {fn NOW()})");
+
+      SET_PARM ("id", xml_attrval (datasheet, "id"));
+      xml_set (parm, "return", "yes");
+      idparm = parm;
+
+      SET_PARM ("title", xml_attrval (datasheet, "label"));
+      SET_PARM ("status", xml_attrval (datasheet, "status"));
+      if (!*xml_attrval (parm, "value")) xml_set (parm, "value", "active"); /* Default status is active. */
+
+      _TASKINDEX_odbc_insert (ad, sql);
+
+      xml_set (datasheet, "id", xml_attrval (idparm, "value"));
+   }
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_odbc_proclist (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = (XML *) 0;
+   XML * sql;
+   XML * parm;
+   XML * ret;
+   const char * field;
+   int fields = 0;
+   char query[1024];
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list specified.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   parm = xml_create ("map");
+   xml_set (parm, "title", "label");
+   xml_set (parm, "owner", "user");
+   xml_set (parm, "datasheet", "!hide");
+   xml_append (sql, parm);
+
+   strcpy (query, "select * from process where ");
+
+   field = xml_attrval (list, "status");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, "status=? ");
+      SET_PARM ("status", field);
+   }
+
+   field = xml_attrval (list, "user");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, "owner=? ");
+      SET_PARM ("owner", field);
+   }
+
+   field = xml_attrval (list, "where");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, field);
+   }
+
+   if (fields) {
+      xml_set (sql, "query", query);
+   } else {
+      xml_set (sql, "query", "select * from process");
+   }
+   xml_set (sql, "element", "process");
+
+   ret = _TASKINDEX_odbc_select (ad, sql, list);
+
+   xml_free (sql);
+   return ret;
+   return (XML *) 0;
+}
+XML * TASKINDEX_odbc_proccomplete (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "update process set status='complete', completed={fn NOW()} where id=?");
+   SET_PARM ("id", id);
+   _TASKINDEX_odbc_update (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_odbc_procerror (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "update process set status='error' where id=?");
+   SET_PARM ("id", id);
+   _TASKINDEX_odbc_update (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+</piece>
+
+
+
+
+
+
+OK, now for tasks.  Most of this is cut and pasted from above.  Well.
+Actually the above was cut and pasted from here, and then it was pasted into Oracle, and then
+it was copied back here,
+but that's a different story, and one I'm not telling right at the moment.
+
+<piece>
+XML * TASKINDEX_odbc_tasknew (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * datasheet = (XML *) 0;
+   XML * sql;
+   XML * parm;
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "insert into task (id, process, status, description, role, owner, created) values (?, ?, 'active', ?, ?, ?, {fn NOW()})");
+   SET_PARM ("id", xml_attrval (datasheet, "id"));
+   SET_PARM ("process", xml_attrval (datasheet, "process"));
+   SET_PARM ("label", xml_attrval (datasheet, "label"));
+   SET_PARM ("role", xml_attrval (datasheet, "role"));
+   SET_PARM ("owner", xml_attrval (datasheet, "user"));
+   _TASKINDEX_odbc_insert (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_odbc_taskdel (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+   char *process;
+   char *id;
+   XML * sql;
+   XML * parm;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "delete from task where process=? and id=?");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "process");
+   xml_set (parm, "value", process);
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", id);
+   xml_append (sql, parm);
+
+   _TASKINDEX_odbc_delete (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_odbc_taskget (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * process = NULL;
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+   XML * task = (XML *) 0;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) process = "";
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "element", "task");
+   xml_set (sql, "query", "select * from task where process=? and id=?");
+   parm = xml_create ("map");
+   xml_set (parm, "description", "label");
+   xml_set (parm, "owner", "user");
+   xml_append (sql, parm);
+   SET_PARM ("process", process);
+   SET_PARM ("id", id);
+   task = _TASKINDEX_odbc_select (ad, sql, NULL);
+
+   xml_free (sql);
+   return task;
+}
+XML * TASKINDEX_odbc_taskput (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+   XML * sql;
+   XML * parm;
+
+   if (args) task = va_arg (args, XML *);
+   if (!task) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query",    "update task set description=?, role=?, owner=?, status=? where process=? and id=?");
+   xml_set (sql, "fallback", "insert into task (description, role, owner, status, started, process, id) values (?, ?, ?, ?, {fn NOW()}, ?, ?)");
+   SET_PARM ("label", xml_attrval (task, "label"));
+   SET_PARM ("role",  xml_attrval (task, "role"));
+   SET_PARM ("owner", xml_attrval (task, "user"));
+   SET_PARM ("status", xml_attrval (task, "status"));
+   if (!*xml_attrval (parm, "value")) xml_set (parm, "value", "active"); /* Default status is active. */
+   SET_PARM ("process", xml_attrval (task, "process"));
+   SET_PARM ("id",    xml_attrval (task, "id"));
+   _TASKINDEX_odbc_update (ad, sql);
+
+   return (XML *) 0;
+}
+XML * TASKINDEX_odbc_tasklist (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = (XML *) 0;
+   XML * sql;
+   XML * parm;
+   XML * ret;
+   const char * field;
+   int fields = 0;
+   char query[1024];
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list specified.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   parm = xml_create ("map");
+   xml_set (parm, "description", "label");
+   xml_set (parm, "owner", "user");
+   xml_append (sql, parm);
+
+   strcpy (query, "select * from task where ");
+
+   field = xml_attrval (list, "process");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, "process=? ");
+      SET_PARM ("process", field);
+   }
+
+   field = xml_attrval (list, "status");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, "status=? ");
+      SET_PARM ("status", field);
+   }
+
+   field = xml_attrval (list, "role");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, "role=? ");
+      SET_PARM ("role", field);
+   }
+
+   field = xml_attrval (list, "user");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, "owner=? ");
+      SET_PARM ("owner", field);
+   }
+
+   field = xml_attrval (list, "where");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, field);
+   }
+
+   if (fields) {
+      xml_set (sql, "query", query);
+   } else {
+      xml_set (sql, "query", "select * from task");
+   }
+   xml_set (sql, "element", "task");
+
+   ret = _TASKINDEX_odbc_select (ad, sql, list);
+
+   xml_free (sql);
+   return ret;
+}
+XML * TASKINDEX_odbc_taskcomplete (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * process = NULL;
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) process = "";
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "update task set status='complete', complete={fn NOW()} where process=? and id=? and status='active'");
+   SET_PARM ("process", process);
+   SET_PARM ("id", id);
+   _TASKINDEX_odbc_update (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_odbc_taskreject (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * process = NULL;
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) process = "";
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "update task set status='reject' where process=? and id=? and status='active'");
+   SET_PARM ("process", process);
+   SET_PARM ("id", id);
+   _TASKINDEX_odbc_update (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+</piece>
+
+
+
+
+
+
+
+
+
+And then the request stuff.  Requests, as far as the task index is concerned, are just funny tasks with state=request.  All the good
+stuff (notifications, workflow, reassignment) requires a datasheet for now.  It's imperfect, but it's a start.  If a non-datasheet
+request is accepted, it turns into an active task.  If a datasheet request is accepted, or any request is declined, it's just deleted.
+Pretty simple, actually.
+
+<piece>
+XML * TASKINDEX_odbc_reqnew (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * datasheet = (XML *) 0;
+   XML * sql;
+   XML * parm;
+
+   char * query = "insert into task (id, title, status, started) values (:1, :2, :3, SYSDATE)";
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "insert into task (id, process, status, description, role, owner, created) values (?, ?, 'request', ?, ?, ?, {fn NOW()})");
+   SET_PARM ("id", xml_attrval (datasheet, "id"));
+   SET_PARM ("process", xml_attrval (datasheet, "process"));
+   SET_PARM ("label", xml_attrval (datasheet, "label"));
+   SET_PARM ("role", xml_attrval (datasheet, "role"));
+   SET_PARM ("owner", xml_attrval (datasheet, "of"));
+   _TASKINDEX_odbc_insert (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_odbc_reqdel (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+   char *process;
+   char *id;
+   XML * sql;
+   XML * parm;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "delete from task where process=? and id=? and status='request'");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "process");
+   xml_set (parm, "value", process);
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", id);
+   xml_append (sql, parm);
+
+   _TASKINDEX_odbc_delete (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_odbc_reqget (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * process = NULL;
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+   XML * task = (XML *) 0;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) process = "";
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "element", "request");
+   xml_set (sql, "query", "select * from task where process=? and id=? and status='request'");
+   parm = xml_create ("map");
+   xml_set (parm, "owner", "of");
+   xml_append (sql, parm);
+   SET_PARM ("process", process);
+   SET_PARM ("id", id);
+   task = _TASKINDEX_odbc_select (ad, sql, NULL);
+
+   xml_free (sql);
+   return task;
+}
+XML * TASKINDEX_odbc_reqput (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+   XML * sql;
+   XML * parm;
+
+   if (args) task = va_arg (args, XML *);
+   if (!task) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query",    "update task set description=?, role=?, owner=?, status=? where process=? and id=?");
+   xml_set (sql, "fallback", "insert into task (description, role, owner, status, started, process, id) values (?, ?, ?, 'request', {fn NOW()}, ?, ?)");
+   SET_PARM ("label", xml_attrval (task, "label"));
+   SET_PARM ("role", xml_attrval (task, "role"));
+   SET_PARM ("owner", xml_attrval (task, "of"));
+   SET_PARM ("process", xml_attrval (task, "process"));
+   SET_PARM ("id", xml_attrval (task, "id"));
+   _TASKINDEX_odbc_update (ad, sql);
+
+   return (XML *) 0;
+}
+XML * TASKINDEX_odbc_reqlist (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = (XML *) 0;
+   XML * sql;
+   XML * parm;
+   XML * ret;
+   const char * field;
+   int fields = 0;
+   char query[1024];
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list specified.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   parm = xml_create ("map");
+   xml_set (parm, "description", "label");
+   xml_set (parm, "owner", "user");
+   xml_append (sql, parm);
+
+   strcpy (query, "select * from task where status='request' ");
+
+   field = xml_attrval (list, "process");
+   if (*field) {
+      fields++;
+      strcat (query, "and process=? ");
+      SET_PARM ("process", field);
+   }
+
+   field = xml_attrval (list, "status");
+   if (*field) {
+      fields++;
+      strcat (query, "and status=? ");
+      SET_PARM ("status", field);
+   }
+
+   field = xml_attrval (list, "role");
+   if (*field) {
+      fields++;
+      strcat (query, "and role=? ");
+      SET_PARM ("role", field);
+   }
+
+   field = xml_attrval (list, "user");
+   if (*field) {
+      fields++;
+      strcat (query, "and owner=? ");
+      SET_PARM ("owner", field);
+   }
+
+   field = xml_attrval (list, "where");
+   if (*field) {
+      fields++;
+      strcat (query, "and ");
+      strcat (query, field);
+   }
+
+   if (fields) {
+      xml_set (sql, "query", query);
+   }
+   xml_set (sql, "element", "task");
+
+   ret = _TASKINDEX_odbc_select (ad, sql, list);
+
+   xml_free (sql);
+   return ret;
+}
+XML * TASKINDEX_odbc_reqaccept (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * process = NULL;
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) process = "";
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "update task set status='active' where process=? and id=? and status='request'");
+   SET_PARM ("process", process);
+   SET_PARM ("id", id);
+   _TASKINDEX_odbc_update (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_odbc_reqdecline (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+   char *process;
+   char *id;
+   XML * sql;
+   XML * parm;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "delete from task where process=? and id=? and status='request'");
+   SET_PARM ("process", process);
+   SET_PARM ("id", id);
+   _TASKINDEX_odbc_delete (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+</piece>
+
+</item>
+
+
+</litprog>
+
+

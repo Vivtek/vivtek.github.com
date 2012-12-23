@@ -1,0 +1,2497 @@
+<litprog>
+
+<object name="taskmgr.tcl" item="main"/>
+<object name="schema.sql" item="schema"/>
+
+<format name="index">
+<html>
+<head><title>wftk: Task manager, take 2</title></head>
+<body>
+<h2>wftk: Task manager</h2><hr/>
+<center>
+[ <a href="wftk_taskmgr.zip">download</a> ] [ <a href="taskmgr.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discuss</a> ]
+</center>
+<p/>
+The task manager component of the workflow toolkit is that component which deals with
+workflow as task tokens.  An attempt at a comparison of the two complementary views
+of workflow will be elsewhere, but suffice it to say that the task manager is primarily
+responsible for dealing with tasks in the database, but delegates the workflow 
+automation aspect to the core engine.  As it so happens, since the task manager works
+with tasks and process in their database-indexed forms, it's also the natural place
+to put most of the user interface to the workflow toolkit.
+<p/>
+The task manager (or at least this version of it) is also a perfectly good application
+all by its lonesome, in which case it takes on more of a to-do list manager aspect.
+<p/>
+The platform I'm developing this version against is <a href="/aolserver.html">AOLserver/Tcl</a>
+for a couple of reasons.  The most important of those reasons is simply that I'm pretty good at
+Tcl, so this is the quickest way to get this portion of the overall wftk system completed.
+However, the platform, while not particularly portable, has a lot to recommend it.  If you're
+not familiar with it, I encourage you to read up on it a little.  For one thing, it makes
+dealing with databases (and dealing with <i>different</i> database) extremely easy.  And it's
+also quite portable.
+<p/>
+Obviously, there's no reason to consider the wftk permanently wedded to AOLserver/Tcl, 
+regardless of this initial implementation.  As soon as this is released, I'm starting on
+a Python/Zope integration.  At some point I'll also be looking at a Perl module, and of
+course there would be a lot to recommend an Apache module in terms of performance (given
+that most of the rest of the toolkit is C/CGI, it's always being loaded, forking
+processes, and so forth.)
+<p/>
+The task manager component of a wftk installation must:
+<ul>
+<li>Work with the schema of the active process repository</li>
+<li>Know when to call the wftk engine to get things done (primarily at task completion), and</li>
+<li>Present the to-do list in any way necessary.</li>
+</ul>
+And here's how I do it.
+[##itemlist##]
+
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with
+<a href="http://www.vivtek.com/lpml/">LPML</a>.  Try literate programming.  You'll like it.
+</font></td></tr></table>
+</center>
+</body>
+</html>
+</format>
+
+<format name="default">
+<html><head><title>Task manager: [##label##]</title></head>
+<body>
+<h2>[##label##]</h2>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="index.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="index.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+
+<item name="index" label="wftk: Task manager" format="index">
+</item>
+
+<item name="main" label="File organization of taskmgr.tcl">
+Most people are familiar with the Apache/CGI model of active content, where an action is
+defined as a file (the CGI program) which is activated when selected via URL.  AOLserver
+does things a little differently.  Well, you can do things that way by putting your Tcl
+code into a plain ol' Tcl file.  But I use the <i>ns_register</i> call to define some
+URLs as active URLs, and tell the server what Tcl procedure to call when a request is
+made to that URL.  It's a slick mechanism.
+<p>
+AOLserver/Tcl code of this type consists of calls to <code>ns_register</code>, perhaps some
+settings for global variables, and <code>proc</code> definitions.
+<p>
+Let's start our file off with a little copyright info:
+<piece>
+# Task manager, take 2.
+# Copyright (c) 2000, Vivtek.
+# Released under the terms of the GNU license.
+
+</piece>
+
+And let's set two globals: the home directory and the base URL for the application.  Oh, and
+the database connection pool to use.  And some other stuff.  The list just keeps growing.
+
+<piece>
+set wftk_home /usr/local/AOLserver/vivtek/pages/workflow/wftk_exec/
+set taskmgr_home ${wftk_home}/taskmgr/
+set taskmgr_root /workflow/wftk_exec/taskmgr
+set taskmgr_pool wftk
+set taskmgr_auth_realm "wftk workflow"
+set pdm_ext ".cgi"
+set taskmgr_datasheets "/usr/local/AOLserver/vivtek/pages/workflow/working/datasheets"
+</piece>
+
+Now let's define the URLs we want to use:
+<piece>
+ns_register_proc GET  $taskmgr_root/create taskmgr_create
+ns_register_proc POST $taskmgr_root/create taskmgr_create
+ns_register_proc GET  $taskmgr_root/start taskmgr_start
+ns_register_proc POST $taskmgr_root/start taskmgr_start
+ns_register_proc GET  $taskmgr_root/show taskmgr_show
+ns_register_proc POST $taskmgr_root/show taskmgr_show
+ns_register_proc GET  $taskmgr_root/complete taskmgr_complete
+ns_register_proc POST $taskmgr_root/complete taskmgr_complete
+ns_register_proc GET  $taskmgr_root/reject taskmgr_reject
+ns_register_proc POST $taskmgr_root/reject taskmgr_reject
+ns_register_proc GET  $taskmgr_root/update taskmgr_update
+ns_register_proc POST $taskmgr_root/update taskmgr_update
+
+ns_register_proc GET  $taskmgr_root/overview taskmgr_overview
+</piece>
+
+(Notice that in Tcl you don't have to enclose strings in quotes if the interpreter can figure
+things out from context.  This causes me no end of grief when coding Perl.)
+<p>
+And let's go ahead and define each of our procedures that we're referring to up there.  The
+bodies of these procedures will be filled in later.
+<piece>
+proc taskmgr_create {conn ignore} {
+  <insert name="taskmgr_create"/>
+}
+
+proc taskmgr_start {conn ignore} {
+  <insert name="taskmgr_start"/>
+}
+
+proc taskmgr_show {conn ignore} {
+  <insert name="taskmgr_show"/>
+}
+
+proc taskmgr_complete {conn ignore} {
+  <insert name="taskmgr_complete"/>
+}
+
+proc taskmgr_reject {conn ignore} {
+  <insert name="taskmgr_reject"/>
+}
+
+proc taskmgr_update {conn ignore} {
+  <insert name="taskmgr_update"/>
+}
+
+proc taskmgr_overview {conn ignore} {
+  <insert name="taskmgr_overview"/>
+}
+</piece>
+
+And there are a few utility functions that I'll be using throughout:
+<code>taskmgr_pageout</code> is what I'll use to write pages, and there are some others in the
+final section of the presentation.
+
+<piece>
+<insert name="pageout"/>
+<insert name="util"/>
+<insert name="user_admin"/>
+<insert name="login_admin"/>
+<insert name="wftk_interpret"/>
+<insert name="wftk_user"/>
+</piece>
+
+<i>(5/10/2000)</i> Let's toss in a couple more procs to deal with datasheet manipulation (the
+getting and setting of values attached to the process and to tasks.)
+
+<piece>
+<insert name="datasheet_stuff"/>
+</piece>
+
+</item>
+
+<item name="schema" label="Database schema of the task list">
+The task list is wftk's <i>active process repository</i>.  It consists of two tables; one
+defines projects, the other tasks.  My epiphany about the relationship of wftk to a general
+task management tool came when I realized that tasks can exist without projects perfectly
+well.
+<p>
+This schema works on PostgreSQL.  Nothing fancy, and I'm omitting DBA details like indexing
+and the like; I just want to define the fields we'll need.  Let's call our tables "process"
+and "task", yeah, those are fairly descriptive.  Translation of this schema to other SQL
+dialects should be relatively straightforward, as most of the fields are just character data
+anyway (one of the things I like about PostgreSQL is that I don't have to feel guilty
+about text fields, or pretend that I can project meaningful size boundaries onto them.)
+<p>
+So here are the tables we'll be defining,  just the process table and the task table.  In the
+prototype there was also a user table and a kind of overcomplex keyword and permission system,
+but that has been replaced by the wftk user module in this implementation.
+
+<piece>
+create table process (
+<insert name=".process">
+);
+
+create table task (
+<insert name=".task">
+);
+
+</piece>
+
+The schema I'm presenting here is meant to implement the necessary fields for wftk and those
+for this to-do manager.  The nice thing about SQL, of course, is that properly written SQL
+interface code can deal with views onto the data (so that you can tack other stuff onto whatever
+table you like and things won't break.)  Don't feel overly constrained by these definitions.
+(This is turning into my mantra: don't feel constrained by any of my coding decisions!)
+</item>
+
+<item name="schema.process" label="Process table">
+The process table will actually not be used very heavily for to-do management.  The only place
+we care about this table will be in the overview, when we'll use it to group tasks by process
+(or "project").  Nevertheless, this presentation is also an implementation of the wftk
+active process repository, so let's take a look at what we'll need in there.
+
+<piece>
+id text,
+owner text,
+groupown text,
+title text,
+description text,
+started timestamp,
+parent_process text,
+parent_task text,
+definition text,
+datasheet text,
+status text
+
+</piece>
+
+OK, let's run down the list and I'll tell you what each of those is for.
+<ul>
+<b><li> owner</b>: the user who owns the process.<br>
+There are two basic ways that processes get created; either the wftk engine creates them when
+a definition is activated, or a user creates a process manually using the task manager.  In
+the latter case, the user's id is used as "owner"; in the former, we'll see what makes sense.
+In some cases, it makes sense for the initiating user to be the owner, but if a process is
+initiated anonymously (say, in response to an HTTP form submission) then the owner of the
+process definition will probably be used.  We'll see what makes sense later.
+
+<b><li> groupown</b>: the group which has access to the process.<br>
+This can be blank, in which case everybody will be able to see the process.  Otherwise,
+only users with some permission level to the named group will be able to see the process
+in lists.
+
+<br>
+<b><li> title, description</b>: short and long description of the project for reporting.<br>
+For a manual process, these are obvious.  For a wftk-initiated process, they may be superfluous.
+Again, only banging on a prototype will answer that question.  Certainly we'll need a title
+in place in order for the to-do manager and other UI components to have something to display.
+I certainly don't want to have to retrieve the definitions of all active processes in order
+to create an activity report, for instance.
+
+<br>
+<b><li> started</b>: date the process was created.<br>
+Enough said.  Obviously applies to both categories of process.
+
+<br>
+<b><li> parent_process, parent_task</b>: parent information.<br>
+If this is a subprocess, then it might require different handling.  Certainly when it completes,
+then its parent task must also be completed.  The task ID would logically be unique, but I
+have a nasty habit of programming defensively.
+
+<br>
+<b><li> definition</b>: location (URL, presumably) of the process definition.<br>
+This is only meaningful in the context of wftk, of course.  The process definition is used by
+the wftk core engine to determine what comes next when a task is completed or rejected.
+
+<br>
+<b><li> datasheet</b>: location of the datasheet for the process.<br>
+The datasheet module is of course a wftk module -- but could be used quite nicely independently
+of wftk.  It's a place to stash data associated with a process.  (Note that the task also has
+a datasheet location.  By default these locations will be identical.)
+
+<br>
+<b><li> status</b>: state of the process.<br>
+I guess pending, active, completed, aborted would be logical states.  Anybody have any
+suggestions?
+</ul>
+
+</item>
+
+<item name="schema.task" label="Task table">
+The task table is similarly overloaded.  I think I'm getting somewhat carried away about
+everything I want to attach to tasks, but this will do for a first run.
+
+<piece>
+id text,
+process text,
+status text,
+owner text,
+description text,
+role text,
+queue text,
+created timestamp,
+sched_date date,
+sched_time time,
+priority smallint,
+complete timestamp,
+datasheet text,
+subprocess text
+
+</piece>
+
+These are as follows.
+<ul>
+<b><li> process</b>: the ID of the process this task belongs to (if any).<br>
+If the user has manually created a task with the to-do manager, then there needn't be any
+process associated at all.  For manual tasks, the process is effectively nothing more than an
+organizational mechanism (i.e. it's there for the description fields and to group on.)
+
+<br>
+<b><li> status</b>: the status of the task.<br>
+Pending, active, complete, rejected, and request.  A
+ "pending" task is one which has been added by the
+wftk engine, but is either not yet assigned to a user or has simply not yet been activated.  If
+I have a pending task already assigned to me, then I can see it in my to-do list, and can set
+scheduling information for it.  I just can't actually complete it until it's active.  If the 
+status is "request", this is a manually created task which another user has created for me.
+I can either reject it or accept it; if accepted, the task becomes active.
+
+<br>
+<b><li> owner</b>: the user assigned to the task.<br>
+In the case of a manually created task, this is the person who created the task.  If I create
+a task for another user, that is really not a task, but a request -- the cleanest way to 
+implement this would be to provide a new status "request".  Then the request would have to have
+attached data to describe it, and that would require a datasheet module, but that's life in the
+big city.  In the case of a task which has not yet been assigned, "owner" will be blank and
+"role" and/or "queue" will be filled in instead.
+
+<br>
+<b><li> description</b>: a short description of the task.<br>
+In the case of a manual entry, the user simply types in some description of the task.  For
+wftk usage, the engine will create a description based on particulars of the task.
+
+<br>
+<b><li> role</b>: the process role associated with the task.<br>
+This has meaning only in the wftk process; it's the role in the process definition which the
+user will be fulfilling during this task.  The chief reason to have it here is to facilitate
+reassignment should the task be rejected.
+
+<br>
+<b><li> queue</b>: the queue on which the task resides.<br>
+For queueing of tasks and requests.  This is still rather inchoate but I just have the
+intuition that I'm going to need it.  It's not used by wftk.
+
+<br>
+<b><li> created</b>: the date the task was created.<br>
+Useful for implementing queues.  Not needed by wftk.
+
+<br>
+<b><li> sched_date, sched_time</b>: date and time of scheduled start.<br>
+This is completely ignored by wftk.  It's used for reporting and for organization of the
+individual's to-do lists.  Also makes it nice for representing appointments as tasks.
+
+<br>
+<b><li> priority</b><br>
+This is where I'm not sure if I'm getting out of control with feeping creaturism.  I think that
+this will be necessary, at least for implementation of priority queues, and also for individual
+to-do list organization, but I'm not sure where the line should be drawn.
+
+<br>
+<b><li> completed</b>: date of completion.
+
+<br>
+<b><li> datasheet</b>: link into datasheet.<br>
+This is the location where values associated with the task (or request) are stored.  This will
+all make sense later, I promise.  Since this module isn't implemented yet, though, there's not
+a lot of point in pontificating.
+
+<br>
+<b><li> subprocess</b>: subprocess ID.<br>
+If this task is being implemented by a subprocess, then the ID of that subprocess is here.
+
+</ul>
+
+</item>
+
+
+<item name="taskmgr_create" label="Definition of taskmgr_create">
+The <code>/create</code> URL is used both to present a form for task creation, and actual
+creation of the task.  It also handles the same thing for processes.
+<p>
+Before we do anything else, we need to get a database handle and check the authorized user.
+This is pretty straightforward.  Note that in AOLserver/Tcl the <code>ns_db</code>
+command connects us with the excellent DB interface.  The DB interface opens and
+manages a pool of connections, and we simply select one (or more) when needed.  When the
+HTTP transaction terminates, the connections are returned to the pool.
+<piece>
+global taskmgr_pool
+set db [ns_db gethandle $taskmgr_pool]
+<insert name="user.check"/>
+</piece>
+
+The next thing to do is to check the form input.  In AOLserver/Tcl, this is done for you
+before your proc is ever called (contrast with the irritation of having to do it yourself in
+CGI.  Yes, I know there are libraries.)  All kinds of information is available with the
+<code>ns_conn</code> command.  The form in question is query string information (preparsed)
+for GETs, and content body information (also preparsed) for POSTs.  It's returned as an
+<code>ns_set</code> datastructure which does pretty much what Perl hashes do.
+<p>
+If the form is blank, we know we're not actually creating
+anything, so we present the creation form.
+
+<piece>
+set form [ns_conn form $conn]
+if {$form == ""} {
+  <insert name=".freshform">
+  return
+}
+</piece>
+
+If the form isn't blank, then we have to create either a process or a task.  Which?  (If neither,
+let's return a nasty error message for the script kiddy trying to crack into the system.)
+
+<piece>
+if {[ns_set get $form what] == "task"} {
+  if ![string compare [ns_set get $form description] ""] {
+    <insert name=".newtask"/>
+  } else {
+    <insert name=".task"/>
+  }
+} elseif {[ns_set get $form what] == "process"} {
+  if ![string compare [ns_set get $form title] ""] {
+    <insert name=".newprocess"/>
+  } else {
+    <insert name=".process"/>
+  }
+} else {
+  set tags(title) "Invalid create request"
+  set tags(body) "
+To create a task, use [[code>what=task[[/code>; for a process use [[code>what=process[[/code>.
+You entered [[code>what=[ns_set get $form what][[/code>."
+
+  taskmgr_pageout $conn message.html
+}
+
+</piece>
+
+And that's it.  Oh.  Still haven't covered any details.
+</item>
+
+<item name="taskmgr_create.freshform" label="Show process/task creation form">
+The display of a form is pretty straightforward.  AOLserver/Tcl provides the
+<code>ns_return</code> function (among a couple of others) to perform this task.  While
+we can obviously use a string and embed all the HTML right in the code here, I don't like
+that style.  I nearly always use a template HTML file which I can then modify appropriately
+with code.  Using that mechanism here means essentially copying the HTML file and writing it
+out, so this begs the question of why we put it into this code in the first place instead of
+simply directing the user to the HTML page directly.  Simple: we want a list of existing
+projects to show up in the task creation form, and that happens in this code  and is made
+ready in the tag <code>[##projectlist##]</code>.
+
+<p>
+This all makes use of the function <code>taskmgr_pageout</code>, which will be defined later.
+(If I were using a more mature literate programming tool, 
+a link could automagically be inserted.  Unfortunately that's not the case.)
+
+The query I'm using to grab processes is overly simplistic.  I'm not using user information yet.
+I'll revisit this piece later so that the system will be multiuser.
+
+<piece>
+set row [ns_db select $db "select * from process"]
+set tags(processlist) "[[option value=\"\">Select a process if applicable\n"
+while {[ns_db getrow $db $row]} {
+   append tags(processlist) "[[option value=\"[ns_set get $row id]\">[ns_set get $row title]\n"
+}
+taskmgr_pageout $conn fresh_task.html
+
+</piece>
+
+</item>
+
+<item name="taskmgr_create.newtask" label="Requesting a task for a process">
+If we know the process we're attaching a task to, then we have another form to use.  We have
+to get some information about the project (basically its title) and we provide a list of
+users to make the request of.  (The current user is the default.)  We also need to check
+the user's permission level to make sure he/she may add tasks to the process.
+<p>
+First, if no process is involved (i.e. this is a standalone task) then we'll just present
+the form and go on.
+<piece>
+set process [ns_set get $form process]
+if ![string compare "" $process] {
+   return [taskmgr_pageout $conn newtasknoproc.html]
+} 
+</piece>
+
+Now let's get info about the process and make sure it exists.
+<piece>
+set tags(process) $process
+set prow [ns_db select $db "select * from process where id='[sql_safe_string $process]'"]
+if ![ns_db getrow $db $prow] {
+   set tags(title) "Can't create task for nonexistent process"
+   set tags(body) "The process code you entered (<code>$process</code>) can't be found in the database."
+   return [taskmgr_pageout $conn message.html]
+}
+set tags(title) [ns_set get $prow title]
+</piece>
+
+Next, let's check the user's permission level and ensure that it's sufficient.  Since the 
+permission may come through any keyword, we have to check all the keywords for the process.
+
+<piece>
+if {[string compare $user [ns_set get $prow owner]] && ![perms_check $user [ns_set get $prow groupown] taskadd]} {
+   set tags(body) "You don't have sufficient privileges to request tasks for [[i>$tags(title)[[/i>"
+   set tags(title) "Insufficent privilege"
+   return [taskmgr_pageout $conn message.html]
+}
+</piece>
+
+OK, let's build our list of users of which we can make requests, and put up the form.
+
+<piece>
+set tags(userlist) "[[option value=\"$user\">Select a requestee here\n"
+append tags(userlist) [perms_userselect [ns_set get $prow groupown] own]
+ 
+taskmgr_pageout $conn newtask.html
+</piece>
+
+</item>
+
+<item name="taskmgr_create.task" label="Create task">
+Once we've presented the form and the user has filled it in, we come to the task creation
+routine.
+The first thing is to build a task ID.  We want to make sure it's unique;
+in AOLserver/Tcl a useful way of
+doing that is to use the connection handle (which is a string, this is Tcl after all) and the
+current time.  The <code>now</code> function is one I use a lot; its definition is in the
+utility section.
+<piece>
+set task $conn[now tag]
+</piece>
+
+Next, we build our SQL statement to create the task requested and execute that statement.
+<piece>
+set fields [list id status created]
+set values [list '$task' 'active' '[now]']
+foreach field {process description priority sched_date sched_time} {
+   if {[ns_set find $form $field] == -1} { continue }
+   if {[ns_set get $form $field] == ""} { continue }
+
+   lappend fields $field
+   if {$field == "priority"} {
+      lappend values [ns_set get $form $field]
+   } else {
+      lappend values "'[sql_safe_string [ns_set get $form $field]]'"
+   }
+}
+
+if {[lsearch $fields owner] == -1} {
+   lappend fields owner
+   lappend values "'[sql_safe_string $user]'"
+}
+
+set query "insert into task ("
+append query [join $fields ", "]
+append query ") values ("
+append query [join $values ", "]
+append query ")"
+
+ns_db dml $db $query
+
+ns_returnredirect $conn show?task=$task
+</piece>
+
+And that's it.  Our task is created.  Notice that instead of doing any display here, I'm just
+returning a redirect so that all task display is concentrated into one area.
+</item>
+
+<item name="taskmgr_create.newprocess" label="Requesting a new process">
+This is no more than presenting the form.
+<piece>
+return [taskmgr_pageout $conn newprocess.html]
+</piece>
+</item>
+
+<item name="taskmgr_create.process" label="Create process">
+Creating a process is almost identical to creation of a task.  The fields are different, that's
+all.  And since we have no numeric fields in the process record, we don't need that special
+logic to avoid putting quotes around the priority field that we needed in the task record.
+<piece>
+set process $conn[now tag]
+set fields [list id status started]
+set values [list '$process' 'pending' '[now]']
+foreach field {title description} {
+   if {[ns_set find $form $field] == -1} { continue }
+   if {[ns_set get $form $field] == ""} { continue }
+
+   lappend fields $field
+   lappend values "'[sql_safe_string [ns_set get $form $field]]'"
+}
+
+if {[lsearch $fields owner] == -1} {
+   lappend fields owner
+   lappend values "'[sql_safe_string $user]'"
+}
+
+set query "insert into process ("
+append query [join $fields ", "]
+append query ") values ("
+append query [join $values ", "]
+append query ")"
+
+ns_db dml $db $query
+
+ns_returnredirect $conn show?process=$process
+</piece>
+
+</item>
+
+
+<item name="taskmgr_start" label="Definition of taskmgr_start">
+The <code>/start</code> URL is used to start workflow processes.  (This is in contrast to
+ad-hoc processes, which are not managed by the workflow engine, but rather simply serve as
+a hook to hang tasks on which are then completed in arbitrary order.)
+<p>
+<piece>
+global taskmgr_pool
+global taskmgr_home
+global wftk_home
+global pdm_ext
+set db [ns_db gethandle $taskmgr_pool]
+<insert name="user.check"/>
+</piece>
+
+Now that that's done, we can check our form input to see what we're actually supposed to
+be doing.  If we have an input "procdef" then we should show the starter form; if we have
+"start" and "ver" then we should call pdm to create a datasheet, add the process to the
+database, and ask wftk to start the process for us.
+
+<piece>
+set form [ns_conn form $conn]
+if {$form == ""} { set form [ns_set create] }
+
+if [string compare "" [ns_set get $form procdef]] {
+   <insert name=".startform"/>
+}
+if [string compare "" [ns_set get $form start]] {
+   <insert name=".start"/>
+}
+
+<insert name=".showlist"/>
+</piece>
+</item>
+
+<item name="taskmgr_start.showlist" label="Show list of available procdefs">
+To get a list of procdefs that the current user may start, we have the little <code>pdmlist</code> utility in the
+PDM module.  Its output is the key and title of the process, followed by the long description terminated by a line
+"EOF".
+<piece>
+global wftk_home
+set pipe [open "|${wftk_home}pdm/pdmlist $user start" "r"]
+set procdefs [split [read $pipe] "\n"]
+close $pipe
+
+set tags(list) ""
+set state 0
+
+foreach line $procdefs {
+   switch $state {
+      0 {
+         if [string compare $line ""] {
+            set line [split $line :]
+            append tags(list) "[[li>[[a href=\"start?procdef=[lindex $line 0]\">[lindex $line 1][[/a>[[br>\n"
+            set state 1
+         }
+      }
+      1 {
+        if [string compare $line "EOF"] {
+            append tags(list) "$line\n"
+        } else {
+            set state 0
+        }
+      }
+   }
+}
+
+return [taskmgr_pageout $conn startlist.html]
+</piece>
+</item>
+
+<item name="taskmgr_start.startform" label="Show start form for specified procdef">
+
+<piece>
+set tags(procdef) [ns_set get $form procdef]
+set pipe [open "|${wftk_home}pdm/pdm$pdm_ext starter $tags(procdef)" "r"]
+set tags(title) [gets $pipe]
+set tags(version) [gets $pipe]
+set tags(list) [read $pipe]
+close $pipe
+
+return [taskmgr_pageout $conn start.html]
+</piece>
+</item>
+
+<item name="taskmgr_start.start" label="Actually starting a new process from a procdef">
+
+<piece>
+set process $conn[now tag]
+global taskmgr_datasheets
+set pipe [open "|${wftk_home}pdm/pdm$pdm_ext datasheet [ns_set get $form start] [ns_set get $form ver] $process" "r"]
+set datasheet [read $pipe]
+close $pipe
+
+set pipe [open "$taskmgr_datasheets/$process" "w"]
+puts $pipe $datasheet
+close $pipe
+
+set size [ns_set size $form]
+for {set i 0} {$i < $size} {incr i} {
+   if {-1 < [lsearch {start ver} [ns_set key $form $i]]} { continue }
+   datasheet_setvalue $process "" [ns_set key $form $i] "" [ns_set value $form $i]
+}
+
+set pipe [open "|${taskmgr_home}wftk start $process" "r"]
+set workflow [read $pipe]
+close $pipe
+
+set wf [split $workflow \n]
+
+set fields [list id status started]
+set values [list '$process' 'active' '[now]']
+
+lappend fields title
+set title [string range [lindex $wf 0] 2 end]
+lappend values "'[sql_safe_string $title]'"
+
+set wf [lrange $wf 2 end]
+while {![string compare "" [lindex $wf 0]]} { set wf [lrange $wf 1 end] }
+
+set desc ""
+while {[string compare EOF [lindex $wf 0]]} {
+   append desc "[lindex $wf 0]<br>"
+   set wf [lrange $wf 1 end]
+}
+set wf [lrange $wf 1 end]
+
+lappend fields description
+lappend values "'[sql_safe_string $desc]'"
+
+lappend fields owner
+lappend values "'[sql_safe_string $user]'"
+
+lappend fields definition
+set procdef "[ns_set get $form start]_[ns_set get $form ver].xml"
+lappend values "'[sql_safe_string $procdef]'"
+
+lappend fields datasheet
+lappend values "'$process'"
+
+set query "insert into process ("
+append query [join $fields ", "]
+append query ") values ("
+append query [join $values ", "]
+append query ")"
+
+ns_db dml $db $query
+
+wftk_interpret $db $process $wf
+
+return [ns_returnredirect $conn overview?process=$process]
+</piece>
+</item>
+
+
+<item name="taskmgr_show" label="Definition of taskmgr_show">
+Like the create routine, the show routine is also responsible for both tasks and processes,
+and we can tell which is which by looking at the key given us (<code>task=something</code>
+versus <code>process=something</code>).  First let's get the form and complain if there is
+none.
+<piece>
+set form [ns_conn form $conn]
+if {$form == ""} {
+   set tags(title) "Nothing to show"
+   set tags(body) "You need to select something to show."
+   return [taskmgr_pageout $conn message.html]
+}
+global taskmgr_pool
+set db [ns_db gethandle $taskmgr_pool]
+<insert name="user.check"/>
+</piece>
+
+OK, now let's look at the <code>back</code> parameter.  If that's there, then we're coming in
+from one of the list views and we want to offer the user the option of going back to the list
+after an update operation.  Otherwise, updates will come back here.
+
+<piece>
+set back [ns_set get $form back]
+if [string compare $back ""] {
+   set tags(back) "[[input type=checkbox checked name=back value=\"$back\">"
+   append tags(back) "Return to list after update"
+} else {
+   set tags(back) ""
+}
+append back "[ns_conn url $conn]?[ns_conn query $conn]"
+append tags(back) "[[input type=hidden name=back value=\"$back\">\n"
+</piece>
+
+I'm getting a little tricky there; if the box is displayed, then if it's not checked it will
+never appear in the query list for <code>update</code> and the hidden field (which directs
+<code>update</code> back here to the display) will take control.  But if the box remains checked,
+then its value will be the first in the query list, and <code>ns_set</code> will return that
+value first when queried for "back".  So <code>update</code> will return to the list instead of
+to this display screen.
+<p>
+OK, now that's out of the way, let's do some displaying.
+We can display either a task or a process, and each of those
+is shown detail below.  Here's the code we'll hang those in:
+<piece>
+set task [ns_set get $form task]
+if {$task != ""} {
+   <insert name=".task"/>
+   return
+}
+set process [ns_set get $form process]
+if {$process != ""} {
+   <insert name=".process"/>
+   return
+}
+
+set tags(title) "Nothing to show"
+set tags(body) "You need to select something to show."
+taskmgr_pageout $conn message.html
+</piece>
+
+</item>
+
+<item name="taskmgr_show.task" label="Show task">
+Showing a task (or any other single record from a database) is simple.  You just load the
+record, toss the values into tags, and express the template.  (Since there are two modes
+for task display, edit and view, there are two pageout calls.)
+
+<piece>
+if [catch {set row [ns_db select $db "select * from task where id='$task'"]} result] {
+   set tags(title) "Task $task unknown"
+   set tags(body) "The task ID <code>$task</code> is not in the database.  Sorry."
+   return [taskmgr_pageout $conn message.html]
+}
+
+if [ns_db getrow $db $row] {
+   foreach field {process status priority owner description created sched_date sched_time} {
+      set tags($field) [ns_set get $row $field]
+   }
+   set tags(processid) $tags(process)
+   set tags(task) $task
+   if [string compare "edit" [ns_set get $form mode]] {
+      <insert name="taskmgr_show.getprocess"/>
+      <insert name="taskmgr_show.getowner"/>
+      set tags(updatelink) ""
+      set tags(isowner) 0
+      if ![string compare $tags(owner) $user] {
+         set tags(isowner) 1
+         set tags(updatelink) "show?task=$task&back=$back&mode=edit"
+         set tags(backhere) "[ns_conn url $conn]?[ns_conn query $conn]"
+         if [string compare "" $tags(processid)] {
+            set tags(taskdata) [datasheet_showdata edit $tags(backhere) $tags(process) $task]
+         } else {
+            set tags(taskdata) ""
+         }
+      }
+      return [taskmgr_pageout $conn taskhome.html]
+   } else {
+      <insert name="taskmgr_show.makeprioritybox"/>
+      <insert name="taskmgr_show.getprocess"/>
+      <insert name="taskmgr_show.getowner"/>
+      set tags(backhere) "[ns_conn url $conn]?[ns_conn query $conn]"
+      if [string compare "" $tags(processid)] {
+         set tags(taskdata) [datasheet_showdata view $tags(backhere) $tags(processid) $task]
+      } else {
+         set tags(taskdata) ""
+      }
+      return [taskmgr_pageout $conn task.html]
+   }
+} else {
+   set tags(title) "Task $task unknown"
+   set tags(body) "The task ID <code>$task</code> is not in the database.  Sorry."
+   return [taskmgr_pageout $conn message.html]
+}
+</piece>
+
+That looks a little redundant, maybe; there are two different places where we apologize for a
+missing record.  The first is as an error handler, while the second is after a null return.
+This is due to a little oddity of the AOLserver PostgreSQL driver -- if a select returns no
+rows, the driver flags that as an error.  However, other drivers don't act that way, so I need
+the normal null-return error screen as well, just in case somebody is using a driver that
+works sanely.  (Or in case anybody ever fixes the PostgreSQL driver.)
+<p>
+And of course you will have noticed that I slipped in a little extra processing besides the
+standard "get the record, do the tags, return the page" list.  Let's take a look at that stuff.
+</item>
+
+<item name="taskmgr_show.getprocess" label="Getting process info for task display">
+What we want from the process table depends on what process the task belongs to.  If
+it already is attached to a process, then we simply want the title of the process for
+display and a link to display that process.  If this is a manually entered task, however,
+which hasn't been attached to a
+process, then we'll present a select box for that purpose.  I envision the situation as
+this: as I'm entering tasks in my daily list, I realize that some of them group into a
+process logically, so I create the process and want to add the (already existing) tasks
+into it.  At the simplest level, then, a process is simply a group of tasks.
+<p>
+The list of processes which should appear in this list are those which the current user
+owns, plus those for which the current user has 'taskadd' permission.
+<p>
+So let's check our process ID. 
+
+<piece>
+set process [ns_set get $row process]
+set tags(processid) $process
+if {$process != ""} {
+   if [catch {set prow [ns_db select $db "select * from process where id='$process'"]} result] {
+      set tags(process) "[[i>Unknown process $process[[/i>"
+   } elseif [ns_db getrow $db $prow] {
+      set p [ns_set get $prow title]
+      set tags(process) "[[a href=\"overview?process=$process&who=all\">"
+      append tags(process) "[ns_set get $prow title][[/a>"
+   } else {
+      set tags(process) "[[i>Unknown process $process[[/i>"
+   }
+} elseif ![string compare [ns_set get $form mode] edit] {
+   set perms_or [perms_or $user groupown taskadd]
+
+   set query "select * from process where status <> 'complete' and "
+   append query "(owner='[sql_safe_string $user]' $perms_or) order by title"
+   if [catch {set prow [ns_db select $db $query]} result] {
+      set tags(process) "[[i>Unable to generate process list[[/i>"
+   } else {
+      set tags(process) "[[select name=process>\n"
+      append tags(process) "[[option value=\"\">Select a process to assign\n"
+      set lastid ""
+      while {[ns_db getrow $db $prow]} {
+         if ![string compare $lastid [ns_set get $prow id]] { continue }
+         set lastid [ns_set get $prow id]
+         append tags(process) "[[option value=\"[ns_set get $prow id]\">"
+         append tags(process) "[ns_set get $prow title]\n"
+      }
+      append tags(process) "[[/select>\n"
+   }
+} else {
+   set tags(process) "[[i>none[[/i>\n"
+}
+</piece>
+
+</item>
+
+<item name="taskmgr_show.getowner" label="Getting owner info for task/process display">
+Getting the owner's information is very similar to the process info, of course.  The only
+real trick is that we're going to create a tag out of it called "ownertag" which will contain
+a mailto: link and the user's ID and name.  <i>(10/01/00)</i> This works with the wftk user
+module now, of course.
+
+<piece>
+set owner $tags(owner) 
+if {$owner != ""} {
+   if [catch {
+      set pipe [open "|${wftk_home}user/user listuser $owner" "r"]
+      set ownerinfo [split [read $pipe] "\n"]
+      close $pipe} result ] {
+      set tags(ownertag) "[[i>Unknown owner[[/i>"
+   } else {
+      set ownerrow [ns_set create]
+      foreach info $ownerinfo {
+         set info [split $info :]
+         ns_set put $ownerrow [lindex $info 0] [join [lrange $info 1 end] :]
+      }
+
+      if [string compare "" [ns_set get $ownerrow email]] {
+         set tags(ownertag) "[[a href=\"mailto:[ns_set get $ownerrow email]\">"
+      } else {
+         set tags(ownertag) ""
+      }
+      append tags(ownertag) $owner
+      if [string compare "" [ns_set get $ownerrow email]] {
+         append tags(ownertag) "[[/a>"
+      }
+      if [string compare "" [ns_set get $ownerrow fullname]] {
+         append tags(ownertag) " ([ns_set get $ownerrow fullname])"
+      }
+   }
+}
+</piece>
+
+</item>
+
+<item name="taskmgr_show.makeprioritybox" label="Making select box to change priority level">
+This is pretty easy.  We have the priority level in <code>[ns_set get $row priority]</code>.
+All we have to do is to make a select box which has a couple of priority levels above that.
+
+<piece>
+set tags(prioritybox) "[[select name=\"priority\">"
+set p [ns_set get $row priority]
+if {$p == ""} {
+   append tags(prioritybox) "[[option value=\"\" selected>No priority selected\n"
+   append tags(prioritybox) "[[option value=1>1\n"
+   append tags(prioritybox) "[[option value=2>2\n"
+   append tags(prioritybox) "[[option value=3>3\n"
+} else {
+   for {set i 1} {$i [[ $p} {incr i} {
+      append tags(prioritybox) "[[option value=$i>$i\n"
+   }
+   append tags(prioritybox) "[[option value=$p selected>$p\n"
+   incr p
+   append tags(prioritybox) "[[option value=$p selected>$p\n"
+   incr p
+   append tags(prioritybox) "[[option value=$p selected>$p\n"
+}
+append tags(prioritybox) "[[/select>\n"
+</piece>
+
+And that's all there is to that.
+</item>
+
+<item name="taskmgr_show.process" label="Show process">
+Displaying a process really is as easy as I made it out to be above, since there are
+no particularly special things we have to do.  But of course there is one little complication;
+for processes I want to be able to get a list when I give <code>process=all</code> or 
+<code>process=mine</code>.  These lists will link to individual process pages.
+
+<piece>
+if {![string compare $process all] || ![string compare $process mine]} {
+   <insert name="taskmgr_show.processlist"/>
+}
+if [catch {set row [ns_db select $db "select * from process where id='$process'"]} result] {
+   set tags(title) "Process $process unknown"
+   set tags(body) "The process ID <code>$process</code> is not in the database.  Sorry."
+   return [taskmgr_pageout $conn message.html]
+}
+
+if [ns_db getrow $db $row] {
+   foreach field {title owner description started} {
+      set tags($field) [ns_set get $row $field]
+   }
+   set tags(process) $process
+   <insert name="taskmgr_show.getowner"/>
+   set tags(backhere) "[ns_conn url $conn]?[ns_conn query $conn]"
+   set tags(processdata) [datasheet_showdata edit $tags(backhere) $process ""]
+   return [taskmgr_pageout $conn process.html]
+} else {
+   set tags(title) "Process $process unknown"
+   set tags(body) "The process ID [[code>$process[[/code> is not in the database.  Sorry."
+   return [taskmgr_pageout $conn message.html]
+}
+</piece>
+</item>
+
+<item name="taskmgr_show.processlist" label="Listing processes">
+So how do we do process lists?  Pretty easy.  (Well, it was pretty easy until I started
+tossing all this permission stuff into it.)
+<p/>
+If "all" is selected, then I display all processes which I own or to which I have viewing
+privileges.  If "mine" is selected (i.e. "all" isn't selected) then I display all processes
+which I own.
+<p/>
+I determine my viewing privileges by getting a list of groups in which I'm a member, then
+building a nice big "or" clause for the group.  If the group entry is blank for the process,
+then I show that one, too -- in other words, group ownership of a process restricts its
+visibility; the default is public ownership.
+<p/>
+
+We want to select on status as well, analogous to the task overviews (as seen below).  I'm
+defining filters "active" (which includes pending) and "complete".  Sorting is always on
+title.  Later we'll come up with some kind of folder system, I suppose, but not yet.
+
+Here's how we'll interpret the filter parameter.
+<piece>
+set filter active
+if ![string compare [ns_set get $form filter] complete] {
+   set filter complete
+}
+switch $filter {
+   active { set statuswhere "status <> 'complete'"; set filterword "active" }
+   complete { set statuswhere "status='complete'"; set filterword "completed" }
+}
+</piece>
+
+OK, kinda dumb but it'll be easy to modify if we want to extend it later.  Let's get on with the show.
+
+<piece>
+set perms_or [perms_or [ns_set get $userrow name] groupown]
+set tags(header) "[[tr bgcolor=cccccc>[[td>Process[[/td>"
+if ![string compare $process all] {
+   set tags(title) "All $filterword processes"
+   append tags(header) "[[td>Owner[[/td>"
+   set    query "select * from process "
+   append query   "where $statuswhere and (owner='[sql_safe_string $user]' "
+   append query   "or groupown='' or groupown is null $perms_or) "
+   append query "order by title"
+} else {
+   set tags(title) "My $filterword processes"
+   set query "select * from process where $statuswhere and owner='[sql_safe_string $user]' order by title"
+}
+append tags(header) "[[td>Status[[/td>[[/tr>"
+
+set tags(table) ""
+set rows 0
+if ![catch {set row [ns_db select $db $query]} result] {
+   while {[ns_db getrow $db $row]} {
+      append tags(table) "[[tr bgcolor=\""
+      if [expr $rows % 2] {
+         append tags(table) eeeeee
+      } else {
+         append tags(table) ffffff
+      }
+      append tags(table) "\">"
+      incr rows
+
+      append tags(table) "[[td>[[a href=\"overview?process=[ns_set get $row id]&who=all\">"
+      append tags(table) "[ns_set get $row title][[/a> "
+      if ![string compare $user [ns_set get $row owner]] {
+         append tags(table) "([[a href=\"show?process=[ns_set get $row id]\">modify[[/a>)[[/td>"
+      }
+
+      if [string compare $process mine] {
+         append tags(table) "[[td>[ns_set get $row owner][[/td>"
+      }
+
+      append tags(table) "[[td>[ns_set get $row status][[/td>[[/tr>\n"
+   }
+}
+if {$rows == 0} {
+   set tags(body) "[[tr>[[td colspan=3>[[i>No processes found[[/i>[[/td>[[/tr>"
+}
+
+return [taskmgr_pageout $conn processlist.html]
+</piece>
+</item>
+
+
+
+
+<item name="taskmgr_overview" label="Definition of taskmgr_overview">
+The overview URL is used for reporting and listing of tasks.  This is the most complicated
+function in the application, because there are lots of interesting ways to sort and filter
+tasks.  The two input values which control which report we'll generate are <code>filter</code>
+and <code>order</code>.  The <code>filter</code> parameter sets a default order, and can take
+the following values:
+<table border=0>
+<tr bgcolor=eeeeee><td>Filter</td><td>Default order</td><td>What it shows</td></tr>
+<tr><td><code>active</code> (the default)</td><td><code>priority</code></td>
+  <td>Shows all outstanding active tasks.</td></tr>
+<tr><td><code>scheduled</code></td><td><code>schedule</code></td>
+  <td>Shows only tasks for which scheduling information has been entered.</td></tr>
+<tr><td><code>today</code></td><td><code>schedule</code></td>
+  <td>Same as schedule, but includes only those tasks for which the scheduled time
+      is sometime today.</td></tr>
+<tr><td><code>complete</code></td><td><code>process</code></td>
+  <td>Shows all completed tasks.</td></tr>
+<tr><td><code>full</code></td><td><code>process</code></td>
+  <td>Shows everything in the task list.</td></tr>
+</table>
+
+The order parameter which the above makes use of selects among the following orders:
+<table border=0>
+<tr bgcolor=eeeeee><td>Order</td><td>Database order</td><td>What it's used for</td></tr>
+<tr><td><code>priority</code></td><td><code>priority desc, created</code></td>
+  <td>Shows tasks in descending priority order.</td></tr>
+<tr><td><code>schedule</code></td><td><code>sched_date, sched_time</code></td>
+  <td>Shows tasks in order of scheduled time.</td></tr>
+<tr><td><code>process</code></td><td><code>process.title, created</code></td>
+  <td>Shows tasks in order of process, then creation time within the process.</td></tr>
+</table>
+
+So let's figure out all that first:
+<piece>
+global taskmgr_pool
+set db [ns_db gethandle $taskmgr_pool]
+<insert name="user.check"/>
+
+set form [ns_conn form $conn]
+if {$form == ""} {
+   set form [ns_set create]
+   set filter active
+   set order priority
+} else {
+   set filter [ns_set get $form filter]
+
+   set order [ns_set get $form order]
+   if ![string compare $order ""] {
+      switch -- $filter {
+         active { set order priority }
+         scheduled { set order schedule }
+         complete { set order process }
+         full { set order process }
+         default { set order priority }
+      }
+   }
+}
+</piece>
+
+The default filter is active -- except in the case of the process home, where I think the
+default should be full (i.e. show all tasks, whether active, rejected, or complete.)  Let's 
+make that behavior explicit.
+
+<piece>
+set process [ns_set get $form process]
+if ![string compare $filter ""] {
+   if [string compare $process ""] {
+      set filter full
+   } else {
+      set filter active
+   }
+}
+</piece>
+
+OK, at this point we know at least what we're doing.  Let's go ahead and translate our filter
+and order parameters into actual where and order by clauses suitable for building our query.
+
+set process [ns_set get $form process]
+<piece>
+switch -- $filter {
+   active    { set where "and task.status='active'" }
+   scheduled { set where "and not sched_date is null" }
+   complete  { set where "and task.status='complete'" }
+   full      { set where "" }
+   default   { set where "and task.status='active'" }
+}
+
+switch -- $order {
+   priority { set orderby "order by priority desc, created" }
+   schedule { set orderby "order by sched_date, sched_time, created" }
+   process  { set orderby "order by title, created" }
+   default  { set orderby "order by created" }
+}
+
+switch -- $filter {
+   active    { set tags(title) "To do" }
+   scheduled { set tags(title) "To do on date" }
+   complete  { set tags(title) "Completed tasks" }
+   full      { set tags(title) "All tasks" }
+   default   { set tags(title) "To do" }
+}
+</piece>
+
+The <code>who</code> parameter selects the user or users for which we'll be displaying
+tasks.  Default is the login user.  For all tasks, use <code>who=all</code>
+
+<piece>
+set who [ns_set get $form who]
+if ![string compare $who ""] { set who $user }
+if [string compare $who all] {
+   append where " and task.owner='[sql_safe_string $who]'"
+}
+</piece>
+
+If there is a process named in the <code>process</code> then this is a process home page
+we're displaying.  In this case, we restrict the task list to tasks with this process, and
+we also display process information (process description and owner contact info.)
+
+<piece>
+if [string compare $process ""] {
+   set prow [ns_db select $db "select * from process where id='[sql_safe_string $process]'"]
+   if ![ns_db getrow $db $prow] {
+      set tags(title) "Process not found"
+      set tags(body) "The process <code>$process</code> couldn't be found in the database."
+      return [taskmgr_pageout $conn message.html]
+   }
+   foreach field {title description owner} { set tags($field) [ns_set get $prow $field] }
+
+   <insert name="taskmgr_show.getowner"/>
+
+   if ![string compare $tags(owner) $user] {
+      set tags(modlink) "show?process=$process"
+      append tags(modlink) "&back=[ns_urlencode [ns_conn url $conn]?[ns_conn query $conn]]"
+      if [perms_check $user [ns_set get $prow groupown] taskadd] {
+         set tags(requestlink) "create?what=task&process=$process"
+         append tags(requestlink) "&back=[ns_urlencode [ns_conn url $conn]?[ns_conn query $conn]]"
+      } else {
+         set tags(requestlink) ""
+      }
+   }
+
+   append where " and task.process='[sql_safe_string $process]'"
+   set tags(process) $process
+}
+</piece>
+
+Now let's go ahead and build our query.  Since we're working with PostgreSQL, we can't do
+an outer join to get process information only when tasks are associated with processes; instead,
+we are forced to build two selects and join them with a union.
+
+<piece>
+set query "
+select task.*, text '' as title from task where process is null $where
+union
+select task.*, process.title as title from task, process where task.process=process.id $where
+$orderby"
+</piece>
+
+The header is easy to build, with the caveat that I only want a Priority column if I'm looking
+at priority.  Otherwise it's just clutter.
+
+<piece>
+set tags(header) "[[tr bgcolor=\"cccccc\">[[td>Task[[/td>[[td>Owner[[/td>"
+set cols 3
+if ![string compare $process ""] {
+   append tags(header) "[[td>Process[[/td>"
+   incr cols
+}
+if {$order == "priority"} {
+   append tags(header) "[[td>Priority[[/td>"
+   incr cols
+}
+
+if {$filter == "scheduled"} {
+   append tags(header) "[[td>Scheduled[[/td>"
+} else {
+   append tags(header) "[[td>Created[[/td>"
+}
+
+if {$filter == "full"} {
+   append tags(header) "[[td>Status[[/td>"
+}
+
+append tags(header) "[[/tr>\n"
+</piece>
+
+Let's build a quick back link (this can be passed to the show screens to allow us to return
+to the current list after doing something with a task.)  This handoff technique is something
+I've always thought was kind of a kludge, but it works in situations where you have different
+URLs doing different tasks and they all have to work togther (a more structured flow of control
+than your standard database-search paradigm.)
+<piece>
+set back "[ns_conn url $conn]"
+if [string compare "" [ns_conn query $conn]] { append back "?[ns_conn query $conn]" }
+set back [ns_urlencode $back]
+</piece>
+
+And now we get to the meat of the routine.  We submit the query, and organize the rows as they
+come back.  The formatting of the rows is unfortunately embedded in the code instead of being
+specified in the template file.  I guess I could get around that with style sheets, but I just
+don't use them very often.  This would be a dandy thing to come back to later, after the
+application is basically working.
+<p>
+The <code>rows</code> variable keeps track of whether we're in an even or odd row, so that we
+can make the table stripey.  I do like those stripey tables.
+<piece>
+set rows 0
+set tags(table) ""
+if ![catch {set row [ns_db select $db $query]} result] {
+   while {[ns_db getrow $db $row]} {
+      append tags(table) "[[tr bgcolor=\""
+      if [expr $rows % 2] {
+         append tags(table) eeeeee
+      } else {
+         append tags(table) ffffff
+      }
+      append tags(table) "\">"
+      append tags(table) "[[td>[[a href=\"show?task=[ns_set get $row id]&back=$back\">"
+      if [string compare "" [ns_set get $row description]] {
+         append tags(table) [ns_set get $row description]
+      } else {
+         append tags(table) [ns_set get $row id]
+      }
+      append tags(table) "[[/a>[[/td>"
+      append tags(table) "[[td>[ns_set get $row owner][[/td>"
+      if ![string compare $process ""] {
+         if {[ns_set get $row process] != ""} {
+            append tags(table) "[[td>"
+            append tags(table) "[[a href=\"overview?process=[ns_set get $row process]&who=all&filter=active\">"
+            append tags(table) "[ns_set get $row title][[/a>[[/td>"
+         } else {
+            append tags(table) "[[td>&nbsp;[[/td>"
+         }
+      }
+      if {$order == "priority"} {
+         set p [ns_set get $row priority]
+         if {$p == ""} { set p 1 }
+         append tags(table) "[[td>[[center>"
+         append tags(table) "[[a href=update?task=[ns_set get $row id]"
+         append tags(table) "&priority=[expr $p + 1]&back=$back>up[[/a> "
+         append tags(table) "$p "
+         if {$p < 2} {
+            append tags(table) "dn"
+         } else {
+            append tags(table) "[[a href=update?task=[ns_set get $row id]"
+            append tags(table) "&priority=[expr $p - 1]&back=$back>dn[[/a> "
+         }
+         append tags(table) "[[/center>[[/td>"
+      }
+      if {$filter == "scheduled"} {
+         append tags(table) "[[td>[ns_set get $row sched_date] [ns_set get $row sched_time][[/td>"
+      } else {
+         append tags(table) "[[td>[ns_set get $row created][[/td>"
+      }
+      if {$filter == "full"} {
+         append tags(table) "[[td>[[i>[ns_set get $row status][[/i>[[/td>"
+      }
+      append tags(table) "[[/tr>\n"
+      incr rows
+   }
+}
+
+if {$rows == 0} {
+   set tags(table) "[[tr>[[td colspan=$cols>[[i>No tasks found[[/i>[[/td>[[/tr>\n"
+}
+
+if [string compare $process ""] {
+   set tags(backhere) "[ns_conn url $conn]?[ns_conn query $conn]"
+   set tags(processdata) [datasheet_showdata view "" $process ""]
+   taskmgr_pageout $conn processhome.html
+} else {
+   taskmgr_pageout $conn overview.html
+}
+</piece>
+
+</item>
+
+<item name="taskmgr_update" label="Definition of taskmgr_update">
+Updating of tasks and processes has the same basic shape as the other functions we've
+already defined: we get the form, check whether we're working on a task or a process, then
+perform the update.  Afterwards we forward the browser to the URL given by the "back"
+parameter, to smooth the overall user interface.
+
+<piece>
+set form [ns_conn form $conn]
+if {$form == ""} {
+   set tags(title) "Nothing to update"
+   set tags(body) "You need to specify something to update."
+   return [taskmgr_pageout $conn message.html]
+}
+global taskmgr_pool
+set db [ns_db gethandle $taskmgr_pool]
+<insert name="user.check"/>
+
+set task [ns_set get $form task]
+if {$task != ""} {
+   <insert name=".task"/> 
+   <insert name=".goback"/>
+}
+set process [ns_set get $form process]
+if {$process != ""} {
+   <insert name=".process"/>
+   <insert name=".goback"/>
+}
+
+set tags(title) "Nothing to update"
+set tags(body) "You need to specify either a task or a process to update."
+taskmgr_pageout $conn message.html
+</piece>
+</item>
+
+<item name="taskmgr_update.task" label="Updating task record">
+Updating the task is quite simple; we grab the updatable fields (which do <i>not</i> include
+the status of the task), build an update query, and run it.  The only really unpleasant aspect
+is checking that the user has permission to do so, and I'll split that off into the next section.
+<p>
+That section returns the flag <code>$modify</code>; if the flag is set, then full modification
+is allowed; if not, then only priority is modifiable by the current user.  (If the current user
+has no permission at all to modify the task, then that will already have been dealt with.)
+
+<piece>
+<insert name="taskmgr_update.taskcheckuser"/>
+set fields [list]
+foreach field {process description priority sched_date sched_time} {
+   if {[ns_set find $form $field] == -1} { continue }
+   if {[ns_set get $form $field] == ""} { continue }
+   if {!$modify && $field != "priority"} { continue }
+
+   if {$field == "priority"} {
+      lappend fields "$field=[ns_set get $form $field]"
+   } else {
+      lappend fields "$field='[sql_safe_string [ns_set get $form $field]]'"
+   }
+}
+
+if {[llength $fields] > 0} {
+   set query "update task set "
+   append query [join $fields ", "]
+   append query " where id='$task'"
+
+   ns_db dml $db $query
+}
+</piece>
+
+This is coded dangerously.  I should be preprocessing the values supplied for sched_date
+and sched_time in order to force them to be something usable.  At the very least I should
+check for an error return on update and do something meaningful with it.  Oh, well.  This is
+a prototype, right?
+</item>
+
+<item name="tasimgr_update.taskcheckuser" label="Checking user permissions to update task">
+The simplest case is if the user owns the task.  The task owner always has full permission.
+Note the continued complete lack of error handling; one of the things I plan to do is to 
+centralize query handling into one nice place, then do general error handling there.  In the
+meantime, we'll just have to live with those 500 status returns.
+<piece>
+set query "select * from task where id='[sql_safe_string $task]'"
+set row [ns_db select $db $query]
+ns_db getrow $db $row
+set modify 1
+set priority 1
+if [string compare $user [ns_set get $row owner]] {
+</piece>
+
+We assume the ability to modify and set priority.  If the current user owns the task, we won't
+check further, but otherwise, if the task belongs to a process, then the process owner and 
+anybody with 'm' privilege may modify the task, and anybody with 'r' privilege may change the
+task's priority but may change nothing else about the task.
+
+<piece>
+   set modify 0
+   set priority 0
+   set process [ns_set get $row process]
+   if [string compare $process ""] {
+      set query "select * from process where id='[sql_safe_string $process]'"
+      set row [ns_db select $db $query]
+      ns_db getrow $db $row
+      set modify 1
+      set priority 1
+      if [string compare $user [ns_set get $row owner]] {
+         set modify   [perms_check $user [ns_set get $prow groupown] modify]
+         set priority [perms_check $user [ns_set get $prow groupown] prioritize]
+      }
+   }
+}
+</piece>
+
+After all that, if the user doesn't have permission to modify anything in the task, then
+we need to indicate that and return.
+
+<piece>
+if {!$modify && !$priority} {
+   set tags(title) "Insufficient privilege"
+   set tags(body) "You don't have sufficient privilege to update this task."
+   return [taskmgr_pageout $conn message.html]
+}
+</piece>
+</item>
+
+<item name="taskmgr_update.process" label="Updating process record">
+Updating the process record is, of course, even easier because we don't have that numeric
+priority to special-case.
+
+<piece>
+set fields [list]
+foreach field {title description} {
+   if {[ns_set find $form $field] == -1} { continue }
+   if {[ns_set get $form $field] == ""} { continue }
+
+   lappend fields "$field='[sql_safe_string [ns_set get $form $field]]'"
+}
+
+if {[llength $fields] > 0} {
+   set query "update process set "
+   append query [join $fields ", "]
+   append query " where id='$process'"
+
+   ns_db dml $db $query
+}
+</piece>
+</item>
+
+<item name="taskmgr_update.goback" label="Forwarding back to where the update started">
+After the update is complete (whether it's a task or a process that was updated) we have
+to return the user back to where the transaction started, whether that's the <code>show</code>
+screen or one of the overview lists.  The starting URL is in the <code>back</code> parameter;
+if not, we'll just have to present a little message saying that the update was completed and
+let the user take care of the navigation for us.
+<piece>
+set back [ns_set get $form back]
+if [string compare $back ""] {
+   ns_returnredirect  $conn $back
+} else {
+   set tags(title) "Update complete"
+   set tags(body) "Your update operation was completed."
+   taskmgr_pageout $conn message.html
+}
+return
+</piece>
+</item>
+
+
+
+<item name="taskmgr_complete" label="Definition of taskmgr_complete">
+Task completion (and rejection, in the next section) is really the only point where task list
+management has anything to do with workflow, oddly enough.  (Since this is a component of
+the workflow toolkit, you'd think there would be more intersection.)  
+<p>
+But given that this is a standalone application as well as a workflow component, we can't
+simply hand task completion off to the wftk entirely.  Instead, we have to check for three
+cases.  The first, and easiest, is a standalone task that isn't associated with a process
+at all.  If such a task is completed, it's simply marked as complete, and we're done.
+<p>
+If the task belongs to a process, then we retrieve the process.  If the process has a 
+definition, that's our sign that the wftk will handle completion.  If there is no definition,
+then we're managing the process, and so we'll see whether the process has any additional
+active tasks -- if not, we'll mark the process itself as complete.
+<p>
+Let's handle the overhead first:
+<piece>
+global taskmgr_pool
+global taskmgr_home
+set db [ns_db gethandle $taskmgr_pool]
+<insert name="user.check"/>
+set form [ns_conn form $conn]
+set task ""
+if {$form != ""} { set task [ns_set get $form task] }
+if {$task == ""} {
+   set tags(title) "No task specified"
+   set tags(body) "Task completion requires a task identifier."
+   return [taskmgr_pageout $conn message.html]
+}
+</piece>
+
+The first thing we'll do is to retrieve the task and make sure that the current user has the
+right to complete it.
+
+<piece>
+set query "select * from task where id='[sql_safe_string $task]'"
+if {[catch {set row [ns_db select $db $query]} result] || ![ns_db getrow $db $row]} {
+   set tags(title) "Task unknown"
+   set tags(body) "The task you specified ([[code>$task[[/code>) could not be found in the database."
+   return [taskmgr_pageout $conn message.html]
+}
+
+if [string compare $user [ns_set get $row owner]] {
+   set tags(title) "Insufficient privilege"
+   set tags(body) "You are not the owner of this task.  Only the owner may complete a task."
+   return [taskmgr_pageout $conn message.html]
+}
+</piece>
+
+So now we have that out of the way, we can get down the to business of completing the task.
+If we're lucky, it's a standalone task and we can simply complete it and go on.
+
+<piece>
+set process [ns_set get $row process]
+if {$process == ""} {
+   set query "update task set status='complete',complete='[now]'"
+   append query " where id='[sql_safe_string $task]'"
+   ns_db dml $db $query
+   if [string compare [ns_set get $form back] ""] {
+      return [ns_returnredirect $conn [ns_set get $form back]]
+   }
+   set tags(title) "Task complete"
+   set tags(body) "The task has been marked as complete"
+   return [taskmgr_pageout $conn message.html]
+}
+</piece>
+
+Ah, well.  We do have a process to work on after all.  OK, let's look it up.
+
+<piece>
+set query "select * from process where id='[sql_safe_string $process]'"
+set row [ns_db select $db $query]
+if ![ns_db getrow $db $row] {
+   set query "update task set status='complete', complete='[now]'"
+   append query " where id='[sql_safe_string $task]'"
+   ns_db dml $db $query
+   if [string compare [ns_set get $form back] ""] {
+      return [ns_returnredirect $conn [ns_set get $form back]]
+   }
+   set tags(title) "Task complete"
+   set tags(body) "The task has been marked as complete"
+   return [taskmgr_pageout $conn message.html]
+}
+</piece>
+
+(If the process isn't in existence for some reason, it seems to me that the easiest way to
+handle the situation is to treat the task as a standalone task.)
+<p>
+If the process has a definition, then we need to hand things off to wftk.  After that, we'll
+do whatever wftk tells us, then mark the current task as complete.
+<piece>
+if [string compare "" [ns_set get $row definition]] {
+   set pipe [open "|${taskmgr_home}wftk complete $process $task" "r"]
+   set wf [split [read $pipe] \n]
+   close $pipe
+   wftk_interpret $db $process $wf
+}
+</piece>
+
+Which leaves us with the case of a task which belongs to a process which <i>we</i> have to
+check for completion.  First off, let's go ahead and mark our task complete.
+
+<piece>
+set query "update task set status='complete',complete='[now]' where id='[sql_safe_string $task]'"
+ns_db dml $db $query
+</piece>
+
+OK, let's ask the database how many non-complete tasks still belong to our process, and mark the
+process as complete if no more remain.  (We can't just look at active tasks, because we could
+have some pending requests still outstanding.)
+
+<piece>
+set query "select count(*) as ct from task where status<>'complete' and process='[sql_safe_string $process]'"
+set row [ns_db select $db $query]
+ns_db getrow $db $row
+if {[ns_set get $row ct] == 0} {
+   set query "update process set status='complete' where id='[sql_safe_string $process]'"
+   ns_db dml $db $query
+}
+
+if [string compare [ns_set get $form back] ""] {
+   return [ns_returnredirect $conn [ns_set get $form back]]
+}
+return [ns_returnredirect $conn "overview?process=$process"]
+</piece>
+</item>
+
+
+
+<item name="taskmgr_reject" label="Definition of taskmgr_reject">
+Task rejection works almost identically to task completion.  But I'm just not sure what to do
+with a rejected task.  Processes with rejected tasks won't complete, by the way, at this point.
+If you have any thoughts, I'd like to hear them.
+
+<piece>
+global taskmgr_pool
+set db [ns_db gethandle $taskmgr_pool]
+<insert name="user.check"/>
+set form [ns_conn form $conn]
+set task ""
+if {$form != ""} { set task [ns_set get $form task] }
+if {$task == ""} {
+   set tags(title) "No task specified"
+   set tags(body) "Task rejection requires a task identifier."
+   return [taskmgr_pageout $conn message.html]
+}
+</piece>
+
+The first thing we'll do is to retrieve the task and make sure that the current user has the
+right to reject it.
+
+<piece>
+set query "select * from task where id='[sql_safe_string $task]'"
+if {[catch {set row [ns_db select $db $query]} result] || ![ns_db getrow $db $row]} {
+   set tags(title) "Task unknown"
+   set tags(body) "The task you specified ([[code>$task[[/code>) could not be found in the database."
+   return [taskmgr_pageout $conn message.html]
+}
+
+if [string compare $user [ns_set get $row owner]] {
+   set tags(title) "Insufficient privilege"
+   set tags(body) "You are not the owner of this task.  Only the owner may reject a task."
+   return [taskmgr_pageout $conn message.html]
+}
+</piece>
+
+So now we have that out of the way, we can get down the to business of rejecting the task.
+If we're lucky, it's a standalone task and we can simply reject it and go on.
+
+<piece>
+set process [ns_set get $row process]
+if {$process == ""} {
+   set query "update task set status='rejected'"
+   append query " where id='[sql_safe_string $task]'"
+   ns_db dml $db $query
+   if [string compare [ns_set get $form back] ""] {
+      return [ns_returnredirect $conn [ns_set get $form back]]
+   }
+   set tags(title) "Task rejected"
+   set tags(body) "The task has been marked as rejected"
+   return [taskmgr_pageout $conn message.html]
+}
+</piece>
+
+Ah, well.  We do have a process to work on after all.  OK, let's look it up.
+
+<piece>
+set query "select * from process where id='[sql_safe_string $process]'"
+set row [ns_db select $db $query]
+if ![ns_db getrow $db $row] {
+   set query "update task set status='rejected'"
+   append query " where id='[sql_safe_string $task]'"
+   ns_db dml $db $query
+   if [string compare [ns_set get $form back] ""] {
+      return [ns_returnredirect $conn [ns_set get $form back]]
+   }
+   set tags(title) "Task rejected"
+   set tags(body) "The task has been marked as rejected"
+   return [taskmgr_pageout $conn message.html]
+}
+</piece>
+
+(If the process isn't in existence for some reason, it seems to me that the easiest way to
+handle the situation is to treat the task as a standalone task.)
+<p>
+If the process has a definition, then we need to hand things off to wftk.  As the core engine
+hasn't been written yet, I'll punt and do <i>absolutely nothing</i>.
+<piece>
+if [string compare "" [ns_set get $row definition]] {
+   set tags(title) "wftk must handle rejection"
+   set tags(body) "This task must be rejected by the wftk engine."
+   return [taskmgr_pageout $conn message.html]
+}
+</piece>
+
+Which leaves us with the case of a task which belongs to a process which <i>we</i> have to
+check for completion.  All we do is mark the task as rejected (unlike completion, there is
+nothing to do to the process.)
+
+<piece>
+set query "update task set status='rejected' where id='[sql_safe_string $task]'"
+ns_db dml $db $query
+
+if [string compare [ns_set get $form back] ""] {
+   return [ns_returnredirect $conn [ns_set get $form back]]
+}
+set tags(title) "Task complete"
+set tags(body) "The task has been marked as complete"
+return [taskmgr_pageout $conn message.html]
+</piece>
+</item>
+
+
+
+<item name="user" label="User functionality">
+The user functionality consists of two things: the most important is of course the
+code to be executed before each function in order to cause the login box to pop up.
+This uses <code>ns_conn authuser</code> to see if a login has already been supplied; if not,
+a 401 return is used to pop the box up.
+<p>
+The other portion is of course a couple of screens for maintenance of the user table: a list,
+a user-update function, a user-add function, user delete, and a screen to be used to request
+a user ID.  (The request is anonymous and creates an inactive user record.  The record must
+then be activated by an administrator.  This would be a great place to use a workflow.)
+</item>
+
+<item name="user.check" label="Checking authuser">
+Checking for the authuser is pretty straightforward.  This code is executed at the beginning
+of each screen.  It invokes the user utility of the wftk in a command-line mode in order to check
+authorization.  If the password matches, that utility returns all the attributes of the user,
+one per line, with name separated from value by a colon.  A future version should, of course,
+use a Tcl extension incorporating the user library, but this should work and was naturally
+faster to code.
+<p/>
+The information retrieved from the user module is placed into an <code>ns_set</code> structure.
+This structure is like a Perl hash -- you'd think that a Tcl array would be exactly the same,
+except that <code>ns_set</code> doesn't raise an error when you try to retrieve a nonexistent
+key; it just returns a blank, which is more convenient in most cases in my humble opinion.
+
+<piece>
+set user [string tolower [ns_conn authuser $conn]]
+global taskmgr_auth_realm
+global wftk_home
+if [string compare $user ""] {
+   set pipe [open "|${wftk_home}user/user auth [string tolower [ns_conn authuser $conn]] [string tolower [ns_conn authpassword $conn]]" "r"]
+   set userinfo [split [read $pipe] \n]
+   close $pipe
+
+   if ![llength $userinfo] {
+      ns_set put [ns_conn outputheaders $conn WWW-Authenticate "BASIC realm=\"$taskmgr_auth_realm\""
+      return [taskmgr_pageout $conn auth.html 401]
+   }
+} else {
+   ns_set put [ns_conn outputheaders $conn] WWW-Authenticate "BASIC realm=\"$taskmgr_auth_realm\""
+   return [taskmgr_pageout $conn auth.html 401]
+}
+
+set userrow [ns_set create]
+foreach datum $userinfo {
+   set datum [split $datum :]
+   ns_set put $userrow [lindex $datum 0] [join [lrange $datum 1 end] :]
+}
+</piece>
+</item>
+
+
+<item name="login_admin" label="Login management stuff">
+Once I had the login functionality coded, I realized there's no good way to log <i>out</i>
+short of closing your browser if you're using authuser logins.  (Please correct me if you
+know of a way.)  So I wrote a quick little login management routine.  If called with no
+parameters, it will report the login user (if any) and present a form to be used to select
+a user to switch to, and also a form to update personal information.  If called with a username,
+it forces a new login.
+
+<piece>
+ns_register_proc GET $taskmgr_root/login taskmgr_login
+
+proc taskmgr_login {conn ignore} {
+   set userid [ns_conn authuser $conn]
+   if ![string compare $userid ""] {
+      return [taskmgr_pageout $conn nologin.html]
+   }
+</piece>
+
+At this point we know that the user is logged in and which user it is.  Let's ask the
+database for information about this user.
+
+<piece>
+   global taskmgr_pool
+   set db [ns_db gethandle $taskmgr_pool]
+   set row [ns_db select $db "select * from users where userid='[sql_safe_string $userid]'"]
+   ns_db getrow $db $row
+   foreach field {userid password name email website} {
+      set tags($field) [ns_set get $row $field]
+   }
+</piece>
+
+(Apologies for the egregious lack of error handling here.  After it's all working I'll have
+to go back and fix that sort of thing up.)  So we have the user's information -- let's get the
+form and see what we're supposed to do.
+
+<piece>
+   set form [ns_conn form $conn]
+   if {$form == ""} {
+      <insert name=".showlogin"/>
+   } else {
+      <insert name=".modlogin"/>
+   }
+}
+</piece>
+</item>
+
+<item name="login_admin.showlogin" label="Showing the current login">
+If our login is known, then we simply display the login.html page in order to give the user
+a chance to switch logins.
+<piece>
+set tags(title) "Current login user: $tags(userid) ($tags(name))"
+return [taskmgr_pageout $conn login.html]
+</piece>
+</item>
+
+<item name="login_admin.modlogin" label="Switching logins">
+To switch login userids, we simply check the <code>user</code> parameter and return a 401
+if the authuser doesn't match.  This forces login with the given userid.
+<piece>
+if [string compare [string tolower $userid] [string tolower [ns_set get $form user]]] {
+   ns_set put [ns_conn outputheaders $conn] WWW-Authenticate "BASIC realm=\"task list manager\""
+   return [taskmgr_pageout $conn auth.html 401]
+}
+</piece>
+
+If they <i>do</i> match, then we'll just do the same as the showlogin.  In fact, let's just
+use the exact same code.
+<piece>
+<insert name="login_admin.showlogin"/>
+</piece>
+</item>
+
+
+
+<item name="wftk_user" label="Interfacing with the wftk user module for permissions">
+In the prototype of the task manager, I implemented a really ugly permission structure stored in the
+database.  Then I went away and developed the wftk user module as a better way of dealing with permission
+issues -- but at this point, our only convenient interface to that is via the command-line <code>user</code>
+utility.  That isn't all that convenient, but I haven't had the time to sit down and write a Tcl extension
+for user permissions, which is what will eventually happen.
+
+<p/>
+So for the time being, I'm going to write little utility functions here which call the <code>user</code>
+utility to get information, then postprocess that information into something we can use.  The first of those
+functions is <code>perms_or</code>, which, given a username, first gets a list of groups the user belongs to,
+and then builds an 'or' clause using those.  The clause starts with 'or' because I figure we'll always be
+tacking it onto something else.
+
+<piece>
+proc perms_or {user sql_field {perm "view"}} {
+   global wftk_home
+   set ret ""
+
+   set pipe [open "|${wftk_home}user/user groups $user $perm" "r"]
+   set groups [split [read $pipe] "\n"]
+   close $pipe
+
+   foreach group $groups {
+      append ret " or $sql_field = '[sql_safe_string [lindex [split $group :] 0]]'"
+   }
+
+   return $ret
+}
+</piece>
+
+Boy, sometimes I just love Tcl.  It makes command-line work soooo easy.
+<p/>
+OK, next trick: check a permission level to things owned by a group.
+
+<piece>
+proc perms_check {user group {perm "view"}} {
+   if ![string compare $group ""] { return 1 }
+   global wftk_home
+   set pipe [open "|${wftk_home}user/user permgroup $user $group $perm" "r"]
+   set perm [read $pipe]
+   close $pipe
+
+   return [string match OK* $perm]
+}
+</piece>
+
+Now a function to return a select-option list of users with particular permission level to a particular group.
+
+<piece>
+proc perms_userselect {group {perm "view"}} {
+   if ![string compare $group ""] { set group "everybody" }
+
+   global wftk_home
+   set pipe [open "|${wftk_home}user/user userlist $group $perm" "r"]
+   set info [split [read $pipe] "\n"]
+   close $pipe
+
+   set ret ""
+   foreach i $info {
+      set i [split $i :]
+
+      set name [join [lrange $i 2 end] :]
+      if ![string compare $name ""] {
+         set name [lindex $i 0]
+      } else {
+         append name " ([lindex $i 0])"
+      }
+      append ret "[[option value=\"[lindex $i 0]\">$name\n"
+   }
+
+   return $ret
+}
+</piece>
+</item>
+
+
+
+<item name="pageout" label="How I'm writing pages out">
+The <code>taskmgr_pageout</code> function is pretty much the same as all the template
+output functions I use in my daily work.  It looks for tags of the form <code>[##tag##]</code>
+in a base HTML file, and replaces them with hash lookups in a <code>tags</code> variable
+in its caller (in Perl I do the same by passing a hash reference in, but in Tcl I can just
+look up into the stack frame of my caller, which is so incredibly arcane it gives me a little
+<i>frisson</i> every time I do it.)
+<p>
+I've been using this ungainly hack for a long time, in several different languages now.  And
+by golly I'm never going to stop!
+<p>
+Note that the HTTP return status is passed in as an optional parameter.  The default is, of
+course, 200, but a useful alternative is 401 for user authentication, for instance.
+
+<piece>
+proc taskmgr_pageout {conn file {status 200}} {
+   upvar tags tags
+   global taskmgr_home
+   set fn $taskmgr_home/$file
+   if {![file exists $fn]} {
+      <insert name=".handle404"/>
+   }
+
+   set fil [open $fn]
+   while {[gets $fil line] >= 0} {
+      set hit [regexp -nocase {\[##([-a-z_ 0-9!/?]*)##\]} $line match tag]
+      while {$hit} {
+         regsub -all -nocase \\\[##$tag##\\\] $line [escape_ampersand [taskmgr_pageout_tag_value $tag]] line
+         set hit [regexp -nocase {\[##([-a-z_ 0-9!/?]*)##\]} $line match tag]
+      }
+      append pg $line "\n"
+   }
+   close $fil
+
+   ns_return $conn $status text/html $pg
+}
+
+</piece>
+
+If you look away from the truly horrible things we have to do to get <code>regsub</code> to
+work with those square brackets, the whole thing is pretty obvious: you open the file, read in
+a line at a time, and find tags of the form <code>[##tag##]</code>.  Then you pass the text
+from the tag into <code>taskmgr_pageout_tag_value</code>, which returns the value.  There's one
+little irritating bit about that, though.  Since <code>regexp</code> has one oh-so-helpful
+"feature" that I would remove given the chance: it replaces all occurences of '&' with the
+match string.  So the result of <code>taskmgr_pageout_tag_value</code> has to
+be processed in order to escape ampersands.  But since
+both <code>regsub</code> and Tcl itself have to be escaped, we end up with a triple-escape.
+It's just so lovely.  Here's <code>escape_ampersand</code>:
+
+<piece>
+proc escape_ampersand {str} {
+   regsub -all "&" $str \\\\\\& retval
+   return $retval
+}
+</piece>
+
+And of course actual retrieval of values from the <code>tags</code> array is simple.  A tag
+is just an arbitrary string, so this is a dandy place to define "special" tags or even
+functional tags.  I'm defining two special tags here; <code>flagopen</code> and
+<code>flagclose</code>.  These are functional tags, so that <code>[##flagopen flag##]</code>
+resolves to <code>&lt;!--</code> if <code>flag</code> is equal to an empty string or zero, and
+resolves to an empty string otherwise.  The corresponding <code>[##flagclose flag##]</code>
+resolves to <code>--&gt;</code>, of course.  This means that we can display parts of a page
+conditionally depending on whether a particular flag is true or not; it allows much greater
+flexibility in page design.  (And allows us to push much more of the page design into the
+template so that code changes aren't necessary.)
+<p>
+A more complex implementation of <code>taskmgr_pageout</code> could simply omit that portion
+of the template enclosed in the flagopen/flagclose pair, but I'm not going to go that deep
+right now.
+
+<piece>
+proc taskmgr_pageout_tag_value {tag} {
+   upvar tags tags
+   if [string match "flagopen *" $tag] {
+      set tag [string range $tag 9 end]
+      if [info exists tags($tag)] {
+         if {$tags($tag) != 0 && $tags($tag) != ""} { return "" }
+      }
+      return "[[!--"
+   }
+   if [string match "flagclose *" $tag] {
+      set tag [string range $tag 10 end]
+      if [info exists tags($tag)] {
+         if {$tags($tag) != 0 && $tags($tag) != ""} { return "" }
+      }
+      return "-->"
+   }
+   if [info exists tags($tag)] { return $tags($tag) }
+   return ""
+} 
+
+</piece>
+
+The only thing left to do is to define how we handle non-existent pages.
+</item>
+
+<item name="pageout.handle404" label="Handling 404 returns">
+The simplest way to do this is simply to return a standard apology and be done with it.  And
+since I'm in a hurry, that's what I'll do:
+
+<piece>
+   return [ns_return $conn 404 text/html "
+[[h1>404[[/h1>
+[[hr>
+  [[blockquote>
+  [[i>You step in the stream[[br>
+     the water has moved on[[br>
+     page not found
+  [[/i>
+  [[/blockquote>
+
+  Sorry, [[code>[ns_conn url $conn][[/code> can't be found.
+"]
+
+</piece>
+
+Sorry for the cheesy haiku but I just love that one.  If you've ever encountered a missing link
+on the rest of my site, you'll see I use it there, too.  And that's all the apology you're going
+to get.
+
+</item>
+
+
+
+<item name="datasheet_stuff" label="Datasheet interface">
+For working with datasheets, I'm defining two procedures: <code>datasheet_getvalue</code>
+goes to the datasheet associated with a process and retrieves a data value, and 
+<code>datasheet_setvalue</code> sets the named value.  (And of course does other XML
+maintenance, like create the file if necessary.)
+<p>
+These functions will be used in the task/process show and update functions.
+<p>
+There are two global settings we'll need:
+<piece>
+
+<insert name=".datasheet_getvalue"/>
+<insert name=".datasheet_setvalue"/>
+</piece>
+
+These functions, by the way, are based on my
+<a href="http://www.vivtek.com/xmltools/">command-line XML utilities</a> to simplify the
+Tcl end.  The xmltools are written on James Clark's
+<a href="http://www.vivtek.com/expat.html">expat</a>, a nice, solid XML parser.
+
+<p>
+These functions are in turn called by <code>datasheet_showdata</code>, which, given a process
+ID and optional task ID, iterates down the list of data to display data attached to the
+named task or to the process if the task is not supplied.  The same function is used to
+generate either an editing form or a simple static view.  The output is organized into
+table rows of two columns; this output is assumed to be assigned to a tag, so that the
+table element itself will be supplied elsewhere (usually on the format page.)
+<piece>
+<insert name=".datasheet_showdata"/>
+</piece>
+
+<p>
+In addition to the basic functions, I'm defining one URL handler, setvalue; setvalue will
+take a process and task ID and information about the value or values, and create it or replace
+it using <code>datasheet_setvalue</code>.  The corresponding use of
+<code>datasheet_getvalue</code> is kind of here and there throughout the show screens.
+<piece>
+ns_register_proc GET  $taskmgr_root/setvalue setvalue
+ns_register_proc POST $taskmgr_root/setvalue setvalue
+<insert name=".setvalue"/>
+</piece>
+</item>
+
+<item name="datasheet_stuff.setvalue" label="URL handler setvalue">
+This proc handles value setting operations by making calls to <code>datasheet_setvalue</code>.
+Obviously this isn't the most efficient way of handling things, but it works, and it's
+extremely modular, so it should be easy to maintain.  In the interests of scalability, we'll
+want to investigate more integrated approaches to datasheet maintenance.
+
+<piece>
+proc setvalue {conn ignore} {
+   set form [ns_conn form $conn]
+   if {$form == ""} { 
+      set tags(title) "No parameters given"
+      set tags(body) "You can't set a value without giving the value."
+      return [taskmgr_pageout $conn message.html]
+   }
+   set process [ns_set get $form process]
+   set task [ns_set get $form task]
+   set newname [ns_set get $form newname]
+   if [string compare "" $newname] {
+      datasheet_setvalue $process $task $newname [ns_set get $form type] ""
+      return [ns_returnredirect $conn [ns_set get $form back]
+   }
+
+   set size [ns_set size $form]
+   for {set i 0} {$i < $size} {incr i} {
+      if {-1 < [lsearch {process task back newname type} [ns_set key $form $i]]} { continue }
+
+      datasheet_setvalue $process $task [ns_set key $form $i] "" [ns_set value $form $i]
+   }
+   return [ns_returnredirect $conn [ns_set get $form back]]
+}
+</piece>
+</item>
+
+
+<item name="datasheet_stuff.datasheet_getvalue" label="Definition of datasheet_getvalue">
+The getvalue procedure must not only retrieve the value, but format it as an appropriate
+field as well so that we can include it into a form for update.  The <code>active</code>
+parameter governs whether the caller wants a form field or just a value; the return
+from the proc is a list consisting of name, type, and the value or field insert.
+<p/>
+I have the feeling that paragraph didn't make a lot of sense, so I'll probably come back
+and rewrite it later.
+<p/>
+At any rate, the data values attached to a task or directly to the process are accessed
+not by name, but by number.  This allows a form to be built by scanning up until a blank
+return.  The return value is a list consisting of the data item's: id, type, value, the
+HTML needed to edit the value, and a full list of attributes attached to the element.
+<p/>
+Note the gyrations required to detect an empty data element (i.e. a data value with a
+value of the empty string.)  Sheesh.
+<piece>
+proc datasheet_getvalue {process task number {active 0}} {
+   global taskmgr_datasheets
+   set datasheet "$taskmgr_datasheets/$process"
+   if ![file exists $datasheet] return ""
+
+   set loc datasheet
+   if [string compare $task ""] { append loc ".task\[$task\]" }
+   append loc ".data($number)"
+
+   set data [exec ${wftk_home}xmltools/xmlsnip $loc $datasheet]
+   if {0 == [regexp ^[[(\[^[[\]*)> $data tag bits]} { return "" }
+   if  [string match */ $bits] {
+      set data ""
+      regsub /$ $bits "" bits
+   } else {
+      regsub ^[[\[^[[\]*> $data "" data
+      regsub [[\[^>\]*>$ $data "" data
+   }
+   set fields [list]
+   set id ""
+   set type ""
+   set bits [split [join [lrange [split $bits] 1 end]] =]
+   set name [lindex $bits 0]
+   foreach bit [lrange $bits 1 end] {
+      set bit [split $bit \"]
+      lappend fields [list $name [lindex $bit 1]]
+      switch $name {
+         id { set id [lindex $bit 1] }
+         type { set type [lindex $bit 1] }
+      }
+      set name [string trim [lindex $bit 2]]
+   }
+   switch $type {
+      string { set html "[[input name=\"$id\" value=\"$data\">" }
+      text { set html "[[textarea name=\"$id\" rows=5 cols=40>$data[[/textarea>" }
+      default { set html "[[input name=\"$id\" value=\"$data\">" }
+   }
+   return [list $id $type $data $html $fields]
+}
+</piece>
+</item>
+
+<item name="datasheet_stuff.datasheet_showdata" label="Definition of datasheet_showdata">
+The <code>datasheet_showdata</code> is used from the task and process screens to build the
+form necessary to edit attached data (or simply to view it otherwise).  If the action is
+<code>edit</code>, then it needs the <code>back</code> parameter to give to the setvalue
+URL handler as a redirect target.
+<piece>
+proc datasheet_showdata {action back process task} {
+   set retval ""
+   set i 0
+
+   while (1) {
+      set d [datasheet_getvalue $process $task $i]
+      incr i
+      if ![string compare "" [lindex $d 0]] { break }
+      if {$action == "edit"} {
+         append retval "[[tr>[[td>[lindex $d 0]:[[/td>[[td>[lindex $d 3][[/td>[[/tr>\n"
+      } else {
+         append retval "[[tr>[[td>[lindex $d 0]:[[/td>[[td>[lindex $d 2][[/td>[[/tr>\n"
+      }
+   }
+
+   if {$action == "edit" && $retval != ""} {
+      set retval "[[form action=setvalue method=post>\n$retval"
+      append retval "[[input type=hidden name=process value=\"$process\">\n"
+      append retval "[[input type=hidden name=task value=\"$task\">\n"
+      append retval "[[input type=hidden name=back value=\"$back\">\n"
+      append retval "[[tr>[[td colspan=2>[[center>"
+      append retval "[[input type=submit value=\"Update values\">[[/center>[[/td>[[/tr>\n"
+      append retval "[[/form>\n"
+   }
+
+   return $retval
+}
+</piece>
+</item>
+
+<item name="datasheet_stuff.datasheet_setvalue" label="Definition of datasheet_setvalue">
+To set the value, we have to<ul>
+<li>Make sure there's a file there
+<li>If this is a task value, make sure the task has an entry in the datasheet
+<li>Make sure there's a value there
+<li>Finally, replace (or insert) the value.
+</ul>
+Not too onerous, eh?
+<piece>
+proc datasheet_setvalue {process task name type value} {
+   if ![string compare "" $process] { return }
+   regsub -all "\"" $name ' name
+   global taskmgr_datasheets
+   set datasheet "$taskmgr_datasheets/$process"
+   set loc datasheet
+   if [string compare $task ""] { append loc ".task\[$task\]" }
+
+   if ![file exists $datasheet] {
+      exec ${wftk_home}xmltools/xmlcreate datasheet > $datasheet
+   }
+   if [string compare $task ""] {
+      set taskloc [exec ${wftk_home}xmltools/xmlsnip -otl datasheet.task\[$task\] $datasheet]
+      if ![string compare $taskloc ""] {
+         exec mv $datasheet $datasheet.~
+         set pipe [open "|${wftk_home}xmltools/xmlinsert aftercontent datasheet $datasheet.~ > $datasheet" w]
+         puts $pipe "<task id=\"$task\">"
+         puts $pipe "</task>"
+         close $pipe
+      }
+   }
+   set dataloc [exec ${wftk_home}xmltools/xmlsnip -otl $loc.data\[$name\] $datasheet]
+   if [string compare $dataloc ""] {
+      exec mv $datasheet $datasheet.~
+      regsub -all " " $name "\\ " n
+      set cmd "|${wftk_home}xmltools/xmlreplace -m $loc.data\[$n\] $datasheet.~ > $datasheet"
+      set pipe [open $cmd w]
+      puts -nonewline $pipe $value
+      close $pipe
+   } else {
+      exec mv $datasheet $datasheet.~
+      set cmd "|${wftk_home}xmltools/xmlinsert aftercontent $loc $datasheet.~ > $datasheet"
+      set pipe [open $cmd w]
+      puts $pipe "<data id=\"$name\" type=\"$type\">$value</data>"
+      close $pipe
+   }
+}
+</piece>
+</item>
+
+
+
+<item name="wftk_interpret" label="Interpreting the results that wftk sends back">
+When wftk is run to start a process or to complete a task, it returns a series of lines which
+encode what should happen next.  Most important of these is what tasks to activate.  The
+<code>wftk_interpret</code> function takes a list of lines returned from the wftk core engine,
+and does the task creation and notification specified.
+
+<piece>
+proc wftk_interpret {db process workflow} {
+   while {[llength $workflow] > 0} {
+      set cmd [lindex $workflow 0]
+      set workflow [lrange $workflow 1 end]
+
+      switch [string range $cmd 0 0] {
+         A {
+             <insert name=".task"/>
+         }
+         L {
+             <insert name=".alert"/>
+         }
+         F {
+             <insert name=".complete"/>
+         }
+      }
+   }
+}
+</piece>
+</item>
+
+<item name="wftk_interpret.task" label="Starting tasks">
+Task creation, at least, is relatively straightforward.
+<piece>
+set p [split [string range $cmd 2 end] -]
+
+set fields [list id status created]
+set values [list '[lindex $p 0]' 'active' '[now]']
+
+lappend fields process
+lappend values "'$process'"
+
+lappend fields owner
+set owner [lindex $p 1]
+if ![string compare $owner "!user"] {
+   upvar user user
+   set owner $user
+}
+lappend values '[sql_safe_string $owner]'
+
+lappend fields description
+lappend values '[sql_safe_string [join [lrange $p 2 end] -]]'
+
+set query "insert into task ("
+append query [join $fields ", "]
+append query ") values ("
+append query [join $values ", "]
+append query ")"
+
+ns_db dml $db $query
+</piece>
+</item>
+
+<item name="wftk_interpret.alert" label="Handling notifications">
+</item>
+
+<item name="wftk_interpret.complete" label="Completing the process">
+<piece>
+set query "update process set status='complete' where id='$process'"
+ns_db dml $db $query
+</piece>
+</item>
+
+<item name="util" label="Miscellaneous utility functions">
+These are some functions I end up using a lot for AOLserver/Tcl applications.  The
+<code>now</code> function is pretty obvious, and the <code>sql_safe_string</code> function
+simply doubles single quotes in order to make strings safe to insert into SQL queries.
+
+<piece>
+proc now {{what all}} {
+   set time [ns_localtime]
+   switch $what {
+    all {return [format "%04d-%02d-%02d %02d:%02d:%02d" [expr [lindex $time 5] + 1900] [expr [lindex $time 4] + 1] [lindex $time 3] [lindex $time 2] [lindex $time 1] [lindex $time 0]]}
+    date {return [format "%04d-%02d-%02d" [expr [lindex $time 5] + 1900] [expr [lindex $time 4] + 1] [lindex $time 3]]}
+    time {return [format "%02d:%02d:%02d" [lindex $time 2] [lindex $time 1] [lindex $time 0]]}
+    tag {return [format "%04d%02d%02d%02d%02d%02d" [expr [lindex $time 5] + 1900] [expr [lindex $time 4] + 1] [lindex $time 3] [lindex $time 2] [lindex $time 1] [lindex $time 0]]}
+   }
+}
+
+proc sql_safe_string {s} {
+   set out ""
+   while {[string first "'" $s] > -1} {
+      set f [string first "'" $s]
+      append out [string range $s 0 $f]
+      append out "'"
+      set s [string range $s [expr $f + 1] end]
+   }
+   append out $s
+
+   return $out
+}
+</piece>
+
+I suppose I could use <code>regsub</code> to implement <code>sql_safe_string</code> but this
+works and I trust it.  (I wrote it very early on in my Tcl days.  Ah, gotta love those code
+fossils.)
+</item>
+
+</litprog>
+
+
+

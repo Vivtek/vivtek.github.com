@@ -1,0 +1,14 @@
+SUBJECT>Re: Apache?
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>982640302
+EMAILNOTICES>no
+IP_ADDRESS>as1-004.blm.bluemarble.net
+PREVIOUS>80
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; What it takes to make wftk work under Apache?
+<P>The new version will support completely CGI-mode, so it'll run under anything. I'm still sticking to AOLserver (er, OpenNSD) for closer integration and higher performance but the CGI version will have the same functionality.
+<P>Estimated time of arrival: two weeks. I've made great strides in the last week or so.

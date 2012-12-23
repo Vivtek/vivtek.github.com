@@ -1,0 +1,31 @@
+SUBJECT>Re: Hello
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>963272503
+EMAILNOTICES>no
+IP_ADDRESS>tc7-55.blm.bluemarble.net
+PREVIOUS>9
+NEXT> 22 31
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; 1) A large, developement-intensive system should not be built in a
+<BR>> unmanagable language like C++.
+<P>It is not. I happen to share your opinion of C++; the core components of the wftk are written in C and will continue to be written in C. The code is clean and well-documented, and it frankly just isn't complex enough to warrant objectification. (But I'll avoid that soapbox. I've worked with enough object-oriented code to know that crap is crap even if it's object-oriented crap.)
+<P>&gt; Possibly you should consider Java or
+<BR>> Python.
+<P>Java lacks the portability I need, and Python, while attractive, lacks the performance. That said, I will almost certainly be working on a Python extension utilizing the C code of the wftk -- thus bringing the Zope crowd a little closer to my part of heaven.
+<P>&gt; If the engine were built in a
+<BR>> more user-freindly language, more people could participate in development.
+<P>I submit that there are far more C programmers than Python programmers in the world today, and for the foreseeable future. Java I won't talk about, that's a holy war.
+<P>&gt; Another plus for python: most python developers are dedicated people,
+<BR>> mainly because no one who is &quot;in it for the money&quot; would learn
+<BR>> python, because it cant make you any money.
+<P>Most open-source developers in general fall into that category. I don't think Python people have any particular edge in that respect.
+<P>I will say, though, that I've been getting into Python (specifically wxPython for cross-platform GUI development) and I really like it.
+<P>But I do need to ask you -- have you browsed the code? Do you really find that less readable than Python?
+<P>&gt; 2) Could someone reccomend a good book on workflow systems? I need to
+<BR>> learn more. Ive been involved with Verve and Vitria before and I see major
+<BR>> potential for workflow systems- and i need more info.
+<P>If somebody knows about a good book, I'd like to hear about it as well. The problem is that workflow is such a high-money item that nobody wants to sell their knowledge as cheaply as a mere book.
+<P>Thanks for the interest!

@@ -1,0 +1,2 @@
+../lpml.pl wftk_lib.xml
+/usr/local/bin/indent -kr -sob -i3 -lp -ts100 wftk_lib.c

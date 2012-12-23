@@ -1,0 +1,408 @@
+#!/usr/local/bin/perl
+# This is the lpml alpha Perl script.
+# Copyright (c) 2000 Vivtek.  All rights reserved except those explicitly granted
+# under the GNU Public License.
+# http://www.vivtek.com/lpml/lpml_alpha/index.html for more information.
+
+if (@ARGV != 1) {
+   print STDERR "Usage: $0 <filename>\n";
+   exit 1;
+}
+open INPUT, $ARGV[0] or die "Can't open file '$ARGV[0]'\n";
+
+$format_html = $ARGV[0];
+$format_html =~ s/\.xml$/_format.html/i;
+$index_html = $ARGV[0];
+$index_html =~ s/\.xml$/_index.html/i;
+
+
+@items = ();
+@objects = ();
+@formats = ();
+$name = '';
+$piecename = '';
+$parentname = '';
+$formatname = '';
+while (<INPUT>)
+{
+   if (/(<object .*>)/i)
+   {
+$tag = $1;
+$tag =~ s/^<object\s+//i;
+$attr = "";
+%thistag = (name => '', language => '', item => '');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+if ($thistag{name} eq '') {
+   print STDERR "$. : Nameless object encountered.\n";
+   next;
+}
+if ($thistag{item} eq '') {
+   print STDERR "$. : Object '$thistag{item}' has no starting item.\n";
+   next;
+}
+@objects = (@objects, $thistag{name});
+$starter{$thistag{name}} = $thistag{item};
+   }
+
+   if (/(<item .*>)/i)
+   {
+$tag = $1;
+$tag =~ s/^<item\s+//i;
+$attr = "";
+%thistag = (name => '', label => '', pattern => '', language => '', format => 'default');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+if ($thistag{name} eq '') {
+   print STDERR "$. : Nameless item encountered.\n";
+   next;
+}
+
+$name = $thistag{name};
+$lastchild{$name} = $name;
+$children{$name} = 0;
+if ($name !~ /\./) {
+   $parentname = '';
+   $parent{$name} = '';
+} else {
+   $parentname = $name;
+   $parentname =~ s/\..*?$//;
+   $parent{$name} = $parentname;
+   $lastchild{$parentname} = $name;
+   $children{$parentname} += 1;
+}
+
+push @items, $name;
+
+if (defined $label{$name}) {
+   print STDERR "$. : Duplicate item name '$name'.\n";
+}
+if ($thistag{label} eq '') { $thistag{label} = $name; }
+$label{$name} = $thistag{label};
+if ($parentname eq '') {
+   $url{$name} = "$name.html";
+} else {
+   $n = $name;
+   $n =~ s/^.*?\.//;
+   $url{$name} = $url{$parentname} . '#' . $n;
+}
+      next;
+   }
+
+   if (/(<\/item\s*>)/i) {
+      if ($name !~ /\./) { $parentname = $name; }
+      $name = '';
+      $piecename = '';
+      next;
+   }
+
+   if (/(<piece.*>)/i)
+   {
+      next if $name eq ''; # Pieces are silent outside of items.
+$tag = $1;
+$tag =~ s/^<piece\s*//i;
+$attr = "";
+%thistag = (add-to => '', language => '');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+
+$piecename = $name;
+$piecename = $thistag{'add-to'} if $thistag{'add-to'} ne '';
+      next;
+   }
+   if (/(<\/piece\s*>)/i) {
+      $piecename = '';
+      next;
+   }
+
+   if (/(<format.*>)/i)
+   {
+$tag = $1;
+$tag =~ s/^<format\s*//i;
+$attr = "";
+%thistag = (name => 'default');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+
+$formatname = $thistag{name};
+push @formats, $formatname;
+      next;
+   }
+   if (/(<\/format\s*>)/i) {
+      $formatname = '';
+      next;
+   }
+
+   if ($piecename ne '') {
+      $pieces{$piecename} .= $_;
+   }
+   if ($formatname ne '') {
+      $format{$formatname} .= $_;
+   }
+}
+sub tangle_one {
+   my $item = shift;
+   foreach $_ (split /\n/, $pieces{$item}) {
+      if (/(<insert .*>)/i)
+      {
+         $tag = $1;
+         $tag =~ s/^<insert\s+//i;
+         $attr = "";
+         %thisobject = (name => '');
+         foreach $piece (split /"/, $tag) {
+            if ($attr eq '') {
+               $attr = $piece;
+               $attr =~ s/^\s*//;
+               $attr =~ s/\s*=\s*$//;
+            } else {
+               $thisobject{$attr} = $piece;
+               $attr = '';
+            }
+         }
+         if ($thisobject{name} =~ /^\./) {
+            $thisobject{name} = $item . $thisobject{name};
+         }
+         if ($thisobject{name} eq '') {
+            print STDERR "$. : Item to be inserted not named.\n";
+            next;
+         }
+         tangle_one ($thisobject{name});
+         next;
+      }
+
+      s/\[\[/</g;
+      s/#\^7/&/g;
+      s/#\^lt#/</g;
+      print OUT "$_\n";
+   }
+}
+foreach $obj (@objects) {
+   open OUT, ">$obj";
+   tangle_one ($starter{$obj});
+   close OUT;
+}
+$level = 0;
+$tags{itemlist} = "<ul>\n";
+foreach $item (@items) {
+   if ($item eq 'index') {
+      $tags{indexlabel} = $label{$item};
+   } else {
+      if (!$level && $parent{$item} ne '') {
+         $level = 1;
+         $tags{itemlist} .= "<ul>\n";
+      }
+      if ($level && $parent{$item} eq '') {
+         $level = 0;
+         $tags{itemlist} .= "</ul>\n";
+      }
+      $tags{itemlist} .= "<li> <a href=\"$url{$item}\">$label{$item}</a>\n";
+   }
+}
+$tags{itemlist} .= "</ul>\n";
+$tags{objectlist} = "<ul>\n";
+foreach $obj (@objects) {
+   $tags{objectlist} .= "<li> <code>$obj</code>:";
+   $tags{objectlist} .= "<a href=\"$url{$starter{$obj}}\">$label{$starter{$obj}}</a>\n";
+}
+$tags{objectlist} .= "</ul>\n";
+seek INPUT, 0, 0;
+
+$name = '';
+$item = 0;
+$piece = 0;
+
+while (<INPUT>) {
+   if (/(<item .*>)/i)
+   {
+      $tag = $1;
+      $tag =~ s/^<item\s+//i;
+      $attr = "";
+      %thisitem = (name => '', label => '', pattern => '', language => '', format => 'default');
+      foreach $part (split /"/, $tag) {
+         if ($attr eq '') {
+            $attr = $part;
+            $attr =~ s/^\s*//;
+            $attr =~ s/\s*=\s*$//;
+         } else {
+            $thisitem{$attr} = $part;
+            $attr = '';
+         }
+      }
+
+      $name = $thisitem{name};
+      $formatname = $thisitem{format};
+
+      if ($parent{$name} eq '') {
+         $tags{name} = $name;
+         $tags{url} = $url{$name};
+         $tags{label} = $label{$name};
+
+         if ($item == 0) {
+            $i = $items[$#items];
+         } else {
+            $i = $items[$item-1];
+         }
+         if ($parent{$i} ne '') { $i = $parent{$i}; }
+         $tags{prev} = $url{$i};
+         $tags{prevlabel} = $label{$i};
+
+         $tags{body} = '';
+      } else {
+         $n = $name;
+         $n =~ s/^.*?\.//;
+         $tags{body} .= "<br><br>\n";
+         $tags{body} .= "<a name=\"$n\">\n";
+         $tags{body} .= "<i>$label{$name}</i><br>\n";
+      }
+
+      if ($item == $#items) {
+         $tags{next} = $url{$items[0]};
+         $tags{nextlabel} = $label{$items[0]}; 
+      } else {
+         $tags{next} = $url{$items[$item+1]};
+         $tags{nextlabel} = $label{$items[$item+1]};
+      }
+
+      next;
+   }
+   next if $name eq '';
+   if (/(<\/item\s*>)/i) {
+      if (($parent{$name} eq '' && $children{$name} == 0) || $lastchild{$parent{$name}} eq $name)
+      {
+         if ($parent{$name} eq '') {
+            open OUT, ">$url{$name}";
+         } else {
+            open OUT, ">$url{$parent{$name}}";
+         }
+         foreach $line (split /\n/, $format{$formatname}) {
+
+            $_ = $line . "\n";
+            while (/\[##(.*?)##\]/) {
+               $tag=$1;
+               s/\[##$tag##\]/$tags{$tag}/e;
+            }
+
+            s(</li>)()g;
+            s(<p/>)(<p></p>)g;
+            s(<br/>)(<br>)g;
+            s(<hr(.*?)/>)(<hr$1>)g;
+            s(<nbsp/>)(&nbsp;)g;
+            s(<li><b>)(<b><li>)g;
+
+            s({##)([##)g;
+            s(##})(##])g;
+
+            print OUT;
+         }
+         close OUT;
+      }
+
+      $name = '';
+      $item++;
+
+      next;
+   }
+   if (/(<piece.*>)/i)
+   {
+      $tag = $1;
+      $tag =~ s/^<piece\s*//i;
+      $attr = "";
+      %thispiece = (add-to => '', language => '');
+      foreach $part (split /"/, $tag) {
+         if ($attr eq '') {
+            $attr = $part;
+            $attr =~ s/^\s*//;
+            $attr =~ s/\s*=\s*$//;
+         } else {
+            $thispiece{$attr} = $part;
+            $attr = '';
+         }
+      }
+
+      $tags{body} .= "<table width=100%>\n";
+      $tags{body} .= "<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>\n";
+      if ($thispiece{'add-to'} ne '') {
+         $tags{body} .= "<i>Add the following to \"$label{$thispiece{'add-to'}}\"</i><br>\n";
+      }
+      $tags{body} .= "<pre>";
+      $piece = 1;
+      next;
+   }
+   if (/<\/piece\s*>/i) {
+      $tags{body} .= "</pre>";
+      $tags{body} .= "</td></tr></table>\n";
+      $piece = 0;
+      next;
+   }
+   if (/(<insert\s.*>)/i)
+   {
+      $tag = $1;
+      $before = $`;
+      $after = $';
+
+      $tag =~ s/^<insert\s+//i;
+      $attr = "";
+      %thisinsert = (name => '');
+      foreach $part (split /"/, $tag) {
+         if ($attr eq '') {
+            $attr = $part;
+            $attr =~ s/^\s*//;
+            $attr =~ s/\s*=\s*$//;
+         } else {
+            $thisinsert{$attr} = $part;
+            $attr = '';
+         }
+      }
+      if ($thisinsert{name} =~ /^\./) {
+         $thisinsert{name} = $name . $thisinsert{name};
+      }
+
+      $tags{body} .= $before . "<i>See <a href=\"$url{$thisinsert{name}}\">";
+      $tags{body} .= "$label{$thisinsert{name}}</a></i>$after";
+      next;
+   }
+   s/&/&amp;/g if $piece;
+   s/\[\[/&lt;/g if $piece;
+   s/\[\#\#/[&#35;#/g;
+   s/#\^7/&amp;/g if $piece;
+   s/#\^lt#/&lt;/g if $piece;
+
+   s({##)([##)g if $piece;
+   s(##})(##])g if $piece;
+
+   $tags{body} .= $_ if $name ne '';
+}
+
+close INPUT;

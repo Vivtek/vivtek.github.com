@@ -1,0 +1,19 @@
+SUBJECT>Re: Java implementation
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>970638035
+EMAILNOTICES>no
+IP_ADDRESS>tc7-230.blm.bluemarble.net
+PREVIOUS>32
+NEXT> 38
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; I think this is a great project! I'm mainly a Java programmer, but I've
+<BR>> done a fair amount of C and C++ in the past. My current work is all in
+<BR>> Java, and I've just realized I need some sort of workflow system,
+<BR>> preferably open source, and there isn't really anything else out there...
+<BR>> Is there anything I could do to help create a Java version?
+<P>Wow. Yeah, but I don't have time to think about it too hard right now. As soon as I have the core engine reimplementation ready to go, let's look at it and see what it would take to port it. The new version is far better code, so porting should be much easier.
+<P>I'd like to get a class structure defined, too. None of wftk is object-oriented in a formal way (and no, I don't see that as a weakness). It'll be a good thing, though, to start drawing some diagrams or something.
+<P>Thanks!

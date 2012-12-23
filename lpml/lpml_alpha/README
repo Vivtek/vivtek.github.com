@@ -1,0 +1,16 @@
+This is LPML alpha, a Perl rendition of a quasi-XML-based literate programming system.
+
+The files included in this zip are:
+lpml.pl        - the processor itself.
+lpml_alpha.xml - the XML used to generate the processor.  Run
+                    lpml.pl lpml_alpha.xml
+                 and lpml.pl will attempt to write itself (and probably fail due to locking.)
+*.html         - the documentation generated from the XML.
+blank.xml      - a handy starter file for new projects.
+
+For more information see
+  http://www.vivtek.com/lpml.html
+or email
+  lpml@vivtek.com
+
+Enjoy!

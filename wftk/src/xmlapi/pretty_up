@@ -1,0 +1,2 @@
+#/bin/sh
+/usr/local/bin/indent -kr -sob -i3 -lp -ts100 $1

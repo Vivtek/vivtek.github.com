@@ -1,0 +1,19 @@
+SUBJECT>Re: problem with command line tool
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>998243833
+EMAILNOTICES>no
+IP_ADDRESS>as0-098.blm.bluemarble.net
+PREVIOUS>148
+NEXT> 150
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; since the command line util fetch parameters word by word, so it cannot
+<BR>> recognize single parameter composed of multiple words, like &quot;Approval
+<BR>> code&quot;, so i cannot set the value of some data, so the work process
+<BR>> cannot flow.
+<P>Use quote marks. The command-line interpreter (i.e. DOS or sh) does this, not wftk.
+<P>&gt; is it possible to post a demo script showing the whole process of
+<BR>> executing a demo workflow (ordering a chair), it must be a bit helpful.
+<P>Yes, I intend to do that as soon as possible.

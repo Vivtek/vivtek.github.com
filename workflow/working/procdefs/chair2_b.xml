@@ -1,0 +1,1 @@
+<workflow name="New process"><data name="Social security number" local="" type="string">000-00-0000</data><role name="Second role" local="anthony">Hi!  This role should get added correctly!</role><role name="Test modification" local="michael">Cool!  This is an editor!</role><data name="Name" type="string">John Doe</data></workflow>

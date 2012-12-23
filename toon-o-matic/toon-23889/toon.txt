@@ -1,0 +1,3 @@
+War = Peace;
+Freedom is Slavery;
+Ignorance=Strength

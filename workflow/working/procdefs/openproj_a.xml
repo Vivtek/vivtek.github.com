@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+
+ <workflow name="Open source change request" author="Michael: michael@vivtek.com">
+   <role name="Analyst"></role>
+   <role name="Developer"></role>
+   <role name="Tester"></role>
+   <role name="Documentor"></role>
+
+   <data name="Change request number" type="sequence"></data>
+   <data name="Description" type="text"></data>
+   <data name="Supporting documentation">
+     <list><data type="document"></data></list>
+   </data>
+   <data name="Mailing list"><list><data></data></list></data>
+   <!-- The mailing list starts out with just the requester's name on it -->
+
+   <sequence>
+      <task label="Analyze" role="Analyst">
+         <data name="action" type="choice(ok,merge,fork)">
+            <!-- Aha!  Content of a data tag could be how to elicit it! -->
+         </data>
+      </task>
+      <if expr="${action} == 'merge'">
+         <situation name="merge"></situation>
+         <elseif expr="${action} == 'fork'"/>
+         <situation name="fork"></situation>
+      </if>
+      <task label="Develop" role="Developer">
+         <data name="changes" type="collection(cvs)"></data>
+      </task>
+      <task label="Test" role="Tester">
+         <data name="test plan" type="collection(cvs)"></data>
+      </task>
+      <task label="Document" role="Documentor">
+         <data name="CR documentation" type="document"></data>
+         <data name="Doc updates" type="collection(cvs)"></data>
+      </task>
+   </sequence>
+   <handle situation="merge">
+      <task label="Define merge" role="Analyst">
+         <data name="mergee" type="workflow"></data>
+         <data name="explanation" type="text"></data>
+      </task>
+      <alert type="foreign-role" to="${mergee}:Analyst">
+         <data name="label" type="text" value="Change request merge"></data>
+         <data name="explanation"></data>
+         <data name="mailing list"></data>
+      </alert>
+   </handle>
+   <handle situation="fork">
+      <task label="Define fork" role="Analyst">
+         <data name="description" type="text"></data>
+         <data name="newdescription" type="text"></data>
+         <data name="Supporting documentation" type="collection(document)"></data>
+         <data name="New supporting documentation" type="collection(document)"></data>
+      </task>
+      <start name="Open source change request">
+         <data name="description" value="${newdescription}"></data>
+         <data name="Supporting documentation" value="${Supporting documentation}"></data>
+         <data name="Mailing list" value="${Mailing list}"></data>
+      </start>
+      <resume/>
+   </handle>
+ </workflow>
+

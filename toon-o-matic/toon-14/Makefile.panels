@@ -1,0 +1,21 @@
+# Panel Makefile generated Thu Jul  3 15:01:22 PDT 2008 by Toon-o-Matic t2
+# Contains no serviceable parts.  Batteries not included.
+# Void in NH, VT, and U.S. Minor Outlying Islands.
+
+all:  panel-1.svg
+
+panel-1.svg: caption-1-1.svg
+	perl build_panel_g.pl panel-1.xml 1 1 > panel-1-g.svg
+	perl merge_svg.pl "panel 1" panel-1-g.svg caption-1-1.svg > panel-1.svg
+
+placement-panel-1.xml: 
+	perl place_characters.pl "panel 1" 698 150  > placement-panel-1.xml
+
+caption-1-1.info: caption-1-1.xml
+	perl render_text.pl caption-1-1.xml caption-1-1.png
+	identify -format '<graphic size="%b" height="%h" width="%w" geometry="%g" file="%f"/>' caption-1-1.png > caption-1-1.info
+
+caption-1-1.svg: caption-1-1.info
+	perl draw_caption.pl caption-1-1.xml caption-1-1.info 698 150 0 caption-1-1.png > caption-1-1.svg
+
+

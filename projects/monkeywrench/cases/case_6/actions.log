@@ -1,0 +1,4 @@
+register	html	file1.html	2008-08-07 18:54:09
+getjs	file1.html	file2.js	2008-08-07 18:56:16
+getjs	file1.html	file2.js	2008-08-07 18:57:24
+pretty	file2.js	file3.js	2008-08-07 18:58:39

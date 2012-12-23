@@ -1,0 +1,114 @@
+# This is _getargs, a Perl/CGI argument reader capable of retrieving RFC1867 file uploads
+# as well as "normal" URL-encoded input.
+# (c) Vivtek 2000.  Licensed under the terms of the GNU Public License.
+# Documentation at http://www.vivtek.com/cgi/getargs.html
+#
+# You may freely use and copy this code for any purpose, as long as this comment block
+# remains attached exactly as it is.  Modified forms of this code must clearly state the
+# fact that they're modified.  This code is distributed with no warranty at all -- if it
+# breaks, it's not my problem.  If it breaks your system, it's still not my problem.
+
+sub getargs {
+my $input = $ENV{QUERY_STRING};
+if (lc($ENV{CONTENT_TYPE}) eq 'application/x-www-form-urlencoded') {
+   $input .= "&" if $input ne '';
+   while (<>) {
+     chomp;
+     $input .= $_;
+   }
+}
+my $i;
+my @t;
+my %tagset;
+foreach $i (split /&/, $input) {
+   @t = split /=/, $i, 2;
+      
+   $t[1] =~ tr/+/ /;
+   $t[1]=~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
+   $tagset{$t[0]} = $t[1];
+}
+return \%tagset if (lc($ENV{CONTENT_TYPE}) !~ m'multipart/form-data;');
+
+my $line;
+my $lines;
+my $name;
+my $type;
+my $filename;
+my $file = 0;
+my $localname;
+my $uploads = shift @_;
+my ($junk,$boundary) = split /=/, $ENV{CONTENT_TYPE}, 2;
+$boundary =~ s/\n//;
+$boundary = "--$boundary";
+LINE: while (<>) {
+      last if ($_ eq "${boundary}--\r\n");
+      if ($_ eq "$boundary\r\n") {
+$line=<>; # Get first line of headers.
+$line =~ s/.*?; //; # Chop off the Content-Disposition part, we don't need it.
+($name, $filename) = split /; /, $line, 2;
+($junk, $name) = split /"/, $name;
+close _GETARGS_TEMP;
+$file = 0;
+$lines = 0;
+if ($filename ne "") {
+   $file = 1;
+   ($junk, $filename) = split /"/, $filename;
+   $tagset{"_details_$name"} = $filename;
+   $line=<>;
+   chomp $line;
+   ($junk, $type) = split ": ", $line;
+   $type =~ s/\r*//g;
+   $tagset{"_details_$name"} .= "|" . $type;
+   $ext = $$uploads{mime}{$type};
+   if ($ext eq '') {
+      $ext = $filename;
+      $ext =~ s/^.*\.//;
+   }
+   $tagset{$name} = getargs_makefilename ($$uploads{file}, \%tagset, $name);
+   if ($ext ne '') { $tagset{$name} .= ".$ext"; }
+   $localname = "$$uploads{base}/$tagset{$name}";
+   if ($localname ne '') {
+      if (open _GETARGS_TEMP, ">$localname") {
+         $tagset{"_details_$name"} .= "|" . $localname;
+      }
+   }
+}
+while ($line=<>) { next LINE if $line == "\n"; }
+      }
+
+      if ($file) {
+         # Write the line to the temp file.
+         print _GETARGS_TEMP $_;
+      } else {
+         s/[\r\n]*$//;
+         if ($lines > 0) {$tagset{$name} .= "\n"; }
+         $tagset{$name} .= $_;
+         $lines ++;
+      }
+   }
+   close _GETARGS_TEMP;
+
+   return \%tagset;
+}
+sub getargs_makefilename {
+   my $spec = shift(@_);
+   my $object = shift(@_);
+   my $field = shift(@_);
+
+   while ($spec =~ /\[(.*?)\]/) {
+      $tag = $1;
+      if ($tag eq '(field)') {
+         $val = $field;
+      } else {
+         $val = $$object{$tag};
+      }
+      $val =~ tr/ /_/;
+      $val =~ s/[&!"'*;]//g;
+      $tag =~ s/\(/\\(/g;
+      $tag =~ s/\)/\\)/g;
+      $spec =~ s/\[$tag\]/$val/g;
+   }
+
+   return $spec;
+}
+1;

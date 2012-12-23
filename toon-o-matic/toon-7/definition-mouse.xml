@@ -1,0 +1,3 @@
+<character name="mouse" label="mouse" rel-h="40">
+<draw file="image-mouse-1.bmp" type="image"/>
+</character>

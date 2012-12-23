@@ -1,0 +1,14 @@
+SUBJECT>First example: wftk task manager
+POSTER>Michael
+EMAIL>lpml@vivtek.com
+DATE>959306756
+EMAILNOTICES>no
+IP_ADDRESS>tc7-75.blm.bluemarble.net
+PREVIOUS>
+NEXT>
+IMAGE>
+LINKNAME>wftk task manager
+LINKURL>http://www.vivtek.com/wftk/todomgr/
+<P>The wftk task manager is a largish example of literate programming style. The literate documentation helps me maintain and extend it, and I wrote it literate from the ground up.
+<P>I'd appreciate any suggestions on formatting, presentation, etc. The formatting in LPML is still hard-coded (although I have some plans along those lines...)
+<P>Please take a look.

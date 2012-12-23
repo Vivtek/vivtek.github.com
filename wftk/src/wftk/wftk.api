@@ -1,0 +1,10 @@
+<api name="wftk" home="http://www.vivtek.com/wftk/api">
+
+<group name="session" title="Session functions">
+<function name="wftk_session_alloc">
+<retval type="WFTK_SESSION *"/>
+The <f>wftk_session_alloc</f> function is used to create a new session handle.
+</function>
+</group>
+
+</api>

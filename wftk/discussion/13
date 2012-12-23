@@ -1,0 +1,15 @@
+SUBJECT>Re: Hello
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>963272945
+EMAILNOTICES>no
+IP_ADDRESS>tc7-55.blm.bluemarble.net
+PREVIOUS>10
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Does anyone know a XML dtd where i can give an entire program in XML which
+<BR>> can later be converted to java/vb/tck etc.
+<P>&gt; regards Nagaraj.
+<P>If you want to write XML which describes a program, then is compiled to source code, I encourage you to take a look at LPML, which is the tool I'm using to develop and document wftk. I suspect that's at a lower level than what you're looking for, though. I suspect further that you're out of luck. But I wouldn't mind hearing about it if you find anything.

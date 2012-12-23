@@ -1,0 +1,97 @@
+<!ENTITY % Action "task | sequence | parallel | data | alert | if | start | handle | situation | note | datastructure | role | resume">
+
+<!ELEMENT workflow (note?,role+,data+,(%Action;),handle*,subprocess*)>
+<!ATTLIST workflow
+      name CDATA #IMPLIED
+      author CDATA #IMPLIED
+      original_date CDATA #IMPLIED
+      last_modified CDATA #IMPLIED
+>
+
+<!ELEMENT subprocess (note?,role+,data+,(%Action;),handle*,subprocess*)>
+<!ATTLIST subprocess
+      name CDATA #IMPLIED
+>
+
+<!ELEMENT note ANY>
+
+<!ELEMENT role EMPTY>
+<!ATTLIST role
+      name CDATA #IMPLIED
+>
+
+<!ELEMENT task (data)*>
+<!ATTLIST task
+      label CDATA #IMPLIED
+      role CDATA #IMPLIED
+      agent CDATA #IMPLIED
+>
+
+
+<!ELEMENT data (#PCDATA|list|data|note)*>
+<!ATTLIST data
+      name CDATA #IMPLIED
+      type CDATA #IMPLIED
+      storage CDATA #IMPLIED
+      value CDATA #IMPLIED
+      readonly CDATA #IMPLIED
+>
+
+<!ELEMENT datastructure (list|data|note)*>
+<!ATTLIST datastructure
+      name ID #IMPLIED
+>
+
+<!ELEMENT list (list|data|note)>
+
+<!ELEMENT sequence (%Action;)+>
+<!ATTLIST sequence
+      foreach CDATA #IMPLIED
+      values CDATA #IMPLIED
+      index CDATA #IMPLIED
+      repeat (yes|no) "no"
+>
+
+<!ELEMENT parallel (%Action;)+>
+<!ATTLIST parallel
+      foreach CDATA #IMPLIED
+      values CDATA #IMPLIED
+      index CDATA #IMPLIED
+      repeat (yes|no) "no"
+>
+
+
+<!ELEMENT if ((%Action;),(elseif,(%Action;))*,(%Action;)?)>
+<!ATTLIST if
+      expr CDATA #IMPLIED
+>
+<!ELEMENT elseif EMPTY>
+<!ATTLIST elseif
+      expr CDATA #IMPLIED
+>
+
+<!ELEMENT situation (data|note)*>
+<!ATTLIST situation
+      name ID #IMPLIED
+      break (yes|no) "yes"
+>
+<!ELEMENT handle (%Action;)*>
+<!ATTLIST handle
+      situation CDATA #IMPLIED
+>
+<!ELEMENT resume EMPTY>
+
+<!ELEMENT alert (#PCDATA|data|note)*>
+<!ATTLIST alert
+      type CDATA #IMPLIED
+      to CDATA #IMPLIED
+>
+
+
+<!ELEMENT start (data|note)*>
+<!ATTLIST start
+      name CDATA #IMPLIED
+      location CDATA #IMPLIED
+      mode (merge|task|independent) "task"
+      completion CDATA #IMPLIED
+>

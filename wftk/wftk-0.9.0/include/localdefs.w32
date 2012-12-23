@@ -1,0 +1,10 @@
+/* Unix-style compiled-in locations for important stuff. */
+#define CONFIG_MODE 0
+#define PROCESS_DEFINITION_REPOSITORY "c:\\wftk\\procdefs\\"
+#define DATASHEET_REPOSITORY "c:\\wftk\\datasheets\\"
+#define USER_REPOSITORY "c:\\wftk\\users\\"
+#define GROUP_REPOSITORY "c:\\wftk\\groups\\"
+
+#define CGI_EXTENSION ".exe"
+#define AUTH_DOMAIN "wftk workflow"
+

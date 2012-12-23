@@ -1,0 +1,33 @@
+SUBJECT>Re: wftk -- was it is, what it isn't
+POSTER>Budi Wiyono
+EMAIL>budiw@idola.net.id
+DATE>994992618
+EMAILNOTICES>no
+IP_ADDRESS>202.152.10.5
+PREVIOUS>97
+NEXT> 137
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Regarding to java based workflow toolkit, I suggest you to explore Java version of ACS Workflow from Arsdigita.
+<P>They have a lot of module, workflow system also included. They have Demo Server: http://www.pinds.com:8081/
+<P>From tcl based system, Arsdigita is going to Java based system.
+<P>--Budi Wiyono
+<P>&gt; What it is, is the workflow functionality. What it isn't, yet, is any kind
+<BR>> of GUI. It's also in C, not Java, although it's fairly small, actually, so
+<BR>> that porting shouldn't be terribly difficult.
+<P>&gt; I've had quite a lot of interest for an EJB version, actually, and I'm
+<BR>> really extremely interested in doing it or at least helping significantly
+<BR>> if you're really focussed on doing it yourself -- but I just don't know
+<BR>> much Java. I've dabbled in it, but frankly, I'm not sure where to start
+<BR>> with beans.
+<P>&gt; You can get a lot of insight into what wftk can do by looking around the
+<BR>> documentation for the prototype, which is at
+<BR>> http://www.vivtek.com/wftk/prototype.html
+<P>&gt; I'd appreciate any kind of feedback into what would be required for an EJB
+<BR>> version.
+<P>&gt; Aha -- I see as well that you're interested in a graphical procdef editor
+<BR>> in Java. Me, too. Take a look around the prototype documentation. I just
+<BR>> haven't had the time to get serious about updating the documentation to
+<BR>> cover the release version.
+<P>&gt; Thanks for the interest! Michael

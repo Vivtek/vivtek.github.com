@@ -1,0 +1,1 @@
+<item id="closedproj" ver="a" title="Closed-source Development Scenario" owner="michael" file="closedproj_a.xml"><description/><versions><version id="a" file="closedproj_a.xml"/><version id="b" file="closedproj_b.xml" owner="demo"/><version id="c" file="closedproj_c.xml" owner="demo"/><version id="d" file="closedproj_d.xml" owner="demo"/></versions></item>

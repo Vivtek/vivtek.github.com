@@ -1,0 +1,320 @@
+<litprog>
+<object name="config.c" language="c" item="wftk_config"/>
+
+
+<format name="index">
+<html><head><title>wftk configuration module</title></head>
+<body>
+<h2>wftk: configuration module</h2>
+<center>
+[ <a href="wftk_engine.zip">download</a> ] [<a href="index.html">wftk core engine</a> ] [ <a href="wftk_adaptors.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr/>
+<p/>
+[##body##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+
+<item name="wftk_config" label="wftk configuration module" format="index">
+This is an example configuration module for the wftk.  A configuration module is always
+statically linked with the wftk engine and provides two things: a way to retrieve named
+configuration values, and a way to retrieve named adaptors of a given class.
+<p/>
+The dumb configuration module is simply a hardcoded file; more sophisticated configuration
+modules will do things like read the Registry under Windows, search for dynamically linkable
+modules at runtime, or whatever: upshot is that everything's right here where we can keep
+an eye on it.
+<p/>
+A config module has to do two things:<ol>
+<li>It locates adaptor handlers and allocates adaptors.</li>
+<li>It returns named values.</li>
+</ol>
+
+Let's declare the adaptor stuff first.   For a little more information on how it's used,
+see <a href="wftk_adaptors.html">the adaptor code</a>.  All the config module does is allocate
+and fill in vtables given the name of an adaptor.  Simple.
+
+<piece>
+#include [[stdarg.h>
+#include [[stdio.h>
+#include [[malloc.h>
+#include [[string.h>
+#include "../xmlapi/xmlapi.h"
+#include "wftk_internals.h"
+#include "../include/localdefs.h"
+</piece>
+
+So with that, let's look at the <code>config_get_adaptor</code> function.  Again, this is a
+hardcoded version; better config modules will look things up instead of having everything
+right here and statically linked.
+<p/>
+
+Note a couple of things about this function.  First, if the adaptor descriptor is a null pointer,
+that means that the config module should use the system default.  This isn't readily apparent in
+the code below as it exists right now, because I've only provided system defaults at all.
+<p/>
+Second, note that the big <code>switch</code> statement is where we decide everything.  This will
+be replaced by Registry code or other more dynamic configuration in more sophisticated config modules.
+<p/>
+To make the declarations of the various adaptors come out right, we need to declare a few functions
+for each right here.  So to configure this config module with a new adaptor, all you need to do is
+to declare the functions here, and then add the adaptor into the <code>switch</code> statement
+below.
+<piece>
+struct adaptor_info * DSREP_localxml_get_info(void);
+struct adaptor_info * PDREP_localxml_get_info(void);
+struct adaptor_info * USER_localxml_get_info(void);
+struct adaptor_info * PERMS_localxml_get_info(void);
+struct adaptor_info * TASKINDEX_stdout_get_info(void);
+#ifdef WIN32
+struct adaptor_info * TASKINDEX_odbc_get_info(void);
+#endif
+struct adaptor_info * ACTION_wftk_get_info(void);
+struct adaptor_info * ACTION_system_get_info(void);
+struct adaptor_info * NOTIFY_smtp_get_info(void);
+struct adaptor_info * DATASTORE_role_get_info(void);
+struct adaptor_info * DATATYPE_option_get_info(void);
+</piece>
+
+And now the function itself.
+
+<piece>
+WFTK_ADAPTOR * config_get_adaptor (void * session, int adaptor_class, char * adaptor_descriptor, int name_length)
+{
+   struct adaptor_info * ai = (struct adaptor_info *) 0;
+
+   WFTK_ADAPTOR * ret;
+
+   switch (adaptor_class) {
+      case DSREP:
+         if (!name_length || (name_length == 8 && !strncmp ("localxml", adaptor_descriptor, 8))) {
+            ai = DSREP_localxml_get_info();
+         }
+         break;
+      case DATASTORE:
+         if (name_length == 4 && (!strncmp ("role", adaptor_descriptor, 4))) {
+            ai = DATASTORE_role_get_info();
+         }
+         break;
+      case DATATYPE:
+         if (name_length == 6 && (!strncmp ("option", adaptor_descriptor, 6))) {
+            ai = DATATYPE_option_get_info();
+         }
+         break;
+      case PDREP:
+         if (!name_length || (name_length == 8 && !strncmp ("localxml", adaptor_descriptor, 8))) {
+            ai = PDREP_localxml_get_info();
+         }
+         break;
+      case USER:
+         if (!name_length || (name_length == 8 && !strncmp ("localxml", adaptor_descriptor, 8))) {
+            ai = USER_localxml_get_info();
+         }
+         break;
+      case PERMS:
+         /* Perms are different -- the caller gets no choice.
+            Otherwise I figure we're in trouble, security-wise.
+            Probably are anyway. */
+         ai = PERMS_localxml_get_info();
+         break;
+      case TASKINDEX:
+#ifdef WIN32
+         if (name_length == 6 && !strncmp ("stdout", adaptor_descriptor, 6)) {
+            ai = TASKINDEX_stdout_get_info();
+            break;
+         }
+         if (!name_length || (name_length == 4 && !strncmp ("odbc", adaptor_descriptor, 4))) {
+            ai = TASKINDEX_odbc_get_info();
+         }
+#else
+         if (!name_length || (name_length == 6 && !strncmp ("stdout", adaptor_descriptor, 6))) {
+            ai = TASKINDEX_stdout_get_info();
+            break;
+         }
+#endif
+         break;
+      case NOTIFY:
+         if (!name_length || (name_length == 4 && !strncmp ("smtp", adaptor_descriptor, 4))) {
+            ai = NOTIFY_smtp_get_info();
+         }
+         break;
+      case ACTION:
+         if (name_length == 6 && !strncmp ("system", adaptor_descriptor, 6)) {
+            ai = ACTION_system_get_info();
+            break;
+         }
+         if (!name_length || (name_length == 4 && !strncmp ("wftk", adaptor_descriptor, 4))) {
+            ai = ACTION_wftk_get_info();
+         }
+         break;
+      case DEBUG_MSG:
+         break;
+      default:
+         return (WFTK_ADAPTOR *) 0;
+   }
+
+   if (!ai) return (WFTK_ADAPTOR *) 0; /* This signifies an unknown (or at least unimplemented) adaptor class. */
+
+   ret = (WFTK_ADAPTOR *) malloc (sizeof (struct wftk_adaptor) + ai->nfuncs * sizeof (void *));
+   if (!ret) return (WFTK_ADAPTOR *) 0;
+
+   ret->num     = adaptor_class;
+   ret->parms   = (void *) 0;     /* This will be filled in by the caller. */
+   ret->nfuncs  = ai->nfuncs;
+   ret->names   = ai->names;
+   ret->vtab    = ai->vtab;
+   ret->session = session;
+   return (ret);
+}
+</piece>
+
+And we need a very similar function in order to return adaptor lists.  Note that for adaptor lists, we don't bother with
+all the adaptor classes, because many of them don't even make sense used that way.  Adaptor lists are only used for
+notification-like functions (task index, debug messager, etc.)
+
+<piece>
+WFTK_ADAPTORLIST * config_get_adaptorlist (void * session, int adaptor_class)
+{
+   const char * spec = "";
+   int adaptors = 1;
+   int i;
+   const char * mark;
+   char * mark2;
+   char adaptorbuffer[256]; /* TODO: another dang static buffer.  Fix it. */
+   WFTK_ADAPTORLIST * list;
+
+   switch (adaptor_class) {
+      case TASKINDEX:
+         spec = config_get_value (session, "taskindex.always");
+         break;
+      case NOTIFY:
+         spec = config_get_value (session, "notify.always");
+         break;
+      default:
+         return (WFTK_ADAPTORLIST *) 0;
+   }
+
+   if (!*spec) return (WFTK_ADAPTORLIST *) 0;
+
+   /* First pass: count semicolons, so we know how large a list structure to allocate. */
+   mark = spec;
+   do {
+      mark = strchr (mark, ';');
+      if (!mark) break;
+      adaptors++; mark++;
+   } while (mark);
+
+   list = (WFTK_ADAPTORLIST *) malloc (sizeof (WFTK_ADAPTOR_LIST) + adaptors * sizeof (WFTK_ADAPTOR *));
+   list->count = adaptors;
+
+   for (i=0, mark = spec; i < adaptors; i++) {
+      strcpy (adaptorbuffer, mark);
+      mark = strchr(mark, ';');
+      if (mark) { mark++; while (*mark == ' ') mark++; }
+      mark2 = strchr (adaptorbuffer, ';');
+      if (mark2) *mark2 = '\0';
+
+      list->ads[i] = wftk_get_adaptor (session, adaptor_class, adaptorbuffer);
+   }
+
+   return (list);
+}
+</piece>
+
+OK, with that out of the way, let's look at a simple function to return named values.
+Since these named values will be constant, I'm going to take the cheap way out and just return pointers.  This means that
+if the pointer is used to write, the workflow system is not going to react in a happy, friendly way, but it's so much
+simpler to work with this way.
+<p/>
+Some of the named values we use will be required only by specific adaptors, so I don't think it makes sense simply to
+number them.  So instead of a nice clean <code>switch</code> we need a bunch of string comparisons.  Sorry.  The smarter
+config module will presumably just pass this off to some API (the canonical one being the Windows Registry, of course.)
+<p/>
+This function itself uses the definitions in the localdefs.h file.  That seems weird -- why not just include the values
+right here? -- but it's more natural to look for config values in a .h file than in a .c file, so I think that makes more
+sense for the time being.  At any rate, with any luck that's going to be superseded relatively quickly anyway.  Right?
+<p/>
+And wow -- I superseded it before I even finished the release.  It was just too stupid.  The compiled values will still
+be there as fallbacks in case you want to run <i>sans</i> config.xml, but we'll go ahead and read config.xml.
+<piece>
+XML * config_find_option (XML * xml, const char * name) {
+   int len;
+   XML * x;
+   char * mark = strchr (name, '.');
+
+   if (mark) len = mark - name;
+   else      len = strlen (name);
+
+   x = xml_firstelem (xml);
+   while (x) {
+      if (!strncmp (xml_attrval (x, "name"), name, len) ||
+          !strncmp (xml_attrval (x, "id"), name, len)   ||
+          !strncmp ("?", name, len)) {
+         if (mark) {
+            return (config_find_option (x, mark + 1));
+         }
+         return (x);
+      }
+      x = xml_nextelem (x);
+   }
+   return NULL;
+}
+XML * config_get_option (void * session, const char * valuename) {
+   WFTK_SESSION * sess = session;
+   if (sess) {
+      if (sess->config) {
+         return (config_find_option (sess->config, valuename));
+      }
+   }
+   return NULL;
+}
+const char * config_get_value (void * session, const char * valuename) {
+   XML * mark = config_get_option (session, valuename);
+   if (mark) return (xml_attrval (mark, "value"));
+
+   if (!strcmp (valuename, "pdrep.localxml.directory")) return PROCDEF_DIRECTORY;
+   if (!strcmp (valuename, "dsrep.localxml.directory")) return DATASHEET_DIRECTORY;
+   if (!strcmp (valuename, "user.localxml.directory")) return USER_DIRECTORY;
+   if (!strcmp (valuename, "group.localxml.directory")) return GROUP_DIRECTORY;
+   if (!strcmp (valuename, "taskindex.odbc.?.conn")) return ODBC_CONNECTION;
+   return "";
+}
+</piece>
+
+Was that too weird?  I'm sure it'll make sense later.
+<p/>
+
+Finally, the debugging message handler.  In this first version, I'm going to get dumb (duh) and simply write to stdout.
+Later we can refine this, with debug logging and stuff.  And later still we can get fancy.
+<piece>
+void config_debug_message (char type, const char * message, ...)
+{
+   va_list arglist;
+
+   va_start (arglist, message);
+   printf ("DEBUG %c:", type);
+   vprintf (message, arglist);
+   printf ("\n");
+   va_end (arglist);
+}
+</piece>
+
+</item>
+
+
+</litprog>
+
+

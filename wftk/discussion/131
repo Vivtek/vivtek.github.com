@@ -1,0 +1,23 @@
+SUBJECT>Purchase Request: Just do it ??
+POSTER>Dan Connelly
+EMAIL>danc@prosoft-tech.com
+DATE>991346348
+EMAILNOTICES>no
+IP_ADDRESS>prosoft-tech.com
+PREVIOUS>
+NEXT> 132
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>I want to run the chair_b.xml procdef from the command line interface:
+<P>Can I do this with a shell script only?
+<P>Or, do I need to use an &quot;action&quot; script?
+<P>The difference being (I think) that the action script would perform multiple tasks within the same session.
+<P>I did &quot;wftk create&quot; to make a new datasheet. WfTK tells me it is &quot;5&quot;.
+<P>Then I did &quot;wftk define . 5 . chair&quot; to associate &quot;Purchase Request&quot; procdef (not really just for chairs) with datasheet 5.
+<P>Then I did &quot;wftk set . 5 foo bar&quot; 3 times for the 3 open data items. Just filling in a &quot;form&quot; or, as it is called in wftk-land, a &quot;datasheet&quot;. Same thing. Cool.
+<P>Then I did &quot;wftk complete . 5&quot; to start the process defined on the datasheet. This being the &quot;submit&quot; for the &quot;form&quot;.
+<P>Now what?? It is time for the Supervisor's Approval to happen. How do I do it?? What action is needed to select from an &quot;option&quot; list? Tried wftk set &quot;Approval code&quot; Yes. Didn't work.
+<P>&quot;wftk tasks . 5&quot; shows me that &quot;10: Approval [Supervisor]&quot; is an outstanding task.
+<P>How do I initiate the &quot;Approval&quot; task?? Still totally &quot;blocked&quot; on &quot;Approval&quot; task. And the containing sequence. And the containing workflow. Totally blocked.
+<P>

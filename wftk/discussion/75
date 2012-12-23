@@ -1,0 +1,27 @@
+SUBJECT>Re: WFTK initial comments
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>979095470
+EMAILNOTICES>no
+IP_ADDRESS>as0-069.blm.bluemarble.net
+PREVIOUS>65
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Nice stuff. I liked the way you do the state transitions down the tree of
+<BR>> processes. I've got some of the code running on my machine, although
+<BR>> aolserver doesn't seem to want to give me odbc.
+<P>Post the particulars to the AOLserver mailing list -- what version AS are you using?
+<P>&gt; The cgi/command-line duality is innovative.
+<P>Thanks. I think it's a mistake, actually. The v1.0 that I'm working on simply uses a plain old library approach with command line and CGI encapsulations. Sometimes I get carried away with a neat idea.
+<P>&gt; You could really help the
+<BR>> project along if you set aside perhaps half and hour to give some worked
+<BR>> examples, like typically command line arguments.
+<P>If I didn't think it'd be a waste of time for raw prototype code, I probably would.
+<P>&gt; I spent a couple of days
+<BR>> getting stuff to work and figuring out what the commands are, and I (and
+<BR>> I'm sure other people ) could have contributed to the project meaningfully
+<BR>> if we had a little headstart.
+<P>My email address is rather prominent everywhere on the site. If you had asked me questions, that would have been a meaningful contribution, as I could much more easily have organized my answers into documentation.
+<P>Please -- feel free to ask. It's not hard to remember: wftk@vivtek.com.

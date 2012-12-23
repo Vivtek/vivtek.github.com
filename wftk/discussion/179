@@ -1,0 +1,14 @@
+SUBJECT>Re: Using VB6
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>1024101444
+EMAILNOTICES>no
+IP_ADDRESS>as0-038.blm.bluemarble.net
+PREVIOUS>177
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Can i use WFTK in Visual Basic6? If yes, how?
+<P>The answer is yes, but you have to define some wrapper classes around the DLL. It may be somewhat challenging to get everything working correctly, but it'll work -- it's the same, in principle, as the Python wrapper.
+<P>I have VB 5.0. Things *should* be source-compatible, so assuming I get the time to hack out an initial VB5 wrapper, would that be of any interest to you? I suppose you'd just import the project into VB6 or something.

@@ -1,0 +1,17 @@
+SUBJECT>interest
+POSTER>frederic
+EMAIL>frederic.bellier@valtech.com
+DATE>987650820
+EMAILNOTICES>no
+IP_ADDRESS>dnvr-dsl-gw21-poolb114.dnvr.uswest.net
+PREVIOUS>
+NEXT> 97
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Hi guys,
+<P>I am quite interested in workflow in general. I am looking for an open source workflow engine written in Java with GUI to generate the diagrams with drag and drop type funtionalities and the workflow defined in xml. Is wftk what I am looking for? If it is close, then I would be interested in porting it to EJBs using messaging beans of course. I believe the gui part of a workflow system is critical. If you look at weblogic process integrator from BEA it is pretty much nothing but a &quot;kind of nice gui&quot;. A gui to produce the workflow that generate it in xml for the workflow engine to use would be perfect.
+<P>Where could I find documentation of the functionality you provide. I am not talking detailled stuff but at least a list what wftk do and what it does not (yet).
+<P>Thanks a lot guys.
+<P>Frederic.
+<P>

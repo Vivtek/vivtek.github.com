@@ -1,0 +1,5 @@
+<datasheet procdef="chair_1.xml" process="nsc1257120000530123101"><data id="Product requested" type="string">Bob Payne</data><data id="Requester's email" type="string">rpayne@ccpace.com</data><data id="Reason for request" type="text">I Need A Chair</data><state idcount="24"><queue/></state><task id="nsc1257120000530123101:10"><data id="Approval code" type="string">21321</data><data id="Approve Reason" type="text">Good Chair
+Good Price</data>
+<data id="ApproveReason" type="text"/>
+</task><data id="DueDate" type="string">6/1/00</data>
+<task id="nsc1257120000530123101:12"><data id="Purchasing record" type="string"/></task><task id="nsc1257120000530123101:18"><data id="Invoice number" type="string">Invoice2</data></task><task id="nsc1257120000530123101:19"/><task id="nsc1257120000530123101:21"/></datasheet>

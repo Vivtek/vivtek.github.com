@@ -1,0 +1,22 @@
+SUBJECT>Re: ppost a tarball, warts and all?
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>970638704
+EMAILNOTICES>no
+IP_ADDRESS>tc7-230.blm.bluemarble.net
+PREVIOUS>33
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; I would like to look at it, too. Can you just tar up whatever there is and
+<BR>> let people start to get familiar with it?
+<P>&gt; It's a work in progress. Cool. I can adjust expectations. As for offers of
+<BR>> help: that decision is easier to make when there is a sample of what I
+<BR>> would be helping with.
+<P>I guess that was a bit of a rant. Ahem. I'm feeling much better now.
+<P>Here's the thing. I've been buried in work all summer. And right at the moment I'm focussed on the first real release of this. And as of tonight I hope I'll have something that almost kinda works. Well, it *does* work. A bit too much baling twine and chewing gum for my taste, but it's a serviceable set of code.
+<P>So, in mere hours, your wish will be partially granted. But I don't think it would have made much sense before I started integrating all these pieces lying around. I mean, the xmltools here, the user module there, the PDM on the back porch, and the core engine on blocks in the garage -- it's looking like my dad's house, OK? Not something to show the company.
+<P>&gt; The workflow I am looking to define is disaster recover definition and
+<BR>> preparedness. Probably with hooks to backups and test signoffs.
+<P>Excellent! Wow. That's exactly what I want wftk to be doing. You have my honest and sincere pledge to help out wherever necessary.

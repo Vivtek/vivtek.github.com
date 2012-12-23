@@ -1,0 +1,359 @@
+<litprog>
+<object name="DSREP_localxml.c" language="c" item="DSREP_localxml"/>
+
+
+<format name="index">
+<html><head><title>DSREP adaptor: localxml</title></head>
+<body>
+<h2>DSREP adaptor: localxml</h2>
+<hr/>
+<p/>
+[##body##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+
+<item name="DSREP_localxml" label="DSREP adaptor: localxml" format="index">
+This is the localxml DSREP adaptor for the wftk.  It encapsulates datasheet repository
+functionality, storing datasheets as XML files in a local directory.  The directory in
+question is determined by the config module using the DATASHEET_DIRECTORY named value.
+
+<piece>
+#include [[stdio.h>
+#include [[stdarg.h>
+#include [[sys/types.h>
+#include [[sys/stat.h>
+#ifdef WIN32
+#include [[io.h>
+#endif
+#include [[errno.h>
+#include "xmlapi.h"
+#include "../wftk_internals.h"
+</piece>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<piece>
+static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "new",
+   "load",
+   "save",
+   "delete",
+   "archive"
+};
+
+XML * DSREP_localxml_init (WFTK_ADAPTOR * ad, va_list args);
+XML * DSREP_localxml_free (WFTK_ADAPTOR * ad, va_list args);
+XML * DSREP_localxml_info (WFTK_ADAPTOR * ad, va_list args);
+XML * DSREP_localxml_new (WFTK_ADAPTOR * ad, va_list args);
+XML * DSREP_localxml_load (WFTK_ADAPTOR * ad, va_list args);
+XML * DSREP_localxml_save (WFTK_ADAPTOR * ad, va_list args);
+XML * DSREP_localxml_delete (WFTK_ADAPTOR * ad, va_list args);
+XML * DSREP_localxml_archive (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   DSREP_localxml_init,
+   DSREP_localxml_free,
+   DSREP_localxml_info,
+   DSREP_localxml_new,
+   DSREP_localxml_load,
+   DSREP_localxml_save,
+   DSREP_localxml_delete,
+   DSREP_localxml_archive
+};
+
+static struct adaptor_info _DSREP_localxml_info =
+{
+   8,
+   names,
+   vtab
+};
+</piece>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<piece>
+struct adaptor_info * DSREP_localxml_get_info ()
+{
+   return & _DSREP_localxml_info;
+}
+</piece>
+
+Thus concludes the communication with the config module.  Now on with the actual implementation
+of functionality.  First, the initialization of an adaptor instance.  When given the fresh adaptor,
+the init function has any parameters supplied to the adaptor creator in <code>ad->parms</code> as an
+attribute named "parms".  In this case, we're going to treat that parms attribute as a directory; if
+it's blank we use our compiled default.  We'll leave the directory we actually end up using in an
+attribute called "dir".  Thus I demonstrate my complete and utter addiction to my xmlapi library.
+It really makes coding in C palatable.
+<p/>
+Note the setting of the "spec" attribute in ad->parms.  This is recommended for adaptors,
+in case the adaptor has been invoked as a default.  If the default is then later changed,
+it's important for things to know where this adaptor was in the first place.
+
+<piece>
+XML * DSREP_localxml_init (WFTK_ADAPTOR * ad, va_list args) {
+   struct stat statbuf;
+   const char * parms;
+   char directory[256];
+   char * end;
+
+   parms = xml_attrval (ad->parms, "parm");
+   if (!*parms) parms = config_get_value (ad->session, "dsrep.localxml.directory");
+
+   /* Check for existence, return error if the directory doesn't exist or if it isn't a directory. */
+   strcpy (directory, parms);
+   end = directory + strlen (directory) - 1;
+   if (*end == '\\') *end = '\0';
+
+   if (stat (directory, &statbuf) == -1) {
+      xml_set (ad->parms, "error", "Directory not found.");
+      return (XML *) 0;
+   }
+   if (!(statbuf.st_mode #^7 S_IFDIR)) {
+      xml_set (ad->parms, "error", "Directory not directory.");
+      return (XML *) 0;
+   }
+
+   strcat (directory, "\\");
+   xml_set (ad->parms, "dir", directory);
+   strcpy (directory, "localxml:");
+   strcat (directory, xml_attrval (ad->parms, "dir"));
+   xml_set (ad->parms, "spec", directory);
+   return (XML *) 0;
+}
+</piece>
+
+That wasn't so hard, was it?  Well, freeing up the adaptor is much easier:
+<piece>
+XML * DSREP_localxml_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</piece>
+
+That was programmer humor.  Ha, ha.  Yeah, it was pretty droll.
+<p/>
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<piece>
+XML * DSREP_localxml_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "dsrep");
+   xml_set (info, "name", "localxml");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</piece>
+<p/>
+Moving along at breakneck speed, we come to actual functionality: how to create a new datasheet.  It's pretty
+straightforward.  If there is an ID supplied, we'll make sure that it doesn't exist and we'll save this datasheet
+immediately in order to ensure that there are no collisions.  Otherwise a blank datasheet with no ID will be returned,
+and it'll get an ID assigned when it's saved, again one that hasn't been used.  If an ID is supplied and it already
+exists in the target directory, then we'll treat this case as if no ID had been supplied.  Thus the caller must check
+whether the ID is set in the resulting datasheet; a supplied ID should be considered a request rather than a demand.
+<p/>
+A side note here on the pure wonder of using the XMLAPI for C programming: while writing this function it occurred to
+me that it'd be nice to have a way for the error status of the adaptor to be known, so that a caller could tell the
+difference between a pre-existing key and a problem with the disk (i.e. the file couldn't be open for writing).  The
+usual way to handle this is with some global structure, or by adding a set of centrally defined flags to a struct, or
+some other difficult solution like that.  But since the adaptor has that parms XML structure hanging on it anyway, it's
+simple for me to toss an "error" attribute into it which can reflect the last error encountered.  It's really the best
+of both worlds between C and scripting languages, if you ask me.  Now when I just write that xml_sprintf function...  And
+build a better heap manager...
+<piece>
+XML * DSREP_localxml_new  (WFTK_ADAPTOR * ad, va_list args)
+{
+   char path[256];
+   struct stat statbuf;
+   char * id = (char *) 0;
+   FILE * file;
+   XML * ret = xml_create ("datasheet");
+
+   if (args) id = va_arg (args, char *);
+   if (id) {
+      strcpy (path, xml_attrval (ad->parms, "dir"));
+      strcat (path, id);
+      strcat (path, ".xml");
+      if (stat (path, &statbuf) == -1) {
+         file = fopen (path, "w");
+         if (file) {
+            xml_set (ret, "id", id);
+            xml_write (file, ret);
+            fclose (file);
+         } else {
+            xml_set (ad->parms, "error", "Couldn't open file for writing.");
+         }
+      } else {
+         xml_set (ad->parms, "error", "File already exists.");
+      }
+   }
+   return ret;
+}
+</piece>
+
+Loading a datasheet is of course very easy.  We just build the filename using the first argument, then open it and
+read it.
+<piece>
+XML * DSREP_localxml_load (WFTK_ADAPTOR * ad, va_list args) {
+   char path[256];
+   char *id = (char *) 0;
+   FILE *file;
+   XML * ret;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No ID given.");
+      return (XML *) 0;
+   }
+
+   strcpy (path, xml_attrval (ad->parms, "dir"));
+   strcat (path, id);
+   strcat (path, ".xml");
+   file = fopen (path, "r");
+   if (!file) {
+      xml_set (ad->parms, "error", "Couldn't open file for reading.");
+      return (XML *) 0;
+   }
+
+   ret = xml_read (file);
+   fclose (file);
+
+   return ret;
+}
+</piece>
+
+Saving is a similar thing.  If the datasheet already has an ID, then we simply open the file and write the XML to it.
+Otherwise we have to give it an ID which will be guaranteed unique, <i>then</i> write the file.
+<piece>
+XML * DSREP_localxml_save (WFTK_ADAPTOR * ad, va_list args) {
+   char path[256];
+   struct stat statbuf;
+   XML  * ds = (XML *) 0;
+   FILE * file;
+   FILE * _index;
+   XML  * index;
+   int  counter;
+
+   if (args) ds = va_arg (args, XML *);
+   if (!ds) {
+      xml_set (ad->parms, "error", "No datasheet given.");
+      return (XML *) 0;
+   }
+
+   if (*xml_attrval (ds, "id")) {
+      strcpy (path, xml_attrval (ad->parms, "dir"));
+      strcat (path, xml_attrval (ds, "id"));
+      strcat (path, ".xml");
+      file = fopen (path, "w");
+   } else {
+      /* Find a unique ID. */
+      strcpy (path, xml_attrval (ad->parms, "dir"));
+      strcat (path, "index");
+      if (stat (path, &statbuf) == -1) {
+         _index = fopen (path, "w");
+         if (!_index) {
+            xml_set (ad->parms, "error", "Unable to create index file.");
+            return (XML *) 0;
+         }
+         index = xml_create ("index");
+      } else {
+         _index = fopen (path, "r+");
+         if (_index) {
+            index = xml_read (_index);
+            rewind (_index);
+         } else {
+            xml_set (ad->parms, "error", "Unable to create index file.");
+            return (XML *) 0;
+         }
+      }
+      if (!index) {
+         xml_set (ad->parms, "error", "Directory index file corrupt.");
+         return (XML *) 0;
+      }
+
+      if (!xml_attrval (index, "counter")) xml_set (index, "counter", "0");
+
+      counter = xml_attrvalnum (index, "counter");
+      do {
+         counter ++;
+         xml_setnum (ds, "id", counter);
+         strcpy (path, xml_attrval (ad->parms, "dir"));
+         strcat (path, xml_attrval (ds, "id"));
+         strcat (path, ".xml");
+      } while (stat (path, &statbuf) != -1);
+      file = fopen (path, "w");
+
+      xml_setnum (index, "counter", counter);
+      xml_write (_index, index);
+      fclose (_index);
+   }
+
+   if (file) {
+      xml_write (file, ds);
+      fclose (file);
+   } else {
+      xml_set (ad->parms, "error", "Couldn't open file for writing.");
+      return (XML *) 0;
+   }
+
+   return ds;
+}
+</piece>
+
+Then deletion.  Very simple, again.  Note that I'm defining the semantics of deletion to mean that if an ID doesn't exist
+in the first place, that deletion is successful.
+<piece>
+XML * DSREP_localxml_delete (WFTK_ADAPTOR * ad, va_list args) {
+   char path[256];
+   char * id = (char *) 0;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No ID given.");
+      return (XML *) 0;
+   }
+
+   strcpy (path, xml_attrval (ad->parms, "dir"));
+   strcat (path, id);
+   strcat (path, ".xml");
+   if (-1 == unlink (path)) {
+      if (errno == EACCES) xml_set (ad->parms, "error", "Insufficient filesystem access.");
+   }
+   return (XML *) 0;
+}
+</piece>
+
+And last, we have an archive function, but as I don't know yet how to handle it, I'm not implementing it.
+<piece>
+XML * DSREP_localxml_archive (WFTK_ADAPTOR * ad, va_list args) { return (XML *) NULL; }
+</piece>
+
+</item>
+
+
+</litprog>
+
+

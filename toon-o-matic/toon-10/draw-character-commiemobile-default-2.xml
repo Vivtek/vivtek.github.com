@@ -1,0 +1,3 @@
+<character action="leaves" name="commiemobile" tag="default-2" rel-h="70" rel-w="" height="105" width="118.730769230769">
+<draw face="right" file="image-commiemobile-1.bmp" type="image" rel-h="100" rel-w="100" height="105" rel-x="0" rel-y="0" w="294" h="260" width="118.730769230769"/>
+</character>

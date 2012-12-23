@@ -1,0 +1,18 @@
+SUBJECT>Re: Workflow, Python and Zope
+POSTER>Brian Brown
+EMAIL>Brian.Brown@emergent-IT.com
+DATE>971278290
+EMAILNOTICES>no
+IP_ADDRESS>wardrobe.smaproducts.com
+PREVIOUS>23
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; Actually, I'm currently learning Python. As Python is typically extended
+<BR>> with plain-vanilla C modules, and as the new and improved wftk (which
+<BR>> hasn't hit stores yet) is reimplemented as a set of libraries, I think
+<BR>> that it's going to be really simple to drop the engine into Python and
+<BR>> Zope. That'll be my next trick.
+<P>I'm a big fan of Zope/Python and am ecstatic to see that you have put everything into libraries! When those libs are available, I'll start work on building a Jabber module to implement workflow, (see also http://www.vivtek.com/wftk/discuss.pl?read=21)...
+<P>This is gonna rock!

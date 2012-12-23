@@ -1,0 +1,12 @@
+<cartoon rowformat="1" width="700" panel-h="150" character-base-url="http://www.vivtek.com/toonbots/characters/">
+<panel>
+<character name="Lenin"/>
+<dialog who="Lenin">Вот анекдот про Сталина.</dialog>
+</panel>
+<panel>
+<character name="Lenin"/>
+<dialog who="Lenin">Сталин разговаривает по телефону с Черчиллем:</dialog>
+</panel>
+<panel/>
+<panel/>
+</cartoon>

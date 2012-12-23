@@ -1,0 +1,188 @@
+<litprog>
+<object name="DATASTORE_role.c" language="c" item="DATASTORE_role"/>
+
+
+<format name="index">
+<html><head><title>DATASTORE adaptor: role</title></head>
+<body>
+<h2>DATASTORE adaptor: role</h2>
+<hr/>
+<p/>
+[##body##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+
+<item name="DATASTORE_role" label="ACTION adaptor: wftk" format="index">
+This is the DATASTORE adaptor which exposes role assignments as data-like objects.  To read
+a role assignment for role "Secretary", for instance, we just get the value "role:Secretary".
+To assign said role, we just set the value -- and that just calls back into the wftk API to
+assign the role.
+
+<piece>
+#include [[stdio.h>
+#include [[stdarg.h>
+#include [[string.h>
+#include "../wftk.h"
+#include "../wftk_internals.h"
+</piece>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<piece>
+static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "get",
+   "set",
+   "isnull",
+   "makenull"
+};
+
+XML * DATASTORE_role_init     (WFTK_ADAPTOR * ad, va_list args);
+XML * DATASTORE_role_free     (WFTK_ADAPTOR * ad, va_list args);
+XML * DATASTORE_role_info     (WFTK_ADAPTOR * ad, va_list args);
+XML * DATASTORE_role_get      (WFTK_ADAPTOR * ad, va_list args);
+XML * DATASTORE_role_set      (WFTK_ADAPTOR * ad, va_list args);
+XML * DATASTORE_role_isnull   (WFTK_ADAPTOR * ad, va_list args);
+XML * DATASTORE_role_makenull (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   DATASTORE_role_init,
+   DATASTORE_role_free,
+   DATASTORE_role_info,
+   DATASTORE_role_get,
+   DATASTORE_role_set,
+   DATASTORE_role_isnull,
+   DATASTORE_role_makenull
+};
+
+static struct adaptor_info _DATASTORE_role_info =
+{
+   7,
+   names,
+   vtab
+};
+</piece>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<piece>
+struct adaptor_info * DATASTORE_role_get_info ()
+{
+   return & _DATASTORE_role_info;
+}
+</piece>
+
+Thus concludes the communication with the config module.  In most modules, we'd do
+some kind of initialization, but the role datastore doesn't need any.
+
+<piece>
+XML * DATASTORE_role_init (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * DATASTORE_role_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</piece>
+
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<piece>
+XML * DATASTORE_role_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "datastore");
+   xml_set (info, "name", "role");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</piece>
+<p/>
+So.  A datastore adaptor basically just provides get and set functionality for named values.  The names
+will basically always start with the name of the adaptor, so we need to strip that off first.  Otherwise
+the role datastore is pretty rocket-surgery-free.
+<piece>
+XML * DATASTORE_role_get  (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * datasheet = (XML *) 0;
+   char * name;
+   char * colon;
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No datasheet supplied.");
+      return (XML *) 0;
+   }
+   name = va_arg (args, char *);
+   if (!name) {
+      xml_set (ad->parms, "error", "No role named.");
+      return (XML *) 0;
+   }
+
+   colon = strchr (name, ':');
+   return (wftk_session_stashvalue (ad->session, wftk_role_user (ad->session, datasheet, colon ? colon + 1 : name)));
+}
+</piece>
+
+That's rather satisfying.  Let's do the setting end.
+
+<piece>
+XML * DATASTORE_role_set  (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * datasheet = (XML *) 0;
+   char * name;
+   char * value;
+   char * colon;
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No datasheet supplied.");
+      return (XML *) 0;
+   }
+   name = va_arg (args, char *);
+   if (!name) {
+      xml_set (ad->parms, "error", "No role named.");
+      return (XML *) 0;
+   }
+   value = va_arg (args, char *);
+
+   colon = strchr (name, ':');
+   wftk_role_assign (ad->session, datasheet, colon ? colon + 1 : name, value);
+   return (XML *) 0;
+}
+</piece>
+
+Easy!
+<p/>
+
+I don't really care much about null values here.  Really, the null value thing is pretty undefined anyway.  ...  No pun intended.  Really.
+<piece>
+XML * DATASTORE_role_isnull   (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * DATASTORE_role_makenull (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</piece>
+
+</item>
+
+
+</litprog>
+
+

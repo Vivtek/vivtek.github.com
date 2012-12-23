@@ -1,0 +1,35 @@
+Piece tag.
+piecename is now main
+Adding to main: #!/usr/local/bin/perl
+Adding to main: 
+Adding to main: <insert name="process_input"/>
+Adding to main: 
+Adding to main: <insert name="globals"/>
+Adding to main: <insert name="subroutines"/>
+Adding to main: 
+Adding to main: <insert name="scan"/>
+Adding to main: <insert name="weave"/>
+Adding to main: <insert name="write_index"/>
+Adding to main: <insert name="tangle"/>
+Leaving piece in main
+Piece tag.
+piecename is now scan
+
+main: Script file structure
+scan: Initial scan
+
+main code:
+ #!/usr/local/bin/perl
+
+<insert name="process_input"/>
+
+<insert name="globals"/>
+<insert name="subroutines"/>
+
+<insert name="scan"/>
+<insert name="weave"/>
+<insert name="write_index"/>
+<insert name="tangle"/>
+
+scan code:
+ 

@@ -1,0 +1,30 @@
+<scene id="default" panels="1-2-3-4-5">
+<frame tag="default-1" id="1" panels="1">
+<character name="Proxybot" tag="default-1"/>
+<character name="mao" tag="default-1"/>
+</frame>
+<frame tag="default-2" id="2" panels="2">
+<character name="Proxybot" tag="default-1"/>
+<character name="mao" tag="default-1"/>
+<character name="Proxybot" tag="default-2"/>
+<character name="mao" tag="default-2"/>
+</frame>
+<frame tag="default-3" id="3" panels="3">
+<character name="Proxybot" tag="default-1"/>
+<character name="mao" tag="default-1"/>
+<character name="Proxybot" tag="default-2"/>
+<character name="mao" tag="default-2"/>
+<character name="Proxybot" tag="default-3"/>
+<character name="mao" action="leaves" tag="default-3"/>
+</frame>
+<frame tag="default-4" id="4" panels="4">
+<character name="Proxybot" tag="default-1"/>
+<character name="Proxybot" tag="default-2"/>
+<character name="Proxybot" tag="default-3"/>
+<character name="will" action="leaves" tag="default-4"/>
+<character name="Proxybot" action="leaves" tag="default-4"/>
+</frame>
+<frame tag="default-5" id="5" panels="5">
+<character name="mouse" tag="default-5"/>
+</frame>
+</scene>

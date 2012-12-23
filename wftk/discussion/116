@@ -1,0 +1,14 @@
+SUBJECT>Command Line Parsing
+POSTER>Dan Connelly
+EMAIL>danc@prosoft-tech.com
+DATE>990379222
+EMAILNOTICES>no
+IP_ADDRESS>vt-williston3a-1017.bur.adelphia.net
+PREVIOUS>
+NEXT> 126
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>The command line processing (wftk_util) is a bit busted in the Solaris download.
+<P>Try &quot;wftk -c myconfig.xml&quot;.
+<P>

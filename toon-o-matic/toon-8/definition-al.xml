@@ -1,0 +1,6 @@
+<character name="al" label="Al Gore" rel-h="60">
+<variant>
+<aspect name="1"><draw face="left" file="image-al-1.bmp" type="image"/></aspect>
+<aspect name="2"><draw face="right" file="image-al-2.bmp" type="image"/></aspect>
+</variant>
+</character>

@@ -1,0 +1,4 @@
+wftk_adaptors.c
+config.c
+wftk_lib.c
+wftk_util.c

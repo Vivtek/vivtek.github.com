@@ -1,0 +1,33 @@
+<workflow name="Ecomm order" author="Michael: michael@vivtek.com">
+    <role name="Merchant"/>
+    <role name="Supplier"/>
+
+    <data name="customer" type="record" storage="database:something"/>
+    <data name="order" type="record" storage="database:something"/>
+
+    <sequence>
+       <if expr="${order.payment_processed} = false">
+          <task label="Process payment" role="Merchant">
+             <data name="order">
+             </data>
+          </task>
+          <data name="order.payment_processed" value="true"/>
+          <alert type="email" to="${customer.email}">
+             Your payment has been processed and your order will be shipped soon.  Blah, blah.
+          </alert>
+       </if>
+       
+       <data name="suppliers" readonly="yes" storage="select distinct(supplier) from order_detail where order_number='${order.order_number}'">
+       </data>
+
+       <parallel foreach="supplier" values="${suppliers}">
+          <task label="Fulfill" role="Supplier" agent="${agent}">
+             <data name="order items" storage="select * from order_detail where order_number='${order.order_number} and supplier='${agent}'">
+             </data>
+          </task>
+       </parallel>
+       <alert type="email" to="${customer.email}">
+          Your order has been shipped.  Blah, blah with link to order status.
+       </alert>
+    </sequence>
+  </workflow>

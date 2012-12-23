@@ -1,0 +1,3 @@
+../wftk/lpml.pl pdm.xml
+/usr/local/bin/indent -kr -sob -i3 -lp -ts100 pdm.c
+zip wftk_pdm pdm.xml localdefs.h pdm.c *.html Makefile

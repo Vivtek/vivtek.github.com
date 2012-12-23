@@ -1,0 +1,3 @@
+<character name="yoda" label="Yoda" rel-h="50">
+<draw file="image-yoda-1.jpg" type="image"/>
+</character>

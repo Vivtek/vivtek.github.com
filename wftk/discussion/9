@@ -1,0 +1,17 @@
+SUBJECT>Hello
+POSTER>Josh Zeidner
+EMAIL>jmz_phylogenic@hotmail.com
+DATE>962135445
+EMAILNOTICES>no
+IP_ADDRESS>Extern1.aig.com
+PREVIOUS>
+NEXT> 10 12
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Hi!
+<P>Just came across WFTK... Ive been looking for an open-source workflow engine for some time. I have a few comments though...
+<P>1) A large, developement-intensive system should not be built in a unmanagable language like C++. Possibly you should consider Java or Python. Python would be great because you could integrate the workflow engine into Zope- a python-based app server. If the engine were built in a more user-freindly language, more people could participate in development. Another plus for python: most python developers are dedicated people, mainly because no one who is &quot;in it for the money&quot; would learn python, because it cant make you any money.
+<P>2) Could someone reccomend a good book on workflow systems? I need to learn more. Ive been involved with Verve and Vitria before and I see major potential for workflow systems- and i need more info.
+<P>thanks, Josh Zeidner
+<P>jmz_phylogenic@hotmail.com

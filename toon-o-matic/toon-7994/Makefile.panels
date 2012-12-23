@@ -1,0 +1,168 @@
+mao =?
+mao =?
+mao =?
+mao =?
+mao =?
+mao =?
+will =?
+Proxybot =?
+will =?
+Proxybot =?
+will =?
+Proxybot =?
+will =?
+Proxybot =?
+will =?
+Proxybot =?
+# Panel Makefile generated Wed Jan 21 15:21:16 PST 2009 by Toon-o-Matic t2
+# Contains no serviceable parts.  Batteries not included.
+# Void in NH, VT, and U.S. Minor Outlying Islands.
+
+all:  panel-1.svg panel-2.svg panel-3.svg panel-4.svg panel-5.svg
+
+panel-1.svg: character-Proxybot-default-1-1.svg character-mao-default-1-1.svg dialog-1-1.svg
+	perl build_panel_g.pl panel-1.xml 1 1 > panel-1-g.svg
+	perl merge_svg.pl "panel 1" panel-1-g.svg character-Proxybot-default-1-1.svg character-mao-default-1-1.svg dialog-1-1.svg > panel-1.svg
+
+placement-panel-1.xml: draw-character-Proxybot-default-1.xml draw-character-mao-default-1.xml
+	perl place_characters.pl "panel 1" 698 150 draw-character-Proxybot-default-1.xml draw-character-mao-default-1.xml > placement-panel-1.xml
+
+panel-2.svg: character-Proxybot-default-2-2.svg dialog-2-2.svg character-mao-default-2-2.svg dialog-2-3.svg
+	perl build_panel_g.pl panel-2.xml 1 157 > panel-2-g.svg
+	perl merge_svg.pl "panel 2" panel-2-g.svg character-Proxybot-default-2-2.svg dialog-2-2.svg character-mao-default-2-2.svg dialog-2-3.svg > panel-2.svg
+
+placement-panel-2.xml: draw-character-Proxybot-default-2.xml draw-character-mao-default-2.xml
+	perl place_characters.pl "panel 2" 698 150 draw-character-Proxybot-default-2.xml draw-character-mao-default-2.xml > placement-panel-2.xml
+
+panel-3.svg: character-Proxybot-default-3-3.svg dialog-3-4.svg character-mao-default-3-3.svg dialog-3-5.svg
+	perl build_panel_g.pl panel-3.xml 1 314 > panel-3-g.svg
+	perl merge_svg.pl "panel 3" panel-3-g.svg character-Proxybot-default-3-3.svg dialog-3-4.svg character-mao-default-3-3.svg dialog-3-5.svg > panel-3.svg
+
+placement-panel-3.xml: draw-character-Proxybot-default-3.xml draw-character-mao-default-3.xml
+	perl place_characters.pl "panel 3" 698 150 draw-character-Proxybot-default-3.xml draw-character-mao-default-3.xml > placement-panel-3.xml
+
+panel-4.svg: character-will-default-4-4.svg dialog-4-6.svg character-Proxybot-default-4-4.svg
+	perl build_panel_g.pl panel-4.xml 1 471 > panel-4-g.svg
+	perl merge_svg.pl "panel 4" panel-4-g.svg character-will-default-4-4.svg dialog-4-6.svg character-Proxybot-default-4-4.svg > panel-4.svg
+
+placement-panel-4.xml: draw-character-will-default-4.xml draw-character-Proxybot-default-4.xml
+	perl place_characters.pl "panel 4" 698 150 draw-character-will-default-4.xml draw-character-Proxybot-default-4.xml > placement-panel-4.xml
+
+panel-5.svg: character-mouse-default-5-5.svg dialog-5-7.svg caption-5-1.svg
+	perl build_panel_g.pl panel-5.xml 1 628 > panel-5-g.svg
+	perl merge_svg.pl "panel 5" panel-5-g.svg character-mouse-default-5-5.svg dialog-5-7.svg caption-5-1.svg > panel-5.svg
+
+placement-panel-5.xml: draw-character-mouse-default-5.xml
+	perl place_characters.pl "panel 5" 698 150 draw-character-mouse-default-5.xml > placement-panel-5.xml
+
+dialog-4-6.info: dialog-4-6.xml  character-will-default-4-4.svg
+	perl render_text.pl dialog-4-6.xml dialog-4-6.png
+	identify -format '<graphic size="%b" height="%h" width="%w" geometry="%g" file="%f"/>' dialog-4-6.png > dialog-4-6.info
+
+dialog-4-6.svg: dialog-4-6.info
+	perl draw_caption.pl dialog-4-6.xml dialog-4-6.info 698 150 0 dialog-4-6.png > dialog-4-6.svg
+
+draw-character-mao-default-3.xml: character-mao-default-3.xml
+	perl build_character.pl this 698 150 character-mao-default-3.xml > draw-character-mao-default-3.xml
+
+character-mao-default-3-3.svg: draw-character-mao-default-3.xml placement-panel-3.xml
+	perl draw.pl draw-character-mao-default-3.xml 698 150 placement-panel-3.xml > character-mao-default-3-3.svg
+
+dialog-1-1.info: dialog-1-1.xml  character-mao-default-1-1.svg
+	perl render_text.pl dialog-1-1.xml dialog-1-1.png
+	identify -format '<graphic size="%b" height="%h" width="%w" geometry="%g" file="%f"/>' dialog-1-1.png > dialog-1-1.info
+
+dialog-1-1.svg: dialog-1-1.info
+	perl draw_caption.pl dialog-1-1.xml dialog-1-1.info 698 150 0 dialog-1-1.png > dialog-1-1.svg
+
+dialog-3-5.info: dialog-3-5.xml  character-mao-default-3-3.svg
+	perl render_text.pl dialog-3-5.xml dialog-3-5.png
+	identify -format '<graphic size="%b" height="%h" width="%w" geometry="%g" file="%f"/>' dialog-3-5.png > dialog-3-5.info
+
+dialog-3-5.svg: dialog-3-5.info
+	perl draw_caption.pl dialog-3-5.xml dialog-3-5.info 698 150 0 dialog-3-5.png > dialog-3-5.svg
+
+draw-character-Proxybot-default-1.xml: character-Proxybot-default-1.xml
+	perl build_character.pl this 698 150 character-Proxybot-default-1.xml > draw-character-Proxybot-default-1.xml
+
+character-Proxybot-default-1-1.svg: draw-character-Proxybot-default-1.xml placement-panel-1.xml
+	perl draw.pl draw-character-Proxybot-default-1.xml 698 150 placement-panel-1.xml > character-Proxybot-default-1-1.svg
+
+draw-character-Proxybot-default-4.xml: character-Proxybot-default-4.xml
+	perl build_character.pl this 698 150 character-Proxybot-default-4.xml > draw-character-Proxybot-default-4.xml
+
+character-Proxybot-default-4-4.svg: draw-character-Proxybot-default-4.xml placement-panel-4.xml
+	perl draw.pl draw-character-Proxybot-default-4.xml 698 150 placement-panel-4.xml > character-Proxybot-default-4-4.svg
+
+dialog-2-3.info: dialog-2-3.xml  character-mao-default-2-2.svg
+	perl render_text.pl dialog-2-3.xml dialog-2-3.png
+	identify -format '<graphic size="%b" height="%h" width="%w" geometry="%g" file="%f"/>' dialog-2-3.png > dialog-2-3.info
+
+dialog-2-3.svg: dialog-2-3.info
+	perl draw_caption.pl dialog-2-3.xml dialog-2-3.info 698 150 0 dialog-2-3.png > dialog-2-3.svg
+
+draw-character-mao-default-2.xml: character-mao-default-2.xml
+	perl build_character.pl this 698 150 character-mao-default-2.xml > draw-character-mao-default-2.xml
+
+character-mao-default-2-2.svg: draw-character-mao-default-2.xml placement-panel-2.xml
+	perl draw.pl draw-character-mao-default-2.xml 698 150 placement-panel-2.xml > character-mao-default-2-2.svg
+
+draw-character-mao-default-1.xml: character-mao-default-1.xml
+	perl build_character.pl this 698 150 character-mao-default-1.xml > draw-character-mao-default-1.xml
+
+character-mao-default-1-1.svg: draw-character-mao-default-1.xml placement-panel-1.xml
+	perl draw.pl draw-character-mao-default-1.xml 698 150 placement-panel-1.xml > character-mao-default-1-1.svg
+
+draw-character-Proxybot-default-3.xml: character-Proxybot-default-3.xml
+	perl build_character.pl this 698 150 character-Proxybot-default-3.xml > draw-character-Proxybot-default-3.xml
+
+character-Proxybot-default-3-3.svg: draw-character-Proxybot-default-3.xml placement-panel-3.xml
+	perl draw.pl draw-character-Proxybot-default-3.xml 698 150 placement-panel-3.xml > character-Proxybot-default-3-3.svg
+
+draw-character-Proxybot-default-2.xml: character-Proxybot-default-2.xml
+	perl build_character.pl this 698 150 character-Proxybot-default-2.xml > draw-character-Proxybot-default-2.xml
+
+character-Proxybot-default-2-2.svg: draw-character-Proxybot-default-2.xml placement-panel-2.xml
+	perl draw.pl draw-character-Proxybot-default-2.xml 698 150 placement-panel-2.xml > character-Proxybot-default-2-2.svg
+
+dialog-3-4.info: dialog-3-4.xml  character-Proxybot-default-3-3.svg
+	perl render_text.pl dialog-3-4.xml dialog-3-4.png
+	identify -format '<graphic size="%b" height="%h" width="%w" geometry="%g" file="%f"/>' dialog-3-4.png > dialog-3-4.info
+
+dialog-3-4.svg: dialog-3-4.info
+	perl draw_caption.pl dialog-3-4.xml dialog-3-4.info 698 150 0 dialog-3-4.png > dialog-3-4.svg
+
+draw-character-will-default-4.xml: character-will-default-4.xml
+	perl build_character.pl this 698 150 character-will-default-4.xml > draw-character-will-default-4.xml
+
+character-will-default-4-4.svg: draw-character-will-default-4.xml placement-panel-4.xml
+	perl draw.pl draw-character-will-default-4.xml 698 150 placement-panel-4.xml > character-will-default-4-4.svg
+
+caption-5-1.info: caption-5-1.xml
+	perl render_text.pl caption-5-1.xml caption-5-1.png
+	identify -format '<graphic size="%b" height="%h" width="%w" geometry="%g" file="%f"/>' caption-5-1.png > caption-5-1.info
+
+caption-5-1.svg: caption-5-1.info
+	perl draw_caption.pl caption-5-1.xml caption-5-1.info 698 150 0 caption-5-1.png > caption-5-1.svg
+
+dialog-2-2.info: dialog-2-2.xml  character-Proxybot-default-2-2.svg
+	perl render_text.pl dialog-2-2.xml dialog-2-2.png
+	identify -format '<graphic size="%b" height="%h" width="%w" geometry="%g" file="%f"/>' dialog-2-2.png > dialog-2-2.info
+
+dialog-2-2.svg: dialog-2-2.info
+	perl draw_caption.pl dialog-2-2.xml dialog-2-2.info 698 150 0 dialog-2-2.png > dialog-2-2.svg
+
+draw-character-mouse-default-5.xml: character-mouse-default-5.xml
+	perl build_character.pl this 698 150 character-mouse-default-5.xml > draw-character-mouse-default-5.xml
+
+character-mouse-default-5-5.svg: draw-character-mouse-default-5.xml placement-panel-5.xml
+	perl draw.pl draw-character-mouse-default-5.xml 698 150 placement-panel-5.xml > character-mouse-default-5-5.svg
+
+dialog-5-7.info: dialog-5-7.xml  character-mouse-default-5-5.svg
+	perl render_text.pl dialog-5-7.xml dialog-5-7.png
+	identify -format '<graphic size="%b" height="%h" width="%w" geometry="%g" file="%f"/>' dialog-5-7.png > dialog-5-7.info
+
+dialog-5-7.svg: dialog-5-7.info
+	perl draw_caption.pl dialog-5-7.xml dialog-5-7.info 698 150 0 dialog-5-7.png > dialog-5-7.svg
+
+

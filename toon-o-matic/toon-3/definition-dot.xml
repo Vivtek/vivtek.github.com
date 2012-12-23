@@ -1,0 +1,3 @@
+<character rel-w="100" name="dot" label="Dot" rel-h="1">
+  <draw fill="black" type="circle"/>
+</character>

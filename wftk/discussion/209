@@ -1,0 +1,17 @@
+SUBJECT>building problem
+POSTER>midbie
+EMAIL>midbie@hotmail.com
+DATE>1039664351
+EMAILNOTICES>no
+IP_ADDRESS>210.0.217.49
+PREVIOUS>
+NEXT> 210
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>Hi, All
+<P>When I tried to &quot;make&quot; in src/, I got the following error message.
+<P>root@tptest&gt; make make -C xmlapi all make[1]: Entering directory `/export/home/root/wf/wftk-1.0pre2/src/xmlapi' gcc -O2 -o tester -lexpat -lsocket -lnsl -R/usr/local/lib test.o xmlapi.o ld: fatal: library -lexpat: not found ld: fatal: File processing errors. No output written to tester collect2: ld returned 1 exit status make[1]: *** [tester] Error 1 make[1]: Leaving directory `/export/home/root/wf/wftk-1.0pre2/src/xmlapi' make: *** [build_core] Error 2
+<P>Could anyone tell me whats going wrong?
+<P>Many thanks in advance
+<P>midbie

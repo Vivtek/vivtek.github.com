@@ -1,0 +1,3496 @@
+<litprog>
+<object name="wftk_lib.c" language="c" item="library"/>
+<object name="wftk.h" language="c" item="wftk_h"/>
+<object name="wftk_internals.h" language="c" item="wftk_internals"/>
+
+
+<format name="index">
+<html><head><title>wftk core library</title></head>
+<body>
+<h2>wftk: wftk core library</h2>
+<center>
+[ <a href="wftk_engine.zip">download</a> ] [ <a href="wftk_lib.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr/>
+<p/>
+Here's how we do all this stuff:
+[##itemlist##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<format name="default">
+<html><head><title>wftk core library: [##label##]</title></head>
+<body>
+<h2>[##label##]</h2>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="wftk_lib.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="wftk_lib.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<item name="wftk_lib" label="wftk core library" format="index">
+</item>
+
+<item name="wftk_h" label="Include file (and API definition)">
+Here's the wftk API.  It'll grow but it's guaranteed never to shrink.  It's not Windows-DLL-friendly yet, as you can see.
+
+<piece>
+#ifndef WFTK_H
+#define WFTK_H
+#include <stdio.h>
+#include "../xmlapi/xmlapi.h"
+
+XML  * wftk_info ();
+
+void * wftk_session_alloc      ();
+void   wftk_session_free       (void * session);
+void   wftk_session_current    (void * session, XML * object);
+void   wftk_session_configure  (void * session, XML * config);
+void   wftk_session_setuser    (void * session, char * userid);
+XML  * wftk_session_getuser    (void * session);
+XML  * wftk_session_stashvalue (void * session, const char * value);
+void   wftk_session_freevalue  (void * session, const char * value);
+XML  * wftk_session_cache      (void * session, XML * key, int * found);
+XML  * wftk_session_cachecheck (void * session, XML * key);
+
+XML  * wftk_process_new     (void * session, const char * dsrep, const char * datasheet_id);
+XML  * wftk_process_load    (void * session, const char * dsrep, const char * datasheet_id);
+int    wftk_process_save    (void * session, XML * datasheet);
+int    wftk_process_define  (void * session, XML * datasheet, const char * pdrep, const char * procdef_id);
+int    wftk_process_archive (void * session, const char * dsrep, const char * datasheet_id, const char * archive);
+int    wftk_process_delete  (void * session, const char * dsrep, const char * datasheet_id);
+int    wftk_process_adhoc   (void * session, XML * datasheet, XML * arbitraryworkflow);
+
+int    wftk_task_list      (void * session, XML * list);
+int    wftk_task_new       (void * session, XML * task);
+XML  * wftk_task_retrieve  (void * session, XML * task);
+int    wftk_task_update    (void * session, XML * task);
+int    wftk_task_complete  (void * session, XML * task);
+int    wftk_task_reject    (void * session, XML * task);
+int    wftk_task_rescind   (void * session, XML * task);
+int    wftk_task_subproc   (void * session, XML * task, XML * subproc_datasheet);
+int    wftk_task_attach    (void * session, XML * task, XML * datasheet);
+
+int    wftk_request_list     (void * session, XML * list);
+int    wftk_request_new      (void * session, XML * request);
+XML  * wftk_request_retrieve (void * session, XML * request);
+int    wftk_request_update   (void * session, XML * request);
+int    wftk_request_rescind  (void * session, XML * request);
+int    wftk_request_accept   (void * session, XML * request);
+int    wftk_request_decline  (void * session, XML * request);
+
+int    wftk_value_list      (void * session, XML * datasheet, XML * list);
+XML  * wftk_value_find      (void * session, XML * datasheet, const char * name);
+XML  * wftk_value_make      (void * session, XML * datasheet, const char * name);
+int    wftk_value_isnull    (void * session, XML * datasheet, const char * name);
+const char * wftk_value_get (void * session, XML * datasheet, const char * name);
+int    wftk_value_get_num   (void * session, XML * datasheet, const char * name);
+int    wftk_value_interpret (void * session, XML * datasheet, const char * spec, char * buffer, int bufsize);
+int    wftk_value_makenull  (void * session, XML * datasheet, const char * name);
+int    wftk_value_set       (void * session, XML * datasheet, const char * name, const char * value);
+int    wftk_value_set_num   (void * session, XML * datasheet, const char * name, int value);
+int    wftk_value_settype   (void * session, XML * datasheet, const char * name, const char * type);
+int    wftk_value_define    (void * session, XML * datasheet, const char * name, const char * storage);
+int    wftk_value_calc      (void * session, XML * datasheet, const char * name, const char * value);
+XML  * wftk_value_html      (void * session, XML * datasheet, const char * name);
+XML  * wftk_value_htmlblank (void * session, XML * datasheet, const char * name);
+XML  * wftk_value_info      (void * session, XML * datasheet, const char * name);
+
+const char * wftk_status_get (void * session, XML * datasheet);
+int    wftk_status_set (void * session, XML * datasheet, const char *status);
+
+int    wftk_role_list       (void * session, XML * datasheet, XML * list);
+const char * wftk_role_user (void * session, XML * datasheet, const char * role);
+int    wftk_role_assign     (void * session, XML * datasheet, const char * role, const char * userid);
+
+int    wftk_user_list     (void * session, XML * datasheet, XML * list);
+int    wftk_user_add      (void * session, XML * datasheet, XML * user);
+XML  * wftk_user_retrieve (void * session, XML * datasheet, const char * userid);
+int    wftk_user_update   (void * session, XML * datasheet, XML * user);
+int    wftk_user_remove   (void * session, XML * datasheet, const char * userid);
+int    wftk_user_synch    (void * session, XML * user);
+int    wftk_user_auth     (void * session, XML * user, const char * password);
+
+XML  * wftk_enactment       (void * session, XML * datasheet);
+int    wftk_enactment_write (void * session, XML * datasheet, XML * xml, const char * attribute, const char * value);
+int    wftk_log             (void * session, XML * datasheet, char * log);
+
+int    wftk_action          (void * session, XML * action);
+
+XML  * wftk_decide          (void * session, XML * datasheet, XML * decision);
+
+int    wftk_notify (void * session, XML * context, XML * alert);
+#endif
+</piece>
+</item>
+
+<item name="wftk_internals" label="Internal definitions">
+Here are a few things that the library functions will use (and adaptor code as well) but that don't really need
+to be exposed to the cold, hard world.  First are the IDs for the types of adaptor.  This will almost certainly end
+up being a partial list.
+
+<piece>
+#define DSREP         1
+#define DATASTORE     2
+#define DATATYPE      3
+#define PDREP         4
+#define USER          5
+#define PERMS         6
+#define TASKINDEX     7
+#define NOTIFY        8
+#define ACTION        9
+#define DEBUG_MSG    10
+</piece>
+
+Also, since the entire adaptor scheme relies on varargs, let's include stdarg.h right here and be done with it:
+<piece>
+#include [[stdarg.h>
+</piece>
+
+And then there's the definition of the WFTK_ADAPTOR structure used to pass APIs back and forth.  Sort of a poor
+man's ActiveX, I guess.  See the <a href="wftk_adaptors.html">adaptor handling code</a> for a little more detail,
+but the upshot is that the interface
+to an adaptor is a kind of explicit vtable, and calls to adaptors all work through a single function.
+<p/>
+For the case where we want a list of all the configured adaptors in a given class (like debug adaptors or task index
+adaptors, both of which are notification-like affairs where everybody involved wants to get notified) we have an
+adaptor list structure which can hold several adaptors.
+
+<piece>
+typedef struct wftk_adaptor WFTK_ADAPTOR;
+typedef XML * (*WFTK_API_FUNC) (WFTK_ADAPTOR * ad, va_list args);
+struct wftk_adaptor {
+   int num;                /* Supplied by the adaptor class. */
+   XML * parms;            /* Supplied by the caller. */
+   int  nfuncs;            /* Supplied by the adaptor class. */
+   char ** names;          /* Supplied by the adaptor class. */
+   WFTK_API_FUNC * vtab;   /* Supplied by the adaptor driver. */
+   void * bindata;         /* Supplied by the adaptor driver (a general stash pointer.) */
+   void * session;         /* Supplied by the config module on allocation. */
+};
+struct adaptor_info {
+   int  nfuncs;
+   char ** names;
+   WFTK_API_FUNC * vtab;
+};
+typedef struct wftk_adaptorlist WFTK_ADAPTORLIST;
+struct wftk_adaptorlist {
+   int count; /* The number of adaptors in this list. */
+   WFTK_ADAPTOR * ads[1];
+};
+</piece>
+
+Then we have the interface to the config module.  Lest this be missed (somehow), each installation of the wftk has a single
+config module, which is static-linked in.  There will be variants, however, at least between Windows and Unix, as Unix
+tends to favor precompiled directory locations, while Windows favors the Registry, because most users don't have a working
+compiler.
+<p/>
+There are two functions of interest; <code>config_get_value</code> gets a named value, and <code>config_debug_message</code>
+passes a message to any installed debugging adaptors.
+<piece>
+const char * config_get_value (void * session, const char *name);
+void config_debug_message (char type, const char * message, ...);
+</piece>
+
+To make debugging simpler, and to make it go away when not in use so as to save space, we'll define a couple of debugging
+macros to wrap around <code>config_debug_message</code>:
+<piece>
+#ifdef DEBUG
+#define DBG(x,y) config_debug_message (x, y);
+#define DBG1(x,y,z) config_debug_message (x, y, z);
+#define DBG2(x,y,z,now) config_debug_message (x, y, z, now);
+#else
+#define DBG(x,y) ;
+#define DBG1(x,y,z) ;
+#define DBG2(x,y,z,now) ;
+#endif
+</piece>
+
+Prototypes for the adaptor functions, which are defined <a href="wftk_adaptors.html">here</a>.  The single-bore adaptor
+calls may return XML values; the shotgun approach ones (list calls) are used for outgoing simultaneous notification to
+multiple adaptors of a single class, so they don't return any value.  The integer is there ... I'm not sure why it's there,
+but someday I might, in a fit of guilt, decide that an error return would be a good idea.
+
+<piece>
+WFTK_ADAPTOR * wftk_get_adaptor (void * session, int type, const char * name);
+XML * wftk_call_adaptor (WFTK_ADAPTOR * ad, const char * funcname, ...);
+void wftk_free_adaptor (void * session, WFTK_ADAPTOR * ad);
+WFTK_ADAPTORLIST * wftk_get_adaptorlist (void * session, int type);
+int wftk_call_adaptorlist (WFTK_ADAPTORLIST * ad, const char * funcname, ...);
+void wftk_free_adaptorlist (void * session, WFTK_ADAPTORLIST * list);
+</piece>
+
+We've got a couple of prototypes for functions that are supposed to be called only internally.
+
+<piece>
+XML * _procdef_load (void * session, XML * datasheet);
+const char * _wftk_value_special (void * session, XML * datasheet, const char * name);
+</piece>
+
+And the internal definition of a wftk session.  The session is used to stash currently loaded adaptors. 
+ This prevents us from having to (say) log into a database for
+every wftk call.  If, however, no session is created, no harm done -- we'll just free each adaptor each time.
+
+<piece>
+typedef struct wftk_adaptor_list WFTK_ADAPTOR_LIST;
+struct wftk_adaptor_list {
+   WFTK_ADAPTOR * ad;
+   WFTK_ADAPTOR_LIST *next;
+};
+typedef struct wftk_cache_list WFTK_CACHE_LIST;
+struct wftk_cache_list {
+   XML * cached;
+   WFTK_CACHE_LIST * next;
+};
+typedef struct wftk_session WFTK_SESSION;
+struct wftk_session {
+   WFTK_ADAPTOR_LIST *ads;
+   XML * user;
+   XML * config;
+   XML * datasheet;
+   XML * procdef;
+
+   XML * values;
+   WFTK_CACHE_LIST * cache;
+};
+</piece>
+
+</item>
+
+
+<item name="library" label="Function definitions">
+Our library will consist of the <code>wftk_lib.c</code> file, defined here, along with
+at least one file for each of the adaptors listed earlier.  Most of the nitty-gritty
+will of course be in the various adaptor definitions, the most important content of
+this file being the procdef interpreter.
+<p/>
+Each group of functions has its own page except for <code>xml_info</code>.
+There is also a page describing the interpreter
+state structure, which I've introduced to replace the prototype's global variables.  My
+hope is that this will be thread-safer, even though I really don't know diddly about thread
+safety yet (except for what logic tells me, which is global variables are susceptible to
+being clobbered.)
+<piece>
+#include "wftk.h"
+#include "time.h"
+#include "wftk_internals.h"
+
+<insert name="wftk_interpreter.state"/>
+
+<insert name="wftk_interpreter"/>
+<insert name="wftk_process"/>
+<insert name="wftk_value"/>
+<insert name="wftk_status"/>
+<insert name="wftk_task"/>
+<insert name="wftk_request"/>
+<insert name="wftk_role"/>
+<insert name="wftk_user"/>
+<insert name="wftk_notify"/>
+<insert name="wftk_decide"/>
+<insert name="wftk_action"/>
+<insert name="wftk_enactment"/>
+<insert name="wftk_session"/>
+</piece>
+
+The <code>xml_info</code> function returns an XML structure containing information about the
+version of the library, the variants of various pieces of it (like what config module is linked),
+and additional information about what actual adaptors are installed, their versions, where they are,
+and so on and so forth.  Obviously this is something that will change a lot as things go on.
+<p>
+Here's an example of what drives me crazy about Microsoft, by the way.  While coding this version of the
+wftk, I was in Win32 compile mode (not my machine, my brain).  So the __TIMESTAMP__ identifier was what
+I was using to add a compile time to this info function.  In the MS documentation, it's marked as ANSI
+standard, yet, when I went to Unix, I found that gcc has no idea about it.
+<p>
+Go figure.
+
+<piece>
+XML * wftk_info ()
+{
+   XML * ret = xml_create ("libinfo");
+   xml_set (ret, "lib", "wftk");
+   xml_set (ret, "ver", "1.0");
+   xml_set (ret, "compiled", __TIME__ " " __DATE__);
+
+   /*config_info (ret);  TODO: finish up the config info portion of this. */
+
+   return (ret);
+}
+</piece>
+</item>
+
+
+<item name="wftk_session" label="Working with sessions"/>
+The whole session functionality has grown up over the last month or so into something a lot more ambitious than I'd intended.
+Some of the wftk functionality will work with no session -- that is, if you give it a NULL value.  But as I'm not testing that
+mode, I don't recommend you trust it too far.  You're likely to end up with memory leaks at the best, as the session, among other
+things, is charged with maintaining, well, pretty much a heap.  A not-very-well-designed heap, but a heap.
+<p/>
+The most obvious thing to do with sessions is to establish one and to free one.  Freeing is a touchy thing, because there are all
+kinds of things that wftk stashes in the session, and they all have to be freed <i>if</i> they've been created.
+<piece>
+void * wftk_session_alloc ()
+{
+   WFTK_SESSION * sess;
+   sess = (WFTK_SESSION *) malloc (sizeof (struct wftk_session));
+   sess->ads = NULL;
+   sess->datasheet = NULL;
+   sess->procdef = NULL;
+   sess->values = NULL;
+   sess->cache = NULL;
+
+   return (void *) sess;
+}
+void wftk_session_free (void * session)
+{
+   WFTK_SESSION * sess = session;
+   WFTK_ADAPTOR_LIST * list;
+   WFTK_CACHE_LIST * cachelist;
+   if (!session) return;
+
+   while (sess->ads) {
+      wftk_free_adaptor (NULL, sess->ads->ad);
+      list = sess->ads->next;
+      free (sess->ads);
+      sess->ads = list;
+   }
+
+   while (sess->cache) {
+      xml_free (sess->cache->cached);
+      cachelist = sess->cache->next;
+      free(sess->cache);
+      sess->cache = cachelist;
+   }
+
+   if (sess->user)      xml_free (sess->user);
+   if (sess->config)    xml_free (sess->config);
+   if (sess->datasheet) xml_free (sess->datasheet);
+   if (sess->procdef)   xml_free (sess->procdef);
+   if (sess->values)    xml_free (sess->values);
+}
+</piece>
+
+The session was originally supposed to hold just the currently used datasheet and procdef, to simplify freeing them up and to avoid
+loading them again and again.  But then I realized it's also the only logical place to store the configuration.  So without a session,
+you can't have a configuration and you're thrown onto the precompiled values for repository directories and such.  Frankly, it probably
+won't work.  If you're brave and really want a rock-bottom wftk configuration, though, give it a shot.  Just don't expect me to come
+pick up the pieces.
+
+<piece>
+void wftk_session_configure (void * session, XML * config)
+{
+   WFTK_SESSION * sess = session;
+   sess->config = config;
+}
+</piece>
+
+The <code>wftk_session_current</code> call associates a workflow object (in XML format) with the current session so that
+subsequent calls to the library needn't look the object up again.  Ideally this should be transparent.  That makes freeing
+up these objects somewhat confusing -- if you're not using a session, you have to do it yourself; otherwise, the session will
+track things for you.  This stuff is going to be replaced with a better caching mechanism.
+
+<piece>
+void wftk_session_current (void * session, XML * object)
+{
+   WFTK_SESSION * sess = session;
+
+   if (!session) return;
+   if (!object) return;
+
+   if (!strcmp (object->name, "datasheet")) {
+      sess->datasheet = object;
+      return;
+   }
+   if (!strcmp (object->name, "procdef")) {
+      sess->procdef = object;
+      return;
+   }
+}
+</piece>
+
+The cache mechanism is kind of weird.  You build an XML element and set a couple of attributes.  This element is now a cache key.
+Toss it at the cache, and it will either match completely, in which case the key is discarded and the cached XML is returned, or
+it won't, in which case the key is cached as a new structure and you can do with it what you will.  This is probably a dangerous
+way of doing things, because if you have a wftk daemon running you've got no good way to clean up the cache or time things out or
+really do anything.  So (yet again) this would be a good place to start looking post-v1.0 for things to do.  Sigh.  I can tell that
+workflow is going to take the rest of my life.
+<p/>
+The <code>wftk_session_cachecheck</code> function (get it?) checks for the key but doesn't delete it or cache it, either way.  This
+is used to determine whether we're going to need to read something from the filesystem or not.  (In that case, if read, the parser
+will return a brand-new XML structure, so it wouldn't be the same one as the key which got cached.  Not practical.)
+
+<piece>
+XML * wftk_session_cache (void * session, XML * key, int * flag)
+{
+   WFTK_SESSION * sess = session;
+   WFTK_CACHE_LIST * list;
+   ATTR * attr;
+
+   if (flag) *flag = 0;
+
+   if (!session) return key;
+   if (!key) return key;
+
+   list = sess->cache;
+   while (list) {
+      if (!strcmp (key->name, list->cached->name)) {
+         attr = key->attrs;
+         while (attr) {
+            if (strcmp (attr->value, xml_attrval (list->cached, attr->name))) break;
+            attr = attr->next;
+         }
+         if (!attr) break;
+      }
+      list = list->next;
+   }
+
+   if (list) {
+      if (flag) *flag = 1;
+      xml_free (key);
+      return list->cached;
+   }
+
+   list = sess->cache;
+   sess->cache = (WFTK_CACHE_LIST *) malloc (sizeof (WFTK_CACHE_LIST));
+   sess->cache->cached = key;
+   sess->cache->next = list;
+
+   return key;
+}
+
+XML * wftk_session_cachecheck (void * session, XML * key)
+{
+   WFTK_SESSION * sess = session;
+   WFTK_CACHE_LIST * list;
+   ATTR * attr;
+
+   if (!session) return NULL;
+   if (!key) return NULL;
+
+   list = sess->cache;
+   while (list) {
+      if (!strcmp (key->name, list->cached->name)) {
+         attr = key->attrs;
+         while (attr) {
+            if (strcmp (attr->value, xml_attrval (list->cached, attr->name))) break;
+            attr = attr->next;
+         }
+         if (!attr) break;
+      }
+      list = list->next;
+   }
+
+   if (list) {
+      return list->cached;  /* Found. */
+   }
+
+   return NULL; /* Not found. */
+}
+</piece>
+
+The <code>wftk_session_setuser</code> creates a user structure and assigns the given userid to it.  More will certainly
+be done with this later.  This function is not intended to include authentication of the userid.  The <code>wftk_session_getuser</code>
+just returns the user structure with no further ado.  Of course, the caller may then change said structure (providing a
+way to do that authentication.)
+
+<piece>
+void wftk_session_setuser (void * session, char * userid)
+{
+   WFTK_SESSION * sess = session;
+
+   if (!session) return;
+   if (sess->user) { xml_free (sess->user); }
+
+   sess->user = xml_create ("user");
+   xml_set (sess->user, "id", userid);
+}
+XML * wftk_session_getuser (void *session)
+{
+   WFTK_SESSION * sess = session;
+
+   if (!session) return NULL;
+   return (sess->user);
+}
+</piece>
+
+<i>(April 11, 2001)</i> Stashing values in the session is just about the only logical way to handle alternate datastores.
+The way this works is that the session is given a (character pointer) value to stash.  It wraps a value XML around that,
+thereby copying the value, and tucks that away for later freeing.  Then it returns the value XML.
+<p/>
+
+Later, the calling application has the option of freeing up the value for performance's sake (or leaving it there for
+cleanup with the session for simplicity's sake.)  We do that by scanning the values <i>by pointer</i> and deleting the
+one found (if found).  If we don't find the pointer, we do nothing.  This is C the way it should be (YMMV).
+
+<piece>
+XML * wftk_session_stashvalue (void * session, const char * value)
+{
+   WFTK_SESSION * sess = session;
+   XML * holder;
+
+   if (!sess->values) sess->values = xml_create ("list");
+
+   holder = xml_create ("value");
+   xml_set (holder, "value", value);
+   xml_append (sess->values, holder);
+
+   return holder;
+}
+
+void wftk_session_freevalue (void * session, const char * value)
+{
+   WFTK_SESSION * sess = session;
+   ATTR * attribute;
+   XML * pointer = xml_firstelem (sess->values);
+
+   while (pointer) {
+      attribute = pointer->attrs;
+      while (attribute) {
+         if (attribute->value == value) {
+            xml_delete (pointer);
+            return;
+         }
+         attribute = attribute->next;
+      }
+      pointer = xml_nextelem (pointer);
+   }
+}
+</piece>
+</item>
+
+
+<item name="wftk_process" label="Dealing with processes">
+The process is one of the two dual central data structures of the workflow engine.  I've explained this here and there
+anyway, but this is another good place to take another run at it.  Basically, the <i>process</i> represents something of
+which the system is aware, while <i>tasks</i> represent things which have to be done in order to respond to that something.
+Tasks may exist without processes, whenever individual people decide they want to keep track of things they have to do
+which are effectively external to the workflow system.  Processes may exist without tasks, if nobody has to do anything
+about whatever it is that the process represents.  Where I personally think that a number of workflow and workflow-like
+systems go wrong is in assuming that one or the other representation is the "really central" viewpoint.
+<p/>
+At any rate, the internal representation of a process is what I call a <i>datasheet</i>.  In the simplest of datasheet
+repositories, these datasheets are simply stored as XML files in a directory.  More sophisticated repositories can build
+the datasheets as needed after querying a database, for instance, but internally all we care about is the XML
+representation.  The term "datasheet" arose when I was attacking the problem from the task viewpoint, and realized I needed
+a central point of storage for arbitrary data values.  As this central point of storage was obviously also a good place to
+store the process state, active tasks, and so forth, the datasheet became the process.
+<p/>
+The wftk provides tools for both viewpoints and remains agnostic on points of theory.  The functions in the wftk API
+which deal with processes are pretty straightforward.  We need to create them, load and save them, attach procdefs to
+them, archive old ones, and delete unneeded ones.  Almost all this functionality is provided by the datasheet repository
+adaptor, so these functions are short and sweet.
+
+<p/>
+The functions for creation, load, and save are so straightforward I'll just lump them all together here.  Eh, come to
+think of it, deletion is the same, so here it is, too.
+
+<piece>
+XML * wftk_process_new (void * session, const char * dsrep, const char * datasheet_id)
+{
+   WFTK_ADAPTOR * ad;
+   WFTK_ADAPTORLIST * adlist;
+   XML * datasheet;
+
+   ad = wftk_get_adaptor (session, DSREP, dsrep);
+   if (!ad) return (XML *) 0;
+
+   datasheet = wftk_call_adaptor (ad, "new", datasheet_id);
+   if (!datasheet) {
+      wftk_free_adaptor (session, ad);
+      return (XML *) 0;
+   }
+
+   xml_set (datasheet, "repository", xml_attrval (ad->parms, "spec"));
+   /* ID must be set by adaptor because the adaptor may have selected it. */
+
+   /* Notify task indices. */
+   if (*xml_attrval (datasheet, "id")) {
+      adlist = wftk_get_adaptorlist (session, TASKINDEX);
+      wftk_call_adaptorlist (adlist, "procnew", datasheet);
+      wftk_free_adaptorlist (session, adlist);
+   }
+
+   wftk_session_cache (session, datasheet, NULL);
+   wftk_free_adaptor (session, ad);
+   return datasheet;
+}
+XML * wftk_process_load (void * session, const char * dsrep, const char * datasheet_id)
+{
+   WFTK_ADAPTOR * ad;
+   XML * key;
+   XML * datasheet;
+
+   ad = wftk_get_adaptor (session, DSREP, dsrep);
+   if (!ad) return (XML *) 0;
+
+   key = xml_create ("datasheet");
+   xml_set (key, "repository", xml_attrval (ad->parms, "spec"));
+   xml_set (key, "id", datasheet_id);
+   datasheet = wftk_session_cachecheck (session, key);
+   xml_free (key);
+
+   if (datasheet) {
+      wftk_free_adaptor (session, ad);
+      return (datasheet);
+   }
+
+   datasheet = wftk_call_adaptor (ad, "load", datasheet_id);
+   if (!datasheet) {
+      wftk_free_adaptor (session, ad);
+      return (XML *) 0;
+   }
+
+   xml_set (datasheet, "repository", xml_attrval (ad->parms, "spec"));
+
+   wftk_session_cache (session, datasheet, NULL);
+   wftk_free_adaptor (session, ad);
+   return datasheet;
+}
+int wftk_process_save (void * session, XML * datasheet)
+{
+   WFTK_ADAPTOR * ad;
+   WFTK_ADAPTORLIST * adlist;
+   XML * ret;
+
+   ad = wftk_get_adaptor (session, DSREP, xml_attrval (datasheet, "repository"));
+   if (!ad) return 0;
+
+   ret = wftk_call_adaptor (ad, "save", datasheet);
+   if (!ret) {
+      wftk_free_adaptor (session, ad);
+      return 0;
+   }
+
+   /* Notify task indices. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "procput", datasheet);
+   wftk_free_adaptorlist (session, adlist);
+
+   wftk_free_adaptor (session, ad);
+   return 1;
+}
+int wftk_process_delete (void * session, const char * dsrep, const char * datasheet_id)
+{
+   WFTK_ADAPTOR * ad;
+   WFTK_ADAPTORLIST * adlist;
+   XML * ret;
+
+   ad = wftk_get_adaptor (session, DSREP, dsrep);
+   if (!ad) return 0;
+
+   ret = wftk_call_adaptor (ad, "delete", datasheet_id);
+
+   /* Notify task indices. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "procdel", datasheet_id);
+   wftk_free_adaptorlist (session, adlist);
+
+   if (ret) xml_free (ret);
+   wftk_free_adaptor (session, ad);
+   return 1;
+}
+</piece>
+
+Next is <code>wftk_process_define</code>, which attaches a procdef to a process.  The question may very well arise as to
+exactly why this is necessary.  The answer may not satisfy some people, but it's simply that wftk supports the notion of
+an <i>ad-hoc process</i>, which is basically a folder in which ad-hoc tasks may be grouped and which may also store arbitrary
+values for those grouped tasks.  It has no real workflow functionality at all, so it needs no procdef.  In this mode,
+the datasheet really is just a datasheet.
+<p/>
+So for better or worse, we have to call two functions to set up a workflow process instead of one.  That just doesn't
+seem like such a sacrifice to me.
+<p/>
+The version call returns a little value holder XML, which is simply XML of the form <code>&lt;value value="something"&gt;</code>.  It's
+a cheap little dodge.  The current XMLAPI is not good at all with buffer management, but it's still a closer approximation
+to a heap than anything in native C, so I'm finding myself using it a lot.  Later I'll do a better job with it and that
+will automagically improve the workflow engine.
+<p/>
+It's been said that any sufficiently complex program implemented in C contains most of an
+implementation of LISP.  (The implication being that you might as well save time and write
+LISP to start with.)  I'm starting to believe this.  But I <i>still</i> think this code is
+much more readable than the equivalent LISP would be, and I know it's more portable, too.
+<piece>
+int wftk_process_define (void * session, XML * datasheet, const char * pdrep, const char * procdef_id)
+{
+   WFTK_ADAPTOR * ad;
+   XML * version;
+   XML * procdef;
+   XML * mark;
+
+   ad = wftk_get_adaptor (session, PDREP, pdrep);
+   if (!ad) return 0;
+
+   version = wftk_call_adaptor (ad, "version", procdef_id);
+   if (!version) {
+      wftk_free_adaptor (session, ad);
+      return 0;
+   }
+
+   xml_set (datasheet, "pdrep", xml_attrval (ad->parms, "spec"));
+   xml_set (datasheet, "procdef", procdef_id);
+   xml_set (datasheet, "version", xml_attrval (version, "value"));
+
+   xml_free (version);
+   wftk_free_adaptor (session, ad);
+
+   procdef = _procdef_load (session, datasheet);
+   if (procdef) {
+      mark = xml_firstelem (procdef);
+      while (mark) {
+         if (!strcmp (mark->name, "role")) {
+            wftk_role_assign (session, datasheet, xml_attrval (mark, "name"), xml_attrval (mark, "localuser"));
+         } else if (!strcmp (mark->name, "data")) {
+            if (!wftk_value_find (session, datasheet, xml_attrval (mark, "id"))) {
+               xml_append (datasheet, xml_copy (mark));
+            }
+         }
+
+         mark = xml_nextelem (mark);
+      }
+      if (!session) xml_free (procdef);   
+   }
+   
+   return 1;
+}
+</piece>
+
+Here's a function to load the procdef version associated with a datasheet.  Again, it's largely a wrapper for
+an adaptor.  This function isn't exposed by the API at all; it's an internal function.  I'll probably do a separate
+procdef management API which will expose this sort of thing, plus checkin/checkout functionality and so forth.
+<piece>
+XML * _procdef_load (void * session, XML * datasheet)
+{
+   WFTK_ADAPTOR * ad;
+   XML * key;
+   XML * ret;
+
+   if (!datasheet) return NULL;
+   if (!*xml_attrval (datasheet, "procdef")) return NULL;
+
+   key = xml_create ("workflow");
+   xml_set (key, "repository", xml_attrval (datasheet, "pdrep"));
+   xml_set (key, "id", xml_attrval (datasheet, "procdef"));
+   xml_set (key, "version", xml_attrval (datasheet, "version"));
+   ret = wftk_session_cachecheck (session, key);
+   xml_free (key);
+
+   if (ret) { return (ret); }
+
+   ad = wftk_get_adaptor (session, PDREP, xml_attrval (datasheet, "pdrep"));
+   if (!ad) return NULL;
+
+   ret = wftk_call_adaptor (ad, "load", xml_attrval (datasheet, "procdef"), xml_attrval (datasheet, "version"));
+   xml_set (ret, "repository", xml_attrval (ad->parms, "spec"));
+   xml_set (ret, "id", xml_attrval (datasheet, "procdef"));
+   xml_set (ret, "version", xml_attrval (datasheet, "version"));
+
+   wftk_session_cache (session, ret, NULL);
+   wftk_free_adaptor (session, ad);
+   return (ret);
+}
+</piece>
+
+Finally, in the API I've defined a function to be used to archive datasheets which are no longer needed.  I haven't
+really thought this through, so I'm going to leave it pretty much undefined for the time being, or more specifically,
+I'm going to assume that the individual adaptors have something coherent to offer here.  Intuitively I feel that this
+is too simplistic, that there should be an archive adaptor or something, so maybe the "archive" parameter will specify
+that.  But right now I don't want to deal with it.
+<piece>
+int wftk_process_archive (void * session, const char * dsrep, const char * datasheet_id, const char * archive)
+{
+   WFTK_ADAPTOR * ad;
+   XML * ret;
+
+   ad = wftk_get_adaptor (session, DSREP, dsrep);
+   if (!ad) return 0;
+
+   ret = wftk_call_adaptor (ad, "archive", datasheet_id, archive);
+   if (!ret) {
+      wftk_free_adaptor (session, ad);
+      return 0;
+   }
+
+   xml_free (ret);
+   wftk_free_adaptor (session, ad);
+   return 1;
+}
+</piece>
+
+<i>(March 31, 2000)</i>  OK, as of now, things are getting funky.  The <code>wftk_process_adhoc</code> function takes
+an arbitrary piece of workflow script and attaches it to a process.  This code is stored in the process, not in a procdef,
+and it runs right from there.  To make the location stay constant, we need a couple of rules.  First, every ad-hoc code
+segment is in an <code>adhoc</code> tag.  Second, an <code>adhoc</code> tag may never be deleted (because the location
+finder runs on numeric position in the datasheet).  Third, once activated, ad-hoc code may not be changed, otherwise the
+queue will no longer reflect the code being run, and that would be bad.  Other than that, this is easy stuff, but with
+very powerful consequences.
+<p/>
+Besides just being normal workflow, ad-hoc snippets can do two things upon completion: they can first change the status of
+the process by having an "oncomplete" attribute (so that ad-hoc workflow to recover from an error state is simple to set up),
+and they can also fill in for a task, so that when the snippet completes, the task is also completed.  That makes ad-hoc
+workflow convenient for subplanning without the overhead of explicit subprocesses.
+
+<piece>
+int wftk_process_adhoc (void * session, XML * datasheet, XML * arbitrary_workflow)
+{
+   XML * state;
+   XML * queue;
+   XML * procdef = _procdef_load (session, datasheet); /* Necessary for running the queue, just in case something unblocks. */
+   XML * adhoc = xml_create ("adhoc");
+
+   state = xml_loc (datasheet, "datasheet.state");
+   if (!state) {
+      state = xml_create ("state");
+      xml_append (datasheet, state);
+   }
+   queue = xml_loc (state, "state.queue");
+   if (!queue) {
+      queue = xml_create ("queue");
+      xml_append (state, queue);
+   }
+
+   xml_append (adhoc, arbitrary_workflow);
+   xml_append (datasheet, adhoc);
+
+   queue_procdef (session, datasheet, state, queue, arbitrary_workflow, "datasheet");
+   process_procdef (session, datasheet, state, queue, procdef);
+   wftk_process_save (session, datasheet);
+
+   return 1;
+}
+</piece>
+</item>
+
+
+
+
+
+<item name="wftk_task" label="Dealing with tasks">
+So we know how we work with processes; the much more interesting question is how we work with individual tasks.  A great
+deal of what I want to do with tasks is still not implemented, but at least it's getting obvious where the implementation
+should go, and that's some progress.
+<p/>
+As explained on the previous page, processes are basically things which are in the system's "awareness".  Tasks are the
+actions which people (or programs) have to take as a result of that awareness.  The wftk also supports <i>ad-hoc tasks</i>,
+which are simply entries in a person's to-do list.  These may or may not be associated with processes.  In addition, ad-hoc
+tasks may be grouped into ad-hoc processes, which are weak versions of regular workflow processes.
+<p/>
+When an ad-hoc task completes, its status is updated to complete.  Period.  When a workflow task completes, though, that's
+when things get interesting.  At that point, the workflow procdef interpreter is invoked in order to do whatever comes
+next.  This is typically the scheduling of new tasks, but may also be automatic notification, manipulation of data values,
+the invocation of scripts or programs, or whatever else is specified.  That old workflow magic.
+<p/>
+But wait, there's more.  Besides normal or <i>explicit</i> tasks, there are also what I call <i>potential</i> tasks.  A
+potential task hasn't actually been assigned or even activated, but could be chosen by someone.  Potential tasks have
+visibility criteria, so that a potential task will appear, for instance, only when the process is in a particular state.
+<piece>
+int    wftk_task_subproc   (void * session, XML * task, XML * subproc_datasheet);
+int    wftk_task_attach    (void * session, XML * task, XML * datasheet);
+</piece>
+
+The most basic thing to do with tasks is to retrieve one.  To retrieve a task, the calling function must build a dummy
+task object, then call <code>wftk_task_retrieve</code> on it.  The library then checks either the named datasheet or the
+named task index, and fills in the task object with various details, which include the data objects which the
+task either displays or requires.  This task object may then be used to generate something to be presented to a user.
+<p/>
+This function also includes a few shortcuts.  For instance, if the "task object" is really a datasheet, then the currently
+afforded potential task will be returned, if any.  This is effectively a shortcut for creating a task object which refers to
+the datasheet.
+<p/>
+Note that the datasheet may not even contain the data items required for the task yet, if the requirements are determined
+by the procdef.
+<p/>
+
+<piece>
+XML * wftk_task_retrieve (void * session, XML * task)
+{
+   XML * datasheet = NULL;  /* TODO: as usual, anything to do with taskindex. */
+   XML * procdef = NULL;
+   XML * mark;
+   XML * data;
+   WFTK_ADAPTOR * ad;
+   const char *task_id;
+   char sbuf[256];
+
+   if (!task) return task;
+   if (!strcmp (task->name, "datasheet")) {
+      datasheet = task;
+      task = xml_create ("task");
+      xml_set (task, "process", xml_attrval (datasheet, "id"));
+      xml_set (task, "dsrep", xml_attrval (datasheet, "repository"));
+   } else {
+      if (*xml_attrval (task, "process")) {
+         datasheet = wftk_process_load (session, xml_attrval (task, "dsrep"), xml_attrval (task, "process"));
+         xml_set (task, "process", xml_attrval (datasheet, "id"));
+         xml_set (task, "dsrep", xml_attrval (datasheet, "repository"));
+      }
+   }
+
+   if (!datasheet) {
+      /* TODO: retrieval of non-datasheet tasks. (Needs doing in the ODBC adaptor, too.) */
+      /*ad = wftk_get_adaptor (session, TASKINDEX, NULL);
+      mark = wftk_call_adaptor (ad, "get", task);*/
+      return 0;
+   }
+
+   procdef = _procdef_load (session, datasheet);
+
+   task_id = xml_attrval (task, "id");
+   if (*task_id #^7#^7 *task_id != '!') { /* Explicit task, either ad-hoc or workflow. */
+      /* Let's look for an ad-hoc task with this ID. */
+      sprintf (sbuf, "datasheet.task[%s]", task_id);
+      mark = xml_loc (datasheet, sbuf);
+      if (mark) {
+         wftk_value_interpret (session, datasheet, xml_attrval (mark, "label"), sbuf, sizeof(sbuf));
+         xml_set (task, "label", sbuf);
+         xml_set (task, "status", "active");
+         xml_set (task, "role", xml_attrval (mark, "role"));
+         xml_set (task, "user", xml_attrval (mark, "user"));
+         xml_getloc (mark, sbuf, sizeof(sbuf) - 1);
+         xml_set (task, "loc", sbuf);
+         mark = xml_firstelem (mark);  /* Copy data references over and that whole nine yards. */
+         while (mark) {
+            if (!strcmp (mark->name, "data")) {
+               data = xml_create ("data");
+               xml_set (data, "id", xml_attrval (mark, "id"));
+               xml_set (data, "type", xml_attrval (mark, "type"));
+               xml_set (data, "value", wftk_value_get (session, datasheet, xml_attrval (data, "id")));
+               xml_set (data, "mode", *xml_attrval (data, "value")? "edit" : "input");
+               xml_append (task, data);
+            }
+            mark = xml_nextelem (mark);
+         }
+         if (!session) {
+            if (procdef) xml_free (procdef);
+            xml_free (datasheet);
+         }
+         return (task); /* TODO: proper cleanup. */
+      }
+
+      /* Not found?  Then on to the workflow status, and retrieve active tasks from the procdef. */
+      sprintf (sbuf, "datasheet.state.queue.item[%s]", xml_attrval (task, "id"));
+      mark = xml_loc (datasheet, sbuf);
+      if (mark) {
+         xml_set (task, "role", xml_attrval (mark, "role"));
+         xml_set (task, "user", xml_attrval (mark, "user"));
+         if (!strcmp (xml_attrval (mark, "where"), "datasheet")) {
+            mark = xml_loc (datasheet, xml_attrval (mark, "loc"));
+         } else {
+            mark = xml_loc (procdef, xml_attrval (mark, "loc"));
+         }
+      }
+      if (mark) {  /* Mark is now the task definition, whether in procdef or ad-hoc in datasheet. */
+         wftk_value_interpret (session, datasheet, xml_attrval (mark, "label"), sbuf, sizeof(sbuf));
+         xml_set (task, "label", sbuf);
+         xml_set (task, "status", "active");
+         if (!*xml_attrval (task, "user")) { /* Get role/user from procdef if the datasheet ain't talkin. */
+            xml_set (task, "role", xml_attrval (mark, "role"));
+         }
+         if (!*xml_attrval (task, "user")) {
+            xml_set (task, "user", xml_attrval (mark, "user"));
+         }
+         xml_getloc (mark, sbuf, sizeof(sbuf) - 1);
+         xml_set (task, "loc", sbuf);
+         mark = xml_firstelem (mark);  /* Copy data references over and that whole nine yards. */
+         while (mark) {
+            if (!strcmp (mark->name, "data")) {
+               data = xml_create ("data");
+               xml_set (data, "id", xml_attrval (mark, "id"));
+               xml_set (data, "type", xml_attrval (mark, "type"));
+               xml_set (data, "value", wftk_value_get (session, datasheet, xml_attrval (data, "id")));
+               xml_set (data, "mode", *xml_attrval (data, "value")? "edit" : "input");
+               xml_append (task, data);
+            }
+            mark = xml_nextelem (mark);
+         }
+         if (!session) {
+            if (procdef) xml_free (procdef);
+            xml_free (datasheet);
+         }
+         return (task); /* TODO: proper cleanup. */
+      }
+
+      /* Still nothing.  No task. */
+      xml_set (task, "status", "none");
+   } else if (procdef) { /* Potential task. */
+      /* If only one potential task exists, then we can return its data requirements.  Otherwise?  TODO: figure that out. */
+
+      /* Special case: if status="start" then we return top-level data from the procdef, unless that's overridden. */
+      if (!strcmp ("start", wftk_status_get (session, datasheet))) {
+         xml_set (task, "status", "potential");
+         xml_set (task, "label", "Start process");
+         mark = xml_firstelem (procdef);
+         while (mark) {
+            if (!strcmp (mark->name, "data")) {
+               data = xml_create ("data");
+               xml_set (data, "id", xml_attrval (mark, "id"));
+               xml_set (data, "type", xml_attrval (mark, "type"));
+               xml_set (data, "value", wftk_value_get (session, datasheet, xml_attrval (data, "id")));
+               xml_set (data, "mode", *xml_attrval (data, "value")? "edit" : "input");
+               xml_append (task, data);
+            }
+            mark = xml_nextelem (mark);
+         }
+         return (task); /* TODO: proper cleanup. */
+      }
+      /* TODO: Find other potential tasks, if any, and return the first which presents itself. */
+
+      /* No potential tasks available. */
+      xml_set (task, "status", "none");
+   } else { /* No procdef, no potential tasks. */
+      xml_set (task, "status", "none");
+   }
+
+   /* TODO: if status="none" then check the enactment history for the named task.  It might be complete already. */
+
+   return (task);
+}
+</piece>
+
+Task completion is probably the most complicated task function.  It'll be worse once we bring the task index into
+play, but it's already bad enough with explicit versus potential tasks.  Note: a task retrieval is assumed to have been
+done before calling this function, as required data will be expected to be set in the task object itself.  As updating
+the task is part of the completion, I'm defining them together.  Hmm.  Well, <code>wftk_task_update</code> is also called
+when assigning a user.  So it's taking on a little more form.
+
+<piece>
+int wftk_task_update (void * session, XML * task)
+{
+   XML * datasheet = NULL;
+   XML * mark;
+   const char * task_id;
+   char  sbuf[256]; /* TODO: eliminate with better loc */
+   int   datachange = 0;
+   int   taskchange = 0;
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!task) return 0;
+   if (*xml_attrval (task, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (task, "dsrep"), xml_attrval (task, "process"));
+   }
+   if (datasheet #^7#^7 xml_loc (task, "task.data")) {
+      mark = xml_firstelem (task);
+      while (mark) {
+         if (!strcmp ("data", mark->name)) {
+            wftk_value_set (session, datasheet, xml_attrval (mark, "id"), xml_attrval (mark, "value"));
+            datachange = 1;
+         }
+         mark = xml_nextelem (mark);
+      }
+   }
+
+   task_id = xml_attrval (task, "id");
+   if (*task_id #^7#^7 *task_id != '!') { /* Explicit task, either ad-hoc or workflow. */
+      /* Let's look for an ad-hoc task with this ID. */
+      sprintf (sbuf, "datasheet.task[%s]", task_id);
+      mark = xml_loc (datasheet, sbuf);
+      if (mark) {
+         if (strcmp (xml_attrval (mark, "role"), xml_attrval (task, "role"))) {
+            xml_set (mark, "role", xml_attrval (task, "role"));
+            taskchange = 1;
+         }
+         if (strcmp (xml_attrval (mark, "user"), xml_attrval (task, "user"))) {
+            xml_set (mark, "user", xml_attrval (task, "user"));
+            wftk_user_retrieve (session, datasheet, xml_attrval (task, "user"));
+            
+            taskchange = 1;
+         }
+      } else {
+         sprintf (sbuf, "datasheet.state.queue.item[%s]", xml_attrval (task, "id"));
+         mark = xml_loc (datasheet, sbuf);
+         if (mark) {
+            if (strcmp (xml_attrval (mark, "role"), xml_attrval (task, "role"))) {
+               xml_set (mark, "role", xml_attrval (task, "role"));
+               taskchange = 1;
+            }
+            if (strcmp (xml_attrval (mark, "user"), xml_attrval (task, "user"))) {
+               xml_set (mark, "user", xml_attrval (task, "user"));
+               taskchange = 1;
+            }
+         }
+      }
+   }
+
+   if (taskchange) { /* Update the task indices. */
+      adlist = wftk_get_adaptorlist (session, TASKINDEX);
+      wftk_call_adaptorlist (adlist, "taskput", task);
+      wftk_free_adaptorlist (session, adlist);
+   }
+
+   if (datachange || taskchange) wftk_process_save (session, datasheet);
+   return 1;
+}
+
+int wftk_task_complete (void * session, XML * task)
+{
+   XML * datasheet = NULL;
+   XML * procdef = NULL;
+   XML * state;
+   XML * queue;
+   char tasklocbuf[64]; /* TODO: Eliminate with better loc */
+   XML * mark;
+   const char * task_id;
+   char sbuf[256]; /* TODO: Eliminate with better loc */
+   int adhoc = 0;
+   int complete = 1;
+   WFTK_ADAPTORLIST * adlist = wftk_get_adaptorlist (session, TASKINDEX);
+
+   if (!task) return 0;
+   if (*xml_attrval (task, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (task, "dsrep"), xml_attrval (task, "process"));
+      procdef = _procdef_load (session, datasheet);
+   }
+
+   if (!datasheet) {
+      wftk_call_adaptorlist (adlist, "taskcomplete", "", xml_attrval (task, "id"));
+      wftk_free_adaptorlist (session, adlist);
+      return 1; /* The task was ad-hoc with no process, so there's nothing left to do. */
+   }
+
+   wftk_task_update (session, task);
+
+   /* Log enactment of task. */
+
+   /* If task is ad-hoc, it needs to be deleted. */
+   task_id = xml_attrval (task, "id");
+   if (*xml_attrval (task, "id")) {
+      sprintf (sbuf, "datasheet.task[%s]", xml_attrval (task, "id"));
+      mark = xml_loc (datasheet, sbuf);
+      if (mark) {
+         xml_delete (mark);
+         adhoc = 1;
+         wftk_call_adaptorlist (adlist, "taskcomplete", xml_attrval (task, "process"), xml_attrval (task, "id"));
+      }
+   }
+
+   if (adhoc) {  /* If the task is ad-hoc, we aren't going to do the queue thing below. */
+      /* Check for completion: no active ad-hoc tasks, nothing left on the queue. */
+      mark = xml_loc (datasheet, "datasheet.task");
+      if (mark) complete = 0;
+      if (complete) {
+         mark = xml_loc (datasheet, "datasheet.state.queue.item");
+         if (mark) complete = 0;
+      }
+      if (complete) wftk_status_set (session, datasheet, "complete");
+
+      /* Now save everything and clean up. */
+      wftk_enactment_write (session, datasheet, task, "action", "complete");
+      wftk_process_save (session, datasheet);
+      if (!session) {
+         if (procdef) xml_free (procdef);
+      }
+      if (datasheet) xml_free (procdef);
+      wftk_free_adaptorlist (session, adlist);
+      return 1;
+   }
+
+
+   /* The process is a regular workflow process, with procdef.  Let's find (or create) the state queue. */
+   state = xml_loc (datasheet, "datasheet.state");
+   if (!state) {
+      state = xml_create ("state");
+      xml_append (datasheet, state);
+   }
+   queue = xml_loc (datasheet, "datasheet.state.queue");
+   if (!queue) {
+      queue = xml_create ("queue");
+      xml_append (state, queue);
+   }
+
+   if (*task_id #^7#^7 *task_id != '!') { /* Explicit task, either ad-hoc or workflow. */
+      sprintf (tasklocbuf, "queue.item[%s]", task_id);
+      mark = xml_loc (queue, tasklocbuf);
+      if (mark) { /* Workflow task. */
+         xml_set (mark, "block", "resume");
+         wftk_call_adaptorlist (adlist, "taskcomplete", xml_attrval (task, "process"), xml_attrval (task, "id"));
+      } else {
+         /* Ad-hoc task.  What has to happen?  TODO: Answer this question, then do it. */
+      }
+   } else {
+      if (!strcmp ("start", wftk_status_get (session, datasheet))) {
+         /* Special case: start state starts process. */
+         queue_procdef (session, datasheet, state, queue, procdef, "procdef");
+         wftk_status_set (session, datasheet, "active");
+      } else {
+         /* TODO: Find potential task based on state, and complete that. */
+      }
+   }
+
+   process_procdef (session, datasheet, state, queue, procdef);
+
+   /* Check for completion: no active ad-hoc tasks, nothing left on the queue. */
+   mark = xml_loc (datasheet, "datasheet.task");
+   if (mark) complete = 0;
+   if (complete) {
+      mark = xml_loc (datasheet, "datasheet.state.queue.item");
+      if (mark) complete = 0;
+   }
+   if (complete) wftk_status_set (session, datasheet, "complete");
+
+   wftk_enactment_write (session, datasheet, task, "action", "complete");
+   wftk_process_save (session, datasheet);
+   wftk_free_adaptorlist (session, adlist);
+
+   return 1;
+}
+</piece>
+
+Showing lists of tasks (like lists of data) is an ... OK, it's maybe <i>the</i> most important part of a working workflow
+user interface.  Note that due to our dichotomy of storage, we have two types of datasource to ask for lists of tasks: the
+individual datasheet, and the task index (i.e. database).  Which source is used to list tasks depends on the initial
+setup of the list request; if a datasheet is known, then we use the datasheet and ignore the task index.  If no
+datasheet is given, then we just format a query to the database and return whatever it gives us.
+<p/>
+
+Like task retrieval, list retrieval is a kind of fill-out process.  The caller creates a list object using the XMLAPI, then
+passes it in.  The library fills it out by adding task elements.  The function returns the number of tasks which match the
+criteria.
+<p/>
+
+The criteria which seem useful would be: <ul>
+<li>Show tasks for a specific process</li>
+<li>Show tasks for a given user</li>
+<li>Show tasks in one or more states (i.e. completed, active, or potential)</li>
+<li>Maybe tasks within particular dates, once I start assigning dates?  I don't know.  Tasks for me today, that's useful</li>
+</ul>
+
+<piece>
+int wftk_task_list (void * session, XML * list)
+{
+   int count = 0;
+   const char * state;
+   const char * status;
+   const char * userid;
+   char sbuf[256];
+   XML * datasheet = NULL;
+   XML * procdef = NULL;
+   XML * mark;
+   XML * mark2;
+   XML * hit;
+   WFTK_ADAPTOR * ad;
+
+   if (!list) return 0;
+
+   if (*xml_attrval (list, "process")) {
+      /* This is a process list. */
+      state = xml_attrval (list, "state");
+      if (!*state) state = "a";
+      userid = xml_attrval (list, "user");
+
+      datasheet = wftk_process_load (session, xml_attrval (list, "dsrep"), xml_attrval (list, "process"));
+      if (!datasheet) { return 0; }
+
+      if (strchr (state, 'a')) { /* Active tasks are included. */
+         procdef = _procdef_load (session, datasheet);
+
+         /* Find ad-hoc tasks. */
+         mark = xml_firstelem (datasheet);
+         while (mark) {
+            if (!strcmp (mark->name, "task") #^7#^7 (!*userid || !strcmp (userid, xml_attrval (mark, "user")))) {
+               hit = xml_create ("task");
+               xml_set (hit, "id", xml_attrval (mark, "id"));
+               wftk_value_interpret (session, datasheet, xml_attrval (mark, "label"), sbuf, sizeof(sbuf));
+               xml_set (hit, "label", sbuf);
+               xml_set (hit, "role", xml_attrval (mark, "role"));
+               xml_set (hit, "user", xml_attrval (mark, "user"));
+               xml_append (list, hit);
+            }
+            mark = xml_nextelem (mark);
+         }
+
+         /* Find active workflow tasks. */
+         mark = xml_loc (datasheet, "datasheet.state.queue");
+         if (mark) {
+            mark = xml_firstelem (mark);
+            while (mark) {
+               if (!strcmp (xml_attrval (mark, "type"), "task")) {
+                  hit = xml_create ("task");
+                  xml_set (hit, "id", xml_attrval (mark, "id"));
+                  xml_set (hit, "user", xml_attrval (mark, "user"));
+                  if (!strcmp (xml_attrval (mark, "where"), "datasheet")) {
+                     mark2 = xml_loc (datasheet, xml_attrval (mark, "loc"));
+                  } else {
+                     mark2 = xml_loc (procdef, xml_attrval (mark, "loc"));
+                  }
+                  if (mark2) {
+                     wftk_value_interpret (session, datasheet, xml_attrval (mark2, "label"), sbuf, sizeof (sbuf));
+                     xml_set (hit, "label", sbuf);
+                     xml_set (hit, "role", xml_attrval (mark2, "role"));
+                  }
+                  xml_append (list, hit);
+               }
+               mark = xml_nextelem (mark);
+            }
+         }
+
+         /* Find potential tasks.  No procdef means (per defn) no potential tasks. */
+         if (procdef) {
+            status = wftk_status_get (session, datasheet);
+            if (!strcmp (status, "start")) {
+               /* Special case: start state. */
+               hit = xml_create ("task");
+               xml_set (hit, "id", "!active");
+               xml_set (hit, "label", "Start process");
+               xml_append (list, hit);
+            }
+         }
+      }
+
+      if (strchr (state, 'c')) { /* Closed tasks are included. */
+         /* TODO: Find enactment history matches. */
+      }
+
+      /* TODO: Sort the list. */
+   } else {
+      /* No process means we have to ask a task index.  Fortunately this is *very easy*. */
+      ad = wftk_get_adaptor (session, TASKINDEX, NULL);
+      count = 0;
+      if (ad) {
+         wftk_call_adaptor (ad, "tasklist", list);
+         wftk_free_adaptor (session, ad);
+         count = xml_attrvalnum (list, "count");
+      }
+   }
+
+   return count;
+}
+</piece>
+
+
+Dealing with ad-hoc tasks involves us in two new functions, <code>wftk_task_new</code> to create them, and
+<code>wftk_task_rescind</code> to delete them.  They each use the same setup that task retrieval does (so that
+a retrieved task can be reused in this way.)
+
+<piece>
+int wftk_task_new (void * session, XML * task)
+{
+   XML * datasheet = NULL;
+   XML * newtask;
+   XML * data;
+   XML * newdata;
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!task) return 0;
+   if (*xml_attrval (task, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (task, "dsrep"), xml_attrval (task, "process"));
+      if (!datasheet) return 0;
+   }
+
+   if (datasheet #^7#^7 !*xml_attrval (task, "user") #^7#^7 *xml_attrval (task, "role")) {
+      xml_set (task, "user", wftk_role_user (session, datasheet, xml_attrval (task, "role")));
+   }
+
+   /* Inform task indices of new ad-hoc task. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "tasknew", task);
+   wftk_free_adaptorlist (session, adlist);
+
+   if (!datasheet) return 1; /* The task was ad-hoc with no process, so there's nothing left to do. */
+
+   newtask = xml_create ("task");
+   xml_set (newtask, "id", xml_attrval (task, "id"));
+   xml_set (newtask, "label", xml_attrval (task, "label"));
+   xml_set (newtask, "role", xml_attrval (task, "role"));
+   xml_set (newtask, "user", xml_attrval (task, "user"));
+   data = xml_firstelem (task);
+   while (data) {
+      if (!strcmp (data->name, "data")) {
+         newdata = xml_create ("data");
+         xml_set (newdata, "id", xml_attrval (data, "id"));
+         xml_set (newdata, "mode", xml_attrval (data, "mode"));
+         xml_append (newtask, newdata);
+      }
+      data = xml_nextelem (data);
+   }
+   xml_append (datasheet, newtask);
+   wftk_process_save (session, datasheet);
+
+   return 1;
+}
+
+
+int wftk_task_rescind (void * session, XML * task)
+{
+   XML * datasheet = NULL;
+   XML * mark;
+   char sbuf[256];
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!task) return 0;
+   if (*xml_attrval (task, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (task, "dsrep"), xml_attrval (task, "process"));
+      if (!datasheet) return 0;
+   }
+
+   /* Inform task indices of rescinded ad-hoc task. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "taskdel", xml_attrval (task, "process"), xml_attrval (task, "id"));
+   wftk_free_adaptorlist (session, adlist);
+
+   if (!datasheet) return 1; /* The task was ad-hoc with no process, so there's nothing left to do. */
+
+   sprintf (sbuf, "datasheet.task[%s]", xml_attrval (task, "id"));
+   mark = xml_loc (datasheet, sbuf);
+   if (mark) {
+      xml_delete (mark);
+   }
+   wftk_enactment_write (session, datasheet, task, "action", "rescind");
+   wftk_process_save (session, datasheet);
+
+   return 1;
+}
+</piece>
+
+
+Task rejection is something I've been glossing over from the prototype on.  Now that I can offer ad-hoc workflow as a way for
+an administrator to get things back on track, I feel a little better about just tossing the process into an error state upon
+task rejection.  For things to work out really well, though, there needs to be a "task rejection process" which is invoked when
+a task is rejected.  Actually, task rejection should be a full-fledged action.
+<p/>
+For v1.0, though, I'm going simpler than that.  I'm just writing a rejection to the enactment and setting the status of the
+process to "error".  And fairly quickly post-v1.0 I need to do things better.  This will involve situation handlers (still
+unimplemented, you'll note) -- with the understanding that a system-wide situation handler can be installed....
+
+<piece>
+int    wftk_task_reject    (void * session, XML * task)
+{
+   XML * datasheet = NULL;
+   XML * procdef = NULL;
+   char tasklocbuf[64]; /* TODO: Eliminate with better loc */
+   XML * mark;
+   const char * task_id;
+   char sbuf[256]; /* TODO: Eliminate with better loc */
+   int adhoc = 0;
+   int complete = 1;
+   WFTK_ADAPTORLIST * adlist = wftk_get_adaptorlist (session, TASKINDEX);
+
+   if (!task) return 0;
+   if (*xml_attrval (task, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (task, "dsrep"), xml_attrval (task, "process"));
+      procdef = _procdef_load (session, datasheet);
+   }
+
+   if (!datasheet) {
+      wftk_call_adaptorlist (adlist, "taskreject", "", xml_attrval (task, "id"));
+      wftk_free_adaptorlist (session, adlist);
+      return 1; /* The task was ad-hoc with no process, so there's nothing left to do. */
+   }
+
+   wftk_task_update (session, task);
+
+   /* If task is ad-hoc, it needs to be marked as rejected (I'm not really comfortable with this.) TODO: think. */
+   task_id = xml_attrval (task, "id");
+   if (*xml_attrval (task, "id")) {
+      sprintf (sbuf, "datasheet.task[%s]", xml_attrval (task, "id"));
+      mark = xml_loc (datasheet, sbuf);
+      if (mark) {
+         xml_set (mark, "status", "rejected");
+         adhoc = 1;
+         wftk_call_adaptorlist (adlist, "taskreject", xml_attrval (task, "process"), xml_attrval (task, "id"));
+      }
+   }
+
+   wftk_status_set (session, datasheet, "error");
+
+   /* Now save everything and clean up. */
+   wftk_enactment_write (session, datasheet, task, "action", "reject");
+   wftk_process_save (session, datasheet);
+   if (!session) {
+      if (procdef) xml_free (procdef);
+      xml_free (datasheet);
+   }
+   wftk_free_adaptorlist (session, adlist);
+   return 1;
+}
+</piece>
+
+Boy, that just doesn't seem quite right.  <a href="mailto:wftk@vivtek.com">Tell me your ideas.</a>
+
+</item>
+
+
+
+
+<item name="wftk_request" label="Dealing with requests">
+This is an experimental category of functionality, but it's one which I think is crucial for a working system.  Basically,
+a request is just that: let's say I have a task on my to-do list.  I want to ask Joe to do it for me.  The wftk supports
+that by allowing me to create a request object which contains that active task.  Joe can either accept the request (in which
+case the active task is reassigned to him) or decline it (in which case nothing happens to the task.)  And of course I
+can always rescind the request.
+<p/>
+I can also make the request of any arbitrary group of people; then the first who accepts gets the task.  I can create a
+request which bundles together several tasks, and they'll all get reassigned.  And finally, I think it'll be useful to
+allow arbitrary workflow stuff to happen in a request, so that if it's accepted, for instance, a new task can be created
+for me, to send the physical file over or something, I don't know.  More usefully, if a request is accepted, I can specify
+an arbitrary notification or data modification based on that knowledge.
+<p/>
+So this is all pretty vague and can obviously be implemented in an ongoing manner; for the time being I just want to get
+really simple requests implemented so that I can talk about <i>task tokens</i>, which form the groovy theoretical basis
+for the task view of workflow.  A request is basically the ad-hoc means of transferring a task token to somebody else; it's
+a formalization of the notion of delegation.
+<p/>
+<i>(April 1, 2001)</i><br>
+OK, so for v1.0 I'm going to omit requests of groups, omit non-datasheet requests (i.e. index-only), but as I just did
+ad-hoc workflow, that'll be in there.  A request consists of an alert plus what to be done upon acceptance.  If a task, the
+task is created with <code>wftk_task_new</code>.  If an action, the action is done with <code>wftk_action_do</code>.  If
+anything else, it's created as ad-hoc workflow with <code>wftk_process_adhoc</code>.  Note that we don't have a lot of
+permissions here.  Eventually we're going to want to funnel <i>all</i> that through <code>wftk_action_do</code> so that
+we don't have a security problem.
+<p/>
+The request can also name a particular task in the "task" attribute; upon acceptance, that task will thus be assigned to
+the requestee.  There is no security on this at this point, which is (naturally) a bad idea in the long term, as it would
+be simple to steal tasks by requesting them to be assigned to you, then accepting the request.  Post-v1.0.
+<p/>
+A request will be indexed with a starting "?", and so a request naming a task starting with "?" will be construed as a 
+sub-request; upon acceptance it will accept its parent request in the name of the requestee.  So Joe has a task and sends
+a reassignment request to Karen, then Karen sends a subrequest to Larry.  Larry accepts, so Joe's task gets assigned to
+Larry.  Everybody gets notified that this has happened.
+<p/>
+Finally, if the request has a "role" attribute, then it's a request to take over a particular role for the process and will
+result in role assignment.
+
+<piece>
+int    wftk_request_new      (void * session, XML * request) {
+   XML * datasheet = NULL;
+   XML * req;
+   XML * requestor = NULL;
+   XML * mark;
+   XML * alert = NULL;
+   const char * alertcontent;
+   char * newalertcontent = NULL;
+   char sbuf[1024]; /* TODO: yadda yadda. */
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!request) return 0;
+   if (*xml_attrval (request, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (request, "dsrep"), xml_attrval (request, "process"));
+      if (!datasheet) return 0;
+   }
+
+   if (datasheet #^7#^7 !*xml_attrval (request, "of") #^7#^7 *xml_attrval (request, "of-role")) {
+      xml_set (request, "of", wftk_role_user (session, datasheet, xml_attrval (request, "of-role")));
+   }
+
+   if (!*xml_attrval (request, "of")) {
+      xml_set (request, "status", "error");
+      xml_set (request, "status.reason", "The requestee could not be determined.");
+      return 0;
+   }
+
+   /* Inform task indices of new request. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "reqnew", request);
+   wftk_free_adaptorlist (session, adlist);
+
+   if (!datasheet) return 1; /* The request was ad-hoc with no process, so there's nothing left to do. */
+   req = xml_create ("request");
+   if (datasheet) xml_setnum (req, "id", unique_id (datasheet, NULL));
+   xml_set (req, "of", xml_attrval (request, "of"));
+
+   if (*xml_attrval (request, "by")) {
+      requestor = wftk_user_retrieve (session, datasheet, xml_attrval (request, "by"));
+   } else {
+      requestor = wftk_session_getuser (session);
+   }
+   if (requestor) {
+      xml_set (req, "by", xml_attrval (requestor, "id"));
+   }
+
+   if (*xml_attrval (request, "label")) {
+      if (!datasheet) {
+         wftk_value_interpret (session, datasheet, xml_attrval (request, "label"), sbuf, sizeof(sbuf));
+         xml_set (req, "label", sbuf);
+      } else {
+         xml_set (req, "label", xml_attrval (request, "label"));
+      }
+   } else {
+      /* TODO: default label for request depends on kind of request. */
+      if (requestor) {
+         sprintf (sbuf, "Request from %s", *xml_attrval (requestor, "name") ? xml_attrval (requestor, "name") : xml_attrval (requestor, "id"));
+         xml_set (req, "label", sbuf);
+      } else {
+         xml_set (req, "label", "Anonymous request");
+      }
+   }
+
+   if (*xml_attrval (request, "task") == '?') {
+      xml_set (req, "request", xml_attrval (request, "task") + 1);
+   } else if (*xml_attrval (request, "task")) {
+      xml_set (req, "task", xml_attrval (request, "task"));
+   }
+   if (*xml_attrval (request, "role"))    xml_set (req, "role", xml_attrval (request, "role"));
+   if (*xml_attrval (request, "request")) xml_set (req, "request", xml_attrval (request, "request"));
+
+   if (*xml_attrval (req, "request")) {
+      /* TODO: some of this stuff should be done before the taskindex is updated with the request, right? */
+      if (xml_attrvalnum (req, "request") >= xml_attrvalnum (req, "id")) {
+         xml_set (request, "status", "error");
+         xml_set (request, "status.reason", "Can't issue subrequest for nonexistent request");
+         return 0;
+      }
+   }
+
+   /* Transfer the content of the request, interpreting any alert found. */
+   mark = xml_firstelem (request);
+   while (mark) {
+      if (!strcmp (mark->name, "alert") #^7#^7 !alert) {
+         alert = xml_create ("alert");
+         alertcontent = xml_stringcontent (mark);
+         newalertcontent = (char *) malloc (strlen (alertcontent) + 1024); /* TODO: fixed lengths are dangerous! */
+         wftk_value_interpret (session, datasheet, alertcontent, newalertcontent, strlen (alertcontent) + 1024);
+         xml_append (alert, xml_createtext (newalertcontent));
+         free (alertcontent);
+         free (newalertcontent);
+         xml_append (req, alert);
+      } else {
+         xml_append (req, xml_copy (mark));
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   /* If there was no custom alert, build a logical one. */
+   if (!alert) {
+      alert = xml_create ("alert");
+      xml_append (alert, xml_createtext ("A request has been made for your action.\nPlease visit the workflow app to accept or decline.\n"));
+      /* TODO: Boy, that is a useless alert.  Write a better one. */
+      xml_prepend (req, alert);
+   }
+
+   xml_set (alert, "to", xml_attrval (req, "of"));
+   xml_set (alert, "from", xml_attrval (req, "by"));
+   xml_set (alert, "subject", xml_attrval (req, "label"));
+
+   /* Do the alert -- use custom content if found above, otherwise do something logical. */
+   wftk_notify (session, datasheet, alert);
+
+   xml_append (datasheet, req);
+   wftk_enactment_write (session, datasheet, request, "action", "place");
+   wftk_process_save (session, datasheet);
+
+   return 1;
+}
+</piece>
+
+Retrieval of requests is much simpler than tasks if it's a datasheet-based request.  If it's not a datasheet request, we'll have to 
+ask the task index.  And that's not actually implemented yet, so I'm pretty much skipping it for v1.0.
+
+<piece>
+XML  * wftk_request_retrieve (void * session, XML * request) {
+   XML * datasheet;
+   WFTK_ADAPTOR * ad;
+   XML * mark;
+
+   if (!request) return 0;
+   if (*xml_attrval (request, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (request, "dsrep"), xml_attrval (request, "process"));
+   }
+
+   if (!datasheet) {
+      /*ad = wftk_get_adaptor (session, TASKINDEX, NULL);
+      wftk_call_adaptor (adlist, "reqget", xml_attrval (request, "id"));
+      wftk_free_adaptor (session, adlist);
+      */ /* TODO: the right thing. */
+      return 0;
+   }
+
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (!strcmp (mark->name, "request") #^7#^7 !strcmp (xml_attrval (mark, "id"), xml_attrval (request, "id"))) {
+         xml_copyinto (request, mark);
+         return (request);
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   return NULL;
+}
+int    wftk_request_update   (void * session, XML * request) { return 0; } /* TODO: figure out if this even makes sense. */
+int    wftk_request_rescind  (void * session, XML * request) {
+   XML * datasheet = NULL;
+   XML * mark;
+   char sbuf[256];
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!request) return 0;
+   if (*xml_attrval (request, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (request, "dsrep"), xml_attrval (request, "process"));
+      if (!datasheet) return 0;
+   }
+
+   /* Inform task indices of rescinded request. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "reqdel", xml_attrval (request, "process"), xml_attrval (request, "id"));
+   wftk_free_adaptorlist (session, adlist);
+
+   if (!datasheet) return 1; /* The task was ad-hoc with no process, so there's nothing left to do. */
+
+   sprintf (sbuf, "datasheet.request[%s]", xml_attrval (request, "id"));
+   mark = xml_loc (datasheet, sbuf);
+   if (mark) {
+      xml_delete (mark);
+   }
+   wftk_enactment_write (session, datasheet, request, "action", "rescind");
+   wftk_process_save (session, datasheet);
+
+   return 1;
+}
+</piece>
+
+OK.  Now the tricky part.  Acceptance of a request causes things to happen, so we have to get it right.  Declining a request causes
+basically nothing to happen except a notification of the requestor that the request was declined.
+
+<piece>
+int    wftk_request_accept   (void * session, XML * request) {
+   XML * datasheet = NULL;
+   XML * req;
+   XML * mark;
+   XML * task;
+   int first = 1;
+   char sbuf[256];
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!request) return 0;
+   if (*xml_attrval (request, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (request, "dsrep"), xml_attrval (request, "process"));
+      if (!datasheet) return 0;
+   }
+
+
+   if (datasheet) {
+      sprintf (sbuf, "datasheet.request[%s]", xml_attrval (request, "id"));
+      req = xml_loc (datasheet, sbuf);
+      if (!req) {
+         xml_set (request, "status", "error");
+         xml_set (request, "status.reason", "No such request");
+         return 0;
+      }
+      if (!strcmp (xml_attrval (req, "status"), "accepted")) {
+         xml_set (request, "status", "error");
+         xml_set (request, "status.reason", "Request has already been accepted.");
+         return 0;
+      }
+   }
+
+   /* Inform task indices of accepted request. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "reqaccept", xml_attrval (request, "process"), xml_attrval (request, "id"));
+
+   if (!datasheet) {
+      wftk_free_adaptorlist (session, adlist);
+      return 1; /* The task was ad-hoc with no process, so there's nothing left to do. */
+   }
+
+   /* TODO: some of this stuff should happen before the taskindex is written. */
+   if (!*xml_attrval (request, "accepting")) xml_set (request, "accepting", xml_attrval (req, "of"));
+   xml_set (req, "accepting", xml_attrval (request, "accepting"));
+   xml_set (req, "status", "accepted");
+   if (*xml_attrval (req, "request")) {
+      sprintf (sbuf, "datasheet.request[%s]", xml_attrval (req, "request"));
+      task = xml_loc (datasheet, sbuf);
+      if (task) {
+         xml_set (task, "accepting", xml_attrval (req, "accepting")); /* Not "of", because then you couldn't send subsubreqs. */
+         xml_set (task, "dsrep", xml_attrval (datasheet, "repository"));
+         xml_set (task, "process", xml_attrval (datasheet, "id"));
+         wftk_request_accept (session, task);
+      }
+   }
+   if (*xml_attrval (req, "role")) {
+      wftk_role_assign (session, datasheet, xml_attrval (req, "role"), xml_attrval (req, "accepting"));
+   }
+   if (*xml_attrval (req, "task")) {
+      sprintf (sbuf, "datasheet.task[%s]", xml_attrval (req, "task"));
+      task = xml_loc (datasheet, sbuf);
+      if (!task) {
+         sprintf (sbuf, "datasheet.state.queue.item[%s]", xml_attrval (req, "task"));
+         task = xml_loc (datasheet, sbuf);
+      }
+      if (task) {
+         xml_set (task, "user", xml_attrval (req, "accepting"));
+         xml_set (task, "process", xml_attrval (datasheet, "id"));
+         wftk_call_adaptorlist (adlist, "taskput", task);
+      }
+   }
+
+   /* Now we handle the contents, if any.  The first alert is the one which went to the requestee at the outset, so we skip it. */
+   mark = xml_firstelem (req);
+   while (mark) {
+      if (!strcmp (mark->name, "alert")) {
+         if (first) {
+            first = 0;
+         } else {
+            wftk_notify (session, datasheet, mark);
+         }
+      } else if (!strcmp (mark->name, "task")) {
+         xml_set (mark, "user", xml_attrval (req, "accepting"));
+         xml_set (mark, "dsrep", xml_attrval (datasheet, "repository"));
+         xml_set (mark, "process", xml_attrval (datasheet, "id"));
+         wftk_task_new (session, xml_copy (mark));
+      } else {
+         wftk_process_adhoc (session, datasheet, xml_copy (mark));
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   wftk_enactment_write (session, datasheet, request, "action", "accepted"); /* Also saves datasheet. */
+   wftk_process_save (session, datasheet);
+   wftk_free_adaptorlist (session, adlist);
+
+   return 1;
+}
+int    wftk_request_decline  (void * session, XML * request) {
+   XML * datasheet = NULL;
+   XML * mark;
+   char sbuf[256];
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!request) return 0;
+   if (*xml_attrval (request, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (request, "dsrep"), xml_attrval (request, "process"));
+      if (!datasheet) return 0;
+   }
+
+   /* Inform task indices of declined request. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "reqdecline", xml_attrval (request, "process"), xml_attrval (request, "id"));
+   wftk_free_adaptorlist (session, adlist);
+
+   if (!datasheet) return 1; /* The task was ad-hoc with no process, so there's nothing left to do. */
+
+
+   sprintf (sbuf, "datasheet.request[%s]", xml_attrval (request, "id"));
+   mark = xml_loc (datasheet, sbuf);
+   if (mark) {
+      xml_set (mark, "status", "declined");
+   }
+   wftk_enactment_write (session, datasheet, request, "action", "declined"); /* Also saves datasheet. */
+   wftk_process_save (session, datasheet);
+
+   /* TODO: notify the requestor that something's amiss. */
+
+   return 1;
+}
+</piece>
+
+Listing requests is a whole lot like listing tasks.
+
+<piece>
+int wftk_request_list (void * session, XML * list) {
+   int count = 0;
+   char sbuf[256];
+   const char * userid;
+   XML * datasheet = NULL;
+   XML * procdef = NULL;
+   XML * mark;
+   XML * mark2;
+   XML * hit;
+   WFTK_ADAPTOR * ad;
+
+   if (*xml_attrval (list, "process")) {
+      /* This is a process list. */
+      userid = xml_attrval (list, "user");
+
+      datasheet = wftk_process_load (session, xml_attrval (list, "dsrep"), xml_attrval (list, "process"));
+      if (!datasheet) { return 0; }
+
+      mark = xml_firstelem (datasheet);
+      while (mark) {
+         if (!strcmp (mark->name, "request") 
+             #^7#^7 strcmp ("declined", xml_attrval (mark, "status"))
+             #^7#^7 strcmp ("accepted", xml_attrval (mark, "status"))
+             #^7#^7 (!*userid || !strcmp (userid, xml_attrval (mark, "of")))) {
+            hit = xml_create ("request");
+            xml_set (hit, "id", xml_attrval (mark, "id"));
+            xml_set (hit, "label", xml_attrval (mark, "label"));
+            xml_set (hit, "of", xml_attrval (mark, "of"));
+            xml_set (hit, "by", xml_attrval (mark, "by"));
+            xml_set (hit, "request", xml_attrval (mark, "request"));
+            xml_set (hit, "role", xml_attrval (mark, "role"));
+            xml_set (hit, "task", xml_attrval (mark, "task"));
+            xml_append (list, hit);
+         }
+         mark = xml_nextelem (mark);
+      }
+      xml_setnum (list, "count", count);
+
+      /* TODO: sort the list. */
+   } else {
+      /* No process means we have to ask a task index.  Fortunately this is *very easy*. */
+      ad = wftk_get_adaptor (session, TASKINDEX, NULL);
+      count = 0;
+      if (ad) {
+         wftk_call_adaptor (ad, "reqlist", list);
+         wftk_free_adaptor (session, ad);
+         count = xml_attrvalnum (list, "count");
+      }
+   }
+
+   return count;
+}
+</piece>
+</item>
+
+
+
+
+
+<item name="wftk_value" label="Dealing with values">
+OK, so actions may be the heart of workflow, but without data manipulation there's not much point.  The basic purpose
+of the datasheet is of course to store data, so let's see how we do it.
+<p/>
+The basic actions we can take for a value are, of course, getting and setting it.  In wftk, there is no requirement that
+a variable be allocated before it's written.  As the namespace for a value is already automatically the process it's
+in, there is no real need to be terribly disciplined about how it's used.  So to write a named value, I simply set it.
+For convenience in C, I've provided both string and numeric versions of the data access functions, but rest assured that
+all values are stored as text variables.
+<p/>
+In order to be able to handle null values, we provide the <code>wftk_value_isnull</code> and <code>wftk_value_makenull</code>
+functions.
+<piece>
+XML * wftk_value_find (void * session, XML * datasheet, const char * name)
+{
+   char valuelocbuf[128];
+
+   if (!datasheet) return NULL;
+   sprintf (valuelocbuf, "datasheet.data[%s]", name);
+   return xml_loc (datasheet, valuelocbuf);
+} 
+XML * wftk_value_make (void * session, XML * datasheet, const char * name)
+{
+   XML * data;
+   char valuelocbuf[128];
+
+   if (!datasheet) return NULL;
+   sprintf (valuelocbuf, "datasheet.data[%s]", name);
+   data = xml_loc (datasheet, valuelocbuf);
+   if (!data) {
+      data = xml_create ("data");
+      xml_set (data, "id", name);
+      xml_append (datasheet, data);
+   }
+
+   return data;
+} 
+const char * wftk_value_get     (void * session, XML * datasheet, const char * name)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return "";
+   if (*name == '!') return _wftk_value_special (session, datasheet, name);
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return "";
+      data = wftk_call_adaptor (ad, "get", datasheet, name);
+      wftk_free_adaptor (session, ad);
+      return (xml_attrval (data, "value"));
+   }
+
+   data = wftk_value_find (session, datasheet, name);
+   if (!data) return "";
+
+   if (!strcmp (xml_attrval (data, "null"), "yes")) return "";
+
+   return (xml_attrval (data, "value"));
+}
+int    wftk_value_get_num (void * session, XML * datasheet, const char * name)
+{
+   int ret;
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return atoi (_wftk_value_special (session, datasheet, name));
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return 0;
+      data = wftk_call_adaptor (ad, "get", datasheet, name);
+      wftk_free_adaptor (session, ad);
+      ret = atoi (xml_attrval (data, "value"));
+      xml_delete (data);
+      return ret;
+   }
+
+   data = wftk_value_find (session, datasheet, name);
+   if (!data) return 0;
+
+   if (!strcmp (xml_attrval (data, "null"), "yes")) return 0;
+
+   return (atoi (xml_attrval (data, "value")));  /* TODO: types and stores. */
+}
+
+int wftk_value_isnull (void * session, XML * datasheet, const char * name)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 1; /* Null name is, well, null.  Logical, right? */
+   if (*name == '!') return 0; /* Special value is never null.  Why?  Because I say so. */
+
+   data = wftk_value_find (session, datasheet, name);
+   if (!data) return 1;
+
+   if (!strcmp (xml_attrval (data, "null"), "yes")) return 1;
+   return 0;
+}
+
+int wftk_value_set (void * session, XML * datasheet, const char * name, const char * value)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return 0;  /* Refuse to set special values. */
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return 0;
+      wftk_call_adaptor (ad, "set", datasheet, name, value);
+      wftk_free_adaptor (session, ad);
+      return 1;
+   }
+
+   data = wftk_value_make (session, datasheet, name);
+   if (!data) return 0;
+
+   if (strcmp (wftk_value_get (session, datasheet, name), value)) {
+      wftk_enactment_write (session, datasheet, data, "was", wftk_value_get (session, datasheet, name));
+      wftk_process_save (session, datasheet);
+      xml_set (data, "value", value);
+   }
+   if (!strcmp (xml_attrval (data, "null"), "yes")) xml_set (data, "null", "");
+   return 1;
+}
+int    wftk_value_set_num (void * session, XML * datasheet, const char * name, int value)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+   char valbuf[sizeof(int) * 3 + 1];
+
+   if (!name) return 0;
+   if (*name == '!') return 0;
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return 0;
+      sprintf (valbuf, "%d", value);
+      wftk_call_adaptor (ad, "set", datasheet, name, valbuf);
+      wftk_free_adaptor (session, ad);
+      return 1;
+   }
+
+   data = wftk_value_make (session, datasheet, name);
+   if (!data) return 0;
+
+   sprintf (valbuf, "%d", value);
+   if (strcmp (wftk_value_get (session, datasheet, name), valbuf)) {
+      wftk_enactment_write (session, datasheet, data, "was", wftk_value_get (session, datasheet, name));
+      wftk_process_save (session, datasheet);
+      xml_setnum (data, "value", value);
+   }
+   if (!strcmp (xml_attrval (data, "null"), "yes")) xml_set (data, "null", "");
+   return 1;
+} 
+
+int wftk_value_makenull (void * session, XML * datasheet, const char * name)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return 0; /* Refuse to set special values. */
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return 0;
+      wftk_call_adaptor (ad, "makenull", datasheet, name);
+      wftk_free_adaptor (session, ad);
+      return 1;
+   }
+
+   data = wftk_value_make (session, datasheet, name);
+   if (!data) return 0;
+   wftk_enactment_write (session, datasheet, data, "was", wftk_value_get (session, datasheet, name));
+   wftk_process_save (session, datasheet);
+   xml_set (data, "null", "yes");
+   return 1;
+}   
+</piece>
+
+Besides just a plain get, we need a little value interpreter.  This is basically a <code>sprintf</code>-like affair, which
+takes a string and replaces named values in it which are marked like <code>${this}</code>.  Later we'll need boolean
+expressions and stuff, and that will also probably fall into this value area.
+<p/>
+<code>wftk_value_interpret</code> returns the number of bytes it copied to the buffer.
+
+<piece>
+int    wftk_value_interpret (void * session, XML * datasheet, const char * spec, char * buffer, int bufsize)
+{
+   int count = 0;
+   const char *value;
+   char namebuf[256]; /* TODO: replace this. */
+   int i;
+
+   bufsize--; /* Leave room for the null. */
+   while (*spec) {
+      if (spec[0] == '$' #^7#^7 spec[1] == '{') {
+         i = 0;
+         spec += 2;
+         while (*spec && *spec != '}' && i < sizeof(namebuf) - 1) {
+            namebuf[i++] = *spec++;
+         }
+         if (*spec == '}') spec++;
+         namebuf[i] = '\0';
+         value = wftk_value_get (session, datasheet, namebuf);
+         while (*value && bufsize) {
+            *buffer++ = *value++;
+            count++;
+            bufsize--;
+         }
+      } else {
+         *buffer++ = *spec++;
+         count++;
+         bufsize--;
+      }
+      if (!bufsize) break;
+   }
+   *buffer = '\0';
+   return count;
+}
+</piece>
+
+Sometimes special values are nice.  For instance, the current time is always nice to have.  So I'm rather arbitrarily
+defining '!' to be the special-value character.  So, for instance, '!now' is the current time, in the following format:
+2001-03-19 06:07:00 AM.  This is in accordance with the <a href="http://www.iso.ch/markete/8601.pdf">ISO 8601 standard for
+date and time formats</a>.  The ISO standard suggests putting a 'T' between the date and the time, but doesn't require it,
+and I find that to be less conveniently readable to the human eye, so I'm not going to do it.  Your mileage may vary.
+
+<piece>
+const char * _wftk_value_special (void * session, XML * datasheet, const char * name)
+{
+   struct tm * timeptr;
+   time_t julian;
+   static char value[64]; /* Boy, this is dangerous.  TODO: there's gotta be a better way. */
+
+   if (!strcmp (name, "!now")) {
+      time (&julian);
+      timeptr = localtime (&julian);
+      sprintf (value, "%04d-%02d-%02d %02d:%02d:%02d", timeptr->tm_year + 1900, timeptr->tm_mon + 1, timeptr->tm_mday,
+                                                       timeptr->tm_hour, timeptr->tm_min, timeptr->tm_sec);
+      return (value);
+   }
+
+   return ("");
+}
+</piece>
+
+There's more to wftk than plain string values.  In addition to the basic get and set, we can also set the type of a value,
+and we can determine where it's actually stored (the default is that the value is stored directly in the datasheet, but
+that might not be convenient.)  Types are defined by type adaptors, storage is defined by datastore adaptors.
+<piece>
+int    wftk_value_settype (void * session, XML * datasheet, const char * name, const char * type)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return 0;  /* Refuse to set special values. */
+
+   if (strchr (name, ':')) return 0; /* Can't set types for alternate stores -- the answer will be aliases, later. */
+
+   data = wftk_value_make (session, datasheet, name);
+   if (!data) return 0;
+
+   xml_set (data, "type", type);
+   return 1;
+}
+int    wftk_value_define  (void * session, XML * datasheet, const char * name, const char * storage) { return 0; } /* TODO: data aliases. */
+</piece>
+
+Data manipulation requires more than just setting of constant values.  For that reason, there's a calculation function
+as well, which sets a value by evaluating its argument.  There will soon be an "eval:" datasource for doing calculations, but
+that's going to have to wait until sometime post-v1.0.  Basically, <code>wftk_value_calc</code> just runs <code>wftk_value_interpret</code>
+on its incoming value and sets the named value accordingly.
+<piece>
+int    wftk_value_calc    (void * session, XML * datasheet, const char * name, const char * value) { return 0; }
+</piece>
+
+Just for ease of use, we provide HTML formatting as part of the data type adaptor.  Here's where that gets done.  Note that
+what actually gets returned is HTML-like XML, not HTML.  Use the HTML functions from the XMLAPI to write it out.
+<piece>
+XML  * wftk_value_html      (void * session, XML * datasheet, const char * name)
+{
+   XML * field;
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return (xml_createtext (_wftk_value_special (session, datasheet, name)));
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return 0;
+      data = wftk_call_adaptor (ad, "get", datasheet, name);
+      wftk_free_adaptor (session, ad);
+      field = xml_create ("input");
+      xml_set (field, "name", name);
+      xml_set (field, "value", xml_attrval (data, "value"));
+      xml_delete (data);
+      return (field);
+   }
+
+   data = wftk_value_find (session, datasheet, name);
+   if (!data) {
+      field = xml_create ("input");
+      xml_set (field, "name", name);
+      xml_set (field, "value", "");
+      return (field);
+   }
+
+   if (*xml_attrval (data, "type")) {
+      ad = wftk_get_adaptor (session, DATATYPE, xml_attrval (data, "type"));
+      if (ad) {
+         field = wftk_call_adaptor (ad, "html", datasheet, data);
+         wftk_free_adaptor (session, ad);
+         return (field);
+      }
+   }
+
+   field = xml_create ("input");
+   xml_set (field, "name", name);
+   if (*xml_attrval (data, "size")) {
+      xml_set (field, "size", xml_attrval (data, "size"));
+   }
+   if (!strcmp (xml_attrval (data, "null"), "yes")) {
+      xml_set (field, "value", "");
+   } else {
+      xml_set (field, "value", wftk_value_get (session, datasheet, name));
+   }
+
+   return (field);
+}
+
+XML  * wftk_value_htmlblank (void * session, XML * datasheet, const char * name)
+{
+   XML * field;
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return (xml_createtext (_wftk_value_special (session, datasheet, name)));
+
+   if (strchr (name, ':')) {
+      field = xml_create ("input");
+      xml_set (field, "name", name);
+      xml_set (field, "value", "");
+      return (field);
+   }
+
+   data = wftk_value_find (session, datasheet, name);
+   if (!data) {
+      field = xml_create ("input");
+      xml_set (field, "name", name);
+      xml_set (field, "value", "");
+      return (field);
+   }
+
+   if (*xml_attrval (data, "type")) {
+      ad = wftk_get_adaptor (session, DATATYPE, xml_attrval (data, "type"));
+      if (ad) {
+         field = wftk_call_adaptor (ad, "htmlblank", datasheet, data);
+         wftk_free_adaptor (session, ad);
+         return (field);
+      }
+   }
+
+   field = xml_create ("input");
+   xml_set (field, "name", name);
+   if (*xml_attrval (data, "size")) {
+      xml_set (field, "size", xml_attrval (data, "size"));
+   }
+   xml_set (field, "value", "");
+
+   return (field);
+}
+</piece>
+
+And finally, for inspection of a datasheet, we'll want to be able to list values and get specific information about them.
+<piece>
+int wftk_value_list    (void * session, XML * datasheet, XML * list) {
+   int counter = 0;
+   XML * pointer = xml_firstelem (datasheet);
+   XML * value;
+
+   if (!list) return 0;
+
+   while (pointer) {
+      if (!strcmp (pointer->name, "data")) {
+         counter++;
+         value = xml_create ("data");
+         xml_set (value, "id", xml_attrval (pointer, "id"));
+         xml_set (value, "value", wftk_value_get (session, datasheet, xml_attrval (pointer, "id"))); /* OK, not the most efficient method..*/
+         xml_set (value, "type", xml_attrval (pointer, "type"));
+         xml_append (list, value);
+      }
+      pointer = xml_nextelem (pointer);
+   }
+
+   xml_setnum (list, "count", counter);
+   return counter;
+}
+
+XML  * wftk_value_info    (void * session, XML * datasheet, const char * name) { return 0; }
+</piece>
+</item>
+
+
+
+<item name="wftk_status" label="Getting and setting process status">
+Getting process status is simple; setting it may involve activation of potential task branches.  I'm still not sure about
+this.
+<piece>
+const char * wftk_status_get (void * session, XML * datasheet) {
+   const char * status;
+   if (!datasheet) return "none";
+   status = xml_attrval (datasheet, "status");
+   if (*status) return status;
+   return "start";
+}
+int wftk_status_set (void * session, XML * datasheet, const char * status) {
+   const char * cur_status;
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!datasheet) return 0;
+
+   cur_status = wftk_status_get (session, datasheet);
+   if (!strcmp (cur_status, status)) return 1;
+
+   xml_set (datasheet, "status", status);
+
+   /* Notify task indices. */
+   if (!strcmp (status, "complete")) {
+      adlist = wftk_get_adaptorlist (session, TASKINDEX);
+      wftk_call_adaptorlist (adlist, "proccomplete", xml_attrval (datasheet, "id"));
+      wftk_free_adaptorlist (session, adlist);
+   } else if (!strcmp (status, "error")) {
+      adlist = wftk_get_adaptorlist (session, TASKINDEX);
+      wftk_call_adaptorlist (adlist, "procerror", xml_attrval (datasheet, "id"));
+      wftk_free_adaptorlist (session, adlist);
+   } else {
+      adlist = wftk_get_adaptorlist (session, TASKINDEX);
+      wftk_call_adaptorlist (adlist, "procput", datasheet);
+      wftk_free_adaptorlist (session, adlist);
+   }
+
+   if (!strcmp (status, "complete")) {
+      /* TODO: If the process is attached as a subproc of another task, retrieve that task and complete it. */
+   } else if (!strcmp (status, "error")) {
+      /* TODO: Does this need special handling?  Figure that out. */
+   }
+
+   return 1;
+}
+</piece>
+
+These are hardly final forms.
+</item>
+
+
+
+
+<item name="wftk_role" label="Working with roles">
+Roles are pretty loose at this point.  Basically, we want to be able to list the roles in a process, determine who's
+assigned to them at the moment (by default, once someone gets a task, that person gets further tasks assigned to that role
+in that process.  The only way to get out of this is to de-assign the role or send a request to somebody else.)
+<piece>
+int    wftk_role_list   (void * session, XML * datasheet, XML * list)
+{
+   int count = 0;
+   XML * mark;
+   XML * hit;
+   ATTR * attr;
+
+   if (!list) return 0;
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (!strcmp (mark->name, "role")) {
+         hit = xml_create ("role");
+         attr = mark->attrs;
+         while (attr) {
+            xml_set (hit, attr->name, attr->value);
+            attr = attr->next;
+         }
+         xml_append (list, hit);
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   return count;
+}
+
+const char * wftk_role_user (void * session, XML * datasheet, const char * role)
+{
+   XML * mark;
+
+   if (!role) return "";
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (!strcmp (mark->name, "role") #^7#^7 !strcmp (xml_attrval (mark, "name"), role)) {
+         return (xml_attrval (mark, "user"));
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   return "";
+}
+
+int    wftk_role_assign (void * session, XML * datasheet, const char * role, const char * userid)
+{
+   XML * mark;
+
+   if (!role || !userid) return 0;
+   if (*userid) wftk_user_retrieve (session, datasheet, userid);
+
+   /* TODO: reassign existing role-based tasks based on new role assignment. */
+
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (!strcmp (mark->name, "role") #^7#^7 !strcmp (xml_attrval (mark, "name"), role)) {
+         xml_set (mark, "user", userid);
+         return 1;
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   mark = xml_create ("role");
+   xml_set (mark, "name", role);
+   xml_set (mark, "user", userid);
+   xml_append (datasheet, mark);
+   return 1;
+}
+</piece>
+</item>
+
+
+
+<item name="wftk_user" label="Working with users">
+The user facilities at this level are pretty slim.  Basically, the core engine only knows about a user what its caller
+tells it.  No authentication, no directory work, nothing.  The list of users should be considered a list of involvement.
+Contact information in the user entry may get out of synch with a global directory, and that's really the only thing
+that worries me about this setup.  I guess I'll just try it out and see if it plays in Peoria.
+<p/>
+If a user retrieval fails (that is, the userid given isn't involved with the process) then I'm going to consider that
+evidence of involvement.  So a very thin user profile will get built.  This is basically to simplify the workings of
+role assignment.  If the caller says "assign this user to this role" then by golly it will happen.
+<p/>
+All this stuff is kind of falling into the same pattern: list, create, retrieve, update, delete.  So you don't get a lot
+of running commentary in this section.
+<piece>
+int wftk_user_list (void * session, XML * datasheet, XML * list)
+{
+   int count = 0;
+   XML * mark;
+   XML * hit;
+   ATTR * attr;
+
+   if (!list) return 0;
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (!strcmp (mark->name, "user")) {
+         hit = xml_create ("user");
+         attr = mark->attrs;
+         while (attr) {
+            xml_set (hit, attr->name, attr->value);
+            attr = attr->next;
+         }
+         xml_append (list, hit);
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   return count;
+}
+
+int    wftk_user_add      (void * session, XML * datasheet, XML * user)
+{
+   XML * mark;
+
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (!strcmp (mark->name, "user") #^7#^7 !strcmp (xml_attrval (mark, "id"), xml_attrval (user, "id"))) {
+         return 0;
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   xml_append (datasheet, user);
+   return 1;
+}
+
+XML  * wftk_user_retrieve (void * session, XML * datasheet, const char * userid)
+{
+   XML * mark;
+
+   if (!userid) return 0;
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (!strcmp (mark->name, "user") #^7#^7 !strcmp (xml_attrval (mark, "id"), userid)) {
+         return (mark);
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   mark = xml_create ("user");
+   xml_set (mark, "id", userid);
+   xml_append (datasheet, mark);
+   wftk_user_synch (session, mark);
+   wftk_process_save (session, datasheet);
+   return (mark);
+}
+
+int    wftk_user_update (void * session, XML * datasheet, XML * user)
+{
+   XML * mark;
+
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (!strcmp (mark->name, "user") #^7#^7 !strcmp (xml_attrval (mark, "id"), xml_attrval (user, "id"))) {
+         xml_replace (mark, user);
+         return 1;
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   return 0;
+}
+
+int    wftk_user_remove (void * session, XML * datasheet, const char * userid)
+{
+   XML * mark;
+
+   if (!userid) return 0;
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (!strcmp (mark->name, "user") #^7#^7 !strcmp (xml_attrval (mark, "id"), userid)) {
+         xml_delete (mark);
+         return 1;
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   return 0;
+}
+</piece>
+
+Besides the normal stuff up there for maintaining involved users in a datasheet, we also have a user-synch function
+which goes to the user's registered directory and grabs fresh information, if available.  This is also used to involve
+new users, etc.
+
+<piece>
+int wftk_user_synch (void * session, XML * user)
+{
+   XML * directory_entry;
+   ATTR * attr;
+   WFTK_ADAPTOR * ad;
+
+   if (!user) return 0;
+
+   ad = wftk_get_adaptor (session, USER, xml_attrval (user, "directory"));
+   if (!ad) return 0;
+
+   directory_entry = wftk_call_adaptor (ad, "get", xml_attrval (user, "id"));
+   wftk_free_adaptor (session, ad);
+
+   if (directory_entry) {
+      attr = directory_entry -> attrs;
+      while (attr) {
+         xml_set (user, attr->name, attr->value);
+         attr = attr->next;
+      }
+   }
+   return 1;
+}
+</piece>
+
+And we might as well expose user authorization via the adaptor as well.
+
+<piece>
+int wftk_user_auth (void * session, XML * user, const char * password)
+{
+   WFTK_ADAPTOR * ad;
+   XML * ret;
+
+   if (!user) return 0;
+
+   ad = wftk_get_adaptor (session, USER, xml_attrval (user, "directory"));
+   if (!ad) return 0;
+
+   ret = wftk_call_adaptor (ad, "auth", user, password);
+   wftk_free_adaptor (session, ad);
+
+   if (ret) return 1;
+   return 0;
+}
+</piece>
+
+</item>
+
+
+
+
+<item name="wftk_enactment" label="Working with the enactment history">
+Everything that happens to a process is stored in its enactment history.  At some point the level of enactment will be
+parametrized, but for the time being, we write an enactment entry on each task action, each data setting, and probably
+each request or alert.  We also provide a log function which can be called with an arbitrary string.
+<p/>
+The userid in the session is used to mark who took each action; at this level, that's not authenticated at all, simply
+set using <code>wftk_session_setuser</code>.  Caveat callor.
+<p/>
+Anyway, the enactment itself is just a child of the main datasheet element which is an "enactment" node.  If there isn't
+one, we create it, pretty much the same as the state.
+<piece>
+XML * wftk_enactment (void * session, XML * datasheet)
+{
+   XML * en;
+
+   en = xml_loc (datasheet, "datasheet.enactment");
+   if (!en) {
+      en = xml_create ("enactment");
+      xml_append (datasheet, en);
+   }
+
+   return (en);
+}
+</piece>
+
+To write an enactment entry, we take an arbitrary piece of XML, copy its head element, copy that element's attributes,
+add a by= which is taken from the session's assigned user and an at= which is the current time, and tack it onto the
+enactment.  Note that this isn't actually saving the datasheet.
+
+<piece>
+int wftk_enactment_write (void * session, XML * datasheet, XML * xml, const char * attribute, const char * value)
+{
+   XML * copy;
+   ATTR * attr;
+   XML * en = wftk_enactment (session, datasheet);
+   if (!en) return 0;
+
+   if (!xml) return 0;
+
+   copy = xml_create (xml->name);
+   attr = xml->attrs;
+   while (attr) {
+      xml_set (copy, attr->name, attr->value);
+      attr = attr->next;
+   }
+   if (wftk_session_getuser(session)) {
+      xml_set (copy, "by", xml_attrval (wftk_session_getuser(session), "id"));
+   }
+   xml_set (copy, "at", _wftk_value_special (session, datasheet, "!now"));
+   if (attribute && value) {
+      xml_set (copy, attribute, value);
+   }
+   xml_append (en, copy);
+
+   return 1;
+}
+</piece>
+
+Our final little piece is a more convenient log-entry call which takes a string, wraps a log element around it, and
+calls the above function.
+<piece>
+int wftk_log (void * session, XML * datasheet, char * log)
+{
+   int retval;
+   XML * logxml = xml_create ("log");
+
+   xml_set (logxml, "text", log);
+   retval = wftk_enactment_write (session, datasheet, logxml, NULL, NULL);
+   xml_free (logxml);
+   return (retval);
+}
+</piece>
+
+That wasn't so hard, was it?
+</item>
+
+
+
+<item name="wftk_notify" label="Sending notifications">
+I've put a lot of thought into how nofications (alerts) should work.  I've finally come up with the following scheme.
+First, the alert itself is basically the message, with attributes for recipient, sender, subject, etc.  The body of the
+alert is the body of the message.  This is interpreted in the context of a datasheet if one is associated with the
+alert.
+<p/>
+The datasheet is thus the primary context of an alert, but other objects also make sense.  For instance, if I have a
+user profile, it makes sense to be able to send a message to that user directly.  Similarly, tasks, requests, and procdefs
+all make sense as contexts if you simply send the message to the owner of the object.
+<p/>
+If an object other than a user is given as the context, then it's searched for a user object in it with the same name
+as the recipient.  Otherwise we treat the user given as the recipient.  Either way, we look at the recipient for a
+preferred modality of notification (say, email), then check our configuration for the adaptor used to address that
+modality (say, smtp:www.vivtek.com).  In addition, we collect an adaptorlist of notification adaptors which the
+system should always copy to; this will allow for logging of notifications, backup to database, and the like.
+<p/>
+I'm sure that even this fairly complicated rigamarole will get even more complicated once it hits reality...
+
+<piece>
+int wftk_notify (void * session, XML * context, XML * alert) {
+   WFTK_ADAPTOR * ad;
+   WFTK_ADAPTORLIST * adlist;
+   XML * user = context;
+   XML * from;
+   const char * preferred_modality = "";
+   const char * always_list;
+   char buf[1024]; /* TODO: the usual. */
+
+   if (strcmp (context->name, "user")) {
+      wftk_value_interpret (session, context, xml_attrval (alert, "to"), buf, sizeof(buf));
+      user = xml_firstelem (user);
+      while (user) {
+         if (!strcmp (user->name, "user") #^7#^7 !strcmp (xml_attrval (user, "id"), buf)) break;
+         user = xml_nextelem (user);
+      }
+   }
+
+   if (*xml_attrval (alert, "from")) {
+      wftk_value_interpret (session, context, xml_attrval (alert, "from"), buf, sizeof(buf));
+      from = wftk_user_retrieve (session, context, buf);
+      preferred_modality = xml_attrval (from, "notifyvia");
+      if (!*preferred_modality) preferred_modality = config_get_value (session, "notify.default");
+      if (*preferred_modality) {
+         xml_set (alert, "from_addr", xml_attrval (from, preferred_modality));
+      }
+      xml_set (alert, "from_name", xml_attrval (from, "name"));
+   } else {
+      xml_set (alert, "from_addr", config_get_value (session, "notify.system_from"));
+      wftk_value_interpret (session, context, config_get_value (session, "notify.system_name"), buf, sizeof(buf));
+      xml_set (alert, "from_name", buf);
+   }
+
+   if (user) {
+      wftk_user_synch (session, user);
+      preferred_modality = xml_attrval (user, "notifyvia");
+      if (!*preferred_modality) preferred_modality = config_get_value (session, "notify.default");
+      if (*preferred_modality) {
+         xml_set (alert, "to_addr", xml_attrval (user, preferred_modality));
+         xml_set (alert, "to_name", xml_attrval (user, "name"));
+
+         sprintf (buf, "notify.%s", preferred_modality);
+         ad = wftk_get_adaptor (session, NOTIFY, config_get_value (session, buf));
+         if (ad) {
+            wftk_call_adaptor (ad, "send", context, alert);
+            wftk_free_adaptor (session, ad);
+         }
+      }
+   } else {
+      preferred_modality = config_get_value (session, "notify.default");
+      wftk_value_interpret (session, context, xml_attrval (alert, "to"), buf, sizeof(buf));
+      xml_set (alert, "to_addr", buf);
+
+      sprintf (buf, "notify.%s", preferred_modality);
+      ad = wftk_get_adaptor (session, NOTIFY, config_get_value (session, buf));
+      if (ad) {
+         wftk_call_adaptor (ad, "send", context, alert);
+         wftk_free_adaptor (session, ad);
+      }
+   }
+
+   adlist = wftk_get_adaptorlist (session, NOTIFY);
+   if (adlist) {
+      wftk_call_adaptorlist (adlist, "send", context, alert);
+      wftk_free_adaptorlist (session, adlist);
+   }
+   return 1;
+}
+</piece>
+</item>
+
+
+
+
+
+
+
+<item name="wftk_action" label="Taking external action">
+Actions encapsulate both scripts and anything which requires permissions to be done.  Logically I'll want some way of
+suppressing permissions calculations on scripts, but I'm not sure how best to do that.  It could be that the adaptor
+itself would say, "I'm a scripting adaptor, don't check permissions."  All in all, this is a sticky wicket given the
+availability of ad-hoc workflow; you don't want just any schmuck running ad-hoc workflow with malicious scripts
+embedded, which are then run just because they're embedded scripts.  So I really don't know how to approach security yet.
+If you're reading this, and you have a good idea, please <a href="mailto:wftk@vivtek.com">feel free to tell me</a>.
+
+<piece>
+int wftk_action (void * session, XML * action) {
+   XML * permission;
+   WFTK_ADAPTOR * ad;
+   XML * approval;
+   XML * start;
+   XML * user;
+
+   if (!action) return 0;
+
+   /* First, we check permissions. */
+   ad = wftk_get_adaptor (session, PERMS, "localxml");  /* The specific permission adaptor is ignored anyway. */
+   user = wftk_session_getuser (session);
+   permission = wftk_call_adaptor (ad, "perm", action, user);
+   wftk_free_adaptor (session, ad);
+   if (!permission) {
+      xml_set (action, "status", "error");
+      return 0;
+   }
+
+   if (!strcmp (xml_attrval (permission, "value"), "ok")) {
+      ad = wftk_get_adaptor (session, ACTION, xml_attrval (action, "handler"));
+      wftk_call_adaptor (ad, "do", action);
+      wftk_free_adaptor (session, ad);
+      xml_set (action, "status", "ok");
+      xml_set (action, "status.reason", xml_attrval (permission, "reason"));
+      xml_free (permission);
+      return 1;
+   }
+
+   if (!strcmp (xml_attrval (permission, "value"), "no")) {
+      xml_set (action, "status", "no");
+      xml_set (action, "status.reason", xml_attrval (permission, "reason"));
+      xml_free (permission);
+      return 1;
+   }
+
+   /* Start up approval process. */
+   approval = wftk_process_new (session, NULL, NULL);
+   xml_append (approval, xml_copy (action));
+   wftk_process_define (session, approval, NULL, xml_attrval (permission, "value"));
+   wftk_process_save (session, approval);
+   if (user) {
+      wftk_user_add (session, approval, user);
+      wftk_role_assign (session, approval, "Requester", xml_attrval (user, "id"));
+   }
+   start = wftk_task_retrieve (session, approval);
+   wftk_task_complete (session, start);
+   xml_free (start);
+
+   /* Tell the user what happened. */
+   xml_set (action, "status", "deferred");
+   xml_set (action, "status.reason", xml_attrval (permission, "reason"));
+   xml_set (action, "dsrep", xml_attrval (approval, "repository"));
+   xml_set (action, "process", xml_attrval (approval, "id"));
+
+   xml_free (permission);
+   return 1;
+}
+</piece>
+
+</item>
+
+
+
+
+
+<item name="wftk_decide" label="Making decisions: wftk_decide">
+This approach to XML decision trees is the result of a year's thought, more or less.  We'll see how it works.  It's
+uniquely appropriate to XML, because the decision process is really a collapsing of an XML element hierarchy.  The
+decision takes place in the context of a datasheet, of course, for access to values.
+<p/>
+The problem with representing an if-then-else structure in XML, of course, is that it doesn't fit.  The obvious first
+way to code an "if" would be:<br>
+<code>&nbsp;&lt;if value="3" equal="3"&gt;result&lt;/if&gt;</code><br>
+but where do you put an "else"?  You don't want it in the content of the <code>if</code>, because then you can't tell
+the difference between actual content and the "else", and it's not elegant to have results of the same test at different
+levels of the hierarchy -- sooner or later you'd screw it up.  And where do you put negations?  Where do you put
+boolean functions like "and" or "or"?  Into the tests?  Then how many different test attributes will you allow?  It <i>just
+doesn't work</i> and it's driven me crazy until now.
+<p/>
+So I think I've got it worked out.
+<p/>
+Basically, these elements are involved: <code>decide</code>, <code>if</code>, <code>then</code>, <code>else</code>,
+<code>any</code>, <code>all</code>, and <code>unless</code>.  The rules work like this: we scan elements of the top-level
+decision element.  An "if" is a single test, and if it succeeds, then its attributes are written to the decision element
+and its content replaces that of the decision element:
+<pre>
+&lt;decide&gt;
+ &lt;if value="3" equal="3" result="yes"&gt;content here&lt;/if&gt;
+&lt;/decide&gt;
+</pre>
+thus reduces to <code>&lt;decide result="yes"&gt;content here&lt;/decide&gt;</code>, while
+<pre>
+&lt;decide&gt;
+ &lt;if value="3" equal="4" result="yes"&gt;content here&lt;/if&gt;
+&lt;decide&gt;
+</pre>
+just reduces to <code>&lt;decide/&gt;</code>.
+<p/>
+It's obvious, then, what <code>else</code> should do.  It's the catchall that succeeds when all <code>if</code>s have
+failed:
+<pre>
+&lt;decide&gt;
+ &lt;if value="3" equal="2" result="2"&gt;it was two&lt;/if&gt;
+ &lt;if value="3" equal="4" result="4"&gt;it was four&lt;/if&gt;
+ &lt;else result="neither"&gt;it wasn't two or four&lt;/else&gt;
+&lt;/decide&gt;
+</pre>
+reduces to <code>&lt;decide result="neither"&gt;it wasn't two or four&lt;/decide&gt;</code>.  See?  So far, so good.  Note that we can have multiple
+cases, since XML makes it easy to put them there.  In this, the <code>decide</code> tag is really more like a <code>select</code>
+statement or a LISP <code>cond</code> statement.
+<p/>
+OK.  I'll gloss over the <code>unless</code> element, which simply is a negated <code>if</code>, and cut to the chase with
+combinations: <code>all</code> requires that all of its tests succeed, and <code>any</code> will succeed if any of its
+tests succeed.  The tests are again <code>if</code> elements, but in this case, we need a catchall place to put results and
+content, so that's where the <code>then</code> element comes into play.  An example might be a good idea:
+<pre>
+&lt;decide&gt;
+  &lt;if value="3" equal="2" result="2"&gt;it was two&lt;/if&gt;
+  &lt;any anyfired="yep"&gt;
+    &lt;if value="3" equal="4" result="4"/&gt;
+    &lt;if value="3" equal="3" result="3"/&gt;
+    &lt;then thenresult="then was here"&gt;it was either four or three&lt;/then&gt;
+  &lt;/any&gt;
+&lt;/decide&gt;
+</pre>
+will reduce to <code>&lt;decide anyfired="yep" result="3" thenresult="then was here"&gt;it was either four or three&lt;/decide&gt;</code>.  The
+<code>all</code> element works in an entirely analogous manner.
+<p/>
+Another <code>decide</code> element may replace any <code>then</code> or <code>else</code> for
+recursive decisions.  I don't like that much, but at the moment I don't see a better solution for implementing nested
+tests, for the same reasons that the if-then-else doesn't work: you can't effectively mix arbitrary content with elements
+you want to do something with.
+
+<piece>
+<insert name=".test"/>
+<insert name=".collapse"/>
+XML * wftk_decide (void * session, XML * datasheet, XML * decision) {
+   XML * elem;
+   XML * elem2;
+   XML * mark;
+   XML * result;
+   ATTR * attr;
+   int fire = 0;
+
+   if (!decision) return 0;
+
+   result = xml_create ("decide");
+   attr = decision->attrs;
+   while (attr) {
+      xml_set (result, attr->name, attr->value);
+      attr=attr->next;
+   }
+   elem = xml_firstelem (decision);
+   while (elem) {
+      if (!strcmp (elem->name, "if") || !strcmp (elem->name, "unless")) {
+         if (_wftk_decide_test (session, datasheet, elem)) {
+            _wftk_decide_collapse (result, elem);
+            return (result);
+         }
+      } else if (!strcmp (elem->name, "else")) {
+         _wftk_decide_collapse (result, elem);
+         return (result);
+      } else if (!strcmp (elem->name, "any")) {
+         elem2 = xml_firstelem (elem);
+         while (elem2) {
+            fire = 0;
+            if (!strcmp (elem2->name, "if") || !strcmp (elem2->name, "unless")) {
+               if (_wftk_decide_test (session, datasheet, elem2)) {
+                  _wftk_decide_collapse (result, elem);
+                  _wftk_decide_collapse (result, elem2);
+                  fire = 1;
+               }
+            } else if (!strcmp (elem2->name, "then") && fire) {
+               _wftk_decide_collapse (result, elem);
+               _wftk_decide_collapse (result, elem2);
+               return (result);
+            }
+            elem2 = xml_nextelem (elem2);
+         }
+         if (fire) {
+            _wftk_decide_collapse (result, elem);
+            return (result);
+         }
+      } else if (!strcmp (elem->name, "all")) {
+         elem2 = xml_firstelem (elem);
+         while (elem2) {
+            if (!strcmp (elem2->name, "if") || !strcmp (elem2->name, "unless")) {
+               if (!_wftk_decide_test (session, datasheet, elem2)) {
+                  break;
+               }
+            } else if (!strcmp (elem2->name, "then")) {
+               _wftk_decide_collapse (result, elem);
+               _wftk_decide_collapse (result, elem2);
+               return (result);
+            }
+            elem2 = xml_nextelem (elem2);
+         }
+         if (!elem2) {
+            _wftk_decide_collapse (result, elem);
+            return (result);
+         }
+      } else if (!strcmp (elem->name, "decide")) {
+         mark = wftk_decide (session, datasheet, elem);
+         _wftk_decide_collapse (result, mark);
+         xml_set (result, "loc", xml_attrval (mark, "loc"));
+         xml_free (mark);
+         return (result);
+      }
+      elem = xml_nextelem (elem);
+   }
+   return (result);
+}
+</piece>
+</item>
+
+
+<item name="wftk_decide.test" label="Testing for criteria">
+Actually checking values for equality or whatever is done the same for <code>if</code> and <code>unless</code>,
+so I'm going to split it out into a function.  That makes it easier to extend, too.
+<piece>
+int _wftk_decide_test (void * session, XML * datasheet, XML * element)
+{
+   int result = 0;
+   char value[1024]; /* TODO: the same as always. */
+   char * which;
+   char test[1024];  /* TODO: except twice this time. */
+
+   if (*xml_attrval (element, "equal")) {  /* Cutting corners.  TODO: maybe some more choices? */
+      which = "equal";
+   } else return result;
+
+   wftk_value_interpret (session, datasheet, xml_attrval (element, "value"), value, sizeof(value));
+   wftk_value_interpret (session, datasheet, xml_attrval (element, which),   test,  sizeof(test));
+
+   if (!strcmp (which, "equal")) {
+      result = !strcmp (value, test);
+   }
+
+   if (!strcmp (element->name, "unless")) return !result;
+   return result;
+}
+</piece>
+
+Some more interesting comparisons would be numeric greater than/less than, glob matching, regexp, and so forth.
+</item>
+
+<item name="wftk_decide.collapse" label="Collapsing successful branches into the result">
+Since this gets repeated all over, it's another function.
+<piece>
+int _wftk_decide_collapse (XML * result, XML * element)
+{
+   ATTR * attr;
+   XML * mark;
+   char locbuf[1024]; /* TODO: the usual */
+
+   attr = element->attrs;
+   while (attr) {
+      if ((strcmp (attr->name, "value")) ||
+          (strcmp (attr->name, "equal"))) {
+         xml_set (result, attr->name, attr->value);
+      }
+      attr = attr->next;
+   }
+   xml_getloc (element, locbuf, sizeof(locbuf));
+   xml_set (result, "loc", locbuf);
+   mark = xml_first (element);
+   while (mark) {
+      xml_append (result, xml_copy (mark));
+      mark = xml_next (mark);
+   }
+}
+</piece>
+</item>
+
+
+
+
+<item name="wftk_interpreter" label="The interpreter: figuring out what to do next"/>
+The interpreter consists of two functions, <code>queue_procdef</code> and <code>process_procdef</code>.  Both work
+from the queue which is part of the state of the process.  The <code>queue_procdef</code> function takes a procdef
+or piece of one and adds it to the queue.  Simple enough.  The <code>process_procdef</code> function, then, does
+the bulk of the work.  It runs through the queue, looking at each queued item in turn.  If the "block" attribute
+of an item is "yes", then it's skipped; otherwise it is consumed.  Various actions, of course, can then queue
+other items.  The function returns only when the queue is empty (at which point the process is complete) or everything
+in the queue is blocked, meaning that there are only tasks waiting on further input.
+<p/>
+Let's look at <code>queue_procdef</code> first.
+<piece>
+int unique_id (XML * datasheet, XML * state) {
+   int idcount;
+
+   if (!state) {
+      state = xml_loc (datasheet, "datasheet.state");
+      if (!state) {
+         state = xml_create ("state");
+         xml_append (datasheet, state);
+      }
+   }
+
+   idcount = atoi (xml_attrval (state, "idcount"));
+   idcount++;
+   xml_setnum (state, "idcount", idcount);
+
+   return idcount;
+}
+
+XML * queue_procdef (void * session, XML * datasheet, XML * state, XML * queue, XML * action, const char * where)
+{
+   XML * item;
+   int  idcount;
+   char action_loc[1024]; /* TODO: yadda, yadda. */
+
+   if (action == NULL) return NULL;
+
+   idcount = unique_id (datasheet, state);
+
+   item = xml_create("item");
+   xml_setnum (item, "id", idcount);
+   xml_set (item, "type", action->name);
+   xml_getloc (action, action_loc, sizeof(action_loc) - 1);
+   xml_set (item, "loc", action_loc);
+   xml_set (item, "where", where);
+   xml_set (item, "oncomplete", xml_attrval (action, "oncomplete"));
+   xml_set (item, "fortask", xml_attrval (action, "fortask"));
+   xml_append (queue, item);
+   return (item);
+}
+</piece>
+
+That's pretty straightforward, right?  It assumes that the state and queue have already been found or created, but
+it can handle a state which doesn't have an idcount yet.  The idcount value is used to ensure that item identifiers
+in the queue are unique, by the simple expedient of counting them.
+
+<p/>
+
+OK.  So what does it take to do the interpretation itself?  Not too much, actually.  Let's look at the overall structure of
+<code>process_procdef</code>, then talk about why it's the way it is, and then we'll fill in the various actions afterwards.
+
+<piece>
+void process_procdef(void * session, XML * datasheet, XML * state, XML * queue, XML * procdef)
+{
+   XML * item;
+   XML * def;
+   XML * holder;
+   XML * mark;
+   XML * task;
+   XML * data;
+   XML * next;
+   const char * type;
+   int count;
+   int keep;
+   char sbuf[1024];
+   WFTK_ADAPTORLIST * adlist;
+
+   item = xml_firstelem (queue);
+
+   while (item != NULL) {
+      if (!strcmp("yes", xml_attrval(item, "block"))) {
+         item = xml_nextelem(item);
+         continue;
+      }
+      if (!strcmp (xml_attrval (item, "where"), "datasheet")) {
+         def = xml_loc (datasheet, xml_attrval(item, "loc"));
+      } else {
+         def = xml_loc (procdef, xml_attrval(item, "loc"));
+      }
+      type = xml_attrval (item, "type");
+
+      keep = 0;
+      next = NULL;
+             if (!strcmp (type, "parallel")) {
+         <insert name=".parallel"/>
+      } else if (!strcmp (type, "task")) {
+         <insert name=".task"/>
+      } else if (!strcmp (type, "action")) {
+         <insert name=".action"/>
+      } else if (!strcmp (type, "data")) {
+         <insert name=".data"/>
+      } else if (!strcmp (type, "situation")) {
+         <insert name=".situation"/>
+      } else if (!strcmp (type, "decide")) {
+         <insert name=".decide"/>
+      } else if (!strcmp (type, "alert")) {
+         <insert name=".alert"/>
+      } else if (!strcmp (type, "start")) {
+         <insert name=".start"/>
+      } else { /* Treat it as a sequence. */
+         <insert name=".sequence"/>
+      }
+
+      if (keep) {
+         xml_set (item, "block", "yes");
+         item = xml_nextelem(item);
+      } else {
+         if (*xml_attrval (item, "oncomplete")) {
+            wftk_status_set (session, datasheet, xml_attrval (item, "oncomplete"));
+         }
+         if (*xml_attrval (item, "parent")) {
+            sprintf (sbuf, "queue.item[%d]", xml_attrvalnum (item, "parent"));
+            next = xml_loc (queue, sbuf);
+            xml_delete (item);
+            item = next;
+            xml_set (item, "block", "no");
+         } else {
+            if (*xml_attrval (item, "fortask")) {
+               sprintf (sbuf, "datasheet.state.queue.item[%s]", xml_attrval (item, "fortask"));
+               holder = xml_loc (datasheet, sbuf);
+               if (holder) { /* A workflow task; we'll just handle that case right in the interpreter. */
+                  xml_delete (item);
+                  item = holder;
+               } else { /* Maybe it's an ad-hoc task or something; wftk_task_complete can handle it. */
+                  holder = xml_create ("task");
+                  xml_set (holder, "id", xml_attrval (item, "fortask"));
+                  xml_delete (item);
+                  item = NULL;
+                  xml_set (holder, "dsrep", xml_attrval (datasheet, "repository"));
+                  xml_set (holder, "process", xml_attrval (datasheet, "id"));
+                  wftk_task_complete (session, holder);
+                  xml_delete (holder);
+               }
+            } else {
+               xml_delete (item);
+               item = NULL;
+            }
+         }
+      }
+   }
+}
+</piece>
+
+As you can see, the whole thing is the loop which walks along the queue.  If an item is blocked, we skip it, otherwise
+we process it.  The details of processing are below, and remember that processing might entail the queuing of new items.
+Once the item has been processed, it may either be blocked, in which case we block it, or it's finished and we delete it.
+If it's finished, control returns to its parent, if it has one, and things go on.  If the parent decides to block, then
+the queue continues.  Pretty neat, actually.  The "parent" here is not the parent node of the procdef action, but rather
+the parent <i>item</i> of the completed item in the queue.  Its identifier is thus a number created by
+<code>queue_procdef</code>.
+</item>
+
+<item name="wftk_interpreter.state" label="Definition of _state structure">
+In the prototype, state was kept as global variables.  If the wftk core engine were always called as a simple command-line
+program, this would work out fine, I suppose, but if we want to build it into things like linakable libraries, we have to
+worry about contention.  So I've split out the global state into a state structure which is to be passed around internally
+to keep track of where we are.
+
+<piece>
+struct _state {
+   XML * datasheet;
+   XML * state;
+   XML * queue;
+   XML * procdef;
+};
+</piece>
+</item>
+
+<item name="wftk_interpreter.sequence" label="Handling sequence">
+So let's look at the individual action handlers for the above, starting with the sequence handler.
+The sequence handler takes care of the sequence tag and also the contents of the outer
+workflow tag (which are executed sequentially).  If the "cur" attribute is not yet set, then
+this is the first time we've encountered this sequence, and we queue up the first child of
+the sequence (and note its location with "cur", of course).  Otherwise, we find the child
+located by "cur", find its next sibling, and queue that up.
+<p/>
+If something gets queued, then we block.  Remember, we signify blocking by setting <code>keep</code> to 1.
+<piece>
+if (!strcmp ("", xml_attrval (item, "cur"))) {
+   next = xml_firstelem (def);
+} else {
+   if (!strcmp (xml_attrval (item, "where"), "datasheet")) {
+      next = xml_loc (datasheet, xml_attrval (item, "cur"));
+   } else {
+      next = xml_loc (procdef, xml_attrval (item, "cur"));
+   }
+   next = xml_nextelem (next);
+}
+
+if (next) {
+   xml_set (queue_procdef (session, datasheet, state, queue, next, xml_attrval (item, "where")), "parent", xml_attrval (item, "id"));
+   xml_getloc (next, sbuf, sizeof(sbuf) - 1);
+   xml_set (item, "cur", sbuf);
+   keep = 1;
+}
+</piece>
+</item>
+
+<item name="wftk_interpreter.parallel" label="Handling parallel">
+The parallel item queues up all its children, then blocks.  When a child completes, it counts
+the number of children complete; when its counter decrements to zero, it completes.
+<piece>
+if (!strcmp ("", xml_attrval (item, "remaining"))) {
+   count = 0;
+   next = xml_firstelem (def);
+   while (next != NULL) {
+      count ++;
+      xml_set (queue_procdef (session, datasheet, state, queue, next, xml_attrval (item, "where")), "parent", xml_attrval (item, "id"));
+      next = xml_nextelem (next);
+   }
+} else {
+   count = xml_attrvalnum (item, "remaining");
+   count--;
+}
+xml_setnum (item, "remaining", count);
+if (count > 0) keep = 1;
+</piece>
+</item>
+
+<item name="wftk_interpreter.task" label="Handling task">
+Doing a task is nothing more than setting up task data and telling the task manager that the
+task has been activated.  We'll take as the task ID the process ID plus our internal task ID;
+this will make things easier to handle in the task manager, as it means our task IDs will 
+always be unique (well, assuming the task manager always gives us unique process IDs.)
+<p/>
+If the task defines data, then we create a placeholder in the datasheet when the task is activated.
+This is to allow things like option lists to get their values for display, and so that the
+value will show up in the value list (as a blank, of course).
+<piece>
+if (strcmp (xml_attrval (item, "block"), "resume")) {
+   /* Notify task indices of the new active task. */
+   task = xml_create ("task");
+   xml_set (task, "id", xml_attrval (item, "id"));
+   wftk_value_interpret (session, datasheet, xml_attrval (def, "label"), sbuf, sizeof(sbuf));
+   xml_set (task, "label", sbuf);
+   xml_set (task, "role", xml_attrval (def, "role"));
+   xml_set (task, "user", xml_attrval (def, "user"));
+   if (!*xml_attrval (task, "user") #^7#^7 *xml_attrval (task, "role")) {
+      xml_set (task, "user", wftk_role_user (session, datasheet, xml_attrval (task, "role")));
+   }
+   xml_set (task, "process", xml_attrval (datasheet, "id"));
+
+   mark = xml_firstelem (def);
+   while (mark) {
+      if (!strcmp (mark->name, "data")) {
+         if (!wftk_value_find (session, datasheet, xml_attrval (mark, "id"))) {
+            xml_append (datasheet, xml_copy (mark));
+         }
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "tasknew", task);
+   wftk_free_adaptorlist (session, adlist);
+   xml_free (task);
+
+   keep = 1; /* This blocks the current item, so that the active task will be available for retrieval. */
+}
+</item>
+
+<item name="wftk_interpreter.action" label="Handling action">
+Taking action requires decorating the action specifier with the current datasheet, procdef, and userid (from the session).
+Some attributes will also be interpreted at some point, but as that's not yet entirely clear, I'll just defer it for the
+time being.
+<piece>
+/* Notify task indices of the new active task. */
+if (!strcmp (xml_attrval (item, "where"), "datasheet")) {
+   mark = xml_loc (datasheet, xml_attrval (item, "loc"));
+} else {
+   mark = xml_loc (procdef, xml_attrval (item, "loc"));
+}
+if (mark) {
+   holder = xml_copy (mark);
+   if (wftk_session_getuser (session)) {
+      xml_set (holder, "by", xml_attrval (wftk_session_getuser(session), "id"));
+   }
+   xml_set (holder, "dsrep", xml_attrval (datasheet, "dsrep"));
+   xml_set (holder, "process", xml_attrval (datasheet, "id"));
+   xml_set (holder, "pdrep", xml_attrval (procdef, "pdrep"));
+   xml_set (holder, "procdef", xml_attrval (procdef, "id"));
+
+   wftk_action (session, holder);
+}
+</item>
+
+<item name="wftk_interpreter.data" label="Handling data">
+The <code>data</code> element is really just an assignment, nothing more.  Along with decisions, I think that simple
+assignment will be enough.  I'll also write an eval data "source" which evaluates expressions, and that will give us
+plenty of power.  Scripts, of course, are actions.
+<piece>
+if (!strcmp (xml_attrval (item, "where"), "datasheet")) {
+   mark = xml_loc (datasheet, xml_attrval (item, "loc"));
+} else {
+   mark = xml_loc (procdef, xml_attrval (item, "loc"));
+}
+if (mark) {
+   wftk_value_interpret (session, datasheet, xml_attrval (mark, "value"), sbuf, sizeof (sbuf));
+   wftk_value_set (session, datasheet, xml_attrval (mark, "id"), sbuf);
+}
+</piece>
+</item>
+
+<item name="wftk_interpreter.situation" label="Handling situation">
+TODO: To be implemented later.  Oy.
+</item>
+
+<item name="wftk_interpreter.decide" label="Handling decide">
+Decisions use the <code>wftk_decide</code> function, documented rather completely <a href="wftk_decide.html">here</a>.
+<piece>
+if (!strcmp ("", xml_attrval (item, "cur"))) {
+   if (!strcmp (xml_attrval (item, "where"), "datasheet")) {
+      mark = xml_loc (datasheet, xml_attrval (item, "loc"));
+   } else {
+      mark = xml_loc (procdef, xml_attrval (item, "loc"));
+   }
+   if (mark) {
+      holder = wftk_decide (session, datasheet, mark);
+      if (*xml_attrval (holder, "loc")) {
+         if (!strcmp (xml_attrval (item, "where"), "datasheet")) {
+            next = xml_loc (datasheet, xml_attrval (holder, "loc"));
+         } else {
+            next = xml_loc (procdef, xml_attrval (holder, "loc"));
+         }
+      }
+      xml_free (holder);
+   }
+}
+if (next) {
+   xml_set (queue_procdef (session, datasheet, state, queue, next, xml_attrval (item, "where")), "parent", xml_attrval (item, "parent"));
+   keep = 1;
+}
+</piece>
+</item>
+
+<item name="wftk_interpreter.alert" label="Handling alerts">
+Alerts use the function <code>wftk_notify</code>, which is basically a wrapper for notification adaptors.
+The nice thing about this is that it allows us to expose the function itself, which makes it a convenient little
+addition to the library.
+<piece>
+wftk_notify (session, datasheet, def);
+</piece>
+</item>
+
+<item name="wftk_interpreter.start" label="start: Starting subprocesses">
+TODO: To be implemented later.  Basically it creates a new simple task, creates a new process, and calls wftk_process_attach
+to attach the subprocess.
+</item>
+
+
+
+
+</litprog>
+
+

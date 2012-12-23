@@ -1,0 +1,56 @@
+<workflow name="SourceXchange project" author="Michael: michael@vivtek.com">
+    <role name="Proposer"/>
+    <role name="Sponsor"/>
+    <role name="Reviewer"/>
+    <role name="SourceXchange"/>
+
+    <data name="SourceXchange project number" type="integer"/>
+    <data name="Proposing party" type="record">
+       
+    </data>
+
+    <sequence>
+       <task label="Submit proposal" role="Proposer" agent="${Proposing party}"/>
+       <task label="Accept proposal" role="Sponsor"/>
+       <parallel>
+          <task label="Plan project" role="Proposer">
+             <data name="Detailed project plan" type="document"/>
+          </task>
+          <task label="Assign reviewer" role="SourceXchange"/>
+          <task label="Ready project record (milestones, lead, etc.)" role="SourceXchange"/>
+       </parallel>
+       <start name="${Detailed project plan}" location="deliverable" mode="merge" completion="Signoff">
+       </start>
+       <parallel>
+          <task label="Accept project" role="Sponsor"/>
+          <task label="Accept project" role="Reviewer"/>
+       </parallel>
+       <task label="Make source code available" role="SourceXchange"/>
+    </sequence>
+
+
+    <subprocess name="Signoff">
+      <data name="Milestone" type="task"/>
+      <if expr="${Milestone.name} not like 'Milestone%'">
+        <data name="Milestone.status" value="accept"/>
+        <sequence>
+          <parallel>
+            <task label="Accept milestone" role="Sponsor">
+              <data name="Sponsor's answer" type="choose(accept, reject)"/>
+            </task>
+            <task label="Accept milestone" role="Reviewer">
+              <data name="Reviewer's answer" type="choose(accept, reject)"/>
+            </task>
+          </parallel>
+
+          <if expr="${Sponsor's answer} = accept">
+            <data name="Milestone.status" value="accept"/>
+            <elseif expr="${Reviewer's answer} = reject"/>
+            <data name="Milestone.status" value="reject"/>
+            <situation name="Milestone dispute"><data name="Milestone"/></situation>
+          </if>
+        </sequence>
+      </if>
+    </subprocess>
+
+  </workflow>

@@ -1,0 +1,701 @@
+<litprog>
+<object name="xmltools.c" language="c" item="main"/>
+
+
+<format name="index">
+<html><head><title>xmltools</title></head>
+<body>
+<h2>xmltools: command-line tools for XML</h2>
+<center>
+[ <a href="xmltools.zip">download</a> ] [ <a href="xmltools_xml.txt">xml source</a> ]
+[ <a href="http://www.vivtek.com/xmltools/discuss.pl">discussion</a> ]
+</center>
+<hr/>
+This is a set of command-line tools for handling XML.  Each of the tools performs a particular
+function to edit XML files, and they all work with locators, which are effectively URLs which
+identify specific pieces of an XML file.  A locator consists of a series of element specifications
+separated by periods; each element specification either has a round-parenthetical numeric
+location or a square-bracketed ID location.  So, for instance, if we have some XML of the form:
+<p/>
+&lt;thingy><br/>
+<nbsp/><nbsp/><nbsp/>&lt;item id="first"/><br/>
+<nbsp/><nbsp/><nbsp/>&lt;item id="second"/><br/>
+&lt;/thingy><br/>
+<p/>
+Then the locators <code>thingy.item(1)</code> and <code>thingy.item[second]</code> would each
+refer to the second item.  If the items hadn't been empty, we could build a locator such as
+<code>thingy.item(1).stuff</code>, which would refer to the first "stuff" elements in the
+second item.  (The default location is <code>(0)</code>.)
+
+<p/>
+So the following program embodies four actions: snip, replace, set, and insert.  "Snip" simply
+returns the contents of the location named.  "Replace" replaces the location with whatever's
+on stdin (no guarantee of well-formedness!)  "Set" is used to set an attribute on the named
+elements, and "insert" inserts the content of stdin either before or after the named element,
+or before or after the named element's content.
+
+<p/>
+A word of apology: although the four actions end up in four different executables, I have all
+four being generated from the same source code, with <code>#define</code>s to determine which
+of the four actions is to be taken.  This makes for somewhat confusing code, but I hope that
+the literate programming presentation will make up for it.
+
+<p/>
+The program uses James Clark's <a href="/expat.html">expat XML parser</a>, which I highly
+recommend.  It is documented in these pages in a <a href="/litprog.html">literate style</a>,
+which I highly recommend.  The actual tool I'm using to generate the documentation pages is
+my tool <a href="/lpml/index.html">LPML</a>, which I can only recommend if you're really brave.
+It's working for me, but then I'm writing it myself.
+
+<p/>
+The <i>motivation</i> for the development is the <a href="/wftk.html">open-source workflow
+toolkit</a>, which relies heavily on XML and expat.  These tools will be used in the
+datasheet manipulation portion of the whole system.
+
+<p/>
+Here's how we do all this stuff:
+[##itemlist##]
+
+<center>
+<hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<format name="default">
+<html><head><title>xmltools: [##label##]</title></head>
+<body>
+<h2>[##label##]</h2>
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="index.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+</center>
+
+<hr/>
+[##body##]
+
+
+<center>
+[<nbsp/><a href="[##prev##]">Previous: [##prevlabel##]</a><nbsp/>]
+[<nbsp/><a href="index.html">Top: [##indexlabel##]</a><nbsp/>]
+[<nbsp/><a href="[##next##]">Next: [##nextlabel##]</a><nbsp/>]
+<br/><br/><hr width="75%"/>
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>
+</format>
+
+<item name="index" label="xmltools index" format="index">
+</item>
+
+<item name="main" label="Overview of the program and main()">
+The overall layout of the file is pretty much like any single-file C program: includes at the
+top, followed by type and struct definitions, then globals, then functions, and finally the
+main function.
+<p/>
+The structure of this code is a little weird, because it's generating four executables
+instead of one.  The four are:
+<table>
+<tr><td>xmlsnip</td><td><code>#define XMLSNIP</code></td><td>excerpts a named section</td></tr>
+<tr><td>xmlreplace</td><td><code>#define XMLREPLACE</code></td>
+     <td>replaces a named section</td></tr>
+<tr><td>xmlset</td><td><code>#define XMLSET</code></td>
+     <td>sets an attribute, otherwise not touching the file</td></tr>
+<tr><td>xmlinsert</td><td><code>#define XMLINSERT</code></td>
+     <td>inserts stdin somewhere in the tree</td></tr>
+</table>
+
+All these write to stdout; snip and set can read the source from stdin, but replace
+and insert need stdin for the thing to be inserted, so a file must be given explicitly.
+
+<p/>
+And now that I notice, none of these defines is used in the main function; they're all out
+in the handlers, which is appropriate.  The main function is short and sweet; it reads the
+command line (which initializes the global state variables), figures out where the input
+is coming from, then enters the regular expat loop, as I explain in my 
+<a href="/xml/using_expat.html">expat tutorial</a>.  All the real work is done in the handlers.
+
+<piece>
+#include [[stdio.h>
+#include [[malloc.h>
+#include "xmlparse.h"
+
+
+<insert name="data_structures"/>
+<insert name="globals"/>
+
+<insert name="data_structures.freeing"/>
+<insert name="print_stack"/>
+<insert name="startElement"/>
+<insert name="endElement"/>
+<insert name="charData"/>
+<insert name="globals.init"/>
+
+
+int main(int argc, char * argv[])
+{
+   char buf[BUFSIZ];
+   FILE * in;
+   XML_Parser parser;
+
+   init(argc, argv);
+
+   if (!stack.locator) {
+     <insert name=".print_usage"/>
+   }
+
+   if (!infile) {
+      in = stdin;
+   } else if (!(in = fopen (infile, "r"))) {
+      printf ("Unable to open input file %s\n", infile);
+      exit (2);
+   }
+  
+   parser = XML_ParserCreate(NULL);
+
+   XML_SetElementHandler(parser, startElement, endElement);
+   if (emit_content) XML_SetCharacterDataHandler(parser, charData);
+
+   done = 0;
+   finished = 0;
+
+   do {
+      size_t len = fread(buf, 1, sizeof(buf), in);
+      done = len [[ sizeof(buf);
+      if (!XML_Parse(parser, buf, len, done)) {
+         fprintf(stderr,
+            "%s at line %d\n",
+            XML_ErrorString(XML_GetErrorCode(parser)),
+            XML_GetCurrentLineNumber(parser));
+         return 1;
+      }
+   } while (!done #^7#^7 !finished);
+   XML_ParserFree(parser);
+
+   free_stack();
+
+   if (emit_tags) printf ("\n");
+
+   if (in != stdin) fclose (in);
+   return 0;
+}
+</piece>
+</item>
+
+<item name="main.print_usage" label="Print usage description">
+To print usage, we just print some stuff.  In the original version of this program, I made
+this a separate function <code>print_usage()</code> for readability.  In the literate
+presentation, there's no reason to do that, so I save a whole function call.  Ha.  You may
+scoff at that, and in this case of course one piddling function call is trivial -- but the
+whole concept of breaking functions into smaller functions for readability is obviated by
+a literate style.  OK, end of soapbox.
+<piece>
+#ifdef XMLSNIP
+   printf ("usage: xmlsnip [[flags> [[location> [#^lt#file>]\n");
+#endif
+#ifdef XMLREPLACE
+   printf ("usage: xmlreplace [[flags> [[location> [[file>\n  - Replacement on stdin\n");
+#endif
+#ifdef XMLSET
+   printf ("usage: xmlset [[flags> [[location> [[attr> [[new value> [#^lt#file>]\n");
+#endif
+#ifdef XMLINSERT
+   printf ("usage: xmlsnip [[flags> [[insertwhere> [[location> [[file>\n  - Insert on stdin\n");
+#endif
+   printf ("  Flags: (not all may make sense for this program; xmltools share the flags.\n");
+   printf ("  -c : include comments\n");
+   printf ("  -o : exclude elements\n");
+   printf ("  -t : exclude nonelement content\n");
+   printf ("  -m : exclude the matching tag\n");
+   printf ("  -p : include processing instructions (PIs)\n");
+   printf ("  -l : include locator when match occurs\n");
+</piece>
+</item>
+
+
+
+<item name="data_structures" label="Data structures: frames and tags">
+I define two <code>struct</code> for storing information about the parse state.  Effectively,
+the current parse stack consists of those nodes between the root and whichever element we're
+currently parsing.  This stack is implemented as a doubly-linked list of <code>FRAME</code>s.
+<p/>
+Within the frame, we stash things like the name of the element at that position, its level in
+the tree, and a linked list of <code>TAG</code> structures, which are used to count how many
+of each variety of child elements have been encountered.  (This allows us to use numeric position;
+after all, <code>item(2)</code> refers to the third <i>item</i> encountered, which means that
+we have to know how many items we've already seen each time an item comes along.)
+<p/>
+So the second struct is the <code>TAG</code> struct, of course.
+<p/>
+Note that none of our four actions requires keeping any more information on hand than the
+current slice of the tree.  That's one of the advantages of working with streams; the disadvantage
+is of course that you're restricted in what you can do, and the whole shebang is harder to
+understand.
+
+<piece>
+typedef struct _frame FRAME;
+typedef struct _tag TAG;
+
+struct _frame {
+   const char * name;
+   int level;
+   int offset_in_parent;
+   int empty;
+   FRAME * back;
+   FRAME * next;
+   TAG * subitems;
+
+   const char * locator;
+};
+
+struct _tag {
+   const char * name;
+   int count;
+   TAG * next;
+};
+</piece>
+</item>
+
+<item name="data_structures.freeing" label="Freeing frames and the stack">
+As long as we've defined our data structures, I'm going to go ahead and show how we free them.
+(To allocate them is easy: I just use <code>malloc()</code> -- but when I free a frame I need
+to free its tag list as well.)
+<p/>
+Here's how we free a frame:
+<piece>
+void free_frame (FRAME * frame)
+{
+   TAG * cur;
+   TAG * next;
+   cur = frame->subitems;
+   while (cur) {
+      next = cur->next;
+      free ((void *) cur);
+      cur = next;
+   }
+   if (frame->level > 0) free ((void *) frame);
+}
+</piece>
+
+And in cases where we know the action is complete and we bail out before processing the entire
+input file (well, OK, this only applies to snip, because the other three actions are required
+to output all remaining input), we have a dandy little function to free <i>all</i> the outstanding
+stack frames.
+
+<piece>
+void free_stack ()
+{
+   FRAME * cur;
+
+   while (top->level > 0) {
+      cur = top;
+      top = top->back;
+      free_frame (cur);
+   }
+   free_frame (top);
+}
+</piece>
+</item>
+
+
+<item name="globals" label="Global variables (state)">
+<piece>
+/* The parsing context: */
+FRAME stack = {
+   "[[bottom>",
+   0,
+   0,
+   0,
+   NULL,
+   NULL,
+   NULL,
+   NULL
+};
+
+/* Settings */
+int emit_content = 1;
+int emit_matching_tag = 1;
+int emit_tags = 1;
+int emit_comments = 0;
+int emit_pis = 0;
+int emit_locator = 0;
+
+char * infile = NULL;
+char * insertwhere = NULL;
+char * setattr = NULL;
+char * setvalue = NULL;
+
+FRAME * top = #^7stack;
+
+int finished; /* We can set this if we know we're done with the snip. */
+int emit_level = -1; /* Set this to the level when our location first matches the locator. */
+
+int done;
+</piece>
+</item>
+
+<item name="globals.init" label="Reading the command line">
+<piece>
+int init(int argc, char * argv[]) {
+   int i;
+   char * mark;
+
+   for (i=1; i [[ argc; i++) {
+      if (*argv[i] == '-') {
+         mark = argv[i];
+         while (*mark++) {
+           switch (*mark) {
+              case 'c': emit_comments = 1; break;
+              case 'o': emit_tags = 0; break;
+              case 'e': emit_content = 0; break;
+#ifndef XMLSET
+              case 'm': emit_matching_tag = 0; break;
+#endif
+              case 'p': emit_pis = 1; break;
+              case 'l': emit_locator = 1; break;
+           }
+         }
+      }
+#ifdef XMLINSERT
+      else if (!insertwhere) { insertwhere = argv[i]; }
+#endif
+      else if (!stack.locator) { stack.locator = argv[i]; }
+#ifdef XMLSET
+      else if (!setattr) { setattr = argv[i]; }
+      else if (!setvalue) { setvalue = argv[i]; }
+#endif
+      else if (!infile) { infile = argv[i]; }
+   }
+}
+</piece>
+</item>
+
+
+
+<item name="print_stack" label="Printing the current stack as a locator">
+It's sort of silly to have this little function hanging around on its own page, but it doesn't
+really fit in anywhere else all that well.  It's pretty obvious how this thing works, isn't
+it?  You start at the bottom of the stack, and print location pieces as you move to the top.
+<piece>
+void print_stack()
+{
+   FRAME * cur;
+   for (cur = stack.next; cur != NULL; cur = cur->next) {
+      if (cur != stack.next) printf (".");
+      printf ("%s", cur->name);
+      if (cur->offset_in_parent > 0) {
+         printf ("(%d)", cur->offset_in_parent);
+      }
+   }
+   printf ("\n");
+}
+</piece>
+</item>
+
+
+<item name="startElement" label="Handling elements: startElement">
+OK, now we get down to the heavy hitting.  The startElement function is long and complicated,
+and it's the first of the three handlers implemented so far (there will be more later.)
+<piece>
+void startElement(void *userData, const char *name, const char **atts)
+{
+   FRAME * newframe;
+   TAG   * scan;
+   const char  *mark;
+   int   matchoffset;
+   int   att;
+   const char  **attptr;
+   int   on;
+   int   c;
+   int   didit;
+
+   newframe = (FRAME *) malloc (sizeof (FRAME));
+   newframe->next = NULL;
+   newframe->back = top;
+   newframe->level = newframe->back->level + 1;
+   newframe->name = name;
+   newframe->subitems = NULL;
+   newframe->offset_in_parent = 0;
+   newframe->locator = NULL;
+   newframe->empty = 1;
+
+   if (stack.next == NULL) {
+      stack.next = newframe;
+      newframe->back = #^7stack;
+   } else {
+      top->next = newframe;
+   }
+   top = newframe;
+
+   /* If parent is still empty, close its tag. */
+#ifdef XMLSNIP
+   if (!finished #^7#^7 emit_level > -1 #^7#^7 top->back->level - 1 + emit_matching_tag >= emit_level #^7#^7 top->back->empty == 1) {
+#else
+#ifdef XMLREPLACE
+   if ((emit_level [[ 0 || top->back->level + emit_matching_tag [[= emit_level) #^7#^7 top->back->empty == 1) {
+#else
+   if (top->back->empty == 1) {
+#endif
+#endif
+      if (emit_tags) top->back->empty = 0;
+      if (emit_tags) printf (">");
+   }
+
+   /* Scan parent's subitems to ascertain our own offset in that list. */
+   if (top->back) {
+      scan = top->back->subitems;
+      while (scan) {
+         if (!strcmp (scan->name, name)) break;
+         scan = scan->next;
+      }
+      if (scan) {
+         scan->count++;
+      } else {
+         scan = (TAG *) malloc (sizeof (TAG));
+         scan->name = name;
+         scan->next = top->back->subitems;
+         scan->count = 0;
+         top->back->subitems = scan;
+      }
+      top->offset_in_parent = scan->count;
+   }
+
+   /* Now check parent's locator to see whether we match the next bit.
+      (A null locator means the parent isn't in the match path.) */
+   if (top->back->locator != NULL) {
+      if (!strncmp (name, top->back->locator, strlen(name))) {
+         mark = (char *) top->back->locator + strlen(name);
+         matchoffset = 0;
+         if (*mark == '(') {
+            mark++;
+            matchoffset = atoi(mark);
+            while (*mark #^7#^7 *mark != ')') mark++;
+            if (*mark) mark++;
+         } else if (*mark == '[') {
+            mark++;
+            for (attptr = atts; *attptr #^7#^7 strcmp (*attptr, "id"); attptr += 2);
+            if (!*attptr) for (attptr = atts; *attptr #^7#^7 strcmp (*attptr, "name"); attptr += 2);
+            *attptr++;
+            if (!strncmp (*attptr, mark, strlen(*attptr))) {
+               mark += strlen(*attptr);
+               if (*mark == ']') {
+                  matchoffset = top->offset_in_parent;
+                  mark++;
+               }
+            }
+            
+         }
+         if ((*mark == '\0' || *mark == ' ') #^7#^7 top->offset_in_parent == matchoffset) {
+            /* Ding, ding! */
+            emit_level = top->level;
+            if (emit_locator) print_stack();
+            emit_level = top->level;
+         } else if (*mark == '.' #^7#^7 top->offset_in_parent == matchoffset) {
+            top->locator = mark+1;
+         }
+      }
+   }
+
+#ifdef XMLINSERT
+   if (top->level == emit_level #^7#^7 !strcmp (insertwhere, "before")) {
+      while (!feof(stdin)) { c = getchar(); if (!feof(stdin)) putchar(c); }
+      emit_level = -1;
+   }
+#endif
+
+   /* Emit tag. */
+#ifdef XMLSNIP
+   if (!finished #^7#^7 emit_level > -1 #^7#^7 top->level - 1 + emit_matching_tag >= emit_level) {
+#else
+#ifdef XMLREPLACE
+   if (emit_level [[ 0 || top->level + emit_matching_tag [[= emit_level) {
+#else
+   if (1) {
+#endif
+#endif
+      if (emit_tags) {
+         printf ("[[%s", name);
+         #ifdef XMLSET
+         mark = NULL; finished = 0;
+         #endif
+         for (att=0, on=1; atts[att]; att++) {
+            if (on) printf (" %s", atts[att]);
+            #ifdef XMLSET
+            if (on #^7#^7 !strcmp (atts[att], setattr) #^7#^7 top->level == emit_level) {
+               mark = atts[att];
+            }
+            if (!on #^7#^7 mark != NULL #^7#^7 top->level == emit_level) {
+               printf ("=\"%s\"", setvalue);
+               mark = NULL;
+               finished = 1;
+            } else
+            #endif
+            if (!on) printf ("=\"%s\"", atts[att]);
+            on = !on;
+         }
+         #ifdef XMLSET
+         if (!finished #^7#^7 top->level == emit_level)
+            printf (" %s=\"%s\"", setattr, setvalue);
+         #endif
+      }
+   }
+
+#ifdef XMLSET
+   emit_level = -1;
+   finished = 0;
+#endif
+
+#ifdef XMLREPLACE
+   if (emit_level == top->level) {
+      top->empty = 0;
+      if (emit_tags #^7#^7 !emit_matching_tag) printf (">");
+      while (!feof(stdin)) { c = getchar(); if (!feof(stdin)) putchar(c); }
+   }
+#endif
+
+#ifdef XMLINSERT
+   if (top->level == emit_level #^7#^7 !strcmp (insertwhere, "beforecontent")) {
+      top->empty = 0;
+      if (emit_tags #^7#^7 emit_matching_tag) printf (">");
+      while (!feof(stdin)) { c = getchar(); if (!feof(stdin)) putchar(c); }
+      emit_level = -1;
+   }
+#endif
+}
+</piece>
+</item>
+
+<item name="endElement" label="Handling elements: endElement">
+The endElement function is called whenever expat hits the close of an element.  In the event
+that an empty element is used (e.g. &lt;tag name="empty"/>) then both startElement and
+endElement will be called, as though the XML were actually &lt;tag name="empty">&lt;/tag>.
+This makes things much easier to write -- but it also means we have to do a little gyration
+if we want to be able to write empty tags to our output.
+<p/>
+This is of course why we have an <code>empty</code> flag on each tag; if the tag is still
+empty, then endElement will print "/>" to close it; otherwise it will print the entire
+close tag, name and all.
+<p/>
+You can see that xmlinsert checks for whether it has anything to insert, before anything
+else is done, and after the tag is closed.  If the insertion is to an empty tag, then we
+have to close the tag and mark it nonempty.
+<p/>
+And then you notice that we have three different <code>if</code> statements -- xmlsnip only
+emits the tag if it is in the snip location, xmlreplace only emits the tag if it's
+not being replaced, and everybody else emits the tag if tags are being emitted.  Since that
+part is handled inside the <code>if</code>, the outer <code>if</code> is just an <code>if
+(1)</code>.  In retrospect that's kind of an odd way to code that; I guess it shows that I
+wrote xmlsnip first and then hacked it up to make the other tools.
+<piece>
+void endElement(void *userData, const char *name)
+{
+   FRAME * old;
+   int c;
+
+#ifdef XMLINSERT
+   if (top->level == emit_level #^7#^7 !strcmp (insertwhere, "aftercontent")) {
+      if (top->empty) {
+         printf (">");
+         top->empty = 0;
+      }
+      while (!feof(stdin)) { c = getchar(); if (!feof(stdin)) putchar(c); }
+      emit_level = -1;
+   }
+#endif
+
+#ifdef XMLSNIP
+   if (!finished #^7#^7 emit_level > -1 #^7#^7 top->level - 1 + emit_matching_tag >= emit_level) {
+#else
+#ifdef XMLREPLACE
+   if (emit_level [[ 0 || top->level + emit_matching_tag [[= emit_level) {
+#else
+   if (1) {
+#endif
+#endif
+      if (! top->empty) {
+         if (emit_tags) printf ("[[/%s", name);
+      } else {
+         if (emit_tags) printf ("/");
+      }
+      if (emit_tags) printf (">");
+   }
+
+#ifdef XMLINSERT
+   if (top->level == emit_level #^7#^7 !strcmp (insertwhere, "after")) {
+      while (!feof(stdin)) { c = getchar(); if (!feof(stdin)) putchar(c); }
+      emit_level = -1;
+   }
+#endif
+
+#ifdef XMLSNIP
+   if (top->level == emit_level) finished = 1;
+#endif
+   if (top->level == emit_level) emit_level = -1;
+
+   old = top;
+   if (top->back->level == 0) {
+      top->back->next = NULL;
+   }
+   top = top->back;
+   free_frame (old);
+}
+</piece>
+</item>
+
+<item name="charData" label="Handling non-element data: charData">
+Handling character data (that's just text which is enclosed in an element but is not itself
+a tag) is pretty straightforward, as there is nothing to do with the stack.
+It still looks ugly due to all the <code>#ifdef</code> stuff, but hey.  It works.
+<p/>
+There are basically two things going on here.  First, if our enclosing tag is still empty,
+then we close it (as long as we're emitting tags, and we're inside our snip location or
+we're not replacing the tag, same ol same ol on all that stuff.)
+<p/>
+After that's done, we emit the character data, as long as we're supposed to be emitting 
+character data (and pretty much with the same caveats for xmlsnip and xmlreplace.)
+<piece>
+void charData (void *userData, const XML_Char *s, int len) {
+   int i;
+   /* If parent is still empty, close its tag. */
+#ifdef XMLSNIP
+   if (!finished #^7#^7 emit_level > -1 #^7#^7 top->level - 1 + emit_matching_tag >= emit_level #^7#^7 top->empty == 1) {
+#else
+#ifdef XMLREPLACE
+   if ((emit_level [[ 0 || top->level [[ emit_level) #^7#^7 top->empty == 1) {
+#else
+   if (top->empty == 1) {
+#endif
+#endif
+      printf (">");
+      top->empty = 0;
+   }
+
+#ifdef XMLSNIP
+   if (!finished #^7#^7 emit_level > -1 #^7#^7 top->level >= emit_level) {
+#else
+#ifdef XMLREPLACE
+   if (emit_level [[ 0 || top->level [[ emit_level) {
+#else
+   if (1) {
+#endif
+#endif
+      for (i=0; i [[ len; i++) {
+         putchar (s[i]);
+      }
+   }
+}
+</piece>
+</item>
+
+
+</litprog>

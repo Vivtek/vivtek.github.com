@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /thoughts # Believe me, a robot doesn't want this many thoughts.
+Disallow: /linkout
+Disallow: /customer-service
+Disallow: /toonbots/discuss.pl
+Disallow: /wftk/discuss.pl
+Disallow: /seti/discuss.pl
+Disallow: /wiki

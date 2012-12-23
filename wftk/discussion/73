@@ -1,0 +1,22 @@
+SUBJECT>Still alive!
+POSTER>Michael
+EMAIL>wftk@vivtek.com
+DATE>979095154
+EMAILNOTICES>no
+IP_ADDRESS>as0-069.blm.bluemarble.net
+PREVIOUS>70
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+<P>&gt; This project looks very interesting.
+<P>Thanks!
+<P>&gt; I'm just wondering how much effort is being put into it.
+<P>Not enough.
+<P>&gt; How many developers are there and what is the process of getting involved?
+<P>One, and jump in.
+<P>&gt; Isn't there some other form of communications than this BBS?
+<P>Grr. There's a mailing list at the SourceXchange site -- but there's even less traffic there than here, astounding as this may sound.
+<P>As it happens, I'm starting work on a wftk integration project with a German company. They've asked me not to name names until the selection process is complete, but it's providing a lot of motivation for me to get back into the swing of things here. Assuming wftk is indeed chosen as the implementation of their &quot;virtuellen Aufgabenbuch&quot;, then they'll be funding the further development of wftk for a while, which is a Very Good Thing.
+<P>One of the main thrusts of current development (such as it is) is the complete rewrite of existing code to reside in a small set of APIs. This German project, for instance, will use those APIs to replace the AOLserver component entirely with a fat-client UI written in C++ for Windows. That's perfectly OK, of course; I'm greatly anticipating this kind of multiplatform functionality.
+<P>I've got to rejuvenate this site, work on the documentation, and so forth. I've had so many other things going on that I just haven't spent enough time with dear old wftk.

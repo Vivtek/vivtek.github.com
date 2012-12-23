@@ -1,0 +1,6 @@
+<character name="me" label="me" rel-h="60">
+<variant>
+<aspect name="pensive"><draw file="image-me-1.bmp" type="image"/></aspect>
+<aspect name="concentrating"><draw file="image-me-2.bmp" type="image"/></aspect>
+</variant>
+</character>

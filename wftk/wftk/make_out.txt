@@ -1,0 +1,2 @@
+gcc -O2 -I/nd/local/src/expat/xmltok -I/nd/local/src/expat/xmlparse -DXML_NS -DXMLSNIP -c -o wftk.o wftk.c
+gcc -O2 -I/nd/local/src/expat/xmltok -I/nd/local/src/expat/xmlparse -DXML_NS -o wftk wftk.o /nd/local/src/expat/xmltok/xmltok.o /nd/local/src/expat/xmltok/xmlrole.o /nd/local/src/expat/xmlparse/xmlparse.o /nd/local/src/expat/xmlparse/hashtable.o
