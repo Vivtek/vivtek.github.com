@@ -1,9 +1,0 @@
-source: /home/michael/vivtek/mysql_vivtek.pl
-table: toons
-fields: id author title status created
-text: blurb definition
-new-fields: author title status blurb definition
-edit-fields: author title status blurb definition
-status: status active private
-created: created
-touch: index
