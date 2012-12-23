@@ -1,6 +1,0 @@
-<datasheet>
-<data id="Test string" type="string">This is a string value.</data>
-<data id="Test text" type="text">This is a long text value.  Both these
-values are stored in the XML datasheet
-associated with this process.</data>
-</datasheet>

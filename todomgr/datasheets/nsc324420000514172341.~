@@ -1,6 +1,0 @@
-<datasheet>
-<data id="Diner" type="string">Mila</data>
-<data id="Type of cake Eaten" type="string">Donut</data>
-<data id="Date Eaten" type="string">25/08/2001</data>
-<data id="Time Eaten" type="string">17:00</data>
-</datasheet>

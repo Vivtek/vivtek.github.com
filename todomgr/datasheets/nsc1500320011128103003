@@ -1,4 +1,0 @@
-<datasheet procdef="ecomm_1.xml" process="nsc1500320011128103003"><data id="customer" type="record">jones</data><data id="order" type="record">1234</data><state idcount="10"><queue><item id="0" type="workflow" loc="workflow" cur="workflow.sequence" block="yes"/><item id="5" type="sequence" loc="workflow.sequence" parent="0" cur="workflow.sequence.parallel" block="yes"/><item id="8" type="parallel" loc="workflow.sequence.parallel" parent="5" remaining="1" block="yes"/><item id="9" type="task" loc="workflow.sequence.parallel.task" parent="8" block="yes"/></queue></state><task id="nsc1500320011128103003:9"><data id="order items" type=""/></task><task id="nsc1500720011128103050">
-<data id="Number of 3ft signs" type="string">45</data>
-</task>
-</datasheet>
