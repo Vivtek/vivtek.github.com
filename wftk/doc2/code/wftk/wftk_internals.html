@@ -1,0 +1,101 @@
+<html><head><title>wftk core library: Internal definitions</title></head>
+<body>
+<h2>Internal definitions</h2>
+<center>
+[&nbsp;<a href="wftk_h.html">Previous: Include file (and API definition)</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="library.html">Next: Function definitions</a>&nbsp;]
+</center>
+
+<hr>
+Here are a few things that the library functions will use (and adaptor code as well) but that don't really need
+to be exposed to the cold, hard world.  First are the IDs for the types of adaptor.  This will almost certainly end
+up being a partial list.
+<p></p>
+<i>(Sep 15, 2001)</i>: For the <a href="../popup/index.html">popup UI framework</a> I came up with a few new adaptors
+(numbers 11 through 15 there).  These will be of use for non-UI installations as well, particularly once I sit down to
+write the server daemon framework (and I've already got a paying customer lined up for that one!)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>
+</pre></td></tr></table>
+
+And the other is the definition of the WFTK_ADAPTOR structure used to pass APIs back and forth.  Sort of a poor
+man's ActiveX, I guess.  See the <a href="wftk_adaptors.html">adaptor handling code</a> for a little more detail,
+but the upshot is that the interface
+to an adaptor is a kind of explicit vtable, and calls to adaptors all work through a single function.
+<p></p>
+For the case where we want a list of all the configured adaptors in a given class (like debug adaptors or task index
+adaptors, both of which are notification-like affairs where everybody involved wants to get notified) we have an
+adaptor list structure which can hold several adaptors.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifndef WFTK_EXPORT
+#define WFTK_EXPORT
+#endif
+
+</pre></td></tr></table>
+
+Then we have the interface to the config module.  Lest this be missed (somehow), each installation of the wftk has a single
+config module, which is static-linked in.  There will be variants, however, at least between Windows and Unix, as Unix
+tends to favor precompiled directory locations, while Windows favors the Registry, because most users don't have a working
+compiler.
+<p></p>
+There are two functions of interest; <code>config_get_value</code> gets a named value, and <code>config_debug_message</code>
+passes a message to any installed debugging adaptors.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre></pre></td></tr></table>
+
+To make debugging simpler, and to make it go away when not in use so as to save space, we'll define a couple of debugging
+macros to wrap around <code>config_debug_message</code>:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifdef DEBUG
+#define DBG(x,y) config_debug_message (x, y);
+#define DBG1(x,y,z) config_debug_message (x, y, z);
+#define DBG2(x,y,z,now) config_debug_message (x, y, z, now);
+#else
+#define DBG(x,y) ;
+#define DBG1(x,y,z) ;
+#define DBG2(x,y,z,now) ;
+#endif
+</pre></td></tr></table>
+
+Prototypes for the adaptor functions, which are defined <a href="wftk_adaptors.html">here</a>.  The single-bore adaptor
+calls may return XML values; the shotgun approach ones (list calls) are used for outgoing simultaneous notification to
+multiple adaptors of a single class, so they don't return any value.  The integer is there ... I'm not sure why it's there,
+but someday I might, in a fit of guilt, decide that an error return would be a good idea.
+<p></p>
+<i>(July 22, 2001)</i> The DSREP_database adaptor, which I'm compiling into a DLL, needs to load
+the database adaptor specified -- so it needs the adaptor functions to be exported.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre></pre></td></tr></table>
+
+We've got a couple of prototypes for functions that are supposed to be called only internally.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * _procdef_load (XML * session, XML * datasheet);
+char * _wftk_value_special (XML * session, XML * datasheet, const char * name);
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="wftk_h.html">Previous: Include file (and API definition)</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="library.html">Next: Function definitions</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

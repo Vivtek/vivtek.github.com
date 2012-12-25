@@ -1,0 +1,301 @@
+<html><head><title>ACTION adaptor: http</title></head>
+<body>
+<h2>ACTION adaptor: http</h2>
+<hr>
+<p></p>
+HTTP communications are a rather important set of protocols.  Besides simple Web page retrieval,
+HTTP is the major protocol used for SOAP and XML-RPC interaction, and it's the protocol underlying
+WebDAV.  Since all these protocols are important for the wftk, the HTTP adaptor, which defines a
+general set of HTTP tools as well as a thin layer of calling logic, is probably our first really
+significant action adaptor.
+<p></p>
+Actions in general are, like everything in the wftk system, XML structures.  When an adaptor
+receives an action structure, it extracts the information it finds salient, and then possibly
+modifies the action in some way.  This is how the <a href="ACTION_soap.html">SOAP adaptor</a>
+works: it receives a SOAP action, preprocesses it to explain to the HTTP adaptor what to do,
+and then calls the present adaptor.  After this adaptor returns, the SOAP adaptor does additional
+work to process the reply and route data according to the action definition it received.
+<p></p>
+A similar process will apply to a WebDAV adaptor, when I get around to writing one.
+<p></p>
+Originally it seemed logical to me to provide HTML parsing logic in the HTTP adaptor, but
+now I think it makes more sense to write a separate HTML adaptor which would perform parsing
+tasks.  The HTTP adaptor is thus cleaner and smaller.
+<p></p>
+The HTTP adaptor is based solidly on <a href="http://curl.haxx.se">libcurl</a>, which is my
+library of choice for dealing with HTTP or FTP matters.  (And thus makes me wonder when I
+might do an FTP adaptor as well.)  SSL services are also provided in libcurl (although separately,
+thanks to U.S. law.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdlib.h>
+#include &lt;stdarg.h>
+#include &lt;curl/curl.h>
+#include &lt;xmlobj.h>
+#include "wftk_session.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "do"
+};
+
+XML * ACTION_http_init (WFTK_ADAPTOR * ad, va_list args);
+XML * ACTION_http_free (WFTK_ADAPTOR * ad, va_list args);
+XML * ACTION_http_info (WFTK_ADAPTOR * ad, va_list args);
+XML * ACTION_http_do (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   ACTION_http_init,
+   ACTION_http_free,
+   ACTION_http_info,
+   ACTION_http_do
+};
+
+static struct wftk_adaptor_info _ACTION_http_info =
+{
+   4,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct wftk_adaptor_info * ACTION_http_get_info ()
+{
+   return &amp; _ACTION_http_info;
+}
+</pre></td></tr></table>
+
+Thus concludes the communication with the config module.  Now on with the actual implementation
+of functionality.  It's not complicated.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * ACTION_http_init (WFTK_ADAPTOR * ad, va_list args) {
+   xml_set (ad->parms, "spec", "wftk");
+   return (XML *) 0;
+}
+XML * ACTION_http_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * ACTION_http_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "action");
+   xml_set (info, "name", "http");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+<p></p>
+
+Now that the administration has been taken care of, we come to the core of any action adaptor,
+the "do" action.  The action specification for the HTTP adaptor is fairly simple (it may become
+more interesting later.)
+<pre>
+&lt;action handler="http" url="http://my.server.com" method="post"&gt;
+  &lt;field id="first"&gt;value here&lt;/field&gt;
+  &lt;content&gt;specifically generated content here (overrides fields for POST/GET construction)&lt;/content&gt;
+  &lt;result field="objfield"/&gt;
+  &lt;headers-out&gt;
+    &lt;field id="Referer"&gt;my.referrer.here&lt;/field&gt;
+  &lt;/headers-out&gt;
+  &lt;headers&gt;
+    &lt;field id="Cookie"&gt;cookie setting stuff here&lt;/field&gt;
+  &lt;/headers&gt;
+&lt;/action&gt;
+</pre>
+
+A few words of explanation.  The "method" attribute may be anything.  GET is, of course, the default; POST is also
+understood by the adaptor; anything else may freely be used, but of course isn't guaranteed to work.  For POST or GET,
+the adaptor will use "field" elements to build an appropriately formatted request.  If the "field" element has a "field"
+attribute, then it will look to the datasheet for a value; otherwise it is a standard xmlobj field.  If the "content"
+element is present, then the adaptor will <i>not</i> use the "field" elements to construct the content to be sent, but
+will instead use the pre-built content provided (this is to make things easy for the SOAP adaptor.)
+<p></p>
+If a "headers-out" record is present, any headers encoded there will be prepended to the request (the same "field" logic
+is used to gather information from the associated datasheet.)
+<p></p>
+If a "result" element is provided, it can specify what the adaptor is to do with the HTTP response; incoming headers will
+always be attached to the "headers" record, but the text response will either be taken care of as specified in the "result"
+element, or a "result" element will simply be created, and the text response will be written as content to that element;
+the caller can then post-process as required.  (An interesting extension would be the specification of a post-processing
+adaptor within that "result" element.)
+<p></p>
+Cookies are not handled by the adaptor at all.  They should be eventually, though, and this would presumably be done using
+a record registered to a list as a cookie jar.  This record could then either be saved or discarded as required.
+<p></p>
+Finally, if an SSL-enabled libcurl is used to compile the adaptor, then HTTPS URLs can be supplied.  Eventually I suppose
+FTP URLs could be handled in the same way, although I'm not entirely sure how that should work.  An FTP list adaptor built
+on this kind of action adaptor would, however, be very attractive.
+<p></p>
+To business: libcurl requires a setup and breakdown for the library in order to prevent memory leaks, but for the
+time being I'm going to ignore that completely, since there's no convenient place to store this handle.  I could conceivably
+store it in the repository, but as there's no guarantee that there will only be one repository opened during the course
+of the program, I feel somewhat nervous about doing this.  Eventually I will figure out a better way of saving this (or
+modify libcurl in order to handle this in a way more convenient to our situation) but in the meantime, a few memory leaks are
+simply not all that horrible, in my eye.  As always, your mileage may differ, and if so, please get in touch and make some
+suggestions, if you can think of any.  Formally: TODO: figure out a better way to manage libcurl library stuff.
+<p></p>
+It makes a lot of sense to be able to specify some libcurl parameters in the repository as configuration (proxy information,
+for instance) but as I don't really have a well-developed system configuration mechanism, I'll content myself with another
+TODO: repository- or system-level configuration parameters for libcurl.  Happy now?
+<p></p>
+So.  Ignoring things makes quick work.  All that's left is just setting up a session, making the request, and cleaning up.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static size_t _ACTION_http_writer (void * buf, size_t size, size_t num, void * xml)
+{
+   xml_textncat (xml, buf, size * num);
+   return num;
+}
+
+XML * ACTION_http_do  (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * action = (XML *) 0;
+   XML * datasheet = NULL;
+   CURL * curl;
+   CURLcode retval;
+   XML * mark;
+   XML * constructed_content;
+   XML * result;
+   char * value;
+   char * content = NULL;
+   int field_no = 0;
+   int needs_content = 0;
+   long retcode;
+
+   if (args) action = va_arg (args, XML *);
+   if (!action) {
+      xml_set (ad->parms, "error", "No action given.");
+      return (XML *) 0;
+   }
+   datasheet = va_arg (args, XML *);
+
+   if (!*xml_attrval (action, "url")) {
+      xml_set (ad->parms, "error", "No URL specified in action.");
+      return NULL;
+   }
+
+   /* Init CURL session (here's where it gets almost interesting.) */
+   curl = curl_easy_init();
+   if (!curl) {
+      xml_set (ad->parms, "error", "Unable to allocate CURL handle.");
+      return (XML *) 0;
+   }
+
+   curl_easy_setopt (curl, CURLOPT_URL, xml_attrval (action, "url"));
+
+   if (!strcmp (xml_attrval (action, "method"), "post")) { /* TODO: advertised case-insensitivity. */
+      curl_easy_setopt (curl, CURLOPT_POST, 1);
+      needs_content = 1;
+   }
+
+   if (xml_loc (action, ".headers-out")) {
+      /* TODO: outgoing headers. */
+   }
+
+   /* Do we need to include content in this request? */
+   if (!xml_loc (action, ".content") &amp;&amp; needs_content) {
+      constructed_content = xml_create ("content");
+      xml_append_pretty (action, constructed_content);
+
+      /* TODO: RFC 1867 upload encoding. */
+      mark = xml_firstelem (action);
+      while (mark) {
+         if (xml_is (mark, "field")) {
+            if (xml_attrval (mark, "field")) {
+               if (datasheet) {
+                  value = xmlobj_get (datasheet, NULL, xml_attrval (mark, "id"));
+               } else {
+                  value = strdup ("");
+               }
+            } else {
+               value = xmlobj_get_direct (mark);
+            }
+
+            /* Encode value and append. */
+            if (field_no) {
+               xml_textcat (constructed_content, "&amp;");
+            }
+            field_no++;
+            xml_textcat (constructed_content, value);  /* TODO: URL-encode. */
+            free (value);
+         }
+         mark = xml_nextelem (mark);
+      }
+   }
+
+   if (needs_content) {
+      content = xml_stringcontenthtml (xml_loc (action, ".content"));
+      curl_easy_setopt (curl, CURLOPT_POSTFIELDS, content);
+      curl_easy_setopt (curl, CURLOPT_POSTFIELDSIZE, strlen (content)); /* Not strictly necessary, but eh. */
+   }
+
+   /* Result always goes into "result" element.  TODO: something like a "noresult" flag. */
+   result = xml_loc (action, ".result");
+   if (!result) {
+      result = xml_create ("result");
+      xml_append_pretty (action, result);
+   }
+
+   curl_easy_setopt (curl, CURLOPT_WRITEFUNCTION, _ACTION_http_writer);
+   mark = xml_createtext ("");
+   xml_replacecontent (result, mark);
+   curl_easy_setopt (curl, CURLOPT_FILE, mark);
+
+   retval = curl_easy_perform (curl);
+
+   curl_easy_getinfo (curl, CURLINFO_HTTP_CODE, &amp;retcode);
+   xml_setnum (action, "http-retcode", retcode);
+
+   /* TODO: check libcurl's return value, other returns. */
+
+   if (content) free (content);
+
+   /* TODO: take care of placing return somewhere. */
+
+   /* TODO: take care of storage of headers. */
+
+   return 0;
+}
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

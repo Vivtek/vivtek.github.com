@@ -1,0 +1,145 @@
+<html><head><title>User editor: Traversing the user/group repositories to build a directory view</title></head>
+<body>
+<h2>Traversing the user/group repositories to build a directory view</h2>
+<center>
+[&nbsp;<a href="user_edit_main.html">Previous: Main program</a>&nbsp;]
+[&nbsp;<a href="user_edit.html">Top: </a>&nbsp;]
+[&nbsp;<a href="browse_dirview_show.html">Next: Presenting a directory view in HTML</a>&nbsp;]
+</center>
+
+<hr>
+So.  The first step is to build a directory view.  I'm thinking of the directory view as something along these
+lines:
+<pre>
+&lt;dirview root="" cur_user="michael" state="folder:+">
+&lt;folder name="folder1" label="My Folder">
+&lt;object class="document" object="ddriou2" label="A document in My Folder"/>
+&lt;/folder>
+&lt;object class="document" object="3324ffq" label="My Document for Stuff"/>
+&lt;object class="document" object="333333s" label="Another Document"/>
+&lt;/dirview>
+</pre>
+Let's talk a little about what I expect all that to mean.  First, the elements "dirview", "folder", and "object" are
+pretty obvious.  An "object" is a leaf in the directory tree, a document.  (Of any type; classes in the wftk
+permission system are simply strings with no semantics at all, actually.)  Folders and objects have names and labels;
+the name is the machine-readable identifier, while the label appears in the actual display.
+<p></p>
+The "root" of the directory view is used to tell the constructor where to start the view; by default it is the
+current user, so that the directory displayed will be those objects owned/accessible by the current user.  However,
+there are plenty of reasons to start directory views elsewhere, so that's what the root is for.
+<p></p>
+The "state" of the directory view determines which of the folders is shown in an open state and which in a closed
+state.  Open folders must of course be traversed.  The convention I'm setting (tentatively) is pretty simple; if the
+state is blank, then nothing's open.  If it's a "+", then everything's open.  If a folder is named, that folder
+is open, and if two folders are open they're separated by commas.  Finally, to open subfolders, I use semicolons,
+so if the folder named "f1" is open in main folder "f2", then my state is "f2:f1".  If all subfolders of f2 where
+to be open, the state would be "f2:+".  We'll see if that's adequate, but it feels right.
+<p></p>
+All these incoming attributes of the dirview element are basically parameters to this construction function.
+<p></p>
+So.  All that explained, let's write some code.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="browse_dirview_create.html#scan">Scanning a user or group</a></i>
+void dirview_create (XML * dv, XML * cur_user)
+{
+   XML * elem;
+   XML * direlem;
+
+   dirview_scan (dv, cur_user, xml_attrval (dv, "state"));
+}
+</pre></td></tr></table>
+<br><br>
+<a name="scan">
+<i>Scanning a user or group</i><br>
+We start the process by scanning the root user or group; the <code>dirview_scan</code> function will call itself
+recursively if the state indicates that it should.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int  folder_append (XML * view, XML * elem);
+void dirview_scan (XML * dv, XML * entity, const char *state)
+{
+   XML * elem;
+   XML * direlem;
+   XML * group;
+
+   elem = xml_firstelem (entity);
+   while (elem) {
+      if (!strcmp (elem->name, "object")) {
+         direlem = xml_create ("object");
+         if (*xml_attrval (elem, "label")) {
+            xml_set (direlem, "label", xml_attrval (elem, "label"));
+         } else {
+            xml_set (direlem, "label", xml_attrval (elem, "object"));
+         }
+         xml_append (dv, direlem);
+      } else if (!strcmp (elem->name, "group") || !strcmp (elem->name, "group-include")) {
+         direlem = xml_create ("folder");
+         xml_set (direlem, "name", xml_attrval (elem, "name"));
+         if (*xml_attrval (elem, "label")) {
+            xml_set (direlem, "label", xml_attrval (elem, "label"));
+         } else {
+            xml_set (direlem, "label", xml_attrval (elem, "name"));
+         }
+         if (folder_append (dv, direlem)) {
+            group = group_get (xml_attrval (elem, "name"));
+            dirview_scan (direlem, group, state);
+            xml_free (group);
+         }
+      }
+      elem = xml_nextelem (elem);
+   }
+}
+</pre></td></tr></table>
+
+So now let's look at the <code>folder_append</code> function, which simply wraps <code>xml_append</code> with some
+code to avoid duplicates and cycles in the directory tree (our "directory" structure is significantly more dangerous
+than a real file structure in that regard.)
+<p></p>
+If the folder is indeed appended, the function returns 1; otherwise, the folder is freed and the function returns 0.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int folder_append (XML * view, XML * elem)
+{
+   XML * check;
+   const char * name = xml_attrval (elem, "name");
+
+   check = view;
+   while (check) {
+      if (!strcmp (xml_attrval (check, "name"), name)) {
+         xml_free (elem);
+         return (0);
+      }
+      check = check->parent;
+   }
+
+   check = xml_firstelem (view);
+   while (check) {
+      if (!strcmp (check->name, "folder")) {
+         if (!strcmp (xml_attrval (check, "name"), name)) {
+            xml_free (elem);
+            return (0);
+         }
+      }
+      check = xml_nextelem (check);
+   }
+
+   xml_append (view, elem);
+   return (1);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="user_edit_main.html">Previous: Main program</a>&nbsp;]
+[&nbsp;<a href="user_edit.html">Top: </a>&nbsp;]
+[&nbsp;<a href="browse_dirview_show.html">Next: Presenting a directory view in HTML</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

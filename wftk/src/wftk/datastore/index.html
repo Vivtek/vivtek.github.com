@@ -1,0 +1,65 @@
+<html><head><title>wftk core: datastore adaptor</title></head>
+<body>
+<h2>wftk core: datastore adaptor</h2>
+<center>
+[ <a href="../index.html">back to the core</a> ] [ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+A <i>datastore adaptor</i> interfaces the core engine with a system capable of storing named
+values somewhere other than regular datasheet values; if used, a datastore adaptor turns the datasheet
+value into a reference used to get and save named values from some other place.  The canonical
+example is using a datastore adaptor to represent columns in the process table.  The <i>first</i>
+use of a datastore adaptor is giving data-like access to the role assignments with the role: adaptor.
+<p>
+These are the functions exposed by a datastore adaptor:
+<table>
+<tr><td><i><u>Function</i></u></td><td><i><u>Parameters</i></u></td><td><i><u>Purpose</i></u></td></tr>
+<tr bgcolor=eeeeee><td valign=top>0: init</td>
+    <td valign=top>&nbsp;</td>
+    <td>Initialize adaptor instance</td></tr>
+<tr bgcolor=ffffff><td valign=top>1: free</td>
+    <td valign=top>&nbsp;</td>
+    <td>Clean up instance before shutting down</td></tr>
+<tr bgcolor=eeeeee><td valign=top>2: info</td>
+    <td valign=top>&nbsp;</td>
+    <td>Return XML describing the adaptor</td></tr>
+<tr bgcolor=ffffff><td valign=top>3: get</td>
+    <td valign=top>XML * datasheet<br>const char * name</td>
+    <td>Get named value using datasheet as a reference.  The datasheet may be modified with markers.</td></tr>
+<tr bgcolor=eeeeee><td valign=top>4: set</td>
+    <td valign=top>XML * datasheet<br>const char * name</td>
+    <td>Set named value using datasheet as a reference.  Same caveat.</td></tr>
+<tr bgcolor=ffffff><td valign=top>5: isnull</td>
+    <td valign=top>XML * datasheet<br>const char * name</td>
+    <td>Test named value for being null.  Optional.</td></tr>
+<tr bgcolor=eeeeee><td valign=top>6: makenull</td>
+    <td valign=top>XML * datasheet<br>const char * name</td>
+    <td>Make named value null.  Optional.</td></tr>
+</table>
+
+<p>
+Implementations:<ul>
+<li><a href="DATASTORE_role.html">DATASTORE_role</a> (provides easy data-like access to role assignments)
+<li>(TODO) DATASTORE_link (builds a link URL for process or named task)
+<li>(TODO) DATASTORE_xml (stores a large XML blob in the data value instead of in the "value" attribute)
+<li>(TODO) DATASTORE_document (stores a versioned document in a separate repository)
+<li>(TODO) DATASTORE_eval (treats "name" as an expression to be evaluated)
+<li>(TODO) DATASTORE_processtable (stores values in process table from task index)
+</ul>
+
+As you can see, the datastore adaptor is meant to be a very versatile way to connect wftk to whatever data you've already got.
+You can imagine a DATASTORE_cvsfile, or DATASTORE_panagon, or just about anything.  For longer values we're going to have to build
+some more API to make it all make sense, but that'll come in time.
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

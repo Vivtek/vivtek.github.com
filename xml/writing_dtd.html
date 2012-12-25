@@ -1,0 +1,211 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>XML -- How to write a DTD</TITLE>
+<meta description="A succinct overview of XML document type design with lots of examples.">
+<meta keywords="XML, DTD, document type definition, data structure design, object design, arbitrary data structure">
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>XML</u> -- How to write a DTD</h2>
+[&nbsp;<a href=/xml.html>XML index</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+<center><table width=75%><tr><td>
+<font face=arial size=-1>
+So ya want to write a DTD.  Or (as happened to me) someone wants to pay you to write one.<p>
+Well, it's really not that hard.  Assuming you know about data structure (or object) design,
+writing the
+actual DTD will prove pretty simple.  And this article shows you how, I hope.  At least it
+reflects some of my experiences writing the <a href=/wftk/process_defn/xml_dtd.html>DTD for
+the process definition of wftk</a>.
+</font>
+</td></tr></table></center>
+</td></tr>
+
+<tr><td>
+Defining an XML document type (i.e. writing a DTD) consists of the following steps, not
+necessarily in order:<ul>
+<li><b>Define elements</b> -- <code>&lt;!ELEMENT <i>name</i> <i>content</i>&gt;</code><br>
+    The <i>elements</i> in your documents are the tags you write, but more importantly they're
+    the basic objects your document is about (and their subobjects and so forth.)  Part of the
+    definition of an element is its <i>content model</i>, i.e. for the element 'tag' what may
+    appear between &lt;tag&gt; and &lt;/tag&gt;.
+<li><b>Define attributes for elements</b> -- <code>&lt;!ATTLIST <i>name</i> <i>specs</i>&gt;</code><br>
+    The <i>attribute lists</i> are the named attributes found within the tags; they're the
+    named members of the object classes defined by the elements.
+<li><b>Define entities</b> -- <code>&lt;!ENTITY <i>name</i> <i>spec</i>&gt;</code><br>
+    <i>Entities</i> are familiar from HTML: they're those funny &amp; things like &amp;nbsp;.
+    In that context, they're effectively names for characters not otherwise expressible in
+    printable ASCII.  In XML the entity concept is logically extended to be a name for any
+    arbitrary string, i.e. entities are a lot like macros.
+<li><b>Use a tool to validate the DTD</b><br>
+    Any time a human being writes a formal language, mistakes are likely to be made.  DTDs
+    are no exception, even though they're syntactically a lot simpler than most languages.
+    I found it very helpful to run my DTD through a parser to discover my mistakes.
+    I used IBM's Visual DTD (part of <a href=/link_out/http://www.alphaworks.ibm.com>alphaWorks</a>)
+    to jump-start my DTD and to validate the finished product.
+</ul>
+That's pretty much it!
+<p>
+As you can see from that, the process of defining an XML document type is that of designing a set
+of elements.  So what kinds of things can you do with elements?  An element is an object that
+contains data.  It can contain data in two ways; first, it has content, second it has attributes.
+Using the HTML link as an example, the element's <i>name</i> is "a", its most useful <i>attribute</i>
+is <code>href=</code>, and its content is the stuff between the <code>&lt;a href=</code>something
+<code>&gt;</code> and the <code>&lt;/a&gt;</code>.
+<p>
+A definition of that much of the HTML spec could look like this:
+<center>
+<table border=1 cellpadding=3 bgcolor=e0e0e0><tr><td>
+<code>
+&lt;!ELEMENT a #PCDATA&gt;
+<br>
+&lt;!ATTLIST a<br>
+&nbsp;&nbsp;&nbsp;href CDATA #IMPLIED<br>
+&gt;
+</code>
+</td></tr></table></center>
+Whoa!  What's that <code>#PCDATA</code> thing in there?  It stands for "parsable character
+data" and it effectively means, this element can contain some text that you should pass on to the
+application.  (A note on that phrase "pass on to the application": XML is defined in terms of
+the XML <i>parser</i>.  The parser is a module which is assumed to be built into, or at least somehow
+called by, an application which does the actual work of whatever the application does.  When
+you're writing a DTD, you're talking to the parser; when you write a document, you're using the
+parser to talk to the application.)
+<p>
+You'll notice that the definition of the <code>href</code> attribute has three parts: the
+name of the attribute, what its content may be ("CDATA" is simply character data), and what
+values it may take ("#IMPLIED" means "whatever").
+<p>
+That much is easy.  But the real usefulness of XML is how well it expresses arbitrary
+structure.  To express arbitrary structure we need to have elements within elements, and that's
+done in pretty much the same way.  Let's define something really simple, a tree structure.
+We'll use the obvious name for a node: "node".  Each node may be named and may contain other
+nodes.  And in fact let's make it a binary tree, i.e. each node may have a maximum
+of two children.  Let's define:
+<center>
+<table border=1 cellpadding=3 bgcolor=e0e0e0><tr><td>
+<code>
+&lt;!ELEMENT node (node?,node?)&gt;
+<br>
+&lt;!ATTLIST node<br>
+&nbsp;&nbsp;&nbsp;name CDATA #IMPLIED<br>
+&nbsp;&nbsp;&nbsp;some_string CDATA #IMPLIED<br>
+&gt;
+</code>
+</td></tr></table></center>
+Note the content model of the <code>ELEMENT</code>
+definition (that's the stuff after the name, remember).  I wrote it as <code>(node?, node?)</code>
+to signify that the content of a node may be an optional node followed by another optional
+node, and <i>nothing else</i>.  I also tossed in some optional node data for good measure.
+<p>
+So now we can write a little XML chunk representing a binary tree:<br><code>
+&lt;node name="1"&gt;<br>
+&nbsp;&nbsp;&lt;node name="1a" some_string="This is a little extra data.&gt;&lt;/node&gt;<br>
+&nbsp;&nbsp;&lt;node name="1b"&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;node name="1b1"&gt;&lt;/node&gt;<br>
+&nbsp;&nbsp;&lt;/node&gt;<br>
+&lt;/node&gt;<br></code>
+Now <i>that's</i> cool if you ask me!
+<p>
+What if I wanted a general tree?  I'd write the content model like this: <code>(node)*</code>.
+<p>
+Entities come in two flavors, regular entities (like the &amp;lt; kind of entities we know and love
+from HTML) and <i>parameter entities</i>, which can be used in the DTD definition itself.  Parameter
+entities are prefixed with a percent sign (%) and are dandy for sequences of element content specifications
+which get reused throughout a DTD.  I used a parameter entity in the <a href=/wftk/process_defn/xml_dtd.html>wftk
+DTD</a> to represent the types of elements which are considered actions or action-like ... things.
+<p>
+By far the best way to discover what I'm talking about at this point is to go read the <a href=/wftk/process_defn/xml_dtd.html>wftk
+DTD</a> yourself and use this little tips to figure out what you're seeing.  I've still got some work to do to make this
+topic more informative, but this will get you started.  As always, if I'm missing something, ask.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

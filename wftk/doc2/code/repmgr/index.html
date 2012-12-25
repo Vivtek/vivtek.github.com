@@ -1,0 +1,147 @@
+<html><head><title>Repository manager</title></head>
+<body>
+<h2>Repository manager: data management wftk-style</h2>
+<center>
+[ <a href="repmgr.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+The repository manager began its life as a redesign and port of code I'd been working on for a couple of years in
+Perl, called "OPM" -- Online Publication Manager.  The point of OPM was to manage websites in
+a data-driven manner, pretty much what we all call "content management" nowadays,
+but it was difficult to work with and difficult to modify, and at some point it just ground to a halt
+due to sheer maintenance overhead.
+<p></p>
+Since I've pulled that groundwork into the wftk project, I hope for synergy on both ends: on the one hand, the
+adaptor architecture should make the repository manager easy to extend, and on the other, the repmgr
+also embodies and encapsulates a lot of the motivation for workflow in the first place, providing a
+nice framework for content management.
+<p></p>
+The executable itself is a command-line affair; once I have the time to mess with it, I'll extend it
+to include CGI execution, and of course once I get the server daemon framework running we can start
+to think about a repository manager service which would listen on specialty and FTP ports, maybe.
+Or something.  I guess that will all be obvious once we get that far.
+<p></p>
+At any rate, unlike the popup framework, the repository manager is written in nice, safe ANSI C.  Like
+most of the wftk, it is organized into two sections: the bulk of the work is in a library, and there
+is a command-line wrapper around that library.  The library can thus be dropped into any application.
+The command-line wrapper assumes that the repository definition will be found in site.opm in the
+current directory (the .opm extension is, of course, a holdover from OPM and allows association under
+Windows for a GUI front-end, forthcoming if I ever finish it), but the library doesn't really care
+where you found your repository definition.
+<p></p>
+The repository manager can be thought of as<ul>
+<li> A front-end for data management (manages RDBMS and local data on an equal footing)
+<li> A content management system (organizes websites and allows their structured design)
+<li> A document management system (maintains versioned binary files and metadata)
+</ul>
+<p></p>
+As such, it's squarely positioned to do a lot of the back-office tasks required by a medium-sized
+business organizational unit.  Along with wftk for workflow and task management, plus some GUI
+framework to present the whole thing in a manageable way, we're on our way to a solid set of
+enterprise software.
+
+<p></p>
+A repository is essentially a directory which contains arbitrary objects and lists of objects.
+Objects have fields, sublists, and attachments; lists are loose organizations of objects which may
+or may not impose constraints on their structure.  Lists may be stored in many different ways, so a
+repository has the capability of managing data in relational databases, local files, or anything in
+between, assuming that suitable adaptors have been written and configured.
+<p></p>
+
+Besides these datasources, a repository also manages data sinks.  Data sinks may be HTML pages, they
+may be email addresses for notification of events, they may be remote connections -- whatever.  And
+the final element of a repository definition is all the links between data sources and data sinks, 
+which I call <i>publishers</i> from the original OPM code.  A publisher is invoked when a datasource
+registers a change, and updates whatever target data it is responsible for (or sends an email, or
+starts a workflow process, or whatever.)
+
+<p></p>
+A publisher uses a <i>tool</i> to effect these data changes; tool definition is still a pretty vague
+area, so at this point, it's hardwired.  Basically, there are two tools at the moment: template
+application, which takes structured data and weaves HTML-like text from it, and a Wiki tool, which
+takes text with a simple-to-edit markup and weaves fairly well-formatted HTML from that.  My Wiki tool
+is very repository-aware, even to the point where it is able to maintain a todo list for problems it
+encounters during formatting, use a "link" data source to manage external links, and so on.
+<p></p>
+Links to the pieces:
+<ul>
+<li> <a href="wrapper.html">Command-line interface</a>
+<ul>
+<li> <a href="wrapper.html#helplist">Displaying a list of commands</a>
+<li> <a href="wrapper.html#repos">Opening repositories</a>
+<li> <a href="wrapper.html#publish">Publishing objects (pushing data)</a>
+<li> <a href="wrapper.html#make">Publishing pages (pulling data)</a>
+<li> <a href="wrapper.html#add">Adding objects to lists</a>
+<li> <a href="wrapper.html#del">Deleting objects from lists</a>
+<li> <a href="wrapper.html#mod">Modifying objects</a>
+<li> <a href="wrapper.html#merge">Merging objects</a>
+<li> <a href="wrapper.html#changed">Modifying objects in place</a>
+<li> <a href="wrapper.html#test">Checking XML well-formedness</a>
+<li> <a href="wrapper.html#diff">Checking differences</a>
+<li> <a href="wrapper.html#list">Listing objects</a>
+<li> <a href="wrapper.html#snapshot">Taking a snapshot</a>
+<li> <a href="wrapper.html#changes">Listing changes</a>
+<li> <a href="wrapper.html#get">Retrieving objects</a>
+<li> <a href="wrapper.html#auth">Authenticating and retrieving users</a>
+<li> <a href="wrapper.html#ingroup">Testing group membership</a>
+<li> <a href="wrapper.html#context">Storing and switching contexts</a>
+<li> <a href="wrapper.html#set">Storing session values</a>
+<li> <a href="wrapper.html#read">Retrieving session values</a>
+<li> <a href="wrapper.html#tasks">Listing active tasks</a>
+<li> <a href="wrapper.html#todo">List active tasks for current user</a>
+<li> <a href="wrapper.html#xact">Creating or loading a transaction</a>
+<li> <a href="wrapper.html#commit">Committing a transaction</a>
+<li> <a href="wrapper.html#process">Performing asynchronous processing</a>
+<li> <a href="wrapper.html#edit">Retrieving editor HTML</a>
+<li> <a href="wrapper.html#display">Display objects as HTML</a>
+<li> <a href="wrapper.html#form">Building an empty form for object creation</a>
+<li> <a href="wrapper.html#defn">Retrieving list structure definitions</a>
+<li> <a href="wrapper.html#define">Imposing or changing list structure</a>
+<li> <a href="wrapper.html#push">Pushing data to a remote list</a>
+<li> <a href="wrapper.html#push_all">Pushing all data to a remote list</a>
+<li> <a href="wrapper.html#pull">Pulling data from a remote list</a>
+<li> <a href="wrapper.html#pull_all">Pulling all data from a remote list</a>
+<li> <a href="wrapper.html#synch">Synching data with a remote list</a>
+<li> <a href="wrapper.html#submit">Submitting a document</a>
+<li> <a href="wrapper.html#store">Storing a document</a>
+<li> <a href="wrapper.html#attach">Attaching a document</a>
+<li> <a href="wrapper.html#retrieve">Retrieving a document</a>
+<li> <a href="wrapper.html#checkout">Checking a document out for update</a>
+<li> <a href="wrapper.html#getver">Getting the version of a field or attachment</a>
+<li> <a href="wrapper.html#time">Marking time</a>
+</ul>
+<li> <a href="include.html">#include file for interface (links to code sections, so it's a good place to start understanding the API)</a>
+<li> <a href="library.html">Repository management library</a>
+<li> <a href="repositories.html">Working with repository objects</a>
+<li> <a href="publishing.html">Publishing objects: internals</a>
+<li> <a href="macros.html">Macro processing</a>
+<li> <a href="lists.html">Creating and administering lists</a>
+<li> <a href="iteration.html">Iterating across list contents</a>
+<li> <a href="objects.html">Working with individual objects</a>
+<li> <a href="reports.html">Working with individual objects as reports</a>
+<li> <a href="retrieval.html">Data retrieval and display</a>
+<li> <a href="users.html">User authentication and group membership</a>
+<li> <a href="context.html">Context/user session handling</a>
+<li> <a href="xact.html">Transactions</a>
+<li> <a href="processing.html">Actions and synchronous processing</a>
+<li> <a href="notification.html">Notifications</a>
+<li> <a href="workflow.html">Workflow</a>
+<li> <a href="values.html">Working with object field values</a>
+<li> <a href="repository.html">Repository queries</a>
+<li> <a href="synching.html">Synching data with remote data sources</a>
+<li> <a href="attachments.html">Working with attachments</a>
+</ul>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,53 @@
+<html><head><title>wftk core: action handler adaptor</title></head>
+<body>
+<h2>wftk core: action handler adaptor</h2>
+<center>
+[ <a href="../index.html">back to the core</a> ] [ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+An <i>action</i> uniquely describes something which the system is supposed to do.  An action may be performed immediately,
+or the permissions configuration for the action may indicate that an approval process is required, in which case the action
+is deferred.  Once the process completes, the action is actually performed.  Checking of permissions is not required of the
+action handler, however; the action handler just has to <i>take</i> the action.  Think of an action handler as an API
+encapsulation.
+<p>
+These are the functions exposed by an action handler adaptor:
+<table>
+<tr><td><i><u>Function</i></u></td><td><i><u>Parameters</i></u></td><td><i><u>Purpose</i></u></td></tr>
+<tr bgcolor=eeeeee><td valign=top>0: init</td>
+    <td valign=top>&nbsp;</td>
+    <td>Initialize adaptor instance</td></tr>
+<tr bgcolor=ffffff><td valign=top>1: free</td>
+    <td valign=top>&nbsp;</td>
+    <td>Clean up instance before shutting down</td></tr>
+<tr bgcolor=eeeeee><td valign=top>2: info</td>
+    <td valign=top>&nbsp;</td>
+    <td>Return XML describing the adaptor</td></tr>
+<tr bgcolor=ffffff><td valign=top>3: do</td>
+    <td valign=top>Action</td>
+    <td>Performs the action</td></tr>
+</table>
+
+Individual adaptor class handlers may implement additional functions, which will then presumably
+be available to scripting engines or something.
+
+<p>
+Implementations:<ul>
+<li><a href="ACTION_wftk.html">ACTION_wftk</a> does things wftk-related by calling the library.
+<li><a href="ACTION_system.html">ACTION_system</a>: calls the shell to execute things.
+<li>(TO DO) ACTION_perl, e.g.: calls a scripting language to do things.  This will be most powerful when wftk is embedded
+within that scripting language, of course.  Targets: Perl, Python, Tcl, Java.
+</ul>
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

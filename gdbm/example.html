@@ -1,0 +1,163 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>gdbm example code</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">gdbm</p>
+<p>[ <a href="/gdbm/">home</a> ]</p>
+<p>[ <a href="/gdbm/api.html">api</a> ]</p>
+<p>[ <a href="/gdbm/example.html">example code</a> ]</p>
+<p>[ <a href="/projects/">other programming</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>gdbm</u> -- Example code</h2>
+[&nbsp;<a href=/gdbm.html>up to gdbm index</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+<center><table width=75%><tr><td>
+<font face=arial size=-1>
+This example code is pretty simple, but it's the sort of thing I like
+to study to get a start in something, so here it is in all its tepid
+glory.  All it does is to open a gdbm file specified on the command
+line, fetch a key, and display the key.
+</font>
+</td></tr></table></center>
+</td></tr>
+
+<tr><td>
+<pre>
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;gdbm.h&gt;
+
+<a href="api.html#GDBM_FILE">GDBM_FILE</a> dbf;
+<a href="api.html#datum">datum</a> key, data;
+
+main (int argc, char *argv[])
+{
+   if (argc &lt; 3)
+      fprintf (stderr, "Usage: dbmexample <dbm file> <key>\n\n");
+      exit (1);
+   }
+
+   dbf = <a href="api.html#gdbm_open">gdbm_open</a> (argv[1], 0, GDBM_READER, 0666, 0);
+   if (!dbf)
+   {
+      fprintf (stderr, "File %s either doesn't exist or is not a gdbm file.\n", argv[1]);
+      exit (2);
+   }
+
+   key.dsize = strlen (argv[2]) + 1;
+
+   data = <a href="api.html#gdbm_fetch">gdbm_fetch</a> (dbf, key);
+
+   if (data.dsize &gt; 0) {
+      printf ("%s\n", data.dptr);
+      free (data.dptr);
+   } else {
+      printf ("Key %s not found.\n", argv[2]);
+   }
+   <a href="api.html#gdbm_close">gdbm_close</a> (file);
+}
+</pre>
+</td></tr>
+
+<tr><td>
+<center><table width=75%><tr><td>
+<font face=arial size=-1>
+A couple of notes on this little program:<ul>
+<li> I'm assuming that the process which wrote the key and data included the terminating null
+character.  Gdbm in general doesn't have to do that, which is why there's a dsize element in the
+datum structure.  But for most C applications, of course, it's pretty darned convenient to have that
+null there.  So you can see that key.dsize is one larger than the length of argv[2], and that's to include
+the null.  Note that <i>if the reader and writer don't use the same terminating null convention, then
+the keys don't match!</i>  That null is really part of the key, and fetching without it won't find the
+proper record.
+<li> The second parameter of gdbm_open is the retrieval block size of the
+file.  If less than 256, the system stat size will be used, and I figure that's
+safe.  If somebody can tell me a little about tuning using this parameter,
+I'd appreciate it.
+<li> Sorry that the example is so minimal.  It really is just intended to get
+you started.
+<li> At least on Solaris, you can compile this example by using:<br></font><code>gcc example.c -lgdbm</code>
+</ul>
+
+</td></tr></table></center>
+
+</table></center></td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

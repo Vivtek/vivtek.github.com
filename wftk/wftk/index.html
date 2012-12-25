@@ -1,0 +1,101 @@
+<html><head><title>wftk core engine</title></head>
+<body>
+<h2>wftk: wftk core engine</h2>
+<center>
+[ <a href="wftk_engine.zip">download</a> ] [ <a href="wftk_xml.txt">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+This is the core workflow engine for the <a href="http://www.vivtek.com/wftk.html">open-source
+workflow toolkit</a>.  It is a prototype, meaning that it is really bare-bones.  The basic
+mode of operation of this version is as a command-line program which accepts one workflow
+event command on its command line, or a script file on stdin.  Commands are simple: start a
+process, complete or reject a task, set a value.  These commands are intended to be used by
+a task manager such as the <a href="http://www.vivtek.com/wftk/todomgr/">to-do manager</a>
+to interpret a workflow process definition.
+<p></p>
+Besides its commands, the engine has two sources of input: the process definition and the
+datasheet.  The procdef stores information about a class of processes; the datasheet stores
+information about the current instance of that class.  Both documents are XML documents, and
+the core engine interprets these documents using James Clark's
+<a href="http://www.vivtek.com/expat.html">expat parser</a>, a stable and fairly simple parser.
+<p></p>
+As the engine performs the commands given it, it emits commands which will be consumed by the
+task manager.  These commands are on stdout and consists of instructions to active tasks,
+complete the process, or set the owner of the process.  In addition, debugging output may be
+interspersed on stdout and should be ignored by the task manager.
+<p></p>
+This initial version of wftk core understands nothing about databases.  It knows only how to
+get its process definitions from the local filesystem, and the same goes for datasheet storage.
+It is wasteful, as it parses both procdef and datasheet on each call (instead of staying
+resident as a daemon and caching this information.  All in good time.)  It relies on an
+external task manager to maintain all database information about active processes and tasks;
+indeed, it can't even activate a task alone.  It can, however, make changes to data, alert
+users and others of events, and start programs.
+<p></p>
+Here's how we do all this stuff:
+<ul>
+<li> <a href="main.html">Overview of the program and main()</a>
+<ul>
+<li> <a href="main.html#print_usage">Print usage description</a>
+</ul>
+<li> <a href="xml_stuff.html">In-memory XML data structures and functionality</a>
+<ul>
+<li> <a href="xml_stuff.html#xml_write">xml_write: Writing XML data to disk</a>
+<li> <a href="xml_stuff.html#xml_prepend">xml_prepend: Inserting elements</a>
+<li> <a href="xml_stuff.html#xml_append">xml_append: Inserting elements</a>
+<li> <a href="xml_stuff.html#xml_loc">Bookmarking things: xml_loc and xml_getloc</a>
+<li> <a href="xml_stuff.html#xml_set">Working with attributes: xml_set and xml_attrval</a>
+<li> <a href="xml_stuff.html#xml_create">xml_create: Creating an empty element</a>
+<li> <a href="xml_stuff.html#xml_createtext">xml_createtext: a shortcut for plain text</a>
+<li> <a href="xml_stuff.html#xml_free">xml_free: Cleaning up afterwards</a>
+<li> <a href="xml_stuff.html#xml_delete">Deleting pieces: xml_delete</a>
+<li> <a href="xml_stuff.html#xml_first">Children: xml_first and xml_last</a>
+<li> <a href="xml_stuff.html#xml_next">Siblings: xml_next and xml_prev</a>
+<li> <a href="xml_stuff.html#xml_insert">inserting things: xml_insertbefore and xml_insertafter</a>
+</ul>
+<li> <a href="expat.html">xml_read: Using expat to parse XML files into memory</a>
+<ul>
+<li> <a href="expat.html#startElement">Handling elements: startElement</a>
+<li> <a href="expat.html#endElement">Handling elements: endElement</a>
+<li> <a href="expat.html#charData">Handling non-element data: charData</a>
+</ul>
+<li> <a href="command_input.html">The command stack and how to load it</a>
+<li> <a href="output.html">Our oh-so-complex output stream</a>
+<li> <a href="interpreter.html">Interpreting command streams</a>
+<ul>
+<li> <a href="interpreter.html#start">'start' command</a>
+<li> <a href="interpreter.html#complete">'complete' command</a>
+<li> <a href="interpreter.html#reject">'reject' command</a>
+<li> <a href="interpreter.html#setvalue">'setvalue' command</a>
+<li> <a href="interpreter.html#script">'script' command</a>
+</ul>
+<li> <a href="load_datasheet.html">Loading the datasheet for an active process</a>
+<li> <a href="run_procdef.html">Interpreting the process definition</a>
+<ul>
+<li> <a href="run_procdef.html#sequence">Handling sequence</a>
+<li> <a href="run_procdef.html#parallel">Handling parallel</a>
+<li> <a href="run_procdef.html#task">Handling task</a>
+<li> <a href="run_procdef.html#data">Handling data</a>
+<li> <a href="run_procdef.html#situation">Handling situation</a>
+<li> <a href="run_procdef.html#if">Handling if and elseif</a>
+<li> <a href="run_procdef.html#alert">Handling alerts</a>
+<li> <a href="run_procdef.html#start">start: Starting subprocesses</a>
+</ul>
+<li> <a href="globals.html">Global variables: state</a>
+<ul>
+<li> <a href="globals.html#init">Initializing global variables from the command line</a>
+</ul>
+<li> <a href="print_stack.html">Printing the current stack as a locator</a>
+</ul>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

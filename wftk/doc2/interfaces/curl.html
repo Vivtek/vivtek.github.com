@@ -1,0 +1,54 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk and cURL</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>wftk and cURL</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="../interfacing.html">wftk interface descriptions</a> ]
+<hr>
+
+The cURL and libcurl (<a href=http://curl.haxx.se>http://curl.haxx.se</a>)
+toolset is a mature library-based retrieval mechanism for data via HTTP, FTP, and a few other interesting protocols.
+After about a year's planning, I've finally completed the first adaptor using libcurl, the <a href=../code/wftk/action/ACTION_http.html>ACTION_http
+adaptor</a>.  This HTTP adaptor could work fine with HTTPS, of course (if compiled with SSLeay), and could probably simply be extended to work
+with FTP as well, but I think it probably makes more sense to write a separate FTP action adaptor instead.
+<p>
+At any rate, the HTTP adaptor was the first step towards <a href=soap.html>SOAP integration</a>.  The SOAP adaptor simply builds an appropriate
+HTTP action object and invokes the HTTP adaptor.
+<p>
+<b><u>Timeline/contents for ACTION_soap adaptor:</u></b><br>
+<b>August 18, 2003</b>: <a href="#start">It works!</a><br>
+
+<hr width="66%">
+
+<a name="overview">
+<b>It works!</b> (August 18, 2003)<br>
+
+After several forays into the libcurl documentation, I finally took the time to sit down and design an action spec (you can see it in the code
+documentation for the adaptor), and wrote the initial version of the adaptor.  Libcurl really is easy to work with; I spent more time tinkering
+with makefiles than actually figuring out how to write libcurl calls, and once the adaptor was actually built, it worked on the first try.
+I wish everything were as well-designed and clean as libcurl.
+<p>
+
+In order to get just the minimum working to support SOAP, then, I spent about a day.  I left a lot undone which would make sense for a real live
+HTTP adaptor, such as code to build proper POST requests, anything to work with results, and so forth.  But I also spent some time debugging the
+whole action process, building the "keep" logic which inserts action results into the enactment history for a workflow, and putting together a
+test platform for action-based workflow.
+
+<p>
+Next time I spend time here, an HTML parser might be an interesting thing to think about.  Certainly cookie handling is very needed, and I left
+out all the header logic as well.  There's really no shortage of things to be done.  But -- <i>it works</i>, and retrieved a page into a workflow
+enactment like a champ.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2003 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

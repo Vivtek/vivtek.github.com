@@ -1,0 +1,170 @@
+<html><head><title>Popup UI framework: Class outline</title></head>
+<body>
+<h2>Class outline</h2>
+<center>
+[&nbsp;<a href="index.html">Previous: popup UI framework</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: popup UI framework</a>&nbsp;]
+[&nbsp;<a href="implementation.html">Next: Implementation of the classes</a>&nbsp;]
+</center>
+
+<hr>
+Now, as you may well glean from this code, I don't normally work in C++.  In fact, this will be the <i>first</i> serious program I will
+ever have written from scratch in C++.  I've done MFC work, where the MFC Wizard generates a bunch of stupid code that you mostly don't
+use, then you plug some stuff into it -- but I've never just plain <i>written C++</i> if you know what I mean.
+<p></p>
+But wxWindows is a C++ library.  So here goes.
+<p></p>
+The first thing we do is to plan our classes.  In a wxWindows app, there are at least two classes; one is the application itself (inherits
+from wxApp) and the other is a frame (inherits from wxFrame).  The child windows of the frame are of various types and can be arranged either
+by giving them fixed positions, or declaring a sizer and letting it manage things.  I'm doing the latter, and for general rich-text kinds
+of things I'm using wxHtmlWindow, which is a window class able to display a limited subset of HTML (enough to do most things you want to
+do in dialog-like situations anyway.)  Queries and messages are displayed as a modified form of HTML (with embedded special widgets) so
+this makes a lot of sense.
+<p></p>
+So let's take care of all our include files first.  Note that this is taken from the Life demo, and so there are provisions made for lots
+of compilers that I don't use.  Thus this may or may not work for those compilers.  Under Windows, I always use MSVC++ 5.0 because it works
+and I already own it.  Your mileage may vary.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifndef _POPUP_H_
+#define _POPUP_H_
+
+#ifdef __GNUG__
+    #pragma interface "life.h"
+#endif
+
+// for compilers that support precompilation, includes "wx/wx.h"
+#include "wx/wxprec.h"
+
+#ifdef __BORLANDC__
+    #pragma hdrstop
+#endif
+
+// for all others, include the necessary headers
+#ifndef WX_PRECOMP
+    #include "wx/wx.h"
+#endif
+
+#ifdef __WXMSW__
+#include &lt;wx/msw/taskbar.h>
+#endif
+
+</pre></td></tr></table>
+
+Now that that's out of the way, let's declare our application class.  For Windows, we want this application to sit quietly in the
+system tray, so we'll take care of that first: the system tray icon is a separate frame of class wxToolBarIcon.  Note that off Windows
+this doesn't work, so we'll compile it conditionally.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifdef __WXMSW__
+class PopupSystemTrayIcon: public wxTaskBarIcon
+{
+public:
+    PopupSystemTrayIcon() {};
+
+    virtual void OnMouseMove(wxEvent&amp;);
+    virtual void OnLButtonDown(wxEvent&amp;);
+    virtual void OnLButtonUp(wxEvent&amp;);
+    virtual void OnRButtonDown(wxEvent&amp;);
+    virtual void OnRButtonUp(wxEvent&amp;);
+    virtual void OnLButtonDClick(wxEvent&amp;);
+    virtual void OnRButtonDClick(wxEvent&amp;);
+
+    void OnMenuRestore(wxCommandEvent&amp;);
+    void OnMenuExit(wxCommandEvent&amp;);
+    void OnMenuQuery(wxCommandEvent&amp;);
+
+    void ProcessAdaptor(wxCommandEvent&amp;);
+
+DECLARE_EVENT_TABLE()
+};
+#endif
+</pre></td></tr></table>
+
+Now we define the application, which contains the system tray icon as a member (just for neatness).
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class PopupApp: public wxApp
+{
+  public:
+    bool OnInit();
+    int OnExit();
+
+  private:
+#ifdef __WXMSW__
+    PopupSystemTrayIcon   m_systemtrayicon;
+#endif
+
+};
+
+DECLARE_APP(PopupApp)
+#endif
+</pre></td></tr></table>
+
+In case you haven't seen C++ style before, this merely declares the members of the class which implements the application.  The actual
+implementations of the functions are in the next file, <a href="implementation.html">here</a>.  Yeah, I'm not used to it, either.  What
+object-oriented work I do is Python or Perl, where everything's done at runtime in a single file.
+<p></p>
+
+Onwards to our main window class.  It defines some handy methods to handle static events (those events known at compile time, and not
+associated with dynamically configured adaptors.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class PopupFrame : public wxFrame
+{
+public:
+    PopupFrame();
+    ~PopupFrame();
+
+    wxSizer *top_sizer;
+    wxHtmlWindow *html;
+
+    // This macro takes care of compile-time events.
+    DECLARE_EVENT_TABLE()
+
+    // event handlers
+    void OnMenu      (wxCommandEvent&amp; event);
+    void OnFileSave  (wxCommandEvent&amp; event);
+    void OnFilePrefs (wxCommandEvent&amp; event);
+    void OnHide      (wxCommandEvent&amp; event);
+    void OnClose     (wxCommandEvent&amp; event);
+    void OnQueryList (wxCommandEvent&amp; event);
+    void OnHelpAbout (wxCommandEvent&amp; event);
+
+    void ProcessAdaptor (wxCommandEvent&amp; event);
+
+};
+</pre></td></tr></table>
+
+To handle events defined at runtime (configurable menu entries and controls on messages or queries) we need a special event handler.
+This will intercept events not handled by the static event table, and call the appropriate functions.  This is where we part company
+with the nice, safe wxWindows demo code and forge our way into the wilderness.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class AdaptorEventHandler : public wxEvtHandler
+{
+   public:
+      virtual bool ProcessEvent(wxEvent&amp; event);
+};
+</pre></td></tr></table>
+
+So.  Let's go implement, shall we?
+
+
+
+
+<center>
+[&nbsp;<a href="index.html">Previous: popup UI framework</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: popup UI framework</a>&nbsp;]
+[&nbsp;<a href="implementation.html">Next: Implementation of the classes</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,164 @@
+<head>
+<title>wftk tutorial - 02 Data</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">wftk tutorial</p>
+<p>[ <a href=index.html>00 index</a> ]</p>
+<p>[ <a href=01-intro.html>01 introduction</a> ]</p>
+<p>[ <a href=02-data.html>02 data</a> ]</p>
+<p>[ <a href=03-actions.html>03 actions</a> ]</p>
+<p>[ <a href=04-actors.html>04 actors</a> ]</p>
+<p>[ <a href=05-tasks.html>05 tasks</a> ]</p>
+<p>[ <a href=06-procedures.html>06 procedures</a> ]</p>
+<p>[ <a href=07-state-machines.html>07 state machines</a> ]</p>
+<p>[ <a href=08-workflow.html>08 workflow</a> ]</p>
+<p>[ <a href=09-task-management.html>09 task mgt</a> ]</p>
+<p>[ <a href=/wftk/index.html#project>project home</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk tutorial - 02 Data</div>
+
+<p>
+</p>
+<p>The first chapter in the wftk "book" is about data for a very important reason, and one I missed for the entire first year I worked with the wftk
+back at the turn of the century: without an organizational principle for the data sources used by a workflow system, your expressive power is very
+weak.  The better you can describe a variety of data sources, the more useful your workflow system will be.</p>
+<p>Data in the wftk is organized into <strong>lists</strong>.  A list is more or less equivalent to an SQL table, with a few differences: first, every
+record in a wftk list must have a unique key; second, the individual records are not restricted to having the same fields; and third, documents may be
+attached to any arbitrary record.  Still, I find the SQL table to be a useful abstraction when thinking of lists, and of course the session actually
+exposes a DBI handle if you just want to work with SQL from the get-go.</p>
+<p>But a list may simply be a representation of any arbitrary data structure.  By implementing subclasses of Workflow::wftk::Data, we can set up
+nearly anything to be addressed by a workflow system.  Is your data stored as rows in a file?  Elements in an XML file?  Individual files in a subdirectory?
+Actual rows in a MySQL or ODBC table?  No problem; the workflow system can see that data, and manipulate it directly, once you've defined its
+structure.  The wftk can even copy data from one source to another with a single command, or use index tables in one storage form for data in a second
+storage form.  It understands lists of data within records in another list.  The idea is to do <i>everything</i>.</p>
+<p>Each item in a list is a <strong>record</strong>.  A record is essentially just a hash of named values.  The different records in a list will
+often, perhaps usually, all have the same fields -- but that is not required.</p>
+<p>In addition to field-based data, the record may also store historical data about changes made to it, actions performed on it, or events involving it.
+We'll see this later, when the facility is used to store the <strong>enactment</strong> of a workflow process, but it is available to any record in
+the wftk.  The only requirement is that you define where this historical information is stored, if the storage mode you're using doesn't do it for you.
+For instance, if a list is stored in a MySQL table, you'll have to put historical data elsewhere (it could be in another MySQL table, or perhaps in a
+separate log file elsewhere).
+<p>The wftk also understands <strong>document management</strong>.
+To any record, you can attach any set of arbitrary documents (although a given list may restrict
+your ability to do so with wanton abandon).  These attachments can be anything -- from incoming
+faxes to source code to ... whatever.  The wftk will handle version control for you if necessary.  Document management can also simply be a
+descriptive system to track files managed externally, for instance the code files in a programming project.</p>
+<p>Here is an index to the information in the data chapter:</p>
+
+(unresolved tag 02-index)
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

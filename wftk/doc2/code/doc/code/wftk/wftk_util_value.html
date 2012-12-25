@@ -1,0 +1,141 @@
+<html><head><title>wftk command-line utility: Dealing with values</title></head>
+<body>
+<h2>Dealing with values</h2>
+<center>
+[&nbsp;<a href="wftk_util_request.html">Previous: Working with requests</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_enactment.html">Next: Working with the enactment history</a>&nbsp;]
+</center>
+
+<hr>
+<br><br>
+<a name="set">
+<i>set: setting named values</i><br>
+To set a value, we have to find and load the specified datasheet, then call <code>wftk_value_set</code> to set the
+value.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 4) {
+   printf ("wftk set: repository and ID of the datasheet, the value name, and the value are all required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+wftk_value_set (session, datasheet, argv[argp], argv[argp+1]); argp++; argp++;
+wftk_process_save (session, datasheet);
+printf ("%s = %s\n", argv[argp-2], argv[argp-1]);
+</pre></td></tr></table>
+<br><br>
+<a name="get">
+<i>get: getting named values</i><br>
+Getting a value is pretty much the same thing, except that we don't have to save the datasheet afterwards.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 3) {
+   printf ("wftk get: repository and ID of the datasheet and the value name are all required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+printf ("%s\n", value=wftk_value_get (session, datasheet, argv[argp++]));
+if (value) free (value);
+</pre></td></tr></table>
+<br><br>
+<a name="values">
+<i>values: listing named values</i><br>
+Listing the values in a datasheet is very similar to listing tasks.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 2) {
+   printf ("wftk list: repository and ID of the datasheet are required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+
+list = xml_create ("list");
+wftk_value_list (session, datasheet, list);
+mark = xml_firstelem (list);
+if (!mark) {
+   printf ("No values set.\n");
+} else {
+   while (mark) {
+      printf ("%s = %s", xml_attrval (mark, "id"), xml_attrval (mark, "value"));
+      printf ("\n");
+      mark = xml_nextelem (mark);
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="html">
+<i>html: getting HTML for a named value</i><br>
+Getting HTML is a whole lot like getting the regular value.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 3) {
+   printf ("wftk get: repository and ID of the datasheet and the value name are all required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+mark = wftk_value_html (session, datasheet, argv[argp++]);
+if (mark) {
+   xml_write (stdout, mark);
+   printf ("\n");
+   xml_free (mark);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="htmlblank">
+<i>htmlblank: getting a blank field</i><br>
+And getting blank HTML is exactly the same.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 3) {
+   printf ("wftk get: repository and ID of the datasheet and the value name are all required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+mark = wftk_value_htmlblank (session, datasheet, argv[argp++]);
+if (mark) {
+   xml_write (stdout, mark);
+   printf ("\n");
+   xml_free (mark);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_util_request.html">Previous: Working with requests</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_enactment.html">Next: Working with the enactment history</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

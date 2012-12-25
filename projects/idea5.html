@@ -1,0 +1,150 @@
+<html>
+<head>
+<title>Translation tool - batch TRADOS segment editor</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">programming</p>
+<p>[ <a href="/projects/">all projects</a> ]</p>
+<p>[ <a href="/blog/">blog</a> ]</p>
+<p>[ <a href="/projects/forum_despammer/">forum despammer</a> ]</p>
+<p>[ <a href="/projects/wiki/">wiki tools</a> ]</p>
+<p>[ <a href="/projects/fantasy_names/">name generator</a> ]</p>
+<p>[ <a href="/gdbm.html">gdbm</a> ]</p>
+<p>[ <a href="/expat.html">expat</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Translation tool - batch TRADOS segment editor</div>
+<p><table>
+<tr><td><b>id:</b></td><td>5</td></tr>
+<tr><td><b>title:</b></td><td>Translation tool - batch TRADOS segment editor</td></tr>
+</table>
+</p><p>
+When working with TTX files in TRADOS using the TagEditor, I find that there are a lot of things which I can't do easily.  I don't (yet) want to reverse engineer the entire TagEditor, because it's a good tool as far as it goes, but there are some things which could really be improved with a separate tool.
+</p><p>
+1. Global search and replace.  I still find it hard to believe that any tool used by professional translators could fail to implement global search and replace, but TagEditor doesn't.
+</p><p>
+2. Global find and abstracted edit.
+</p><p>
+That last begs an explanation.  But first, let me propose how a global search and replace <i>should</i> work, then show how #2 is an extension of that functionality.
+</p><p>
+Global searching is given a phrase, and finds all the segments which match it.  So far, so good.  It then applies a replace function (a good one, case-preserving, like Word) and instead of simply doing the replace, it should <i>present the changed segments</i> for approval.  Each would have a checkbox; uncheck the box, and that segment won't be changed.
+</p><p>
+But of course, we can go one further.  If we have that list of segments, we could export a TTX containing just those, and invoke TagEditor on it to do whatever we need to do.  That's "global find and abstracted edit".  We could also have two buttons for the search-and-replace; if one button is clicked, the marked segments are changed and the unmarked ones discarded, but if the other is clicked, the marked segments are changed and the unmarked ones are abstracted and opened for editing piecemeal.
+</p><p>
+This would be a fantastic tool for editing, or for any time when you discover new glossary items after doing some translation (including when the customer decides to use a different gloss than the one you liked.)  I'm sure everyone's experienced that.
+</p>
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

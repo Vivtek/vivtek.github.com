@@ -1,0 +1,373 @@
+<html><head>
+<title>Perl/CGI implementation</title>
+<META NAME="description" CONTENT="A freely available implementation of RFC1867 file upload for Perl/CGI, with excruciatingly detailed code documentation.">
+<META NAME="Keywords" CONTENT="RFC1867 file upload, literate programming, CGI/Perl, CGI, Perl">
+</head>
+<body>
+<h2>Perl/CGI implementation of RFC1867 file upload</h2>
+<hr>
+This is an implementation of RFC1867 in a form which makes it a generally useful procedure
+for getting form input in a CGI program.  That is, you can call this procedure whether
+you're expecting file uploads or not; there's very little overhead involved if no files are
+actually provided.  So it makes for convenient site design.
+<p></p>
+Since this code will execute in a CGI environment, there are two sources of input data.
+The QUERY_STRING environment variable may contain &amp;-delimited URL-encoded data, and
+there may be input data on stdin as well.  If a normal form is used, then stdin-derived
+data is also &amp;-delimited URL-encoded data, but if an RFC1867 file upload form is in
+use, then the format is as I describe on my <a href="http://www.vivtek.com/rfc1867.html">RFC1867
+page</a>.  This routine doesn't care; it'll take anything it can get, and will even combine
+data from both possible sources.
+<p></p>
+You can get the finished form of the code <a href="_getargs.txt">here</a>.  To use it with
+your CGI code, just put it in your use page and do this:
+<blockquote><code>use "_getargs.txt";</code></blockquote>
+(Or you can rename the file to something else, of course.)
+<p></p>
+This routine returns input values into a hash, and returns a reference to the hash (often
+called a hashref.)  And we use a hashref to pass in information about how to handle uploads,
+as well.  So you use the function and the returned data like this:
+<blockquote>
+<code>
+$uploads{base} = "/usr/local/my/directory";<br>
+$uploads{file} = "upload_[(field)]";<br>
+$uploads{mime}{image/jpeg} = "jpg";<br>
+$input = getargs(\%uploads);<br>
+$myvalue = $$input{name};
+</code>
+</blockquote>
+(If you haven't seen $$ to retrieve hashref values, then go buy the Camel book right now.)
+<p></p>
+Here's what the main function looks like.  All the underlined italic phrases are code 
+chunks which are elaborated down below.  You can follow the link, or you can just scroll
+down the page; this whole file is presented on one page.  Excuse the disclaimer there, but
+it kind of has to be there these days.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre># This is _getargs, a Perl/CGI argument reader capable of retrieving RFC1867 file uploads
+# as well as "normal" URL-encoded input.
+# (c) Vivtek 2000.  Licensed under the terms of the GNU Public License.
+# Documentation at http://www.vivtek.com/cgi/getargs.html
+#
+# You may freely use and copy this code for any purpose, as long as this comment block
+# remains attached exactly as it is.  Modified forms of this code must clearly state the
+# fact that they're modified.  This code is distributed with no warranty at all -- if it
+# breaks, it's not my problem.  If it breaks your system, it's still not my problem.
+
+sub getargs {
+   <i>See <a href="getargs.html#collect">Collect all the URL-encoded input into $input</a></i>
+   <i>See <a href="getargs.html#process">Process the URL-encoded input into hash</a></i>
+   <i>See <a href="getargs.html#quitnow">Return the hash right now if we don't have file uploads</a></i>
+
+   <i>See <a href="getargs.html#rfc1867">Do the RFC1867 thing</a></i>
+
+   return \%tagset;
+}
+</pre></td></tr></table>
+
+We've got one helper function which builds a filename from values already encountered in
+the form.  Very useful for attaching files to things.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="getargs.html#makefilename">Helper function to build filename</a></i>
+</pre></td></tr></table>
+
+And then we have to return 1 so that <code>use</code> won't get upset.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>1;
+</pre></td></tr></table>
+<br><br>
+<a name="collect">
+<i>Collect all the URL-encoded input into $input</i><br>
+The contents of the QUERY_STRING environment variable are always URL-encoded.  And if we're
+not getting our input from an RFC1867 multipart-data form, then stdin also contains
+URL-encoded data, so we simply get it line by line and tack it onto <code>$input</code>.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>my $input = $ENV{QUERY_STRING};
+if (lc($ENV{CONTENT_TYPE}) eq 'application/x-www-form-urlencoded') {
+   $input .= "&amp;" if $input ne '';
+   while (<>) {
+     chomp;
+     $input .= $_;
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="process">
+<i>Process the URL-encoded input into hash</i><br>
+Each chunk of URL-encoded input is split into a name and value, delimited by the '='.
+So we split on the '=', then we URL-decode the value and write it into our output hash
+keyed by the name.  This has some side effects, notable among which is the fact that a URL
+may easily contain two values with the same name (some of my own code uses this sort of trick,
+for instance, to represent a list of checkboxes of items to delete from a list.)  If this
+happens, the hash will <i>not</i> reflect this -- the last occurrence of a name will be the
+one that survives in the hash.
+<p></p>
+So you've been warned.  For most applications this code will work fine.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>my $i;
+my @t;
+my %tagset;
+foreach $i (split /&amp;/, $input) {
+   @t = split /=/, $i, 2;
+      
+   $t[1] =~ tr/+/ /;
+   $t[1]=~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
+   $tagset{$t[0]} = $t[1];
+}
+</pre></td></tr></table>
+<br><br>
+<a name="quitnow">
+<i>Return the hash right now if we don't have file uploads</i><br>
+To check whether there is mulitpart data on stdin, we just check our content type.  If it's
+not multipart, we return a reference to our <code>tagset</code> hash.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>return \%tagset if (lc($ENV{CONTENT_TYPE}) !~ m'multipart/form-data;');
+</pre></td></tr></table>
+
+If we <i>do</i> have multi-part data, then it's still going to get into the hash, but it will
+be considerably more involved to get it.
+<br><br>
+<a name="rfc1867">
+<i>Do the RFC1867 thing</i><br>
+So OK, let's get down to business actually reading multipart/form-data input.  First, let's
+reserve our variables, so as not to clutter up the namespace.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>my $line;
+my $lines;
+my $name;
+my $type;
+my $filename;
+my $file = 0;
+my $localname;
+</pre></td></tr></table>
+
+Where we actually put files, and how we name them, is governed by the <code>uploads</code>
+hashref passed in as a parameter to the function.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>my $uploads = shift @_;
+</pre></td></tr></table>
+
+The content-type of a multipart/form-data header includes the boundary string.  The boundary
+string is a string guaranteed not to appear in the data itself.  So it's safe to separate
+fields within the input.  Each field will thus consist of a number of lines on stdin, separated
+by the boundary value on its own line.  Let's get the boundary value now.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>my ($junk,$boundary) = split /=/, $ENV{CONTENT_TYPE}, 2;
+$boundary =~ s/\n//;
+$boundary = "--$boundary";
+</pre></td></tr></table>
+
+Now we enter the main loop of the reader.  If the line is a boundary line, then we read the
+header immediately following in order to know how to process subsequent lines; otherwise, we
+handle the current line appropriately depending on whether we're in the middle of a file, or just
+a plain data field.  (If we're in the middle of a file, then the line is decoded and written
+to the file we have open while we're reading.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>LINE: while (<>) {
+      last if ($_ eq "${boundary}--\r\n");
+      if ($_ eq "$boundary\r\n") {
+         <i>See <a href="getargs.html#boundary">Handle transition to new field</a></i>
+      }
+
+      if ($file) {
+         # Write the line to the temp file.
+         print _GETARGS_TEMP $_;
+      } else {
+         s/[\r\n]*$//;
+         if ($lines > 0) {$tagset{$name} .= "\n"; }
+         $tagset{$name} .= $_;
+         $lines ++;
+      }
+   }
+   close _GETARGS_TEMP;
+</pre></td></tr></table>
+<br><br>
+<a name="boundary">
+<i>Handle transition to new field</i><br>
+At the beginning of each field, we have several lines of headers, followed by a blank line,
+followed by content.  When a boundary comes up, then, we have to interpret the headers
+to see what's coming next.  The first header is the Content-Disposition, which gives us
+the name of the field, and if it's a file then it also gives us the client-side filename.
+<blockquote>
+<code>Content-Disposition: form-data; name="myfile"; filename="c:\myfile.txt"</code>
+</blockquote>
+So the first thing we do at the beginning of a field is to decipher the contents of this
+first line of headers.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$line=<>; # Get first line of headers.
+$line =~ s/.*?; //; # Chop off the Content-Disposition part, we don't need it.
+($name, $filename) = split /; /, $line, 2;
+($junk, $name) = split /"/, $name;
+</pre></td></tr></table>
+
+Now we have the field name in <code>$name</code> and the filename (if a file upload) in
+<code>$filename</code>.  We do a little housework:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>close _GETARGS_TEMP;
+$file = 0;
+$lines = 0;
+</pre></td></tr></table>
+
+(The <code>_GETARGS_TEMP</code> file handle may be open from the last field -- that's the handle
+we use to write file upload data to.)
+<p></p>
+If the filename is blank, this field is just a plain old field and the <code>$file</code>
+flag will thus remain zero.  But if there is a filename, then we have to process it and then
+get the next line so as to interpret the content type.
+<p></p>
+For each upload field, this code will create a "virtual field" in the output hash listing the
+details of the upload (like the client-side local filename).  If the field is named myfield,
+then the details of the upload will end up in <code>_details_myfield</code>.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if ($filename ne "") {
+   $file = 1;
+   ($junk, $filename) = split /"/, $filename;
+   $tagset{"_details_$name"} = $filename;
+</pre></td></tr></table>
+OK, so let's get the next line, which is the Content-Type.  This is the MIME type of the
+incoming file.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   $line=<>;
+   chomp $line;
+   ($junk, $type) = split ": ", $line;
+   $type =~ s/\r*//g;
+   $tagset{"_details_$name"} .= "|" . $type;
+</pre></td></tr></table>
+
+Our next step will be to determine a filename in which to store the incoming file data.
+First, the extension.  If you have extensions preset in the <code>$uploads</code> hashref,
+then we'll use that.  (To do this, when building your hashref, do something like the following.)
+<blockquote>
+<code>
+my %uploads;<br>
+$uploads{mime}{image/jpeg} = "jpg";<br>
+$input = getargs(\%uploads);
+</code>
+</blockquote>
+The reason this is important is that many uploads will be coming from Windows machines, where
+extensions may well be in capital letters.  If you're running on Unix, and using this for
+upload of files to be served from a website, then the extension ".JPG" probably won't be
+served with the proper mimetype of "image/jpeg", simply because the extension ".jpg" is the
+only one registered.  Add that to the fact that JPEG files are often stored with a four-character
+extensions, and chaos ensues.
+<p></p>
+So let's check <code>$uploads</code> for an extension for the current MIME type.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   $ext = $$uploads{mime}{$type};
+   if ($ext eq '') {
+      $ext = $filename;
+      $ext =~ s/^.*\.//;
+   }
+</pre></td></tr></table>
+And now let's call <code>getargs_makefilename</code> to format us a filename based on fields
+already read.  (See below for an explanation of this function.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   $tagset{$name} = getargs_makefilename ($$uploads{file}, \%tagset, $name);
+   if ($ext ne '') { $tagset{$name} .= ".$ext"; }
+</pre></td></tr></table>
+
+Then, using the <code>$uploads</code> parameter again to determine the base directory for the
+file, build a filename and open the file in <code>_GETARGS_TEMP</code>.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   $localname = "$$uploads{base}/$tagset{$name}";
+   if ($localname ne '') {
+      if (open _GETARGS_TEMP, ">$localname") {
+         $tagset{"_details_$name"} .= "|" . $localname;
+      }
+   }
+}
+</pre></td></tr></table>
+Finally, toss any remaining header lines (whether this is an upload field or not.)  This is
+probably a bad idea, but so far it seems to be working.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>while ($line=<>) { next LINE if $line == "\n"; }
+</pre></td></tr></table>
+
+And that was it.  That's one way of parsing RFC1867 file uploads, and you could do
+substantially the same thing in any language (although those Perl regexps sure make things
+easy.)
+<br><br>
+<a name="makefilename">
+<i>Helper function to build filename</i><br>
+The only piece still missing is that <code>getargs_makefilename</code> function used above.
+It takes a name specification string, the hash currently being read as a hashref, and the
+name of the field actually being worked on.
+<p></p>
+It scans the namespec for things in square brackets, and replaces them with the corresponding
+value from the hashref.   It has one special value: any occurrence of [(field)] will be
+replaced with the field name of the file being uploaded.  This allows multiple files to be
+uploaded on a single form.
+<p></p>
+So if I have a form with a username field, say, and two upload fields, call them "file1" and
+"file2", then I could specify a namespec like "<code>[username]_[(field)]</code>".  If my
+username is joe, then the first file will end up in a file named <code>joe_file1</code> (plus
+the MIME-specified extension) and the second in <code>joe_file2</code>.  Clear?  I thought so.
+<p></p>
+Just to be on the safe side, we'll also remove "dangerous" characters from the filename.
+Dangerous characters are basically any kind of punctuation.  And I like to replace spaces with
+underscores as well, just to make coding easier elsewhere.  But hey -- if it doesn't work for
+you, by all means take that part out.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub getargs_makefilename {
+   my $spec = shift(@_);
+   my $object = shift(@_);
+   my $field = shift(@_);
+
+   while ($spec =~ /\[(.*?)\]/) {
+      $tag = $1;
+      if ($tag eq '(field)') {
+         $val = $field;
+      } else {
+         $val = $$object{$tag};
+      }
+      $val =~ tr/ /_/;
+      $val =~ s/[&amp;!"'*;]//g;
+      $tag =~ s/\(/\\(/g;
+      $tag =~ s/\)/\\)/g;
+      $spec =~ s/\[$tag\]/$val/g;
+   }
+
+   return $spec;
+}
+</pre></td></tr></table>
+This kind of thing is just so easy in Perl.  I love Perl.
+<br><br>
+<a name="conclusion">
+<i>Conclusion</i><br>
+So all in all, RFC1867 may not be for the faint-hearted, because there is a lot to keep track
+of in comparison to plain text values -- but it's not brain surgery, either.  I use the above
+code daily for a number of my customers' needs, and you can, too.  If you do find it useful,
+tell me -- I'd like to know what's good and what's bad about this presentation.  And if you
+make any changes, I'd love to know what and why.
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  The code is presented in a literate programming
+style using the <a href="http://www.vivtek.com/lpml/">LPML tool</a>, available free of
+charge from Vivtek.  Try it, you'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

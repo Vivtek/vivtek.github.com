@@ -1,0 +1,104 @@
+<html><head><title>wftk core engine: The command stack and how to load it</title></head>
+<body>
+<h2>The command stack and how to load it</h2>
+<center>
+[&nbsp;<a href="expat.html">Previous: xml_read: Using expat to parse XML files into memory</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk core index</a>&nbsp;]
+[&nbsp;<a href="output.html">Next: Our oh-so-complex output stream</a>&nbsp;]
+</center>
+
+<hr>
+The term "command stack" is probably a misnomer.  What the structure really is, is a list
+of things to do to the process.  Generally these things to do are task transitions (tasks
+have been activated or completed) -- so I had thought to call these transitions.  But then
+another command is to start a project, and then yet another is to set a value in a datasheet
+(which should be done through the workflow engine to allow thread-safe usage, later.)
+<p></p>
+So I finally decided that commands were what they are.  Sorry for the cheesy limit of 5 arguments
+to a command, but I really don't want to get into a double-malloc situation for a totally
+throwaway data structure.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>typedef struct _command COMMAND;
+struct _command {
+   char * name;
+   int    argc;
+   char * argv[5];
+   COMMAND * next;
+};
+</pre></td></tr></table>
+The <code>next</code> member, of course, is to allow commands to be strung together into a linked
+list.  Note that this "command language" is really simple, because the "commands" are really
+notifications from the task manager that something has happened which the engine needs to act
+upon.  Maybe "messages" would be a better terminology -- but nope, they're commands now.
+Live with it.
+<p></p>
+Well, so the other thing we want to define here is a handy little function to tack a command
+onto a list of commands.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>COMMAND * command_add (COMMAND * list, char * name, int argc, ...)
+{
+   COMMAND * cmd;
+   int i;
+   va_list argv;
+
+   va_start(argv, argc);
+   cmd = (COMMAND *) malloc (sizeof (struct _command));
+   cmd->name = name;
+   cmd->argc = argc;
+   for (i=0; i < argc; i++) {
+      cmd->argv[i] = va_arg(argv, char *);
+   }
+   va_end(argv);
+   cmd->next = NULL;
+
+   if (!list) return (cmd);
+
+   while (list->next != NULL) list = list->next;
+   list->next = cmd;
+
+   return cmd;
+}
+</pre></td></tr></table>
+
+Oh, and we'll want a function to free up lists, too:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void command_freelist (COMMAND * list)
+{
+   COMMAND * cmd;
+
+   while (list) {
+      cmd = list;
+      list = list->next;
+      free ((void *) cmd);
+   }
+}
+</pre></td></tr></table>
+
+And I guess one more function, this one to take a file stream and load up a command list from
+it.  The version I have here is rather crude but we'll presumably improve on it later.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void command_load (COMMAND * list, FILE * file)
+{
+   
+}
+</pre></td></tr></table>
+Oh.  Well, that's even cruder than I had intended, heh, but I'll get to it soon enough.
+
+
+
+<center>
+[&nbsp;<a href="expat.html">Previous: xml_read: Using expat to parse XML files into memory</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk core index</a>&nbsp;]
+[&nbsp;<a href="output.html">Next: Our oh-so-complex output stream</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

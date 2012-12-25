@@ -1,0 +1,308 @@
+<html>
+<head>
+<title>Despamming the Toonbots forum</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">forum despamming</p>
+<p>[ <a href="/projects/forum_despammer">modbot</a> ]</p>
+<p>[ <a href="spam_archive/">spam archive</a> ]</p>
+<p>[ <a href="google_count.html">google count</a> ]</p>
+<p>[ <a href=todo.html>to-do list</a> ]</p>
+<p>[ <a href="despammer1.html">despammer alpha</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=todo>new task</a> ]</p>
+<p>[ <a href=archive.html>view archive</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Despamming the Toonbots forum, Chapter the Fourth</div>
+<div class="subtitle">Day one dawns with a new surprise</div>
+<hr>
+<p>
+Earlier chapters: <a href="ch1.html">Extracting preliminary information<a>,
+<a href="ch2.html">Analysis of preliminary information</a>,
+and <a href="ch3.html">Using our knowledge to despam the forum</a>.  And so I put this
+script into the crontab, and lo! on the first morning, there was a surprise.  A spam had survived.
+</p>
+<pre class="code">
+????: 6817 - Re: Eating the piece of fruit
+????: 6854 - Re: Eating the piece of fruit
+????: 6856 - Re: Eating the piece of fruit
+????: 6888 - Re: Eating the piece of fruit
+????: 6979 - Don't feed the trolls
+????: 6980 - Fredy
+</pre>
+<p>
+Well.  I'd sacrificed my display ability when putting in the despamming code itself.  So I put it back, but
+with a little better control.  If I pass a post number to the script, I want to see the log dump for that post,
+but the script should take no action and ignore all other posts but that one.
+</p>
+<p>
+No sooner said than done, most of the changes being in the top loop (you can see the full current script at the bottom
+of this page.)  Now I display post 6980: "perl despammer.pl 6980":
+<pre class="code">
+------------------------------------------------------------------
+ 6980 - 222.76.215.173 - Fredy
+------------------------------------------------------------------
+19/Jan/2007:12:55:23 - /make-contact - POST - http://www.vivtek.com/webmaster.html
+19/Jan/2007:14:14:44 - /make-contact - POST - http://www.vivtek.com/webmaster.html
+23/Jan/2007:03:19:31 - /make-contact - POST - http://www.vivtek.com/webmaster.html
+27/Jan/2007:03:10:18 - /make-contact - POST - http://www.vivtek.com/webmaster.html
+01/Feb/2007:05:10:09 - /make-contact - POST - http://www.vivtek.com/answers.html
+01/Feb/2007:05:10:37 - /make-contact - POST - http://www.vivtek.com/webmaster.html
+04/Feb/2007:03:11:12 - /toonbots/discuss.pl?post - POST - http://www.vivtek.com/toonbots/discuss.pl
+Spammy? maybe
+</pre>
+<p>
+So this guy has been around for a while, "visited" non-forum pages, but never actually done a GET.  Just POST.  If that ain't
+filterable, I don't know what is.  The "make-contact" URL is what I use for Web-based messages from my site to my own email.
+Now I know who's been injecting spam into it.  (Bastards.)  I figure their strategy is that postable fields are nearly always
+fora, so posting into a non-forum field is just acceptable collateral damage.  <i>They have no costs</i>, so they don't care.
+</p>
+<p>
+Anyway, the filtration is easy.  Here's the modified script:
+</p>
+<pre class="code">
+$logdir = "/usr/local/aolserver/servers/vivtek/modules/nslog";
+$discussion = "/home/michael/vivtek/pages/toonbots/discussion";
+
+chdir $discussion;
+
+$p = $ARGV[0];
+
+opendir D, ".";
+@files = grep /^\d+$/, readdir(D);
+closedir D;
+
+sub extract_post_info;
+sub extract_log_info;
+sub apply_rules;
+
+$spam_count = 0;
+foreach $post (sort @files) {
+   next if (-M $post > 7);
+   if ($p) {
+      next unless $p == $post;
+   }
+   extract_post_info();
+   if ($p) {
+      print "------------------------------------------------------------------\n";
+      print " $post - $ip - $subj\n";
+      print "------------------------------------------------------------------\n";
+   }
+   extract_log_info();
+   $spammy = apply_rules();
+   if ($p) {
+      print "Spammy? $spammy\n";
+      last;
+   } else {
+      if ($spammy eq 'yes') {
+         print "SPAM: $post - $subj\n"; 
+         system "mv $post spam";
+         $spam_count += 1;
+      } elsif ($spammy eq 'maybe') {
+         print "????: $post - $subj\n";
+      }
+   }
+}
+
+if ($spam_count) { system "rm messages.idx"; }
+
+# ------- Applying rules ----------------------------
+sub apply_rules {
+   if ($hits == 0) { return 'no'; }
+   if ($hits == $post_posts) { return 'yes'; }
+   if ($content_hits == 0) { return 'yes'; }
+   if ($initial_content_hits == $content_hits &amp;&amp; $content_hits &lt; 3) { return 'yes'; }
+   return 'maybe';
+}
+
+# ------- Extracting post information ---------------
+sub get_field;
+sub extract_post_info {
+   open P, $post;
+   while (&lt;P>) {
+      $ip = get_field ($_) if /^IP_ADDRESS>/;
+      $subj = get_field ($_) if /^SUBJECT>/;
+   }
+   close P;
+}
+sub get_field {
+   my $in = shift;
+   chomp($in);
+   $in =~ s/^.*>//;
+   return $in;
+}
+
+# ------- Extracting log information ---------------
+sub extract_logline_info;
+sub extract_log_info {
+   if (-M $post > 0.1) {
+      open G, "grep -h $ip $logdir/meat.* |";
+   } else {
+      open G, "grep -h $ip $logdir/access.log |";
+   }
+   $hits = 0;
+   $content_hits = 0;
+   $initial_content_hits = 0;
+   $post_posts = 0;
+   while (&lt;G>) {
+      extract_logline_info();
+      $hits += 1;
+      $content_hits += 1 unless $forum_post;
+      $initial_content_hits += 1 unless $forum_post or $hits != $content_hits;
+      $post_posts += 1 if $meth eq 'POST';
+   }
+   close G;
+}
+
+# ------- Extracting log line information ---------
+sub extract_logline_info {
+   chomp;
+   $line = $_;
+   ($first, $dt, $last) = split / *[\[\]] */, $line;
+   $dt =~ s/ -\d*$//;
+   ($ip, $j1, $j2) = split / +/, $first;
+   ($j1, $req, $respbw, $ref, $j2, $agent, $j3) = split / *" */, $last;
+   ($meth, $url, $protocol) = split / /, $req;
+   ($resp, $bandwidth) = split / /, $respbw;
+
+   $file = $url;
+   $file =~ s/.*\///;
+
+   $forum_post = 0;
+   $forum_post = 1 if $file =~ /^discuss.pl/;
+   $forum_post = 1 if $file =~ /^board_/;
+
+   if ($p) { print "$dt - $url - $meth - $ref\n"; }
+}
+</pre>
+<p>
+Still a pretty easy script to grok, and it's doing a bangup job keeping the forum usable.
+Here's the result:
+</p>
+<pre class="code">
+????: 6817 - Re: Eating the piece of fruit
+????: 6854 - Re: Eating the piece of fruit
+????: 6856 - Re: Eating the piece of fruit
+????: 6888 - Re: Eating the piece of fruit
+????: 6979 - Don't feed the trolls
+SPAM: 6980 - Fredy
+</pre>
+<p>
+I hope you've enjoyed today's lesson.
+</p>
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

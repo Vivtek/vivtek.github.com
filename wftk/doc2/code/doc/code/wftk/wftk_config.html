@@ -1,0 +1,348 @@
+<html><head><title>wftk context handling: wftk configuration module</title></head>
+<body>
+<h2>wftk configuration module</h2>
+<center>
+[&nbsp;<a href="wftk_session_handling.html">Previous: Working with sessions</a>&nbsp;]
+[&nbsp;<a href="wftk_session.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_adaptors.html">Next: wftk adaptor code</a>&nbsp;]
+</center>
+
+<hr>
+When I originally starting building a configuration module, I envisioned a more interchangeable 
+module -- Unix configuration is generally compiled in or read from a .conf file somewhere, while
+Windows configuration is usually retrieved from the Registry.  But then I started putting all the
+configuration information into an XML file, and probably it'll stay there.  I guess you could
+still do something else with it, but (like so many aspects of the wftk) this way works.
+<p></p>
+The only remaining drawback is that for statically compiled adaptors, the config module needs
+to be recompiled.  That's inconvenient.  I'm not yet sure what the answer is, either; it'll
+have something to do with the repository manager and lists of compiled modules, but that's
+as far as I've thought it through.
+<p></p>
+And speaking of linking, one of the things we need to do is to keep track of what we've already
+loaded dynamically.  To do that, let's define some linked-list things before we get serious
+about configuration stuff.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct loaded_library {
+   int adaptor_class;
+   char adaptor[32]; /* Note the limit on adaptor name.  Since typical names are "localxml" or "oracle"
+                        this limit should be quite sufficient. */
+   char filename[256]; /* Here we'll build the path to the DLL. */
+#ifdef WINDOWS
+   HINSTANCE inst; /* This is how we'll do it under Win32.  Under Unix, I still have to learn how... */
+#endif
+   struct wftk_adaptor_info * ai;
+   struct loaded_library * next;
+};
+struct loaded_library * loaded_libraries = NULL;
+</pre></td></tr></table>
+Now, I'm tempted to put this into the session, so it can be cleaned up when the session unloads.  But
+really I think it's session-independent.  This leaves me a little confused as to when it <i>should</i>
+be cleaned up.  Oh, what a tangled web we weave.
+<p></p>
+I think the best way to handle this is to create a cleanup function which can be called when the
+wftk DLL is unloaded.  If the wftk is statically linked, then we can either call this explicitly, or
+we can trust the OS to clean up properly for us when our process is terminated.  Does that make sense?
+<p></p>
+Let's go ahead and define our cleanup:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void wftk_config_cleanup ()
+{
+   struct loaded_library * ll;
+
+   while (loaded_libraries) {
+      ll = loaded_libraries;
+      loaded_libraries = ll->next;
+#ifdef WINDOWS
+      FreeLibrary (ll->inst);
+#endif
+      free (ll);
+   }
+}
+</pre></td></tr></table>
+
+On that note, let's look at the <code>wftk_config_get_adaptor</code> function.
+Note a couple of things about this function.  First, if the adaptor descriptor is a null pointer,
+that means that the config module should use the system default, and that default must be statically
+linked at the moment.  (Later I'll work out how to signify a default DLL in the config structure.)
+<p></p>
+To make the declarations of statically linked adaptors come out right, we need to declare a few functions
+for each right here.  So to configure this config module with a new statically linked adaptor, all you
+need to do is to declare the functions here, and then add the adaptor into the <code>switch</code> statement
+below, and of course link the adaptor to the core engine at link time.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre></pre></td></tr></table>
+
+And now the function itself.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static WFTK_ADAPTOR * wftk_config_get_adaptor (XML * session, int adaptor_class, const char * adaptor_descriptor, int name_length)
+{
+   char namebuf[64];
+   struct loaded_library * library;
+   WFTK_ADAPTOR_INFO_FN * func;
+   struct wftk_adaptor_info * ai = NULL;
+   char * dll_start = "";
+
+   WFTK_ADAPTOR * ret;
+   WFTK_SESSION * sess = wftk_session_init (session);
+
+   if (sess->static_module_lookup) ai = (sess->static_module_lookup) (adaptor_class, name_length, adaptor_descriptor);
+
+   if (!ai &amp;&amp; name_length) { /* The adaptor isn't statically linked, anyway.  Let's try finding it dynamically, if it's named. */
+      switch (adaptor_class) {
+         case DSREP:
+            dll_start = "DSREP_";
+            break;
+         case DATASTORE:
+            dll_start = "DATASTORE_";
+            break;
+         case DATATYPE:
+            dll_start = "DATATYPE_";
+            break;
+         case PDREP:
+            dll_start = "PDREP_";
+            break;
+         case USER:
+            dll_start = "USER_";
+            break;
+         case LIST:
+            dll_start = "LIST_";
+            break;
+         case PERMS:
+            dll_start = "PERMS_";
+            break;
+         case TASKINDEX:
+            dll_start = "TASKINDEX_";
+            if (!name_length) {  /* The default not being a static link, we have to check the config for an explicit name. */
+               adaptor_descriptor = (char *) wftk_config_get_value (session, "taskindex.default");
+               if (strchr (adaptor_descriptor, ':')) name_length = strchr (adaptor_descriptor, ':') - adaptor_descriptor;
+               else                                  name_length = strlen (adaptor_descriptor);
+            }
+            break;
+         case NOTIFY:
+            dll_start = "NOTIFY_";
+            if (!name_length) {
+               adaptor_descriptor = (char *) wftk_config_get_value (session, "notify.default");
+               if (strchr (adaptor_descriptor, ':')) name_length = strchr (adaptor_descriptor, ':') - adaptor_descriptor;
+               else                                  name_length = strlen (adaptor_descriptor);
+            }
+            break;
+         case ACTION:
+            dll_start = "ACTION_";
+            break;
+         case DEBUG_MSG:
+            dll_start = "DEBUG_MSG_";
+            break;
+         default:
+            return (WFTK_ADAPTOR *) 0;
+      }
+
+      /* Is this DLL already loaded?  Check the loaded list. */
+      library = loaded_libraries;
+      strncpy (namebuf, adaptor_descriptor, name_length);
+      while (library) {
+         if (adaptor_class == library->adaptor_class &amp;&amp; !strcmp (namebuf, library->adaptor)) {
+            ai = library->ai;
+            break;
+         }
+         library = library->next;
+      }
+
+#ifdef WINDOWS
+      if (!ai) {
+         /* Look for a properly named DLL.  When I figure out dynaloading under Unix this will expand. */
+         library = (struct loaded_library *) malloc (sizeof (struct loaded_library));
+         library->adaptor_class = adaptor_class;
+         strcpy (library->adaptor, namebuf);
+         strcpy (namebuf, dll_start);
+         strncat (namebuf, adaptor_descriptor, name_length);
+         strcat (namebuf, ".dll");
+         library->inst = LoadLibrary (namebuf);
+         if (!library->inst) {
+            wftk_config_debug_message ('A', "Failed to load library %s (%d).\n", namebuf, GetLastError());
+            free (library);
+            return NULL;
+         }
+         strcpy (namebuf, dll_start);
+         strncat (namebuf, adaptor_descriptor, name_length);
+         strcat (namebuf, "_get_info");
+         func = (WFTK_ADAPTOR_INFO_FN *) GetProcAddress (library->inst, namebuf);
+         if (!func) {
+            wftk_config_debug_message ('A', "Adaptor doesn't export %s.\n", namebuf);
+            free (library);
+            return NULL;
+         }
+         ai = (*func) ();
+      }
+#endif
+   }
+   if (!ai) return (WFTK_ADAPTOR *) 0; /* No luck. */
+
+   ret = (WFTK_ADAPTOR *) malloc (sizeof (struct wftk_adaptor) + ai->nfuncs * sizeof (void *));
+   if (!ret) return (WFTK_ADAPTOR *) 0;
+
+   ret->num     = adaptor_class;
+   ret->parms   = (void *) 0;     /* This will be filled in by the caller. */
+   ret->nfuncs  = ai->nfuncs;
+   ret->names   = ai->names;
+   ret->vtab    = ai->vtab;
+   ret->session = session;
+   return (ret);
+}
+</pre></td></tr></table>
+
+And we need a very similar function in order to return adaptor lists.  Note that for adaptor lists, we don't bother with
+all the adaptor classes, because many of them don't even make sense used that way.  Adaptor lists are only used for
+notification-like functions (task index, debug messager, etc.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static WFTK_ADAPTORLIST * wftk_config_get_adaptorlist (XML * session, int adaptor_class)
+{
+   const char * spec = "";
+   int adaptors = 1;
+   int i;
+   const char * mark;
+   char * mark2;
+   char adaptorbuffer[256]; /* TODO: another dang static buffer.  Fix it. */
+   WFTK_ADAPTORLIST * list;
+
+   switch (adaptor_class) {
+      case TASKINDEX:
+         spec = wftk_config_get_value (session, "taskindex.always");
+         break;
+      case NOTIFY:
+         spec = wftk_config_get_value (session, "notify.always");
+         break;
+      default:
+         return (WFTK_ADAPTORLIST *) 0;
+   }
+
+   if (!*spec) return (WFTK_ADAPTORLIST *) 0;
+
+   /* First pass: count semicolons, so we know how large a list structure to allocate. */
+   mark = spec;
+   do {
+      mark = strchr (mark, ';');
+      if (!mark) break;
+      adaptors++; mark++;
+   } while (mark);
+
+   list = (WFTK_ADAPTORLIST *) malloc (sizeof (WFTK_ADAPTOR_LIST) + adaptors * sizeof (WFTK_ADAPTOR *));
+   list->count = adaptors;
+
+   for (i=0, mark = spec; i < adaptors; i++) {
+      strcpy (adaptorbuffer, mark);
+      mark = strchr(mark, ';');
+      if (mark) { mark++; while (*mark == ' ') mark++; }
+      mark2 = strchr (adaptorbuffer, ';');
+      if (mark2) *mark2 = '\0';
+
+      list->ads[i] = wftk_get_adaptor (session, adaptor_class, adaptorbuffer);
+   }
+
+   return (list);
+}
+</pre></td></tr></table>
+
+OK, with that out of the way, let's look at a simple function to return named values.
+Since these named values will be constant, I'm going to take the cheap way out and just return pointers.  This means that
+if the pointer is used to write, the workflow system is not going to react in a happy, friendly way, but it's so much
+simpler to work with this way.
+<p></p>
+Some of the named values we use will be required only by specific adaptors, so I don't think it makes sense simply to
+number them.  So instead of a nice clean <code>switch</code> we need a bunch of string comparisons.  Sorry.  The smarter
+config module will presumably just pass this off to some API (the canonical one being the Windows Registry, of course.)
+<p></p>
+This function itself uses the definitions in the localdefs.h file.  That seems weird -- why not just include the values
+right here? -- but it's more natural to look for config values in a .h file than in a .c file, so I think that makes more
+sense for the time being.  At any rate, with any luck that's going to be superseded relatively quickly anyway.  Right?
+<p></p>
+And wow -- I superseded it before I even finished the release.  It was just too stupid.  The compiled values will still
+be there as fallbacks in case you want to run <i>sans</i> config.xml, but we'll go ahead and read config.xml.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * config_find_option (XML * xml, const char * name) {
+   int len;
+   XML * x;
+   char * mark = strchr (name, '.');
+
+   if (mark) len = mark - name;
+   else      len = strlen (name);
+
+   x = xml_firstelem (xml);
+   while (x) {
+      if (!strncmp (xml_attrval (x, "name"), name, len) ||
+          !strncmp (xml_attrval (x, "id"), name, len)   ||
+          !strncmp ("?", name, len)) {
+         if (mark) {
+            return (config_find_option (x, mark + 1));
+         }
+         return (x);
+      }
+      x = xml_nextelem (x);
+   }
+   return NULL;
+}
+static XML * config_get_option (XML * session, const char * valuename) {
+   WFTK_SESSION * sess = wftk_session_init(session);
+   if (sess) {
+      if (sess->config) {
+         return (config_find_option (sess->config, valuename));
+      }
+   }
+   return NULL;
+}
+WFTK_EXPORT const char * wftk_config_get_value (XML * session, const char * valuename) {
+   XML * mark = config_get_option (session, valuename);
+   if (mark) return (xml_attrval (mark, "value"));
+
+   /*if (!strcmp (valuename, "pdrep.localxml.directory")) return PROCDEF_DIRECTORY;
+   if (!strcmp (valuename, "dsrep.localxml.directory")) return DATASHEET_DIRECTORY;
+   if (!strcmp (valuename, "user.localxml.directory")) return USER_DIRECTORY;
+   if (!strcmp (valuename, "group.localxml.directory")) return GROUP_DIRECTORY;
+   if (!strcmp (valuename, "taskindex.odbc.?.conn")) return ODBC_CONNECTION;*/
+   return "";
+}
+</pre></td></tr></table>
+
+Was that too weird?  I'm sure it'll make sense later.
+<p></p>
+
+Finally, the debugging message handler.  In this first version, I'm going to get dumb (duh) and simply write to stdout.
+Later we can refine this, with debug logging and stuff.  And later still we can get fancy.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void wftk_config_debug_message (char type, const char * message, ...)
+{
+   va_list arglist;
+
+   va_start (arglist, message);
+   printf ("DEBUG %c:", type);
+   vprintf (message, arglist);
+   printf ("\n");
+   va_end (arglist);
+}
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="wftk_session_handling.html">Previous: Working with sessions</a>&nbsp;]
+[&nbsp;<a href="wftk_session.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_adaptors.html">Next: wftk adaptor code</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

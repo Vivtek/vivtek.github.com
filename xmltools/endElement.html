@@ -1,0 +1,100 @@
+<html><head><title>xmltools: Handling elements: endElement</title></head>
+<body>
+<h2>Handling elements: endElement</h2>
+<center>
+[&nbsp;<a href="startElement.html">Previous: Handling elements: startElement</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: xmltools index</a>&nbsp;]
+[&nbsp;<a href="charData.html">Next: Handling non-element data: charData</a>&nbsp;]
+</center>
+
+<hr>
+The endElement function is called whenever expat hits the close of an element.  In the event
+that an empty element is used (e.g. &lt;tag name="empty"/>) then both startElement and
+endElement will be called, as though the XML were actually &lt;tag name="empty">&lt;/tag>.
+This makes things much easier to write -- but it also means we have to do a little gyration
+if we want to be able to write empty tags to our output.
+<p></p>
+This is of course why we have an <code>empty</code> flag on each tag; if the tag is still
+empty, then endElement will print "/>" to close it; otherwise it will print the entire
+close tag, name and all.
+<p></p>
+You can see that xmlinsert checks for whether it has anything to insert, before anything
+else is done, and after the tag is closed.  If the insertion is to an empty tag, then we
+have to close the tag and mark it nonempty.
+<p></p>
+And then you notice that we have three different <code>if</code> statements -- xmlsnip only
+emits the tag if it is in the snip location, xmlreplace only emits the tag if it's
+not being replaced, and everybody else emits the tag if tags are being emitted.  Since that
+part is handled inside the <code>if</code>, the outer <code>if</code> is just an <code>if
+(1)</code>.  In retrospect that's kind of an odd way to code that; I guess it shows that I
+wrote xmlsnip first and then hacked it up to make the other tools.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void endElement(void *userData, const char *name)
+{
+   FRAME * old;
+   int c;
+
+#ifdef XMLINSERT
+   if (top->level == emit_level &amp;&amp; !strcmp (insertwhere, "aftercontent")) {
+      if (top->empty) {
+         printf (">");
+         top->empty = 0;
+      }
+      while (!feof(stdin)) { c = getchar(); if (!feof(stdin)) putchar(c); }
+      emit_level = -1;
+   }
+#endif
+
+#ifdef XMLSNIP
+   if (!finished &amp;&amp; emit_level > -1 &amp;&amp; top->level - 1 + emit_matching_tag >= emit_level) {
+#else
+#ifdef XMLREPLACE
+   if (emit_level &lt; 0 || top->level + emit_matching_tag &lt;= emit_level) {
+#else
+   if (1) {
+#endif
+#endif
+      if (! top->empty) {
+         if (emit_tags) printf ("&lt;/%s", name);
+      } else {
+         if (emit_tags) printf ("/");
+      }
+      if (emit_tags) printf (">");
+   }
+
+#ifdef XMLINSERT
+   if (top->level == emit_level &amp;&amp; !strcmp (insertwhere, "after")) {
+      while (!feof(stdin)) { c = getchar(); if (!feof(stdin)) putchar(c); }
+      emit_level = -1;
+   }
+#endif
+
+#ifdef XMLSNIP
+   if (top->level == emit_level) finished = 1;
+#endif
+   if (top->level == emit_level) emit_level = -1;
+
+   old = top;
+   if (top->back->level == 0) {
+      top->back->next = NULL;
+   }
+   top = top->back;
+   free_frame (old);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="startElement.html">Previous: Handling elements: startElement</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: xmltools index</a>&nbsp;]
+[&nbsp;<a href="charData.html">Next: Handling non-element data: charData</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

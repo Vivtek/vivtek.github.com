@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk: processes</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk: working with processes</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="index.html">wftk programmer's guide home</a> ]
+<hr>
+
+<h3>Processes</h3>
+The <i>process</i> in wftk is represented by a <i>datasheet</i>.  The datasheet is an XML document
+(whether a file or stored some other place, it ends up as an XML structure by the time wftk works with
+it).  Its primary function is to store the data values attached to a process, hence its name, but it
+also stores the workflow execution state of the process, the enactment history, associated (involved)
+users, current role assignments, and so forth.  In other words, it does a lot.
+<p>
+When creating a new process, you may or may not have a key in mind.  If you don't, the datasheet
+repository picks one for you -- but it doesn't actually pick the ID until you save the datasheet.  This
+may cause some confusion, but the idea there is that if you don't actually have to save the datasheet,
+you shouldn't have to pollute the datasheet repository.
+<p>
+<h3>Functions</h3>
+<pre>
+XML  * wftk_process_new     (void * session, const char * dsrep, const char * datasheet_id);
+XML  * wftk_process_load    (void * session, const char * dsrep, const char * datasheet_id);
+int    wftk_process_save    (void * session, XML * datasheet);
+int    wftk_process_define  (void * session, XML * datasheet, const char * pdrep, const char * procdef_id);
+int    wftk_process_archive (void * session, const char * dsrep, const char * datasheet_id, const char * archive);
+int    wftk_process_delete  (void * session, const char * dsrep, const char * datasheet_id);
+int    wftk_process_adhoc   (void * session, XML * datasheet, XML * arbitraryworkflow);
+</pre>
+
+<h3>Details</h3>
+<a name="wftk_process_new"></a>
+<font size=+1>wftk_process_new</font> returns <code>XML *</code>
+<blockquote>
+<code>void * session</code>,<br>
+<code>const char * dsrep</code>,<br>
+<code>const char * datasheet_id</code>
+</blockquote>
+Creates a new process in the named datasheet repository (dsrep) with the requested datasheet_id.  If the dsrep parameter is NULL,
+the default datasheet repository specified in the configuration will be used.  If the datasheet_id is NULL, then one will be assigned
+when the new process is saved.  If the datasheet_id is given but is already taken in the datasheet repository, then the newly created
+process will <i>not</i> have the given ID but will be treated as though no ID were requested.  You're on your own to handle that
+situation.  Finally, if the datasheet_id is given and isn't already used, then the "id" attribute will be set in the newly created
+process, and the (very empty) process will be saved in order to stake the claim to the ID.
+
+<br><br>
+
+<a name="wftk_process_load"></a>
+<font size=+1>wftk_process_load</font> returns <code>XML *</code>
+<blockquote>
+<code>void * session</code>,<br>
+<code>const char * dsrep</code>,<br>
+<code>const char * datasheet_id</code>
+</blockquote>
+Loads the named datasheet.  The dsrep may be NULL, in which case the default repository will be used.  The datasheet_id, of course,
+may <i>not</i> be NULL here (it'll return NULL in that case, not dump core.)  Returns NULL if the specified datasheet isn't found, otherwise
+retrieves the datasheet, makes sure it's cached, and returns it.
+
+<br><br>
+
+<a name="wftk_process_save"></a>
+<font size=+1>wftk_process_save</font> returns <code>int</code>
+<blockquote>
+<code>void * session</code>,<br>
+<code>XML * datasheet</code>
+</blockquote>
+Saves the datasheet.  If the datasheet doesn't have an ID yet, one is generated.  Returns 0 if there's a problem.
+
+<br><br>
+
+<a name="wftk_process_define"></a>
+<font size=+1>wftk_process_define</font> returns <code>int</code>
+<blockquote>
+<code>void * session</code>,<br>
+<code>XML * datasheet</code>,<br>
+<code>const char * pdrep</code>,<br>
+<code>const char * procdef_id</code>
+</blockquote>
+Associates the indicated procdef with the process.  As usual, if you pass NULL as the pdrep, the default procdef repository will be used.
+Returns 0 if there's a problem.
+
+<br><br>
+
+<a name="wftk_process_archive"></a>
+<font size=+1>wftk_process_archive</font> returns <code>int</code>
+<br><b>NOT YET IMPLEMENTED</b>
+<blockquote>
+<code>void * session</code>,<br>
+<code>const char * dsrep</code>,<br>
+<code>const char * datasheet_id</code>,<br>
+<code>const char * archive_id</code>
+</blockquote>
+Archives a process.  Or will, as soon as I figure out exactly how it should work.
+
+<br><br>
+
+<a name="wftk_process_delete"></a>
+<font size=+1>wftk_process_delete</font> returns <code>int</code>
+<blockquote>
+<code>void * session</code>,<br>
+<code>const char * dsrep</code>,<br>
+<code>const char * datasheet_id</code>
+</blockquote>
+Deletes the indicated process.  Returns 0 if the process couldn't be deleted.
+
+<br><br>
+
+<a name="wftk_process_adhoc"></a>
+<font size=+1>wftk_process_adhoc</font> returns <code>int</code>
+<blockquote>
+<code>void * session</code>,<br>
+<code>XML * datasheet</code>,<br>
+<code>XML * arbitraryworkflow</code>
+</blockquote>
+Attaches arbitrary workflow to the given process.  The workflow will be activated as soon as it's attached and will use the same
+interpreter as the defined workflow would, blocking on tasks and so forth.
+
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

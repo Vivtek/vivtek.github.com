@@ -1,0 +1,156 @@
+<html><head><title>use wftk: Perl wrapper for wftk</title></head>
+<body>
+<h2>use wftk: Perl wrapper for wftk</h2>
+<center>
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+OK, I'll level with you.  This testing framework is my very first try at
+any systematic testing integrated into any part of the wftk project tree.
+I plead insanity, along with the usual: I'm too busy with Real Life to bother
+with ... testing?  I'll just stick with the insanity, I guess.
+
+<p></p>
+Seriously.  In 2000, when I started down this road, pervasive testing was a 
+pretty outre idea.  Now it's starting to be accepted, and my New Year's resolution
+is that everything I do should be tested in a testing framework.  Eventually.
+
+<p></p>
+A testing framework is also a good place to demonstrate usage.  So I'm going to try
+to develop that in this document as well.  Wish me luck.
+
+<br><br>
+<a name="xml1">
+<i>Testing basic XML api port</i><br>
+OK, this is a basic set of tests for the XML API, a simple (ish) library for
+working with XML, originally started in Perl in the year 1999, I believe,
+then ported to C in 2000 in the context of wftk, then ramified greatly over the
+next few years, and now being ported back into Perl.  How's that for history?
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>use Test::More tests => 11;
+
+use Workflow::wftk::XML;
+</pre></td></tr></table>
+
+First thing to test: simple creation of an XML structure and its rendering
+back into a string.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$s = xml_create ("test");
+$back = xml_string ($s);
+is ($back, "&lt;test/>", "xml_string");
+</pre></td></tr></table>
+
+If we try to render anything other than XML, we get an empty string.
+(Not an error; the XMLAPI is way too forgiving, because I like to be
+slapdash when scripting.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>is (xml_string ("not XML"), '', 'xml_string 2');
+</pre></td></tr></table>
+
+Now let's test some parsing and other stuff.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$rec = xml_parse ("&lt;test>\n&lt;field id=\"testfld\">value1&lt;/field>\n&lt;/test>");
+is (xml_name($rec), 'test', 'xml_name');
+</pre></td></tr></table>
+
+
+The xml_element function returns a list of sub-elements of an XML element
+passed in.  If the item passed isn't an XML element at all (or is a text leaf)
+then we get an empty list back.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>@e = xml_elements ($rec);
+is (@e, 1, "xml_elements 1");
+@e = xml_elements ($e[0]);
+is (@e, 0, "xml_elements 2");
+@e = xml_elements ("not an element");
+is (@e, 0, "xml_elements 3");
+</pre></td></tr></table>
+
+Here's a quick test that doesn't really rate high priority.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$is = xml_is_element("blargh");
+is ($is, 0, "xml_is_element on non-hash");
+</pre></td></tr></table>
+
+Turns out xml_string wasn't escaping characters (due to my ancient laziness) and that sucked.
+I fixed it, and here's a test to prove it.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$test = xml_create ("record");
+xml_set ($test, "test", "<test>");
+$str = xml_string ($test);
+is ($str, '<record test="&amp;lt;test&amp;gt;"/>');
+</pre></td></tr></table>
+
+And then it turns out xml_stringcontenthtml wasn't unquoting things (and then was unquoting things incorrectly).
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$in = 'blargh<">&amp;';
+xml_append ($test, xml_createtext($in));
+$out = xml_stringcontenthtml ($test);
+is ($in, $out);
+</pre></td></tr></table>
+
+Here's a test of xml_replace.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$in = xml_parse ("<a><b/><c/></a>");
+$b = xml_search_first ($in, 'b', undef, undef);
+xml_replace ($b, xml_parse "<notb><notc/></notb>");
+$out = xml_string ($in);
+is ($out, "<a><notb><notc/></notb><c/></a>");
+$b = xml_search_first ($in, 'b', undef, undef);
+is (xml_is_element($b), 0);
+</pre></td></tr></table>
+
+<br><br>
+<a name="xmlobj1">
+<i>Testing basic xmlobj API port</i><br>
+The xmlobj library is a simple XML formatting tool which allows arbitrary XML
+to be addressed in a kind of field-based manner.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>use Test::More tests => 2;
+
+use Workflow::wftk::XML;
+</pre></td></tr></table>
+
+First, let's set up a nice little xmlobj object to test reading with.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$rec = xml_parse ("&lt;test>\n&lt;field id=\"testfld\">value1&lt;/field>\n&lt;field id=\"second\">value2&lt;/field>\n&lt;/test>");
+</pre></td></tr></table>
+
+Later, we'll build these things with xmlobj itself, of course, but reading is more important.
+Here's how we read:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$value = xmlobj_get ($rec, undef, 'testfld');
+is ($value, "value1", "xmlobj_get");
+is (xmlobj_get ($rec, undef, 'second'), "value2", "xmlobj_get 2");
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2004-2006, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

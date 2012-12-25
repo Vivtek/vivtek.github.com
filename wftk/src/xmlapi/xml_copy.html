@@ -1,0 +1,106 @@
+<html><head><title>xmlapi: xml_copy: making fresh copies of XML</title></head>
+<body>
+<h2>xml_copy: making fresh copies of XML</h2>
+<center>
+[&nbsp;<a href="xml_insert.html">Previous: inserting things: xml_insertbefore and xml_insertafter</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_attr.html">Next: xml_attr*: Working with attributes</a>&nbsp;]
+</center>
+
+<hr>
+Since an XML element knows its parent, you run into problems when you want an element to
+be moved from one tree into another: if you free the first, the second is broken.  To avoid
+this kind of unpleasantness, use <code>xml_copy</code>.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xml_copy (XML * orig)
+{
+   XML * copy = NULL;
+   char * text;
+   XML * child;
+   ATTR * attr;
+
+   if (!orig) return copy;
+
+   if (!orig->name) {
+      text = xml_string (orig);
+      copy = xml_createtext (text);
+      FREE (text);
+      return copy;
+   }
+
+   copy = xml_create (orig->name);
+   attr = orig->attrs;
+   while (attr) {
+      xml_set (copy, attr->name, attr->value);
+      attr = attr->next;
+   }
+
+   child = xml_first (orig);
+   while (child) {
+      xml_append (copy, xml_copy (child));
+      child = xml_next (child);
+   }
+
+   return (copy);
+}
+</pre></td></tr></table>
+
+Similarly, there arise plenty of situations (at least in wftk) where you want to copy over attributes
+and content from one XML into another, but want to leave existing attributes alone.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xml_copyinto (XML * target, XML * source)
+{
+   char * text;
+   XML * child;
+   ATTR * attr;
+
+   if (!source) return target;
+   if (!source->name) {
+      text = xml_string (source);
+      if (target) {
+         xml_append (target, xml_createtext (text));
+         FREE (text);
+         return (target);
+      }
+      target = xml_createtext (text);
+      return (target);
+   }
+
+   if (!target) target = xml_create (source->name);
+
+   attr = source->attrs;
+   while (attr) {
+      xml_set (target, attr->name, attr->value);
+      attr = attr->next;
+   }
+
+   child = xml_first (source);
+   while (child) {
+      xml_append (target, xml_copy (child));
+      child = xml_next (child);
+   }
+
+   return (target);
+}
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="xml_insert.html">Previous: inserting things: xml_insertbefore and xml_insertafter</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_attr.html">Next: xml_attr*: Working with attributes</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

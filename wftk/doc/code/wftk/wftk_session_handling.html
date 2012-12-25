@@ -1,0 +1,378 @@
+<html><head><title>wftk context handling: Working with sessions</title></head>
+<body>
+<h2>Working with sessions</h2>
+<center>
+[&nbsp;<a href="wftk_session_c.html">Previous: Function definitions</a>&nbsp;]
+[&nbsp;<a href="wftk_session.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_config.html">Next: wftk configuration module</a>&nbsp;]
+</center>
+
+<hr>
+Up until now (March 2002) the session has been a binary struct which was passed along into all wftk API functions as a void
+pointer.  I thought that was pretty slick -- but when I started in on the "../repmgr/index.html" repository manager, I realized
+that it was a real pain.  For the repository manager, I already have to pass the repository definition around; passing a binary
+session around, too, would make my API look like something Microsoft wrote.  (No offense to the Microsoft crowd.)  The obvious
+answer, now that the XMLAPI includes a binary pointer for each XML element, would be to pass an arbitrary XML structure around
+with all necessary binary information attached.  So ... that's what I'm doing here.
+<p></p>
+It's a little more complicated than that, however -- the repository manager occasionally needs that binary pointer itself on the
+repository definition, so we can't use that one for our wftk session.  Instead, if the XML we get is a wftk-session element, we
+assume that its binary pointer should be our session struct.  Otherwise, we do an xml_search for the first wftk-session element
+we find, and use that.  If we don't have a wftk-session element, by God we make one and append it to the XML we're given.  Thus we
+have a simple way to stash wftk information for whatever arbitrary XML structure is tossed at us as a context.
+<p></p>
+A caveat: the wftk API was originally intended to work fine if you gave it a NULL session.  I've never tested it that way, though,
+because frankly it's not very flexible that way, which is why I came up with the session in the first place.
+If anybody's interested in a micro-wftk or something that would minimize its
+code and memory footprint, that might be a path to pursue.  Dunno.  I'm not interested in it at the moment.
+<p></p>
+To augment the wftk_session_alloc that comes up with a new session from thin air (and which, of course, simply allocated a session
+struct earlier) we have a wftk_session_init, which takes an XML structure and enchants it.  It also returns a pointer to the
+binary session struct, so it can be used internally for handy-dandy retrieval of the good stuff.  This shouldn't be necessary
+from the outside.  But it <i>does</i> mean that an arbitrary XML structure can be used for wftk context without any previous
+initialization, if we don't want to mess with it.
+<p></p>
+The old wftk_session_free can now go away, as it will happen automagically when xml_free is called on the context.  That's convenience!
+<p></p>
+I've included a "wftk_session_cleanup" which will remove the session binary (and if there's an extra wftk-session holder, that, too)
+from an XML structure.  I don't know whether I'll ever use it, but it can't hurt and I'm on a roll.
+<p></p>
+<i>November 26, 2002</i>: Today I realized that this is the obvious place to stash context information.
+So (in support of the repmgr context API) here it is.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static void wftk_session_free (WFTK_SESSION * sess);
+WFTK_EXPORT XML * wftk_session_alloc ()
+{
+   WFTK_SESSION * sess;
+   XML * ret = xml_create ("wftk-session");
+
+   sess = (WFTK_SESSION *) malloc (sizeof (struct wftk_session));
+   memset ((void *) sess, '\0', sizeof (struct wftk_session));
+   xml_setbin (ret, sess, (XML_SETBIN_FREE_FN *)wftk_session_free);
+
+   return ret;
+}
+static void wftk_session_free (WFTK_SESSION * sess)
+{
+   WFTK_ADAPTOR_LIST * list;
+   WFTK_CACHE_LIST * cachelist;
+   if (!sess) return;
+
+   while (sess->ads) {
+      wftk_free_adaptor (NULL, sess->ads->ad);
+      list = sess->ads->next;
+      free (sess->ads);
+      sess->ads = list;
+   }
+
+   while (sess->cache) {
+      xml_free (sess->cache->cached);
+      cachelist = sess->cache->next;
+      free(sess->cache);
+      sess->cache = cachelist;
+   }
+
+   if (sess->user)      xml_free (sess->user);
+   if (sess->context)   xml_free (sess->context);
+   if (sess->config)    xml_free (sess->config);
+   if (sess->datasheet) xml_free (sess->datasheet);
+   if (sess->procdef)   xml_free (sess->procdef);
+   if (sess->values)    xml_free (sess->values);
+}
+WFTK_EXPORT void * wftk_session_init (XML * session)
+{
+   WFTK_SESSION * sess;
+   XML * mark;
+
+   if (!session) return NULL;
+
+   if (!xml_is (session, "wftk-session")) {
+      mark = xml_search (session, "wftk-session", NULL, NULL);
+      if (!mark) {
+         mark = xml_create ("wftk-session");
+         xml_prepend (session, xml_createtext ("\n"));
+         xml_prepend (session, mark);
+         xml_prepend (session, xml_createtext ("\n"));
+      }
+      session = mark;
+   }
+
+   sess = xml_getbin (session);
+   if (!sess) {
+      sess = (WFTK_SESSION *) malloc (sizeof (struct wftk_session));
+      memset ((void *) sess, '\0', sizeof (struct wftk_session));
+      xml_setbin (session, sess, (XML_SETBIN_FREE_FN *)wftk_session_free);
+   }
+
+   return sess;
+}
+WFTK_EXPORT void wftk_session_cleanup (XML * session)
+{
+   XML * mark;
+   WFTK_SESSION * sess;
+
+   if (xml_is (session, "wftk-session")) {
+      sess = xml_getbin (session);
+      if (sess) {
+         wftk_session_free (sess);
+         xml_setbin (session, NULL, NULL);
+      }
+   } else {
+      mark = xml_search (session, "wftk-session", NULL, NULL);
+      if (mark) xml_delete (mark);
+   }
+}
+</pre></td></tr></table>
+
+The rest of the session API is pretty much just like the old version, except that it goes through wftk_session_init above to retrieve
+the binary session information (as much as it needs, anyway.)
+<p></p>
+The session was originally supposed to hold just the currently used datasheet and procdef, to simplify freeing them up and to avoid
+loading them again and again.  But then I realized it's also the only logical place to store the configuration.  So without a session,
+you can't have a configuration and you're thrown onto the precompiled values for repository directories and such.  Of course, now the
+configuration information is going to be stored in the enclosing context (probably) so this may not even make sense.  I guess we'll
+sound it out as we go.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void wftk_session_configure (XML * session, XML * config)
+{
+   WFTK_SESSION * sess = wftk_session_init (session);
+   sess->config = config;
+}
+WFTK_EXPORT void   wftk_session_setlookup  (XML * session, WFTK_MODULE_LOOKUP_FN fn)
+{
+   WFTK_SESSION * sess = wftk_session_init (session);
+   sess->static_module_lookup = fn;
+}
+</pre></td></tr></table>
+
+The <code>wftk_session_current</code> call associates a workflow object (in XML format) with the current session so that
+subsequent calls to the library needn't look the object up again.  Ideally this should be transparent.  That makes freeing
+up these objects somewhat confusing -- if you're not using a session, you have to do it yourself; otherwise, the session will
+track things for you.  This stuff may get replaced at some point, it's hard to say.  It's been going strong for a year now.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void wftk_session_current (XML * session, XML * object)
+{
+   WFTK_SESSION * sess = wftk_session_init (session);
+
+   if (!sess) return;
+   if (!object) return;
+
+   if (xml_is (object, "datasheet")) {
+      sess->datasheet = object;
+      return;
+   }
+   if (xml_is (object, "procdef")) {
+      sess->procdef = object;
+      return;
+   }
+}
+</pre></td></tr></table>
+
+The cache mechanism is kind of weird.  You build an XML element and set a couple of attributes.  This element is now a cache key.
+Toss it at the cache, and it will either match completely, in which case the key is discarded and the cached XML is returned, or
+it won't, in which case the key is cached as a new structure and you can do with it what you will.  This is probably a dangerous
+way of doing things, because if you have a wftk daemon running you've got no good way to clean up the cache or time things out or
+really do anything.  So (yet again) this would be a good place to start looking post-v1.0 for things to do.  Sigh.  I can tell that
+workflow is going to take the rest of my life.
+<p></p>
+The <code>wftk_session_cachecheck</code> function (get it?) checks for the key but doesn't delete it or cache it, either way.  This
+is used to determine whether we're going to need to read something from the filesystem or not.  (In that case, if read, the parser
+will return a brand-new XML structure, so it wouldn't be the same one as the key which got cached.  Not practical.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * wftk_session_cache (XML * session, XML * key, int * flag)
+{
+   WFTK_SESSION * sess = wftk_session_init (session);
+   WFTK_CACHE_LIST * list;
+   XML_ATTR * attr;
+
+   if (flag) *flag = 0;
+
+   if (!session) return key;
+   if (!key) return key;
+
+   return key; /* TODO: figure out whether this is worth saving, and how not to do it wrong. */
+
+   list = sess->cache;
+   while (list) {
+      if (xml_is (key, xml_name (list->cached))) {
+         attr = xml_attrfirst (key);
+         while (attr) {
+            if (strcmp (xml_attrvalue (attr), xml_attrval (list->cached, xml_attrname(attr)))) break;
+            attr = xml_attrnext (attr);
+         }
+         if (!attr) break;
+      }
+      list = list->next;
+   }
+
+   if (list) {
+      if (flag) *flag = 1;
+      xml_free (key);
+      return list->cached;
+   }
+
+   list = sess->cache;
+   sess->cache = (WFTK_CACHE_LIST *) malloc (sizeof (WFTK_CACHE_LIST));
+   sess->cache->cached = key;
+   sess->cache->next = list;
+
+   return key;
+}
+
+WFTK_EXPORT XML * wftk_session_cachecheck (XML * session, XML * key)
+{
+   WFTK_SESSION * sess = wftk_session_init (session);
+   WFTK_CACHE_LIST * list;
+   XML_ATTR * attr;
+
+   if (!session) return NULL;
+   if (!key) return NULL;
+
+   list = sess->cache;
+   while (list) {
+      if (xml_is (key, xml_name(list->cached))) {
+         attr = xml_attrfirst (key);
+         while (attr) {
+            if (strcmp (xml_attrvalue (attr), xml_attrval (list->cached, xml_attrname(attr)))) break;
+            attr = xml_attrnext (attr);
+         }
+         if (!attr) break;
+      }
+      list = list->next;
+   }
+
+   if (list) {
+      return list->cached;  /* Found. */
+   }
+
+   return NULL; /* Not found. */
+}
+</pre></td></tr></table>
+
+The <code>wftk_session_setuser</code> creates a user structure and assigns the given userid to it.  More will certainly
+be done with this later.  This function is not intended to include authentication of the userid.  The <code>wftk_session_getuser</code>
+just returns the user structure with no further ado.  Of course, the caller may then change said structure (providing a
+way to do that authentication.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void wftk_session_setuser (XML * session, char * userid)
+{
+   WFTK_SESSION * sess = wftk_session_init (session);
+
+   if (!session) return;
+   if (sess->user) { xml_free (sess->user); }
+
+   sess->user = xml_create ("user");
+   xml_set (sess->user, "id", userid);
+}
+WFTK_EXPORT void wftk_session_storeuser (XML * session, XML * user)
+{
+   WFTK_SESSION * sess = wftk_session_init (session);
+
+   if (!session) return;
+   if (sess->user) { xml_free (sess->user); }
+
+   sess->user = user;
+}
+WFTK_EXPORT XML * wftk_session_getuser (XML * session)
+{
+   WFTK_SESSION * sess = wftk_session_init (session);
+
+   if (!session) return NULL;
+   return (sess->user);
+}
+</pre></td></tr></table>
+
+The <code>wftk_session_setcontext</code> takes a context object and places it in the current session,
+freeing any previously stored context if necessary.  The <code>wftk_session_getcontext</code> then
+simply retrieves a pointer to that context.  A NULL context may be passed.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void wftk_session_setcontext (XML * session, XML * context)
+{
+   WFTK_SESSION * sess = wftk_session_init (session);
+
+   if (!session) return;
+   if (sess->context) { xml_free (sess->context); }
+
+   sess->context = context;
+}
+WFTK_EXPORT XML * wftk_session_getcontext (XML * session)
+{
+   WFTK_SESSION * sess = wftk_session_init (session);
+
+   if (!session) return NULL;
+   return (sess->context);
+}
+</pre></td></tr></table>
+
+<i>(April 11, 2001)</i> Stashing values in the session is just about the only logical way to handle alternate datastores.
+The way this works is that the session is given a (character pointer) value to stash.  It wraps a value XML around that,
+thereby copying the value, and tucks that away for later freeing.  Then it returns the value XML.
+<p></p>
+
+Later, the calling application has the option of freeing up the value for performance's sake (or leaving it there for
+cleanup with the session for simplicity's sake.)  We do that by scanning the values <i>by pointer</i> and deleting the
+one found (if found).  If we don't find the pointer, we do nothing.  This is C the way it should be (YMMV).
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * wftk_session_stashvalue (XML * session, const char * value)
+{
+   WFTK_SESSION * sess = wftk_session_init (session);
+   XML * holder;
+
+   if (!sess->values) sess->values = xml_create ("list");
+
+   holder = xml_create ("value");
+   xml_set (holder, "value", value);
+   xml_append (sess->values, holder);
+
+   return holder;
+}
+
+WFTK_EXPORT void wftk_session_freevalue (XML * session, const char * value)
+{
+   WFTK_SESSION * sess = wftk_session_init (session);
+   XML_ATTR * attribute;
+   XML * pointer = xml_firstelem (sess->values);
+
+   while (pointer) {
+      attribute = xml_attrfirst (pointer);
+      while (attribute) {
+         if (xml_attrvalue (attribute) == value) { /* Note test of pointer equality! */
+            xml_delete (pointer);
+            return;
+         }
+         attribute = xml_attrnext (attribute);
+      }
+      pointer = xml_nextelem (pointer);
+   }
+}
+</pre></td></tr></table>
+
+That's it for session handling.  Onwards to configuration management.
+
+
+
+<center>
+[&nbsp;<a href="wftk_session_c.html">Previous: Function definitions</a>&nbsp;]
+[&nbsp;<a href="wftk_session.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_config.html">Next: wftk configuration module</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

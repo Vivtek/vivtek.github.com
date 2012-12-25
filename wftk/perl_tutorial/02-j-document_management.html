@@ -1,0 +1,220 @@
+<head>
+<title>wftk tutorial - (unresolved tag 02-j-title)</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk tutorial - (unresolved tag 02-j-title)</div>
+
+<p><a name="__index__"></a></p>
+<!-- INDEX BEGIN -->
+
+
+	<ul>
+
+		<li><a href="#_attaching_documents_to_records">(Attaching documents to records</a></li>
+		<li><a href="#_treating_a_normal_data_field_as_an_attachment">(Treating a normal data field as an attachment</a></li>
+		<li><a href="#_deadsimple_document_management__filesystem_plus_metadata">(Dead-simple document management: filesystem plus metadata</a></li>
+		<li><a href="#_multiple_attachments_and_references__the_folder_model">(Multiple attachments and references: the folder model</a></li>
+		<li><a href="#_version_control">(Version control</a></li>
+		<li><a href="#_checkin_and_checkout">(Checkin and checkout</a></li>
+		<li><a href="#_retention_management">(Retention management</a></li>
+		<li><a href="#_recipe__mailing_documents_into_an_archive">(Recipe: mailing documents into an archive</a></li>
+		<li><a href="#_recipe__tracking_a_cvs_system">(Recipe: tracking a CVS system</a></li>
+	</ul>
+
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<p>
+</p>
+<h2><a name="_attaching_documents_to_records">(Attaching documents to records</a></h2>
+<p>An <strong>attachment</strong> is an ``out-of-band'' form of data.  A record may have any number of attachments, which are named as though they were fields.
+However, the data in an attachment is assumed to be large, and it may also be assumed that it is a binary file (you can mark an attachment as text
+if you want to be able to handle it as text).</p>
+<p>Attachments are generally stored separately from the contents of the data fields.  (This isn't always the case; you can tell a list you want to
+treat a normal data field as an attachment, and it will happily do so.)  A convenient way to do this is to reserve a subdirectory for storage of
+attachments in files.  In this case, the filename is generally just a number used to index into the files.</p>
+<p>
+</p>
+<h2><a name="_treating_a_normal_data_field_as_an_attachment">(Treating a normal data field as an attachment</a></h2>
+<p>
+</p>
+<h2><a name="_deadsimple_document_management__filesystem_plus_metadata">(Dead-simple document management: filesystem plus metadata</a></h2>
+<p><strong>Document management</strong> is the term used to describe a system to control access to and updates of these large binary items.  There are, as always,
+several ways of organizing this type of access.  The simplest way to use document management is simply to set up a list which tracks the contents
+of a document repository, with one attachment per record, and to allow new versions to replace old ones.  This is effectively a ``filesystem plus
+metadata'' model, and there are plenty of places where it's all you'll need.</p>
+<p>
+</p>
+<h2><a name="_multiple_attachments_and_references__the_folder_model">(Multiple attachments and references: the folder model</a></h2>
+<p>A different approach similar to this is simply to allow arbitrary and possibly multiple attachments to a record being kept for some other purpose.
+An example of this might be a list of projects, each of which is treated as a folder containing documents.  This is quick and easy to comprehend,
+but it can quickly run aground if you want to attach a document to more than one record, so a simple extension to this model is to store all your
+attachments in a ``filesystem plus metadata'' and then to store references to those documents in your main list.  We can think of this as a ``folder''
+model, where a given document may appear in more than one folder.</p>
+<p>
+</p>
+<h2><a name="_version_control">(Version control</a></h2>
+<p>The next step up in complexity, then, is version control.  At its simplest, version control simply tracks updates to a given document, but doesn't
+impose any structure on the process used to update it.
+If this reminds you of CVS or svn, that's because this is exactly how they work.  Not coincidentally, the wftk
+can be used to examine and manipulate CVS and svn archives.</p>
+<p>In this model, a reference may be to the latest version of a given document, or to a specific
+version, depending on your application.  The wftk itself uses a versioned repository model to store its procedure definitions, allowing a specific
+running process to refer to the version of the procdef used to start it, while new processes of the same type refer to updated versions.</p>
+<p>
+</p>
+<h2><a name="_checkin_and_checkout">(Checkin and checkout</a></h2>
+<p>Once we've introduced the notion of version control, a checkout/checkin system can be used to impose a little structure on the process of updating
+documents.  Checking a document out changes its status so that others can't check it out, while checking it in creates a new version.  This is a
+fairly standard process, but it's by no means mandatory -- we'll cover this in later chapters, but since the action of obtaining edit access to
+a document <em>is</em> an action, it's subject to permission control and workflow, so any update process can easily be modeled.</p>
+<p>
+</p>
+<h2><a name="_retention_management">(Retention management</a></h2>
+<p>Besides controlling access and updates, a document management system must also manage the archive.  This is called <strong>retention management</strong>, because
+it can be used to set up rules for how long particular documents or versions must be retained, based on whatever criteria are appropriate.
+A full-blown retention management system includes a periodic test of rules to determine items which can be moved from one storage location to another,
+or even discarded.  Since it relies on a lot of functionality that will be introduced in later chapters, a lot of this should simply be taken on
+faith.</p>
+<p>
+</p>
+<h2><a name="_recipe__mailing_documents_into_an_archive">(Recipe: mailing documents into an archive</a></h2>
+<p>Here's a practical recipe for document management: a full implementation of a simple archive defining an incoming email input path.  After setting
+this system up, you have an email address to which any document can be mailed as an attachment.  The system stores the incoming document along
+with metadata extracted from the email (sender, subject, date, and so on).  If multiple documents are sent, a folder is created with references to
+the individual documents.  Either way, an event for the entire email is generated, and a notification is sent to an administrator.  You could also
+trigger any desired workflow based on the incoming mail, but that will be a topic for another day.</p>
+<p>
+</p>
+<h2><a name="_recipe__tracking_a_cvs_system">(Recipe: tracking a CVS system</a></h2>
+<p>Here's a system that models a local CVS system as a wftk repository.  When documents are checked in, some analysis is done and an approval workflow
+is initiated.  If the change is not approved, it is backed out of the repository and saved for later as a separate proposal.  If the change <em>is</em>
+approved, and a change request is referenced in one of the checkin comments, action is taken to close the change request.</p>
+<p>Or something.  I'm not sure how good an example this is.</p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

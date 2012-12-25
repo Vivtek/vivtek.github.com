@@ -1,0 +1,41 @@
+<html><head><title>PyWFTK</title></head>
+<body>
+<h2>PyWFTK: wftk workflow manipulation in Python</h2>
+<hr>
+OK, this is the homepage for the subproject PyWFTK, which is a set of Python wrappers for the
+<a href="http://www.vivtek.com/wftk.html">wftk workflow toolkit</a>.  To date (August 2001) I've
+managed to write a wrapper for the <a href="../xmlapi/index.html">XMLAPI</a> XML manipulation
+library.  There was a sneaky little bug in there for a while, but I finally flushed it out
+with the help of the kind folks at python-help.  They're cool people.
+<p></p>
+So anyway, there (will be) two parts to this wrapper.  The first is the aforementioned XMLAPI
+wrapper, and the second is the wrapper for the wftk library itself.  You may ask (as others have)
+why I don't simply use the native Python XML functionality -- the answer is simple: the XMLAPI
+is effectively a dual-ported library.  That is to say, the structures are equally accessible from
+Python code or from C code.  The entire wftk library is built on the C XMLAPI, so there would be
+little point in changing it to be more Python-based.
+<p></p>
+That said, I <i>would</i> like to use Python's internal expat binding as opposed to linking in my own,
+for instance, and I'd like to use Python's memory management routines, too.  You'll see the beginnings
+of support for that in the code, but I've got a lot to do still before it will all work.  But -- bit by
+bit, the wftk is getting close to Python-readiness!
+<p></p>
+There are, as I said, two parts to this wrapper.  The first is working, the second is vapor.
+<ul>
+<li><a href="py_xmlapi.html">The XMLAPI wrapper -- works like a charm.</a>
+<li>The wftk wrapper itself -- not there yet.
+</ul>
+
+Thanks and keep checking back.  <a href="mailto:wftk@vivtek.com">Bug me</a> if you have an urgent need
+for this stuff.
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

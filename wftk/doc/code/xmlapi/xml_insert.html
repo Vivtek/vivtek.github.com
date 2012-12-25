@@ -1,0 +1,81 @@
+<html><head><title>xmlapi: inserting things: xml_insertbefore and xml_insertafter</title></head>
+<body>
+<h2>inserting things: xml_insertbefore and xml_insertafter</h2>
+<center>
+[&nbsp;<a href="xml_next.html">Previous: Siblings: xml_next and xml_prev</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_copy.html">Next: xml_copy: making fresh copies of XML</a>&nbsp;]
+</center>
+
+<hr>
+<i>(September 24, 2001)</i>: This page had been sitting here for a year, and now I finally have a use for it (it supports
+xml_replacewithcontent).  Each function does what it says, and returns a pointer to the "new" XML it's given.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xml_insertbefore (XML * orig, XML * new)
+{
+   ELEMENTLIST * list;
+   ELEMENTLIST * ch;
+
+   if (orig == NULL) return new;
+   if (orig->parent == NULL) return new;
+   if (new == NULL) return new;
+
+   list = orig->parent->children;
+   while (list != NULL &amp;&amp; list->element != orig) list = list->next;
+   if (list == NULL) return new;
+
+   new->parent = orig->parent;
+
+   ch = (ELEMENTLIST *) MALLOC (sizeof(struct _list));
+   ch->element = new;
+   ch->next = list;
+   ch->prev = list->prev;
+   if (!ch->prev) orig->parent->children = ch;
+   else           ch->prev->next = ch;
+   list->prev = ch;
+
+   return (new);
+}
+XMLAPI XML * xml_insertafter (XML * orig, XML * new)
+{
+   ELEMENTLIST * list;
+   ELEMENTLIST * ch;
+
+   if (orig == NULL) return new;
+   if (orig->parent == NULL) return new;
+   if (new == NULL) return new;
+
+   list = orig->parent->children;
+   while (list != NULL &amp;&amp; list->element != orig) list = list->next;
+   if (list == NULL) return new;
+
+   new->parent = orig->parent;
+
+   ch = (ELEMENTLIST *) MALLOC (sizeof(struct _list));
+   ch->element = new;
+   ch->prev = list;
+   ch->next = list->next;
+   if (!ch->next) orig->parent->lastchild = ch;
+   else           ch->next->prev = ch;
+   list->next = ch;
+
+   return (new);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_next.html">Previous: Siblings: xml_next and xml_prev</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_copy.html">Next: xml_copy: making fresh copies of XML</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

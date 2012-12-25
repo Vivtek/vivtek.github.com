@@ -1,0 +1,197 @@
+<html><head><title>Repository manager: Working with repository objects</title></head>
+<body>
+<h2>Working with repository objects</h2>
+<center>
+[&nbsp;<a href="remote.html">Previous: Repository management remote client</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_publishing.html">Next: Publishing objects: internals</a>&nbsp;]
+</center>
+
+<hr>
+Now, naturally this is going to be pretty lightweight.  Note that the following stuff is internal to our remote client
+and will probably be disappearing from the main library code.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _repos_remote {
+   XML * parms;
+#ifdef WINDOWS
+   SOCKET sock;
+#else
+   int sock;
+#endif
+};
+static void _repos_remote_cleanup (void * _sock) {
+   struct _repos_remote * sock = (struct _repos_remote *) _sock;
+
+   xml_free (sock->parms);
+#ifdef WINDOWS
+   if (sock->sock) closesocket (sock->sock);
+#else
+   if (sock->sock) close (sock->sock);
+#endif
+
+   free (sock);
+}
+static const char * _repos_receive (struct _repos_remote * sock)
+{
+   char *line;
+   int bufsize = 0;
+   int bufsizelen = sizeof (int);
+   int bytes;
+/*#ifdef WINDOWS
+   ULONG flag = 1;
+   ioctlsocket (sock->sock, FIONBIO, &amp;flag);
+#else
+   int flags = fcntl (sock->sock, F_GETFL);
+
+   fcntl (sock->sock, F_SETFL, flags | O_NONBLOCKING);
+#endif*/
+
+   getsockopt (sock->sock, SOL_SOCKET, SO_RCVBUF, (char *) &amp;bufsize, &amp;bufsizelen);
+   if (!bufsize) bufsize = 1024; /* Why doesn't the getsockopt work on Solaris?  Dunno. */
+   line = (char *) malloc (bufsize);
+
+   xml_set (sock->parms, "buffer", "");
+   do {
+      bytes = recv (sock->sock, line, bufsize, 0);
+
+      if (bytes > 0) xml_attrncat (sock->parms, "buffer", line, bytes);
+   } while (!strstr (xml_attrval (sock->parms, "buffer"), "++done++"));
+
+   free (line);
+   return xml_attrval (sock->parms, "buffer");
+}
+static void _repos_send (struct _repos_remote * sock)
+{
+   send (sock->sock, xml_attrval (sock->parms, "outgoing"), strlen (xml_attrval (sock->parms, "outgoing")), 0);
+}
+
+static struct wftk_adaptor_info * 
+             _repmgr_standard_adaptor_lookup_function (int adaptor_class,
+                                                       int name_length,
+                                                       const char * adaptor_descriptor);
+WFTK_EXPORT XML * FN_NAME(repos_open) (XML * repository, WFTK_MODULE_LOOKUP_FN * lookup_function, const char * calling_app)
+{
+   struct _repos_remote * sock;
+   const char * host = xml_attrval (repository, "host");
+   const char * mark;
+   struct hostent *server;
+#ifdef WINDOWS
+   WSADATA wsa;
+#endif
+   struct sockaddr_in name;
+
+   repos_log (repository, 2, 0, NULL, "repos", "opening repository (%s)", calling_app ? calling_app : "no app named");
+
+   if (*host) {
+      if (xml_getbin (repository)) return (repository);
+#ifdef WINDOWS
+      WSAStartup (MAKEWORD (1, 0), &amp;wsa);
+#endif
+      sock = (struct _repos_remote *) malloc (sizeof (struct _repos_remote));
+      sock->parms = xml_create ("p");
+      sock->sock = 0;
+      xml_set (sock->parms, "mode", "sockets");
+      xml_set (sock->parms, "host", host);
+      mark = strchr (host, '!');
+      if (!mark) {
+         xml_set (sock->parms, "server", host);
+         xml_set (sock->parms, "port", "4239");
+      } else {
+         xml_set (sock->parms, "server", "");
+         xml_attrncat (sock->parms, "server", host, mark - host);
+         host = mark + 1;
+         mark = strchr (host, '!');
+         if (mark) {
+            xml_set (sock->parms, "port", "");
+            xml_attrncat (sock->parms, "port", host, mark - host);
+            xml_set (sock->parms, "repos", mark + 1);
+         } else {
+            xml_set (sock->parms, "port", "4239");
+            xml_set (sock->parms, "repos", host);
+         }
+      }
+
+      server = gethostbyname (xml_attrval (sock->parms, "server"));
+      if (!server) {
+         xml_setf (repository, "error-state", "Unable to resolve remote server name '%s'.", xml_attrval (sock->parms, "server"));
+         _repos_remote_cleanup (sock);
+         return repository;
+      }
+
+      sock->sock = socket (AF_INET, SOCK_STREAM, 0);
+#ifdef WINDOWS
+      if (sock->sock == INVALID_SOCKET) {
+#else
+      if (sock->sock < 0) {
+#endif
+         xml_set (repository, "error-state", "Unable to allocate socket.");
+         sock->sock = 0;
+         _repos_remote_cleanup (sock);
+         return repository;
+      }
+
+
+      memset (&amp;name, 0, sizeof (struct sockaddr_in));
+      name.sin_family = AF_INET;
+      name.sin_port = htons (xml_attrvalnum (sock->parms, "port"));
+      memcpy (&amp;name.sin_addr, server->h_addr_list[0], server->h_length);
+
+      if (connect(sock->sock, (struct sockaddr *) &amp;name, sizeof (struct sockaddr)) < 0) {
+         xml_setf (repository, "error-state", "Unable to connect to server '%s:%s'", xml_attrval (sock->parms, "server"), xml_attrval (sock->parms, "port"));
+         _repos_remote_cleanup (sock);
+         return repository;
+      }
+
+      xml_set (sock->parms, "outgoing", "\n");
+      _repos_send (sock);
+      _repos_receive (sock); /* Throw away greeting. */
+      if (*xml_attrval (sock->parms, "repos")) {
+         xml_setf (sock->parms, "outgoing", "repos %s\n", xml_attrval (sock->parms, "repos"));
+         _repos_send (sock);
+         if (*_repos_receive (sock) == '-') {
+            xml_setf (repository, "error-state", "Unable to open repository '%s'", xml_attrval (sock->parms, "repos"));
+            _repos_remote_cleanup (sock);
+            return repository;
+         }
+      }
+
+      xml_setbin (repository, sock, _repos_remote_cleanup);
+   } else {
+      repos_log (repository, 0, 0, NULL, "repmgr", "Program compiled with remote client repository library: cannot open local repository.");
+      return NULL;
+   }
+
+   return repository;
+}
+WFTK_EXPORT XML * FN_NAME(repos_open_file) (const char * repfile, WFTK_MODULE_LOOKUP_FN * lookup_function, const char * calling_app)
+{
+   return NULL;
+}
+WFTK_EXPORT void  FN_NAME(repos_close)     (XML * repository)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (!sock) return;
+
+   _repos_remote_cleanup ((void *) sock);
+   xml_setbin (repository, NULL, NULL);
+}
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="remote.html">Previous: Repository management remote client</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_publishing.html">Next: Publishing objects: internals</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

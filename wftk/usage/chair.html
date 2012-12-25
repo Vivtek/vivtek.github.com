@@ -1,0 +1,266 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Usage scenarios -- Chair purchase</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Usage scenarios: chair purchase</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/usage_scenarios.html>usage&nbsp;scenarios</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+The first scenario I looked at (and doubtlessly the basic motivating scenario for the project) is the purchase of a
+chair by a low-level corporate employee.  Basically, the steps taken in the process are pretty straightforward:<ol>
+<li>Employee requests new chair<br>This isn't bold because it isn't really a task.  It's a trigger, I guess.
+<b><li>Supervisor approves request</b><br>This point is interesting.  What if the supervisor declines?  Discussion below.
+<b><li>Purchasing orders chair</b><br>Messages are sent to the employee, and to accounting and receiving to warn them of the impending chair.  Also, of course, the chair supplier needs to know.
+<b><li>Supplier ships and invoices chair</b>
+<b><li>Receiving receives chair</b><br>The chair is then sent to the employee and accounting is notified that the chair has actually been received.
+<b><li>Accounting pays invoice</b><br>End of story.
+</ol>
+<p>
+<i>(2/13/00) New!  I've written <a href=../process_defn/chair_defn.html>an XML process definition</a> to describe this scenario.</i>
+<p>
+
+<i>Exception handling versus explicit decisions</i><br>
+So that's the basic process.  Note that the supervisor's task is to approve the decision to purchase a new chair.
+That decision could be formally represented in the process class, but -- wait!  What if Purchasing realizes that the department
+has already spent too much on office furniture for this fiscal year?  They could abort this process, too.  What if the model of chair
+is sold out?  What if the chair arrives at Receiving smashed to pieces by the shipping company?  Dang, there are a lot of ways
+a process can get derailed!  So does it make sense to represent the supervisor's decision explicitly in the process definition, or
+does it make more sense to leave that sort of detail <i>out</i> of the formal definition, and leave the cleanup of this sort of case
+to <i>exception handling</i>?  Depends on the case, of course.  In the case of the supervisor's decision, I suspect it's better to
+include it in the process, because there may well be a standard procedure to be taken, or a standard message to be sent, if such
+a request is refused (OK, maybe that's a little silly in the case of a chair purchase, but if the process is, say, hiring, then it
+makes sense to include a standard letter of refusal in the formal process.)  <i>But</i> I consider the case of Accounting
+refusing the request to be more like an exception, so my take is that it wouldn't be in the
+formal process definition.  Of course, the final decision on that matter rests with the people in the company in question.
+<p>
+So lesson number one: even in this silly little example, we need to think about decisions and exceptions.
+<p>
+<i>A representation</i><br>
+When I started getting down to looking at this, I saw a nice little article (which discussed a hiring process, coincidentally)
+which represented the process under discussion by means of a RAD (a <i>Role-Action Diagram</i>).  That diagram format seemed
+pretty descriptive of the process, so I decided to use it to sketch out this process as well.  And it worked out pretty well.
+So, uh, what's a role?  OK, the roles in the chair-purchase process are the employee, the supervisor, Purchasing, Accounting,
+Receiving, and the supplier.  Actually, of course, when the process is enacted, a particular purchasing clerk, a particular
+accounting data-entry person, and a particular guy on the dock will be involved.  For that matter, of course, a particular employee
+and supervisor will also assume their appropriate roles.
+<p>
+<a name="RAD">
+The basic building blocks of a RAD (at least my version of a RAD) are:
+<center><table>
+<tr><td><center><img src="rad_msg.gif"></center></td><td>
+A <b>message</b> or <b>notification</b>.  The white receiving box means there is no action to be taken,
+this is just a status update.  Note that a given user may well elect to omit this sort of
+notification by class or by process.  For usability's sake, I'll probably toss that in
+somehow.</td></tr>
+<tr><td><center><img src="rad_task.gif"></center></td><td>
+<b>Task initiation</b>.  I see task initiation in most cases as a sort of message, so the graphical
+representation I chose naturally reflects that.  We'll see as time goes on how appropriate
+this view is.  Anyway, the dark box means "something gets done here."
+</td></tr>
+<tr><td><center><img src="rad_neg.gif"></center></td><td>
+<b>Negotiation</b>.  Actually, I haven't used that in any of my diagrams, but it may yet come in
+handy.  Negotiation refers to a two-way, possibly protracted exchange or collaboration between
+two (or more) parties.  It's effectively a task which spans roles.  So a negotiation task
+has all the properties of a regular task, I guess (yes, I'm making this part up as I write
+this.)</td></tr>
+<tr><td><center><img src="rad_dec.gif"></center></td><td>
+<b>Decision</b>.  Note that the triangles are V-shaped, as in the logical sign for "or" (which comes
+from the Latin word "vel", thanks to Douglas Hofstadter for that piece of trivia in my brain.)
+A decision point branches off into two different tracks, only one of which is taken.</td></tr>
+<tr><td><center><img src="rad_join.gif"></center></td><td>
+<b>Join</b>.  This joins two tracks together, and tasks after a join are only made active after
+both tracks have reached the join.  (This will make more sense after you see one.  Not in this
+scenario, though.)  Actually, there should logically be "and" joins as well as "or" joins.
+An and-join would wait for both tracks, while the or-join would activate the task as soon
+as one notification arrived, and the second notification, should it ever arrive, would simply
+show as a message.  (Again, I'm thinking while documenting.  This is a dangerous practice.  Kids,
+don't try this at home.)</td></tr>
+</table></center>
+<p>
+OK, that out of the way, let's consider a RAD of the chair purchase process.  Here goes.  (By
+the way, at the moment I'm drawing this with Word art in Word 97 and taking a screen shot
+with LView Pro shareware and saving it as a GIF.  This is cumbersome.  The frightening thing
+is, I <i>am</i> a trained professional...)
+<center><img src=chair.gif></center>
+My God, that took me two hours to draw and I didn't even label all the arrows.  Whew.
+<p>
+To make a long story short, I'll "label" the arrows here.  The employee's arrows, in order:
+"I want a chair.", "Forget it.", "Your chair has been ordered.", "Here's your chair."
+The remaining supervisor's arrow: "Hey, we need a chair over here."  The arrows for
+purchasing, in order: "Expect an invoice.", "Expect a chair.", "Send us a chair and bill us."
+Coming back from the supplier, in order, the chair and the invoice.  From Receiving, "The
+chair's here, so pay the invoice."  From Accounting, the payment to the supplier and "We've
+paid the invoice."
+<p>
+<i>And-joins and the importance of waiting to make sure</i><br>
+Note that I've glossed over something here.  I represent a message from Receiving to Accounting,
+then an invoice <i>later</i> from the supplier, which is then paid.  Actually, of course, that
+should be an and-join -- the payment should go out only if the invoice has been received <i>and</i>
+the notification has come from Receiving that the chair has arrived.  But it was too hard to
+draw with Word, so I'm just telling you about it.  The lesson is that these messages and
+events can come <i>in any order</i> and a workflow which assumes a particular order is doomed
+to failure.  If this were the process actually used, then anybody could invoice Accounting
+for something they didn't send, and still get paid.  Not a good way to run a business.
+<p>
+<i>Data records</i><br>
+There are a few data objects probably associated with each process instance (each <i>case</i>).
+Purchasing will create a purchasing record.  There will be a dock receipt record with
+shipping information.  The supplier will likely respond to the order with a shipping
+number for tracking.  And accounting may scan the invoice into an imaging document
+management system, or the invoice may arrive via EDI, so that would be another record.  Ideally
+each of these records would be "attached" to the case.  Then a full case report could be
+made should it be needed; a single screen, for instance, could be checked to get all the
+salient information related to this chair purchase.
+<p><i>Detailed play-by-play</i><br>
+OK, so what will <i>precisely</i> happen in this process, and what part of the system does what?
+(Note: in the following, I'm naming parts of the system according to the <a href=../server_design.html>system
+design</a>, so in the following you might want to refer to it.  I'm seriously not <i>trying</i> to
+switch to jargon.)  This list assumes the supervisor approves the purchase.<ol>
+<li><b>Employee calls up office furniture purchase request screen, fills in name and article requested, and submits.</b>
+<li>The workflow engine retrieves the current version of the chair purchase process definition from the process
+    repository and creates an active process record in the active process database.  Using the process definition,
+    it creates a value sheet, writes the values from the submission form into it, and creates the first active task,
+    which is the supervisor approval.  The actual supervisor assigned to the task, in this case, is determined by
+    querying the organizational database to determine the employee's responsible supervisor.  This would no doubt be
+    an external database query or some other script which was run, as it's probably not a general enough function
+    to consider a proper part of the workflow system itself.<p>Once the task is made active, the supervisor is
+    notified that (s)he has something to do.  Depending on the supervisor's own personal settings, this notification
+    may be an email on the spot, a page sent to a pager or something of that nature, or maybe there is enough of this
+    kind of thing that the supervisor simply chooses to receive no active notification but rather checks the list
+    of active tasks from time to time.
+<li><b>Supervisor sees the active task and calls up a task completion form.  The form contains a field for approval code and
+    displays the information about the process so far (what's requested and by whom.)  The supervisor enters the code and
+    clicks the submit button.</b>
+<li>The submit handler for the form activates the workflow engine with a task ID.  Using that task ID, the engine
+    retrieves the task in question from the active process database, determines the process being updated, and retrieves
+    the process definition from the process repository.  The task is marked "complete" and the next task in the
+    diagram is activated, which is that Purchasing place the order.  The task is placed in the Purchasing queue and the
+    engine resumes waiting.
+<li><b>A purchasing clerk sees the task in the queue listing and selects it as the next thing to do.</b>
+<li>The selection handler activates the workflow engine, which marks the task with the user (the purchasing clerk)
+    actively assigned to the task.
+<li><b>The purchasing clerk makes the necessary entry in the Purchasing system, calls the chair supplier to order the chair,
+    and calls up the task completion form.  The record number of the purchase appears on the form.  The clerk fills it in
+    and clicks submit.</b><br>  NOTE that <i>this list of activities is informal</i>.  Purchasing could well define a workflow process
+    for their own use which would be linked to this queue and would be activated automatically.  That's their business.
+    If this is the case, then completion of this subprocess would automatically "pull up the form and submit it."  In fact,
+    we can easily imagine that for some categories of purchase, no human intervention is necessary.  Maybe request for
+    office supplies are automatically submitted to the local Staples online purchase form.  In this case, the actor assigned
+    to the task is a program.  The point here is that the designer of the overall chair purchase process <i>doesn't care</i>
+    how the individual departments handle things.  And that's very cool.
+<li>No matter how the task got completed, the workflow engine gets invoked and does the same thing as it always does; it
+    retrieves the task, gets the process definition, and sees what to do next.  After Purchasing signs off, the next thing
+    is to activate a new task for Accounting and notify the employee and Receiving that the chair has been ordered.  Then
+    it waits.
+<li><b>The chair arrives at the dock.  A Receiving guy finds the corresponding task, pulls up the task completion form, and
+    enters, say, the condition of the chair or the license plate of the delivery truck or simply the shipping number.  And
+    clicks submit.</b>
+<li>The system notifies the employee that the chair has arrived, and notifies Accounting as well.
+<li><b>The invoice arrives at Accounting.  (Note again that this is a poorly defined process, but I mentioned that above.  We'll
+    play it the way it's written, though.)  An Accounting clerk selects the appropriate task from outstanding orders, enters
+    the invoice number, sends payment and enters the check number or the payment number or whatever makes sense, and clicks
+    submit.</b>
+<li>The system notifies the Purchasing department that the story has ended on a positive note.  The active process is
+    marked complete.
+</ol>
+<p>
+<i>Summary</i><br>
+So I guess a summary would be in order, or at least a short list of things that resemble
+requirements for the system design:<ul>
+<li>A task is associated with a role and is assigned to an actor when it's activated.
+<li>Tasks may be dependent on multiple preconditions (both invoice and chair must be
+    received before we send payment.)
+<li>Data in external databases may be associated with tasks and with cases.
+<li>Other values (i.e. values not stored in external data sources) may also be associated
+    with cases (the requesting employee, the item requested.)
+</ul>
+<p>
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

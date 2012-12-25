@@ -1,0 +1,171 @@
+<html><head><title>xmlapi: xml_createtext: a shortcut for plain text</title></head>
+<body>
+<h2>xml_createtext: a shortcut for plain text</h2>
+<center>
+[&nbsp;<a href="xml_create.html">Previous: xml_create: Creating an empty element</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_free.html">Next: xml_free: Cleaning up afterwards</a>&nbsp;]
+</center>
+
+<hr>
+I represent character data (plain old text) as an element with no name.  The first (nameless)
+attribute contains the text.  Instead of using xml_create to do this, then using xml_set
+to set the attribute, I'm defining a special create function for plain text chunks.
+<p></p>
+And for easy compatibility with expat, there's a version which takes a pointer and length
+instead of assuming null termination.
+<p></p>
+To make things really convenient, I've included (May 27, 2001) a new function to format values:
+<code>xml_createtextf</code>.  Pretty soon this library is going to be really, really convenient!
+<p></p>
+<i>July 18, 2001</i>: More and more convenient.  I figured this would be another good place
+to support concatenation, even though wftk_value_interpret doesn't really use it.  Although
+I suppose it could.  Also, it turned out that I should have included xml_createtext_nodup back
+in May after all -- I need it today anyway (that's the way API design always is.  If you leave
+something out, you'll be back.)  The _nodup variant, like xml_set_nodup, does exactly the
+same as its nondecorated cousin, except it pulls in the value and makes it its own (this avoids
+making the caller free up a value that was created just for calling us anyway.)
+<p></p>
+<i>September 18, 2003</i>: (at sea, mid-Atlantic, how cool is that?) Who's quality control for this
+project, anyway?  Didn't anybody think to check to see what happens if the createtext functions get
+a null pointer?  Hmm.  Guess not.  Well, <i>that</i> was a mistake.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xml_createtext (const char * value)
+{
+   XML * ret;
+
+   ret = (XML *) MALLOC (sizeof (struct _element));
+   memset (ret, 0, sizeof (struct _element));
+   ret->attrs = (ATTR *) MALLOC (sizeof (struct _attr));
+   ret->attrs->name = NULL;
+   ret->attrs->next = NULL;
+   if (value) {
+      ret->attrs->value = xml_strdup (value);
+      ret->attrs->valsize = strlen (value) + 1;
+   } else {
+      ret->attrs->value = xml_strdup ("");
+      ret->attrs->valsize = 1;
+   }
+
+   return (ret);
+}
+XMLAPI XML * xml_createtext_nodup (char * value)
+{
+   XML * ret;
+
+   ret = (XML *) MALLOC (sizeof (struct _element));
+   memset (ret, 0, sizeof (struct _element));
+   ret->attrs = (ATTR *) MALLOC (sizeof (struct _attr));
+   ret->attrs->name = NULL;
+   ret->attrs->next = NULL;
+   if (value) {
+      ret->attrs->value = value;
+      ret->attrs->valsize = strlen (value) + 1;
+   } else {
+      ret->attrs->value = xml_strdup ("");
+      ret->attrs->valsize = 1;
+   }
+
+   return (ret);
+}
+XMLAPI XML * xml_createtextlen (const char * value, int len)
+{
+   XML * ret;
+
+   ret = (XML *) MALLOC (sizeof (struct _element));
+   memset (ret, 0, sizeof (struct _element));
+   ret->attrs = (ATTR *) MALLOC (sizeof (struct _attr));
+   ret->attrs->name = NULL;
+   ret->attrs->next = NULL;
+   ret->attrs->value = (char *) MALLOC (len + 1);
+   ret->attrs->valsize = len + 1;
+   strncpy (ret->attrs->value, value, len);
+   ret->attrs->value[len] = '\0';
+
+   return (ret);
+}
+XMLAPI XML * xml_createtextf (const char * format, ...)
+{
+   XML * ret;
+   char * value;
+   va_list args;
+
+   va_start (args, format);
+   value = xml_string_formatv (format, args);
+   va_end (args);
+
+   ret = (XML *) MALLOC (sizeof (struct _element));
+   memset (ret, 0, sizeof (struct _element));
+   ret->attrs = (ATTR *) MALLOC (sizeof (struct _attr));
+   ret->attrs->name = NULL;
+   ret->attrs->next = NULL;
+   ret->attrs->value = value;
+   ret->attrs->valsize = strlen (value) + 1;
+
+   return (ret);
+}
+XMLAPI void xml_textcat (XML * xml, const char * value)
+{
+   ATTR * attr;
+   int len;
+
+   if (xml_is_element (xml)) return; /* We refuse to work with non-elements. */
+   if (!value) return;
+
+   attr = xml->attrs;
+   if (!attr) {
+      xml->attrs = (ATTR *) MALLOC (sizeof (struct _attr));
+      xml->attrs->name = NULL;
+      xml->attrs->next = NULL;
+      xml->attrs->value = xml_strdup (value);
+      xml->attrs->valsize = strlen (value) + 1;
+      return;
+   }
+
+   len = strlen (attr->value) + strlen (value) + 1;
+   if (len > attr->valsize) {
+      while (attr->valsize < len) attr->valsize += 256;
+      attr->value = (char *) REALLOC (attr->value, attr->valsize);
+   }
+   strcat (attr->value, value);
+}
+XMLAPI void xml_textncat (XML * xml, const char * value, int length)
+{
+   ATTR * attr;
+   int len;
+
+   if (xml_is_element (xml)) return; /* We refuse to work with non-elements. */
+
+   attr = xml->attrs;
+   if (!attr) {
+      xml_textcat (xml, "");
+      attr = xml->attrs;
+      if (!attr) return; /* Shouldn't happen...*/
+   }
+
+   len = strlen (attr->value) + length + 1;
+   if (len > attr->valsize) {
+      while (attr->valsize < len) attr->valsize += 256;
+      attr->value = (char *) REALLOC (attr->value, attr->valsize);
+   }
+   strncat (attr->value, value, length);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_create.html">Previous: xml_create: Creating an empty element</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_free.html">Next: xml_free: Cleaning up afterwards</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

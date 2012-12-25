@@ -1,0 +1,148 @@
+<html><head><title>To-do manager: How I'm writing pages out</title></head>
+<body>
+<h2>How I'm writing pages out</h2>
+<center>
+[&nbsp;<a href=keywords.html>Previous: Keyword/permission management</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=datasheet_stuff.html>Next: Datasheet interface</a>&nbsp;]
+</center>
+
+<hr>
+The <code>todomgr_pageout</code> function is pretty much the same as all the template
+output functions I use in my daily work.  It looks for tags of the form <code>[&#35;#tag##]</code>
+in a base HTML file, and replaces them with hash lookups in a <code>tags</code> variable
+in its caller (in Perl I do the same by passing a hash reference in, but in Tcl I can just
+look up into the stack frame of my caller, which is so incredibly arcane it gives me a little
+<i>frisson</i> every time I do it.)
+<p>
+I've been using this ungainly hack for a long time, in several different languages now.  And
+by golly I'm never going to stop!
+<p>
+Note that the HTTP return status is passed in as an optional parameter.  The default is, of
+course, 200, but a useful alternative is 401 for user authentication, for instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc todomgr_pageout {conn file {status 200}} {
+   upvar tags tags
+   global todomgr_home
+   set fn $todomgr_home/$file
+   if {![file exists $fn]} {
+      <i>See <a href="pageout.html#handle404">Handling 404 returns</a></i>
+   }
+
+   set fil [open $fn]
+   while {[gets $fil line] >= 0} {
+      set hit [regexp -nocase {\[&#35;#([-a-z_ 0-9!/?]*)##\]} $line match tag]
+      while {$hit} {
+         regsub -all -nocase \\\[&#35;#$tag##\\\] $line [escape_ampersand [todomgr_pageout_tag_value $tag]] line
+         set hit [regexp -nocase {\[&#35;#([-a-z_ 0-9!/?]*)##\]} $line match tag]
+      }
+      append pg $line "\n"
+   }
+   close $fil
+
+   ns_return $conn $status text/html $pg
+}
+
+</pre></td></tr></table>
+
+If you look away from the truly horrible things we have to do to get <code>regsub</code> to
+work with those square brackets, the whole thing is pretty obvious: you open the file, read in
+a line at a time, and find tags of the form <code>[&#35;#tag##]</code>.  Then you pass the text
+from the tag into <code>todomgr_pageout_tag_value</code>, which returns the value.  There's one
+little irritating bit about that, though.  Since <code>regexp</code> has one oh-so-helpful
+"feature" that I would remove given the chance: it replaces all occurences of '&' with the
+match string.  So the result of <code>todomgr_pageout_tag_value</code> has to
+be processed in order to escape ampersands.  But since
+both <code>regsub</code> and Tcl itself have to be escaped, we end up with a triple-escape.
+It's just so lovely.  Here's <code>escape_ampersand</code>:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc escape_ampersand {str} {
+   regsub -all "&amp;" $str \\\\\\&amp; retval
+   return $retval
+}
+</pre></td></tr></table>
+
+And of course actual retrieval of values from the <code>tags</code> array is simple.  A tag
+is just an arbitrary string, so this is a dandy place to define "special" tags or even
+functional tags.  I'm defining two special tags here; <code>flagopen</code> and
+<code>flagclose</code>.  These are functional tags, so that <code>[&#35;#flagopen flag##]</code>
+resolves to <code>&lt;!--</code> if <code>flag</code> is equal to an empty string or zero, and
+resolves to an empty string otherwise.  The corresponding <code>[&#35;#flagclose flag##]</code>
+resolves to <code>--&gt;</code>, of course.  This means that we can display parts of a page
+conditionally depending on whether a particular flag is true or not; it allows much greater
+flexibility in page design.  (And allows us to push much more of the page design into the
+template so that code changes aren't necessary.)
+<p>
+A more complex implementation of <code>todomgr_pageout</code> could simply omit that portion
+of the template enclosed in the flagopen/flagclose pair, but I'm not going to go that deep
+right now.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc todomgr_pageout_tag_value {tag} {
+   upvar tags tags
+   if [string match "flagopen *" $tag] {
+      set tag [string range $tag 9 end]
+      if [info exists tags($tag)] {
+         if {$tags($tag) != 0 &amp;&amp; $tags($tag) != ""} { return "" }
+      }
+      return "&lt;!--"
+   }
+   if [string match "flagclose *" $tag] {
+      set tag [string range $tag 10 end]
+      if [info exists tags($tag)] {
+         if {$tags($tag) != 0 &amp;&amp; $tags($tag) != ""} { return "" }
+      }
+      return "-->"
+   }
+   if [info exists tags($tag)] { return $tags($tag) }
+   return ""
+} 
+
+</pre></td></tr></table>
+
+The only thing left to do is to define how we handle non-existent pages.
+<br><br>
+<a name="handle404">
+<i>Handling 404 returns</i><br>
+The simplest way to do this is simply to return a standard apology and be done with it.  And
+since I'm in a hurry, that's what I'll do:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   return [ns_return $conn 404 text/html "
+&lt;h1>404&lt;/h1>
+&lt;hr>
+  &lt;blockquote>
+  &lt;i>You step in the stream&lt;br>
+     the water has moved on&lt;br>
+     page not found
+  &lt;/i>
+  &lt;/blockquote>
+
+  Sorry, &lt;code>[ns_conn url $conn]&lt;/code> can't be found.
+"]
+
+</pre></td></tr></table>
+
+Sorry for the cheesy haiku but I just love that one.  If you've ever encountered a missing link
+on the rest of my site, you'll see I use it there, too.  And that's all the apology you're going
+to get.
+
+
+
+
+<center>
+[&nbsp;<a href=keywords.html>Previous: Keyword/permission management</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=datasheet_stuff.html>Next: Datasheet interface</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

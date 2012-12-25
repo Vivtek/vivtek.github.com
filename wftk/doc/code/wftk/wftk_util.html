@@ -1,0 +1,85 @@
+<html><head><title>wftk command-line utility</title></head>
+<body>
+<h2>wftk: wftk command-line utility</h2>
+<center>
+[ <a href="wftk_engine.zip">download</a> ] [ <a href="wftk_util.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+The command-line utility is first of all a convenient way to test the library after compilation.  But in addtion to that,
+it provides a dandy way for shell scripts to interact with workflow (not the least of which is to enable scripts to start
+processes.  Cool stuff, man.)  It also lets you interface wftk with <i>anything</i> that can do a system call.
+<p></p>
+Here's how we do all this stuff:
+<ul>
+<li> <a href="wftk_util.html">wftk command-line utility</a>
+<li> <a href="tester.html">main()</a>
+<ul>
+<li> <a href="tester.html#help_list">The list of commands in printf format</a>
+</ul>
+<li> <a href="wftk_util_process.html">Dealing with processes</a>
+<ul>
+<li> <a href="wftk_util_process.html#create">create: Creating a new datasheet</a>
+<li> <a href="wftk_util_process.html#delete">delete: Deleting an existing process</a>
+<li> <a href="wftk_util_process.html#define">define: Attach a procdef</a>
+<li> <a href="wftk_util_process.html#start">start: Start a procdef</a>
+<li> <a href="wftk_util_process.html#show">show: Displaying process information</a>
+<li> <a href="wftk_util_process.html#adhoc">adhoc: Running ad-hoc workflow</a>
+</ul>
+<li> <a href="wftk_util_task.html">Working with tasks</a>
+<ul>
+<li> <a href="wftk_util_task.html#task">task: Show a task, including data requirements</a>
+<li> <a href="wftk_util_task.html#tasks">tasks: List tasks</a>
+<li> <a href="wftk_util_task.html#todo">todo: List indexed tasks</a>
+<li> <a href="wftk_util_task.html#complete">complete: Complete a task (or start the process)</a>
+<li> <a href="wftk_util_task.html#reject">reject: Reject a task</a>
+<li> <a href="wftk_util_task.html#newtask">newtask: Create an ad-hoc task</a>
+<li> <a href="wftk_util_task.html#rescind">rescind: Delete an ad-hoc task</a>
+<li> <a href="wftk_util_task.html#assign">assign: Attach a user to a task</a>
+</ul>
+<li> <a href="wftk_util_request.html">Working with requests</a>
+<ul>
+<li> <a href="wftk_util_request.html#request">request: Show a request</a>
+<li> <a href="wftk_util_request.html#requests">requests: List requests</a>
+<li> <a href="wftk_util_request.html#accept">accept: Accept a request</a>
+<li> <a href="wftk_util_request.html#decline">decline: Decline a request</a>
+<li> <a href="wftk_util_request.html#ask">ask: Make a request</a>
+<li> <a href="wftk_util_request.html#forget">forget: Rescind a request</a>
+</ul>
+<li> <a href="wftk_util_value.html">Dealing with values</a>
+<ul>
+<li> <a href="wftk_util_value.html#set">set: setting named values</a>
+<li> <a href="wftk_util_value.html#get">get: getting named values</a>
+<li> <a href="wftk_util_value.html#values">values: listing named values</a>
+<li> <a href="wftk_util_value.html#html">html: getting HTML for a named value</a>
+<li> <a href="wftk_util_value.html#htmlblank">htmlblank: getting a blank field</a>
+</ul>
+<li> <a href="wftk_util_enactment.html">Working with the enactment history</a>
+<ul>
+<li> <a href="wftk_util_enactment.html#log">log: get or write to enactment history</a>
+</ul>
+<li> <a href="wftk_util_role.html">Working with roles</a>
+<ul>
+<li> <a href="wftk_util_role.html#roles">roles: list roles in a datasheet</a>
+<li> <a href="wftk_util_role.html#role">role: display or assign a role</a>
+</ul>
+<li> <a href="wftk_util_user.html">Working with users</a>
+<ul>
+<li> <a href="wftk_util_user.html#users">users: list users in a datasheet</a>
+<li> <a href="wftk_util_user.html#user">user: display user or set attribute</a>
+</ul>
+<li> <a href="wftk_util_action.html">action: Performing actions with possible deferment</a>
+</ul>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

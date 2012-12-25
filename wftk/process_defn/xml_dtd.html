@@ -1,0 +1,203 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Process definition -- XML DTD</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Process definition -- XML DTD</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/process_defn.html>process&nbsp;definition</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+OK, here's the DTD.  This covers everything in the scenarios, and a few modifiers and such that weren't used in any
+scenario.   What's more, it validates!  For a text version, <a href="xml_dtd.txt">click here</a>.
+
+<pre>
+
+&lt;!ENTITY % Action "task | sequence | parallel | data | alert | if | start | handle | situation | note | datastructure | role | resume">
+
+&lt;!ELEMENT workflow (note?,role+,data+,(%Action;),handle*,subprocess*)>
+&lt;!ATTLIST workflow
+      name CDATA #IMPLIED
+      author CDATA #IMPLIED
+      original_date CDATA #IMPLIED
+      last_modified CDATA #IMPLIED
+>
+
+&lt;!ELEMENT subprocess (note?,role+,data+,(%Action;),handle*,subprocess*)>
+&lt;!ATTLIST subprocess
+      name CDATA #IMPLIED
+>
+
+&lt;!ELEMENT note ANY>
+
+&lt;!ELEMENT role EMPTY>
+&lt;!ATTLIST role
+      name CDATA #IMPLIED
+>
+
+&lt;!ELEMENT task (data)*>
+&lt;!ATTLIST task
+      label CDATA #IMPLIED
+      role CDATA #IMPLIED
+      agent CDATA #IMPLIED
+>
+
+
+&lt;!ELEMENT data (#PCDATA|list|data|note)*>
+&lt;!ATTLIST data
+      name CDATA #IMPLIED
+      type CDATA #IMPLIED
+      storage CDATA #IMPLIED
+      value CDATA #IMPLIED
+      readonly CDATA #IMPLIED
+>
+
+&lt;!ELEMENT datastructure (list|data|note)*>
+&lt;!ATTLIST datastructure
+      name ID #IMPLIED
+>
+
+&lt;!ELEMENT list (list|data|note)>
+
+&lt;!ELEMENT sequence (%Action;)+>
+&lt;!ATTLIST sequence
+      foreach CDATA #IMPLIED
+      values CDATA #IMPLIED
+      index CDATA #IMPLIED
+      repeat (yes|no) "no"
+>
+
+&lt;!ELEMENT parallel (%Action;)+>
+&lt;!ATTLIST parallel
+      foreach CDATA #IMPLIED
+      values CDATA #IMPLIED
+      index CDATA #IMPLIED
+      repeat (yes|no) "no"
+>
+
+
+&lt;!ELEMENT if ((%Action;),(elseif,(%Action;))*,(%Action;)?)>
+&lt;!ATTLIST if
+      expr CDATA #IMPLIED
+>
+&lt;!ELEMENT elseif EMPTY>
+&lt;!ATTLIST elseif
+      expr CDATA #IMPLIED
+>
+
+&lt;!ELEMENT situation (data|note)*>
+&lt;!ATTLIST situation
+      name ID #IMPLIED
+      break (yes|no) "yes"
+>
+&lt;!ELEMENT handle (%Action;)*>
+&lt;!ATTLIST handle
+      situation CDATA #IMPLIED
+>
+&lt;!ELEMENT resume EMPTY>
+
+&lt;!ELEMENT alert (#PCDATA|data|note)*>
+&lt;!ATTLIST alert
+      type CDATA #IMPLIED
+      to CDATA #IMPLIED
+>
+
+
+&lt;!ELEMENT start (data|note)*>
+&lt;!ATTLIST start
+      name CDATA #IMPLIED
+      location CDATA #IMPLIED
+      mode (merge|task|independent) "task"
+      completion CDATA #IMPLIED
+>
+
+
+</pre>
+
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

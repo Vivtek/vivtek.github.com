@@ -1,0 +1,85 @@
+<html><head><title>wftk core library: Function definitions</title></head>
+<body>
+<h2>Function definitions</h2>
+<center>
+[&nbsp;<a href="wftk_internals.html">Previous: Internal definitions</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_session.html">Next: Working with sessions</a>&nbsp;]
+</center>
+
+<hr>
+Our library will consist of the <code>wftk_lib.c</code> file, defined here, along with
+at least one file for each of the adaptors listed earlier.  Most of the nitty-gritty
+will of course be in the various adaptor definitions, the most important content of
+this file being the procdef interpreter.
+<p></p>
+Each group of functions has its own page except for <code>xml_info</code>.
+There is also a page describing the interpreter
+state structure, which I've introduced to replace the prototype's global variables.  My
+hope is that this will be thread-safer, even though I really don't know diddly about thread
+safety yet (except for what logic tells me, which is global variables are susceptible to
+being clobbered.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include "wftk.h"
+#include "time.h"
+#include "wftk_internals.h"
+
+<i>See <a href="wftk_interpreter.html#state">Definition of _state structure</a></i>
+
+<i>See <a href="wftk_interpreter.html">The interpreter: figuring out what to do next</a></i>
+<i>See <a href="wftk_process.html">Dealing with processes</a></i>
+<i>See <a href="wftk_value.html">Dealing with values</a></i>
+<i>See <a href="wftk_status.html">Getting and setting process status</a></i>
+<i>See <a href="wftk_task.html">Dealing with tasks</a></i>
+<i>See <a href="wftk_request.html">Dealing with requests</a></i>
+<i>See <a href="wftk_role.html">Working with roles</a></i>
+<i>See <a href="wftk_user.html">Working with users</a></i>
+<i>See <a href="wftk_notify.html">Sending notifications</a></i>
+<i>See <a href="wftk_decide.html">Making decisions: wftk_decide</a></i>
+<i>See <a href="wftk_action.html">Taking external action</a></i>
+<i>See <a href="wftk_enactment.html">Working with the enactment history</a></i>
+<i>See <a href="wftk_session.html">Working with sessions</a></i>
+</pre></td></tr></table>
+
+The <code>xml_info</code> function returns an XML structure containing information about the
+version of the library, the variants of various pieces of it (like what config module is linked),
+and additional information about what actual adaptors are installed, their versions, where they are,
+and so on and so forth.  Obviously this is something that will change a lot as things go on.
+<p>
+Here's an example of what drives me crazy about Microsoft, by the way.  While coding this version of the
+wftk, I was in Win32 compile mode (not my machine, my brain).  So the __TIMESTAMP__ identifier was what
+I was using to add a compile time to this info function.  In the MS documentation, it's marked as ANSI
+standard, yet, when I went to Unix, I found that gcc has no idea about it.
+<p>
+Go figure.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * wftk_info ()
+{
+   XML * ret = xml_create ("libinfo");
+   xml_set (ret, "lib", "wftk");
+   xml_set (ret, "ver", "1.0");
+   xml_set (ret, "compiled", __TIME__ " " __DATE__);
+
+   /*config_info (ret);  TODO: finish up the config info portion of this. */
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_internals.html">Previous: Internal definitions</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_session.html">Next: Working with sessions</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,57 @@
+<html><head><title>User editor: Presenting a directory view in HTML</title></head>
+<body>
+<h2>Presenting a directory view in HTML</h2>
+<center>
+[&nbsp;<a href="browse_dirview_create.html">Previous: Traversing the user/group repositories to build a directory view</a>&nbsp;]
+[&nbsp;<a href="user_edit.html">Top: </a>&nbsp;]
+[&nbsp;<a href="user_edit.html">Next: User editor</a>&nbsp;]
+</center>
+
+<hr>
+This part might end up being a more general mechanism, given time.  Yes, before I get several emails telling me that
+this problem has already been solved by XSL, I realize that XSL probably already does everything I need.  Eventually
+I will redress that, but for now I need a solution quickly.  Now, on the other hand, if you want to do something that
+uses XSL to do something that's compatible with what I'm doing here, then I want to hear from you.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void dirview_show (FILE * out, XML * dv)
+{
+   XML * elem;
+   const char * link;
+
+   elem = xml_firstelem (dv);
+   if (!elem) return;
+
+   fprintf (out, "&lt;ul>\n");
+   while (elem) {
+      if (!strcmp (elem->name, "folder")) {
+         fprintf (out, "&lt;li> <strong>%s</strong>\n", xml_attrval (elem, "label"));
+         dirview_show (out, elem);
+      } else {
+         link = xml_attrval (elem, "link");
+         if (*link) {
+            fprintf (out, "&lt;li> &lt;a href=\"%s\">%s&lt;/a>\n", link, xml_attrval (elem, "label"));
+         } else {
+            fprintf (out, "&lt;li> %s\n", xml_attrval (elem, "label"));
+         }
+      }
+      elem = xml_nextelem (elem);
+   }
+   fprintf (out, "&lt;/ul>\n");
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="browse_dirview_create.html">Previous: Traversing the user/group repositories to build a directory view</a>&nbsp;]
+[&nbsp;<a href="user_edit.html">Top: </a>&nbsp;]
+[&nbsp;<a href="user_edit.html">Next: User editor</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

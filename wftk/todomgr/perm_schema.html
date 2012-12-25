@@ -1,0 +1,77 @@
+<html><head><title>To-do manager: Permissions schema</title></head>
+<body>
+<h2>Permissions schema</h2>
+<center>
+[&nbsp;<a href=user_schema.html>Previous: Schema for user access</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=todomgr_create.html>Next: Definition of todomgr_create</a>&nbsp;]
+</center>
+
+<hr>
+The permissions facility is used to grant users access to projects that they don't own.  A
+project may be associated with any number of keywords, and a user may have permissions to any
+number of keywords.  The permission mechanism permits fairly fine-grained control over who can
+do what, as this part of the application is really aimed at granting my own customers varying
+degrees of access to my own to-do list.  So I want some of them to be able to modify the
+priorities of their own category of tasks, for instance, but I don't want them to be able to
+rename tasks.
+<p>
+The tables we need for this are pretty easy: just a keyword table which associates a keyword
+with a project, and a permission table which grants a user various privileges to a given keyword.
+If no permission is given to a user for a given keyword, projects using that keyword will be
+completely invisible to the user.  (Unless the project has more than one keyword and the user
+has viewing privilege to another applicable keyword.)
+<br><br>
+<a name="keyword">
+<i>Keyword table</i><br>
+The keyword table is very simple:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>process text,
+keyword text
+</pre></td></tr></table>
+<br><br>
+<a name="permission">
+<i>Permission table</i><br>
+The permission table is a little trickier.  When working in Tcl I usually use a string for
+flags of this nature, then do a <code>[string match *b* $string]</code> or something to look
+for the 'b' flag.  As the only question which really impacts queries is whether or not <i>any</i>
+permission exists, I see no need to use Booleans.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>userid text,
+keyword text,
+flags text
+</pre></td></tr></table>
+
+The flags I will define are:<ul>
+<b><li>p</b> - assign keyword.  To assign a process to a keyword, I must own the process
+               or have 'p' privilege.  To assign a keyword to a user, I must own or have
+               'p' privileges to <i>all</i> the processes associated with the keyword.
+<b><li>t</b> - request a task.
+<b><li>r</b> - modify priority.
+<b><li>m</b> - modify anything including priority.
+</ul>
+
+There is no flag for viewing privileges, because mere existence of the keyword grants that (the
+query is easier that way.)
+<p>
+Task requests can be made by any user who has viewing privileges on a project.  The requestee
+must be (at least) level 2 and likewise have viewing privileges on the project.  The task
+requested is <i>not</i> active until the new owner accepts it; a request may also be foisted
+off on someone else.  Logically a request could be made of a role or queue as well, but I
+haven't implemented roles and queues yet, so that will have to wait.
+
+
+
+<center>
+[&nbsp;<a href=user_schema.html>Previous: Schema for user access</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=todomgr_create.html>Next: Definition of todomgr_create</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

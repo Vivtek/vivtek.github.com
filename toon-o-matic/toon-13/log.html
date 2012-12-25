@@ -1,0 +1,294 @@
+<html>
+<head>
+<title>Toon-o-Matic run Tue Jul 15 23:41:49 PDT 2008</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">toon-o-matic</p>
+<p>[ <a href="/toon-o-matic/">index</a> ]</p>
+<p>[ <a href="/toon-o-matic/todo.html">to do</a> ]</p>
+<p>[ <a href="/toonbots/">toonbots</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=toons>new toon!</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit toon</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit wiki page</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Toon-o-Matic run Tue Jul 15 23:41:49 PDT 2008</div>
+<p><a href=../interpret_script_pl.html>interpret_script.pl</a> runs:
+</p><p>
+<i>Script specification</i>
+<pre class="code">
+panel
+jesus says hello
+</pre>
+</p><p>
+Interpretation follows:<br>
+<b>panel</b><br>
+Panel - (parameters currently ignored)
+</p><p>
+<b>jesus says hello</b><br>
+Speech implies presence: speaker is "jesus".<br>
+Speaker says: "hello"
+</p><p>
+Resulting XML definition:
+<pre class="code">
+&lt;cartoon rowformat="1" width="700" panel-h="150" character-base-url="http://www.vivtek.com/toonbots/characters/"&gt;
+&lt;panel&gt;
+&lt;character name="jesus"/&gt;
+&lt;dialog who="jesus"&gt;hello&lt;/dialog&gt;
+&lt;/panel&gt;
+&lt;/cartoon&gt;
+</pre>
+</p><p>
+<a href=../instantiate_pl.html>instantiate.pl</a> runs, but doesn't really do anything yet.
+</p><p>
+<a href=../build_panel_make_pl.html>build_panel_make.pl</a> runs.<br>
+Scene default:
+<pre class="code">
+&lt;scene id="default" panels="1"&gt;
+&lt;frame tag="default-1" id="1" panels="1"&gt;
+&lt;character name="jesus" tag="default-1"/&gt;
+&lt;/frame&gt;
+&lt;/scene&gt;
+</pre>
+</p><p>
+Panel Makefile is as follows:
+<pre class="code"># Panel Makefile generated Tue Jul 15 23:41:49 PDT 2008 by Toon-o-Matic t2
+# Contains no serviceable parts.  Batteries not included.
+# Void in NH, VT, and U.S. Minor Outlying Islands.
+
+all:  panel-1.svg
+
+panel-1.svg: character-jesus-default-1-1.svg dialog-1-1.svg
+	perl build_panel_g.pl panel-1.xml 1 1 &gt; panel-1-g.svg
+	perl merge_svg.pl "panel 1" panel-1-g.svg character-jesus-default-1-1.svg dialog-1-1.svg &gt; panel-1.svg
+
+placement-panel-1.xml: draw-character-jesus-default-1.xml
+	perl place_characters.pl "panel 1" 698 150 draw-character-jesus-default-1.xml &gt; placement-panel-1.xml
+
+dialog-1-1.info: dialog-1-1.xml  character-jesus-default-1-1.svg
+	perl render_text.pl dialog-1-1.xml dialog-1-1.png
+	identify -format '&lt;graphic size="%b" height="%h" width="%w" geometry="%g" file="%f"/&gt;' dialog-1-1.png &gt; dialog-1-1.info
+
+dialog-1-1.svg: dialog-1-1.info
+	perl draw_caption.pl dialog-1-1.xml dialog-1-1.info 698 150 0 dialog-1-1.png &gt; dialog-1-1.svg
+
+draw-character-jesus-default-1.xml: character-jesus-default-1.xml
+	perl build_character.pl this 698 150 character-jesus-default-1.xml &gt; draw-character-jesus-default-1.xml
+
+character-jesus-default-1-1.svg: draw-character-jesus-default-1.xml placement-panel-1.xml
+	perl draw.pl draw-character-jesus-default-1.xml 698 150 placement-panel-1.xml &gt; character-jesus-default-1-1.svg
+
+
+</pre>
+<a href=../build_character_pl.html>build_character.pl</a> runs on character-jesus-default-1.xml:<br>
+<pre class="code">
+&lt;character name="jesus" tag="default-1"/&gt;
+</pre>
+Retrieving character definition for jesus; URL is http://www.vivtek.com/toonbots/characters/jesus.xml<br>
+Retrieval fails, unfortunately.  We'll go with the default character.<br>
+Final character definition:
+<pre class="code">
+&lt;rect rel-w="75" show-box="yes" rel-h="50"/&gt;
+</pre>
+</p><p>
+</p><p>
+Built character:
+<pre class="code">
+&lt;character name="jesus" tag="default-1" rel-h="50" rel-w="75" show-box="yes" height="75" width="56.25"/&gt;
+</pre>
+</p><p>
+<a href=../place_characters_pl.html>place_characters.pl</a> places characters for panel 1:
+<pre class="code">
+&lt;placement&gt;
+&lt;character name="jesus" x="320.875" y="52.5"/&gt;
+&lt;/placement&gt;
+</pre>
+</p><p>
+<a href=../draw_pl.html>draw.pl</a> runs on draw-character-jesus-default-1.xml:
+</p><p>
+SVG built:
+<pre class="code">
+&lt;g x="320.875" y="52.5" w="56.25" h="75"&gt;
+&lt;rect x="320.875" y="52.5" width="56.25" height="75" style="stroke:black; stroke-width:1; fill:none"/&gt;
+&lt;/g&gt;
+</pre>
+</p><p>
+<a href=../render_text_pl.html>render_text.pl</a> renders "dialog-1-1.xml":
+<pre class="code">
+&lt;dialog who="jesus" ref-who="character-jesus-default-1-1.svg"&gt;hello&lt;/dialog&gt;
+</pre>
+<img src="dialog-1-1.png" border="1">
+</p><p>
+<a href=../draw_caption_pl.html>draw_caption.pl</a> runs:
+</p><p>
+Graphics info:
+<pre class="code">
+&lt;graphic width="53" file="dialog-1-1.png" geometry="2500x320+21+5" height="22" size="4232"/&gt;
+</pre>
+</p><p>
+<pre class="code">
+&lt;g&gt;
+&lt;polyline style="stroke:black; stroke-width:1; fill:white" points="377.125,26.5 450.125,26.5 450.125,52.5 423.625,52.5 382.125,90 403.625,52.5 377.125,52.5 377.125,26.5"/&gt;
+&lt;image x="10" y="2" width="53" height="22" xlink:href="dialog-1-1.png" transform="translate(377.125,26.5)"/&gt;
+&lt;/g&gt;
+</pre>
+</p><p>
+<a href=../build_panel_g_pl.html>build_panel_g.pl</a> runs, producing:
+<pre class="code">
+&lt;g transform="translate(1,1)"/&gt;
+</pre>
+</p><p>
+<a href=../merge_svg_pl.html>merge_svg.pl</a> runs to produce panel 1:
+<pre class="code">
+&lt;g transform="translate(1,1)"&gt;&lt;g w="56.25" y="52.5" h="75" x="320.875"&gt;
+&lt;rect width="56.25" y="52.5" style="stroke:black; stroke-width:1; fill:none" x="320.875" height="75"/&gt;
+&lt;/g&gt;
+&lt;g&gt;
+&lt;polyline points="377.125,26.5 450.125,26.5 450.125,52.5 423.625,52.5 382.125,90 403.625,52.5 377.125,52.5 377.125,26.5" style="stroke:black; stroke-width:1; fill:white"/&gt;
+&lt;image width="53" y="2" transform="translate(377.125,26.5)" xlink:href="dialog-1-1.png" x="10" height="22"/&gt;
+&lt;/g&gt;
+&lt;/g&gt;
+</pre>
+</p><p>
+<a href=../draw_panels_pl.html>draw_panels.pl</a> runs:
+</p><p>
+<pre class="code">
+&lt;svg height="152" width="702"&gt;
+&lt;rect height="152" width="700" style="fill: white"/&gt;
+&lt;polyline transform="" style="fill:none; stroke:black; stroke-width:1" arrow="" points="1,1 699,1 699,151 1,151 1,1"/&gt;
+&lt;/svg&gt;
+</pre>
+</p><p>
+<a href=../merge_svg_pl.html>merge_svg.pl</a> runs to produce the final cartoon:
+<pre class="code">
+&lt;svg width="702" height="152"&gt;
+&lt;rect width="700" style="fill: white" height="152"/&gt;
+&lt;polyline transform="" points="1,1 699,1 699,151 1,151 1,1" style="fill:none; stroke:black; stroke-width:1" arrow=""/&gt;
+&lt;g transform="translate(1,1)"/&gt;
+&lt;g transform="translate(1,1)"&gt;&lt;g y="52.5" w="56.25" h="75" x="320.875"&gt;
+&lt;rect y="52.5" width="56.25" style="stroke:black; stroke-width:1; fill:none" x="320.875" height="75"/&gt;
+&lt;/g&gt;
+&lt;g&gt;
+&lt;polyline style="stroke:black; stroke-width:1; fill:white" points="377.125,26.5 450.125,26.5 450.125,52.5 423.625,52.5 382.125,90 403.625,52.5 377.125,52.5 377.125,26.5"/&gt;
+&lt;image y="2" width="53" transform="translate(377.125,26.5)" xlink:href="dialog-1-1.png" x="10" height="22"/&gt;
+&lt;/g&gt;
+&lt;/g&gt;
+&lt;/svg&gt;
+</pre>
+</p><p>
+<b>The final result (drumroll please!)</b><br>
+<img src="toon.gif">
+</p>
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

@@ -1,0 +1,332 @@
+<html><head><title>USER adaptor: list</title></head>
+<body>
+<h2>USER adaptor: list</h2>
+<hr>
+<p></p>
+This is the new standard user adaptor for the wftk.  It stores user and group information in lists
+using the repository manager.  (Naturally this means that the actual storage of these lists is completely
+configurable using arbitrary list adaptors, which is one reason the repmgr makes so much sense.)
+<p></p>
+Users are stored by default in the _users list, and groups in the _groups list.  Naturally, these can
+be overridden from the adaptor spec.
+
+<p></p>
+This is, I believe, the first adaptor which requires the repository manager in order to do its job.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include "repmgr.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "get",
+   "auth",
+   "ingroup",
+   "members",
+   "roleusers"
+};
+
+XML * USER_list_init    (WFTK_ADAPTOR * ad, va_list args);
+XML * USER_list_free    (WFTK_ADAPTOR * ad, va_list args);
+XML * USER_list_info    (WFTK_ADAPTOR * ad, va_list args);
+XML * USER_list_get     (WFTK_ADAPTOR * ad, va_list args);
+XML * USER_list_auth    (WFTK_ADAPTOR * ad, va_list args);
+XML * USER_list_ingroup (WFTK_ADAPTOR * ad, va_list args);
+XML * USER_list_members (WFTK_ADAPTOR * ad, va_list args);
+XML * USER_list_roleusers (WFTK_ADAPTOR * ad, va_list args);
+
+static XML * _USER_get_group_recursive (WFTK_ADAPTOR * ad, const char * groupid);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   USER_list_init,
+   USER_list_free,
+   USER_list_info,
+   USER_list_get,
+   USER_list_auth,
+   USER_list_ingroup,
+   USER_list_members,
+   USER_list_roleusers
+};
+
+static struct wftk_adaptor_info _USER_list_info =
+{
+   8,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct wftk_adaptor_info * USER_list_get_info ()
+{
+   return &amp; _USER_list_info;
+}
+</pre></td></tr></table>
+
+First up is the initialization function.  This figures out where our actual user lists are.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * USER_list_init (WFTK_ADAPTOR * ad, va_list args) {
+   const char * parms;
+   char * mark;
+
+   parms = xml_attrval (ad->parms, "parm");
+   if (!*parms) parms = "";
+
+   /* Check for comma; if none, our groups are stored in the _groups list. */
+   mark = strchr (parms, ',');
+   if (mark) {
+      xml_set (ad->parms, "groups", mark + 1);
+      xml_set (ad->parms, "users", "");
+      xml_attrncat (ad->parms, "users", parms, mark - parms);
+   } else {
+      xml_set (ad->parms, "groups", "_groups");
+      xml_set (ad->parms, "users", parms);
+   }
+   if (!*xml_attrval (ad->parms, "users")) {
+      xml_set (ad->parms, "users", "_users");
+   }
+
+   xml_setf (ad->parms, "spec", "list:%s,%s", xml_attrval (ad->parms, "users"), xml_attrval (ad->parms, "groups"));
+
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+Freeing up is (as always) really easy.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * USER_list_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+Standard info call boilerplate.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * USER_list_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "user");
+   xml_set (info, "name", "list");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+
+Getting a user, here, is identical to list retrieval.  It's dubious whether we'll actually keep this at
+all.  If it stays, though, it should really be augmented with a group get function.  Ah well.  At least
+it's trivial under the repository manager.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * USER_list_get (WFTK_ADAPTOR * ad, va_list args) {
+   char * id = (char *) 0;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No ID given.");
+      return (XML *) 0;
+   }
+
+   return (repos_get (ad->session, xml_attrval (ad->parms, "users"), id));
+}
+</pre></td></tr></table>
+
+Authentication, now, is more interesting.  How we handle it depends on the list definition; if there's
+an fcrypted field, for instance, we'll use the fcrypt datatype adaptor to assess equality.  For now
+we're going to gloss over that and use the same cheat as earlier -- we'll just assume a password field
+right in the user object.
+
+<p></p>
+If the user survives authentication, the XML itself is returned.  This works out pretty well, actually.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * USER_list_auth (WFTK_ADAPTOR * ad, va_list args) {
+   char * userid = NULL;
+   XML * user = 0;
+   XML * list;
+   XML * mark;
+   char * password;
+   const char * pwfield;
+
+   if (args) userid = va_arg (args, char *);
+   if (!userid) {
+      xml_set (ad->parms, "error", "No user given.");
+      return (XML *) 0;
+   }
+   password = va_arg (args, char *);
+
+   list = repos_defn (ad->session, xml_attrval (ad->parms, "users"));
+   if (!list) return NULL; /* TODO: better error handling than silent acquiescence? */
+
+   user = repos_get (ad->session, xml_attrval (ad->parms, "users"), userid);
+   if (!user) return NULL;
+
+   mark = xml_search (list, "field", "special", "password");
+   pwfield = mark ? xml_attrval (mark, "id") : "password";
+
+   xml_set_nodup (user, "password", xmlobj_get (user, list, pwfield));
+   if (!strcmp (password, xml_attrval (user, "password"))) return user;
+
+   xml_free (user);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+This quickie initial group membership test doesn't handle recursive groups.  Otherwise, it works
+pretty much as we'd expect.  TODO: implement recursive group searches.  (Of course, for serious
+work we'd be implementing LDAP anyway, but still...)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * USER_list_ingroup (WFTK_ADAPTOR * ad, va_list args) {
+   char * userid = NULL;
+   char * groupid = NULL;
+   XML * group = 0;
+   XML * mark;
+
+   if (args) userid = va_arg (args, char *);
+   if (!userid) {
+      xml_set (ad->parms, "error", "No user given.");
+      return (XML *) 0;
+   }
+   groupid = va_arg (args, char *);
+   if (!groupid) {
+      xml_set (ad->parms, "error", "No group given.");
+      return (XML *) 0;
+   }
+
+   group = _USER_get_group_recursive (ad, groupid);
+   if (!group) return NULL;
+
+   mark = xml_search (group, "user", "id", userid);
+   if (mark) return (group);
+
+   xml_free (group);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+<i>(25 June 2003)</i>: I'm being overly cautious with semantics here, perhaps, but there's almost
+certainly a difference between groups and roles and I don't want to burn my bridges by confusing
+them early on.  This particular adaptor is going to treat roles as groups, but maybe LDAP or
+somebody has better ways of representing the difference.
+<p></p>
+Note: it was easy enough to build this as a helper function and then include the result in the
+USER_list_ismember implementation above, to give us recursive group membership.  It's not the most
+scalable of solutions, but as I mention above, if we want scalability we're going to implement LDAP.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * USER_list_members (WFTK_ADAPTOR * ad, va_list args) {
+   char * groupid = NULL;
+   XML * group = 0;
+
+   if (args) groupid = va_arg (args, char *);
+   if (!groupid) {
+      xml_set (ad->parms, "error", "No group given.");
+      return NULL;
+   }
+
+   group = _USER_get_group_recursive (ad, groupid);
+   /* TODO: do we want to clean up any non-user elements? */
+
+   return (group);
+}
+
+static XML * _USER_get_group_recursive (WFTK_ADAPTOR * ad, const char * groupid) {
+   XML * group;
+   XML * visited;
+   XML * holder;
+   XML * mark;
+   XML * next;
+   XML * submark;
+   int   rerun;
+
+   group = repos_get (ad->session, xml_attrval (ad->parms, "groups"), groupid);
+   if (!group) return NULL;
+
+   visited = xml_create ("list");
+   mark = xml_create ("group");
+   xml_set (mark, "id", xml_attrval (group, "id"));
+   xml_append (visited, mark);
+
+   do {
+      rerun = 0;
+      mark = xml_firstelem (group);
+      while (mark) {
+         if (xml_is (mark, "group")) {
+            if (!xml_locf (visited, ".group[%s]", xml_attrval (mark, "id"))) {
+               holder = xml_create ("group");
+               xml_set (holder, "id", xml_attrval (mark, "id"));
+               xml_append (visited, holder);
+               holder = repos_get (ad->session, xml_attrval (ad->parms, "groups"), xml_attrval (next, "id"));
+               submark = xml_firstelem (holder);
+               while (submark) {
+                  if (xml_is (submark, "user")) {
+                     if (!xml_locf (group, ".user[%s]", xml_attrval (submark, "id"))) xml_append_pretty (group, xml_copy (submark));
+                  } else if (xml_is (submark, "group")) {
+                     if (!xml_locf (visited, ".group[%s]", xml_attrval (submark, "id"))) xml_append (group, xml_copy (submark));
+                  }
+                  submark = xml_nextelem (submark);
+               }
+               xml_free (holder);
+            }
+            next = xml_nextelem (mark);
+            xml_delete_pretty (mark);
+            mark = next;
+
+            rerun = 1;
+         } else if (xml_is (mark, "user")) {
+            mark = xml_nextelem (mark);
+         } else {
+            next = xml_nextelem (mark);
+            xml_delete_pretty (mark);
+            mark = next;
+         }
+      }
+   } while (rerun);
+
+   xml_free (visited);
+
+   return (group);
+}
+
+XML * USER_list_roleusers (WFTK_ADAPTOR * ad, va_list args) { return USER_list_members (ad, args); }
+</pre></td></tr></table>
+
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

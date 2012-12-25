@@ -1,0 +1,520 @@
+<html><head><title>wftk core library: Dealing with values</title></head>
+<body>
+<h2>Dealing with values</h2>
+<center>
+[&nbsp;<a href="wftk_request.html">Previous: Dealing with requests</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_status.html">Next: Getting and setting process status</a>&nbsp;]
+</center>
+
+<hr>
+OK, so actions may be the heart of workflow, but without data manipulation there's not much point.  The basic purpose
+of the datasheet is of course to store data, so let's see how we do it.
+<p></p>
+The basic actions we can take for a value are, of course, getting and setting it.  In wftk, there is no requirement that
+a variable be allocated before it's written.  As the namespace for a value is already automatically the process it's
+in, there is no real need to be terribly disciplined about how it's used.  So to write a named value, I simply set it.
+For convenience in C, I've provided both string and numeric versions of the data access functions, but rest assured that
+all values are stored as text variables.
+<p></p>
+In order to be able to handle null values, we provide the <code>wftk_value_isnull</code> and <code>wftk_value_makenull</code>
+functions.
+<p></p>
+<i>(May 13, 2002)</i>: since a lot of the value handling aspects of the original wftk have been rolled into the <a href="../xmlapi/xmlobj.html">xmlobj
+module</a> of the XMLAPI, most of the wftk_value API is now just a wrapper for that.  The only reason it's even a wrapper instead
+of simply being replaced is that the wftk stores its context in the session, whereas xmlobj expects an explicit list definition to be
+given.  In the case that wftk is being used in tandem with the <a href="../repmgr/index.html">repository manager</a>, then each datasheet
+will contain the name of its list definition, and the repository can be asked for the definition of the list.  The xmlobj needn't know
+any of these details, but wftk does.
+<p></p>
+First off, let's define how the wftk finds its list.  Here is the first place I'm going to make it explicit that the wftk core can
+be compiled either in a repmgr context or not.  The wftk command-line utility will <i>not</i> be repmgr-dependent, just for the record.
+The idea there is to be very compact.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifdef WFTK_WITH_REPMGR
+XML * wftk_value_findlist (XML * session, XML * datasheet) {
+   XML * repos;
+
+   repos = session;
+   while (xml_parent (repos)) repos = xml_parent(repos);
+   return repos_defn (repos, xml_attrval (datasheet, "list"));
+}
+#else
+#define wftk_value_findlist(session, datasheet) (NULL)
+#endif
+</pre></td></tr></table>
+
+That's pretty heavy-handed, I suppose, but I think it'll work.  If we're not in repository manager mode, we simply don't have a list
+definition -- all we know about each datasheet is thus contained in the datasheet itself.  End of story.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * wftk_value_find (XML * session, XML * datasheet, const char * name)
+{
+   return xmlobj_is_field (datasheet, wftk_value_findlist (session, datasheet), name);
+} 
+WFTK_EXPORT XML * wftk_value_make (XML * session, XML * datasheet, const char * name)
+{
+   return xmlobj_field (datasheet, wftk_value_findlist (session, datasheet), name);
+} 
+WFTK_EXPORT char * wftk_value_get     (XML * session, XML * datasheet, const char * name)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+   
+
+   if (!name) return NULL;
+   if (*name == '!') return _wftk_value_special (session, datasheet, name);
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return "";
+      data = wftk_call_adaptor (ad, "get", datasheet, name);
+      wftk_free_adaptor (session, ad);
+      return (xmlobj_get_direct (data));
+   }
+
+   data = wftk_value_find (session, datasheet, name);
+   if (!data) return NULL;
+
+   if (!strcmp (xml_attrval (data, "null"), "yes")) return NULL;
+
+   return (xmlobj_get_direct (data));
+}
+WFTK_EXPORT int    wftk_value_get_num (XML * session, XML * datasheet, const char * name)
+{
+   const char * value;
+   int   ret;
+
+   if (!name) return 0;
+   value = wftk_value_get (session, datasheet, name);
+   if (!value) return 0;
+   ret = atoi (value);
+   free (value);
+   return ret;
+}
+
+WFTK_EXPORT int wftk_value_isnull (XML * session, XML * datasheet, const char * name)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 1; /* Null name is, well, null.  Logical, right? */
+   if (*name == '!') return 0; /* Special value is never null.  Why?  Because I say so. */
+
+   data = wftk_value_find (session, datasheet, name);
+   if (!data) return 1;
+
+   if (!strcmp (xml_attrval (data, "null"), "yes")) return 1;
+   return 0;
+}
+
+WFTK_EXPORT int wftk_value_set (XML * session, XML * datasheet, const char * name, const char * value)
+{
+   XML * data;
+   char * stuff;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return 0;  /* Refuse to set special values. */
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return 0;
+      wftk_call_adaptor (ad, "set", datasheet, name, value);
+      wftk_free_adaptor (session, ad);
+      return 1;
+   }
+
+   data = wftk_value_make (session, datasheet, name);
+   if (!data) return 0;
+
+   xmlobj_set_direct (data, value);
+   if (!strcmp (xml_attrval (data, "null"), "yes")) xml_set (data, "null", "");
+
+   /* 07/22/01 - implementing data aliasing (local cache of remote data) with write-though. */
+   if (*xml_attrval (data, "storage")) {
+      ad = wftk_get_adaptor (session, DATASTORE, xml_attrval (data, "storage"));
+      if (ad) {
+         wftk_call_adaptor (ad, "store", data);
+         wftk_free_adaptor (session, ad);
+      }
+   }
+   return 1;
+}
+WFTK_EXPORT int    wftk_value_set_num (XML * session, XML * datasheet, const char * name, int value)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+   char valbuf[sizeof(int) * 3 + 1];
+
+   if (!name) return 0;
+   if (*name == '!') return 0;
+
+   sprintf (valbuf, "%d", value);
+   return (wftk_value_set (session, datasheet, name, valbuf));
+} 
+
+WFTK_EXPORT int wftk_value_makenull (XML * session, XML * datasheet, const char * name)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return 0; /* Refuse to set special values. */
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return 0;
+      wftk_call_adaptor (ad, "makenull", datasheet, name);
+      wftk_free_adaptor (session, ad);
+      return 1;
+   }
+
+   data = wftk_value_make (session, datasheet, name);
+   if (!data) return 0;
+   xml_set (data, "null", "yes");
+   return 1;
+}   
+</pre></td></tr></table>
+
+Besides just a plain get, we need a little value interpreter.  This is basically a <code>sprintf</code>-like affair, which
+takes a string and replaces named values in it which are marked like <code>${this}</code>.  Later we'll need boolean
+expressions and stuff, and that will also probably fall into this value area.
+<p></p>
+<i>July 18, 2001</i>: Finally got around to building a version of the interpreter which builds
+its value as it goes (via malloc, or more specifically, via XMLAPI's xml_attrcat).  This resolves
+a lot of the fixed-buffer issues I had with the earlier code.
+<p></p>
+<code>wftk_value_interpret</code> returns the number of bytes it copied to the buffer.<br>
+<code>wftk_value_interpreta</code> returns a new buffer.  You're on your own for deallocation.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int    wftk_value_interpret (XML * session, XML * datasheet, const char * spec, char * buffer, int bufsize)
+{
+   int count = 0;
+   const char *value;
+   char namebuf[256];
+   int i;
+
+   bufsize--; /* Leave room for the null. */
+   while (*spec) {
+      if (spec[0] == '$' &amp;&amp; spec[1] == '{') {
+         i = 0;
+         spec += 2;
+         while (*spec &amp;&amp; *spec != '}' &amp;&amp; i < sizeof(namebuf) - 1) {
+            namebuf[i++] = *spec++;
+         }
+         if (*spec == '}') spec++;
+         namebuf[i] = '\0';
+         value = wftk_value_get (session, datasheet, namebuf);
+         if (value) {
+            while (*value &amp;&amp; bufsize) {
+               *buffer++ = *value++;
+               count++;
+               bufsize--;
+            }
+            free (value);
+         }
+      } else {
+         *buffer++ = *spec++;
+         count++;
+         bufsize--;
+      }
+      if (!bufsize) break;
+   }
+   *buffer = '\0';
+   return count;
+}
+
+WFTK_EXPORT char * wftk_value_interpreta (XML * session, XML * datasheet, const char * spec)
+{
+   int count = 0;
+   char *value;
+   char * mark;
+   char namebuf[256];
+   int len;
+   int i;
+   XML * val;
+
+   mark = strstr (spec, "${");
+   if (!mark) return strdup (spec); /* Easy case!  No interpretation! */
+
+   val = xml_create ("value");
+   xml_set (val, "value", "");
+
+   while (mark) {
+      xml_attrncat (val, "value", spec, mark - spec);
+      spec = mark + 2;
+      mark = strchr (spec, '}');
+      if (mark) {
+         len = mark - spec;
+      } else {
+         len = strlen (spec);
+      }
+      if (len > sizeof (namebuf) - 1) len = sizeof (namebuf) - 1;
+      strncpy (namebuf, spec, len);
+      namebuf[len] = '\0';
+
+      value = wftk_value_get (session, datasheet, namebuf);
+      if (value) {
+         xml_attrcat (val, "value", value);
+         free (value);
+      }
+
+      if (mark) {
+         spec = mark + 1;
+         mark = strstr (spec, "${");
+      }
+   }
+   xml_attrncat (val, "value", spec, mark - spec);
+
+   value = strdup (xml_attrval (val, "value"));
+   xml_free (val);
+   return value;
+}
+</pre></td></tr></table>
+
+Sometimes special values are nice.  For instance, the current time is always nice to have.  So I'm rather arbitrarily
+defining '!' to be the special-value character.  So, for instance, '!now' is the current time, in the following format:
+2001-03-19 06:07:00 AM.  This is in accordance with the <a href="http://www.iso.ch/markete/8601.pdf">ISO 8601 standard for
+date and time formats</a>.  The ISO standard suggests putting a 'T' between the date and the time, but doesn't require it,
+and I find that to be less conveniently readable to the human eye, so I'm not going to do it.  Your mileage may vary.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>char * _wftk_value_special (XML * session, XML * datasheet, const char * name)
+{
+   struct tm * timeptr;
+   time_t julian;
+   char * ret;
+   char * value;
+
+   if (!strcmp (name, "!now")) {
+      value = (char *) malloc (64);
+      time (&amp;julian);
+      timeptr = localtime (&amp;julian);
+      sprintf (value, "%04d-%02d-%02d %02d:%02d:%02d", timeptr->tm_year + 1900, timeptr->tm_mon + 1, timeptr->tm_mday,
+                                                       timeptr->tm_hour, timeptr->tm_min, timeptr->tm_sec);
+      return (value);
+   }
+
+   return (NULL);
+}
+</pre></td></tr></table>
+
+There's more to wftk than plain string values.  In addition to the basic get and set, we can also set the type of a value,
+and we can determine where it's actually stored (the default is that the value is stored directly in the datasheet, but
+that might not be convenient.)  Types are defined by type adaptors, storage is defined by datastore adaptors.
+A storage adaptor can work in either of two modes; the value can either be retrieved each time
+from the adaptor (example: the role adaptor simply presents the role assignments as data), or
+the value can be cached locally and gotten in the normal manner, and the adaptor need only be
+invoked when a value is written (example: the currecord adaptor writes new values to the
+database, but the current value is always available locally with no database interaction.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int    wftk_value_settype (XML * session, XML * datasheet, const char * name, const char * type)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return 0;  /* Refuse to set special values. */
+
+   if (strchr (name, ':')) return 0; /* Can't set types for alternate stores -- the answer will be aliases, later. */
+
+   data = wftk_value_make (session, datasheet, name);
+   if (!data) return 0;
+
+   xml_set (data, "type", type);
+   return 1;
+}
+WFTK_EXPORT int    wftk_value_define  (XML * session, XML * datasheet, const char * name, const char * storage)
+{
+   XML * data;
+   data = wftk_value_make (session, datasheet, name);
+   if (data) {
+      xml_set (data, "storage", storage);
+   }
+}
+</pre></td></tr></table>
+
+Data manipulation requires more than just setting of constant values.  For that reason, there's a calculation function
+as well, which sets a value by evaluating its argument.  There will soon be an "eval:" datasource for doing calculations, but
+that's going to have to wait until sometime post-v1.0.  Basically, <code>wftk_value_calc</code> just runs <code>wftk_value_interpret</code>
+on its incoming value and sets the named value accordingly.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int    wftk_value_calc    (XML * session, XML * datasheet, const char * name, const char * value) { return 0; }
+</pre></td></tr></table>
+
+Just for ease of use, we provide HTML formatting as part of the data type adaptor.  Here's where that gets done.  Note that
+what actually gets returned is HTML-like XML, not HTML.  Use the HTML functions from the XMLAPI to write it out.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML  * wftk_value_html      (XML * session, XML * datasheet, const char * name)
+{
+   XML * field;
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return (xml_createtext_nodup (_wftk_value_special (session, datasheet, name)));
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return 0;
+      data = wftk_call_adaptor (ad, "get", datasheet, name);
+      wftk_free_adaptor (session, ad);
+      field = xml_create ("input");
+      xml_set (field, "name", name);
+      xml_set (field, "value", xml_attrval (data, "value"));
+      xml_delete (data);
+      return (field);
+   }
+
+   data = wftk_value_find (session, datasheet, name);
+   if (!data) {
+      field = xml_create ("input");
+      xml_set (field, "name", name);
+      xml_set (field, "value", "");
+      return (field);
+   }
+
+   if (*xml_attrval (data, "type")) {
+      ad = wftk_get_adaptor (session, DATATYPE, xml_attrval (data, "type"));
+      if (ad) {
+         field = wftk_call_adaptor (ad, "html", datasheet, data);
+         wftk_free_adaptor (session, ad);
+         return (field);
+      }
+   }
+
+   field = xml_create ("input");
+   xml_set (field, "name", name);
+   if (*xml_attrval (data, "size")) {
+      xml_set (field, "size", xml_attrval (data, "size"));
+   }
+   if (!strcmp (xml_attrval (data, "null"), "yes")) {
+      xml_set (field, "value", "");
+   } else {
+      xml_set_nodup (field, "value", wftk_value_get (session, datasheet, name));
+   }
+
+   return (field);
+}
+
+WFTK_EXPORT XML  * wftk_value_htmlblank (XML * session, XML * datasheet, const char * name)
+{
+   XML * field;
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return (xml_createtext_nodup (_wftk_value_special (session, datasheet, name)));
+
+   if (strchr (name, ':')) {
+      field = xml_create ("input");
+      xml_set (field, "name", name);
+      xml_set (field, "value", "");
+      return (field);
+   }
+
+   data = wftk_value_find (session, datasheet, name);
+   if (!data) {
+      field = xml_create ("input");
+      xml_set (field, "name", name);
+      xml_set (field, "value", "");
+      return (field);
+   }
+
+   if (*xml_attrval (data, "type")) {
+      ad = wftk_get_adaptor (session, DATATYPE, xml_attrval (data, "type"));
+      if (ad) {
+         field = wftk_call_adaptor (ad, "htmlblank", datasheet, data);
+         wftk_free_adaptor (session, ad);
+         return (field);
+      }
+   }
+
+   field = xml_create ("input");
+   xml_set (field, "name", name);
+   if (*xml_attrval (data, "size")) {
+      xml_set (field, "size", xml_attrval (data, "size"));
+   }
+   xml_set (field, "value", "");
+
+   return (field);
+}
+</pre></td></tr></table>
+
+And finally, for inspection of a datasheet, we'll want to be able to list values and get specific information about them.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int wftk_value_list    (XML * session, XML * datasheet, XML * list) {
+   int counter = 0;
+   XML * pointer = xml_firstelem (datasheet);
+   XML * value;
+
+   if (!list) return 0;
+
+   while (pointer) {
+      if (xml_is (pointer, "field")) {
+         counter++;
+         value = xml_create ("field");
+         xml_set (value, "id", xml_attrval (pointer, "id"));
+         xml_set_nodup (value, "value", xmlobj_get_direct (pointer));
+         xml_set (value, "type", xml_attrval (pointer, "type"));
+         xml_append (list, value);
+      }
+      pointer = xml_nextelem (pointer);
+   }
+
+   xml_setnum (list, "count", counter);
+   return counter;
+}
+
+WFTK_EXPORT XML  * wftk_value_info    (XML * session, XML * datasheet, const char * name) { return 0; }
+</pre></td></tr></table>
+
+<i>(May 19, 2002)</i>: Since workflow entries as well as active tasks require unique IDs, I've decided to expose this unique-ID
+generator through the API.  It's not thread-safe, of course, but eventually I suppose that will be doable.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int wftk_value_counter (XML * session, XML * datasheet, const char * name) {
+   int count;
+   XML * state;
+
+   state = xml_loc (datasheet, ".state");
+   if (!state) {
+      state = xml_create ("state");
+      xml_append_pretty (datasheet, state);
+   }
+
+   count = atoi (xml_attrval (state, name));
+   count++;
+   xml_setnum (state, name, count);
+
+   return count;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_request.html">Previous: Dealing with requests</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_status.html">Next: Getting and setting process status</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

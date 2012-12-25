@@ -1,0 +1,108 @@
+<html><head><title>xmltools: Data structures: frames and tags</title></head>
+<body>
+<h2>Data structures: frames and tags</h2>
+<center>
+[&nbsp;<a href="main.html">Previous: Overview of the program and main()</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: xmltools index</a>&nbsp;]
+[&nbsp;<a href="globals.html">Next: Global variables (state)</a>&nbsp;]
+</center>
+
+<hr>
+I define two <code>struct</code> for storing information about the parse state.  Effectively,
+the current parse stack consists of those nodes between the root and whichever element we're
+currently parsing.  This stack is implemented as a doubly-linked list of <code>FRAME</code>s.
+<p></p>
+Within the frame, we stash things like the name of the element at that position, its level in
+the tree, and a linked list of <code>TAG</code> structures, which are used to count how many
+of each variety of child elements have been encountered.  (This allows us to use numeric position;
+after all, <code>item(2)</code> refers to the third <i>item</i> encountered, which means that
+we have to know how many items we've already seen each time an item comes along.)
+<p></p>
+So the second struct is the <code>TAG</code> struct, of course.
+<p></p>
+Note that none of our four actions requires keeping any more information on hand than the
+current slice of the tree.  That's one of the advantages of working with streams; the disadvantage
+is of course that you're restricted in what you can do, and the whole shebang is harder to
+understand.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>typedef struct _frame FRAME;
+typedef struct _tag TAG;
+
+struct _frame {
+   const char * name;
+   int level;
+   int offset_in_parent;
+   int empty;
+   FRAME * back;
+   FRAME * next;
+   TAG * subitems;
+
+   const char * locator;
+};
+
+struct _tag {
+   const char * name;
+   int count;
+   TAG * next;
+};
+</pre></td></tr></table>
+<br><br>
+<a name="freeing">
+<i>Freeing frames and the stack</i><br>
+As long as we've defined our data structures, I'm going to go ahead and show how we free them.
+(To allocate them is easy: I just use <code>malloc()</code> -- but when I free a frame I need
+to free its tag list as well.)
+<p></p>
+Here's how we free a frame:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void free_frame (FRAME * frame)
+{
+   TAG * cur;
+   TAG * next;
+   cur = frame->subitems;
+   while (cur) {
+      next = cur->next;
+      free ((void *) cur);
+      cur = next;
+   }
+   if (frame->level > 0) free ((void *) frame);
+}
+</pre></td></tr></table>
+
+And in cases where we know the action is complete and we bail out before processing the entire
+input file (well, OK, this only applies to snip, because the other three actions are required
+to output all remaining input), we have a dandy little function to free <i>all</i> the outstanding
+stack frames.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void free_stack ()
+{
+   FRAME * cur;
+
+   while (top->level > 0) {
+      cur = top;
+      top = top->back;
+      free_frame (cur);
+   }
+   free_frame (top);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="main.html">Previous: Overview of the program and main()</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: xmltools index</a>&nbsp;]
+[&nbsp;<a href="globals.html">Next: Global variables (state)</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

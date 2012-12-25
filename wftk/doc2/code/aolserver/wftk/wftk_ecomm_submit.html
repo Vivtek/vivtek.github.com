@@ -1,0 +1,187 @@
+<html><head><title>AOLserver/wftk e-commerce app: wftk_ecomm_submit: processing an order</title></head>
+<body>
+<h2>wftk_ecomm_submit: processing an order</h2>
+<center>
+[&nbsp;<a href="wftk_ecomm_loadfile.html">Previous: Load contents of a file with optional merchant override</a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm.html">Next: AOLserver/wftk e-commerce application</a>&nbsp;]
+</center>
+
+<hr>
+To understand what's going on here, you have to understand that this is essentially a Tcl prototype of
+functionality which will later get rolled into the C engine.  As I've been doing this code, I've been
+working through a few ideas about how passive tasks and process-level presentation have to work, and
+my notes are full of exclamations like "Epiphany!"  It's been heady work this week, I can tell you.
+
+<p></p>
+At any rate, the way this works is conceptually simple.  We start by presenting a view of an object, using wftk_ecomm_order.
+From there, we have a single button, which is labeled something like "Submit" or "Proceed to checkout" or something.
+Ultimately it could also be labeled according to the topmost requirement (passive task) of the object.
+But when clicked, we come to wftk_ecomm_submit.  This function first checks the object for all data requirements.
+If there are some data requirements as yet unfulfilled, then the fulfillment of these requirements is treated
+just like a task.  The point is that we have a single "do stuff" action against the object which returns to us
+either "OK," or "you still need to do this and this."  The "this and this" is a list of <i>passive tasks</i>, and
+the first such task represents the next thing to do in, effectively, a checklist for the object which must be
+completed before the "do stuff" action can actually do its stuff. (I think of the stuff to be done as something like
+ a state transition, and other workflow systems treat things like this, too: these are called "guard conditions" on the
+transition, and can be used to restrict the list of visible transitions at any given point.  With passive tasks,
+the user has already chosen a transition to attempt, and the system is responding with a list of things to be done
+before that transition will be valid.)
+
+<p></p>
+So these passive tasks (data requirements) will ultimately be another thing encoded in the workflow definition for
+a list, but for the time being we're going to write some hard code which will enforce our specific data requirements.
+Thus this implementation of wftk_ecomm_submit will be messy.  Later, it'll be very simple, because the wftk
+library will do all the work.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc wftk_ecomm_submit {conn merchant} {
+   set form [ns_conn form]
+   if {$form == ""} { set form [ns_set create] }
+
+   set repos [wftk repository [nsv_get wftk_ecomm basedir]/$merchant/merchant.defn]
+
+   set order_key [ns_set get $form order]
+   # Retrieve open cart if no order key supplied.
+   if {$order_key == ""} {
+      # TODO: implement.
+   } else {
+      set order [wftk getxml $repos orders $order_key]
+   }
+
+   # First, take care of any incoming data.  We know it's data if it's not the order key, and we take care of it
+   # by writing it hurriedly to the order.  If anything's actually changed, we save the order.
+   set size [ns_set size $form]
+   set changed 0
+   for {set i 0} {$i < $size} {incr i} {
+      set key [ns_set key $form $i]
+      switch -glob $key {
+         order    -
+         submit.* -
+         view        { }
+         default {
+            xmlobj set $order "" $key [ns_set value $form $i]
+            set changed 1
+         }
+      }
+   }
+
+   # Do our data checks.  We only have two interesting states, so effectively our only data check is whether a credit card number
+   # has already been supplied.  If not, we have to elicit one.  We do this by forwarding to the appropriate display view.
+   set view [ns_set get $form view]
+   set ccno [xmlobj get $order "" payment.ccno]
+
+   if {$ccno == ""} {
+      set view "edit_payment_info"
+   } else {
+      set problems [list]
+      if {[string length $ccno] &lt; 15} {
+         lappend problems "The credit card number you entered is too short."
+      }
+      if {[xmlobj get $order "" payment.ccmon] == ""} {
+         lappend problems "You must select a month for the expiration date."
+      }
+      if {[xmlobj get $order "" payment.ccyr] == ""} {
+         lappend problems "You must select a year for the expiration date."
+      }
+
+      if {[llength $problems] > 0} {
+         set view "edit_payment_info"
+         set problem_text "ERR:&lt;font color=red>The following problems were found with the credit card information you entered:&lt;ul>&lt;li>[join $problems <li>]&lt;/ul>&lt;/font>"
+         xmlobj set $order "" payment.status $problem_text
+         set changed 1
+      }
+   }
+
+   # During value checking, we may have updated the object.  That's why we don't even try to save until now.
+   if $changed {
+      wftk modxml $repos orders $order $order_key
+   }
+
+   # Post-check, if there's a view selected, we do our forwarding.
+   if {$view != ""} {
+      wftk release $order
+      return [vv_returnredirect $conn [nsv_get wftk_ecomm hostname][nsv_get wftk_ecomm order_url($merchant)]?order=$order_key&amp;view=$view]
+   }
+
+   # If all of our data requirements are satisfied, then we actually activate the order.  Again, this is largely
+   # a Tcl prototype of functionality which will end up in the workflow definition for the orders.  Essentially,
+   # we have to send out email notifying the merchant, and a confirmation email to the customer if we've got an email
+   # for the customer.  And we want to change the order's state from "open" to "active".  As long as we're not
+   # indexing the orders, this is largely a formality.  Later, of course, it'll drive workflow.
+   xmlobj set $order "" state active
+   wftk modxml $repos orders $order $order_key
+
+   # Notifications: first step is to generate the field set to be used
+   set fields [wftk xml2ns_set $order]
+
+   # Notify customer; generate notification, send to proper place.
+   set customer_notification [wftk_ecomm_format [wftk_ecomm_loadfile orders_customer_notification $merchant] \
+                                                $fields wftk_ecomm_formatdetails [list $repos $order $view $merchant]]
+   # Proper place for AMTDA is unfortunately in the registration.  TODO: resolve this problem.
+
+   # Notify merchant (TODO: implement this; for AMTDA I don't care.)
+   # -- Generate merchant notification email, send to proper place (wherever that is; TODO: figure that out).
+
+   # For individual line items, there may be a line notification. Check those and send the notifications.
+   set lines_list [wftk gethandle $order]
+   set line_item  [wftk gethandle $order]
+
+   xml loc $lines_list ".list\[lines]" $order
+   for {xml firstelem $line_item $lines_list} {[xml is_element $line_item]} {xml nextelem $line_item $line_item} {
+      set item [wftk get $repos [xmlobj get $line_item "" catalog] [xmlobj get $line_item "" part]]
+
+      if {[ns_set get $item notify] != ""} {
+         set ifields [wftk xml2ns_set $line_item]
+         set merchant_notification [wftk_ecomm_format [wftk_ecomm_loadfile orders_merchant_notification $merchant] \
+                                                      $ifields wftk_ecomm_formatdetails [list $repos $order $view $merchant]]
+
+         wftk_ecomm_sendmail [ns_set get $item notify] $merchant_notification
+      }
+   }
+
+   # Finally, return the customer to a view of the completed order.
+   wftk release $line_item
+   wftk release $lines_list
+   wftk release $order
+   vv_returnredirect $conn [nsv_get wftk_ecomm hostname][nsv_get wftk_ecomm order_url($merchant)]?order=$order_key
+}
+</pre></td></tr></table>
+
+A quick little tackon, for sending mail.  This follows the rules I use for other mail automation; the "recipients" are a list
+of recipients with comma delimitation, and the "mail" body has a "from" in the first line, and subject in the second.  Lines 3
+through end are the actual final body of the mail.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc wftk_ecomm_sendmail {recipients mail} {
+   set maillines [split $mail \n]
+   set from [lindex $maillines 0]
+   set subject [lindex $maillines 1]
+   set mail [join [lrange $maillines 2 end] \n]
+
+   foreach recipient [split $recipients ,] {
+      set recipient [string trim $recipient]
+      if [catch {ns_sendmail $recipient $from $subject $mail} result] {
+         # Handle the error
+         ns_log notice "Couldn't send mail ($result):\nTo: $recipient\nFrom: $from\nSubject: $subject\n$mail\n"
+      }
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_ecomm_loadfile.html">Previous: Load contents of a file with optional merchant override</a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm.html">Next: AOLserver/wftk e-commerce application</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

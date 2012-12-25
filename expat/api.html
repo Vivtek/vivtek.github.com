@@ -1,0 +1,755 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>expat API</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table width=100%><tr><td>
+<h2>Topic: <u>expat</u> -- API</h2>
+[&nbsp;<a href=/expat.html>up to expat index</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+<center><table width=75%><tr><td>
+<font face=arial size=-1>
+The expat xmlparse API is actually pretty easy to use.  But let's face it, reading the .h just doesn't cut it for
+documentation (not for me, anyway.)  So I decided to HTMLize it to a certain extent.  During this process, I am realizing
+how much I don't yet understand about XML parsing; if you find any inaccuracies in what I write here, please don't hesitate
+to tell me about them.</font>
+<font size=+1>NOTE: This page isn't finished (yeah, you would have noticed on your own.)  I'm trying to finish a couple
+of functions per day, but this API is a big one and it's boring, tedious work.
+</font>
+</td></tr></table></center>
+</td></tr>
+</table><table>
+<tr><td>
+<center>
+<hr width=50%>
+<table><tr>
+
+<td valign=top><center>
+[ <a href="#create">create</a> ]<br>
+<table><tr><td><font size=-1 face=arial>
+<a href="#XML_ParserCreate">XML_ParserCreate</a><br>
+<a href="#XML_ParserFree">XML_ParserFree</a><br>
+<a href="#XML_ParserCreateNS">XML_ParserCreateNS</a><br>
+<a href="#XML_ExternalEntityParserCreate">XML_ExternalEntityParserCreate</a>
+</font>
+</td></tr></table>
+</center></td>
+
+<td valign=top><center>
+[ <a href="#setup">setup</a> ]<br>
+<table><tr><td><font size=-1 face=arial>
+<a href="#XML_SetExternalEntityRefHandlerArg">XML_SetExternalEntityRefHandlerArg</a><br>
+<a href="#XML_SetUserData">XML_SetUserData</a>
+</font>
+</td></tr></table>
+</center></td>
+
+<td valign=top><center>
+[ <a href="#handlers">handlers</a> ]<br>
+<table><tr><td><font size=-1 face=arial>
+</font>
+</td></tr></table>
+</center></td>
+
+<td valign=top><center>
+[ <a href="#parse">parse</a> ]<br>
+<table><tr><td><font size=-1 face=arial>
+</font>
+</td></tr></table>
+</center></td>
+
+<td valign=top><center>
+[ <a href="#data">data structures</a> ]<br>
+<table><tr><td><font size=-1 face=arial>
+<a href="#XML_Parser">XML_Parser</a><br>
+<a href="#XML_Error">XML_Error</a><br>
+<a href="#XML_Char">XML_Char</a><br>
+<a href="#XML_LChar">XML_LChar</a><br>
+<a href="#XML_UNICODE">XML_UNICODE</a><br>
+<a href="#XML_UNICODE_WCHAR_T">XML_UNICODE_WCHAR_T</a><br>
+<a href="#XML_Encoding">XML_Encoding</a><br>
+</font>
+</td></tr></table>
+</center></td>
+
+<td valign=top><center>
+[ <a href="#errors">errors</a> ]<br><font size=-1 face=arial>
+<a href="#errors">Error table</a>
+</font></center></td></tr></center>
+</table></td></tr>
+
+
+
+<tr><td>
+<p>
+<hr width=50%>
+<a name="create">
+<center><font face=arial size=+1>FUNCTIONS: CREATING PARSERS</font><br>
+<hr width=50%>
+</td></tr>
+
+
+
+<tr><td>
+<a name=XML_ParserCreate>
+<strong><font size=+1>XML_ParserCreate</font></strong> returns <a href=#XML_Parser>XML_Parser</a><br>
+<blockquote>
+   const <a hef=#XML_Char>XML_Char</a> *<i>encoding</i>
+</blockquote>
+This function creates a new parser.  If you know the encoding, then you can supply it now explicitly.  If you don't,
+pass in a NULL, and the encoding will be NULL unless there is an encoding specified in the external protocol.  You can
+also call <a href="#XML_SetEncoding">XML_SetEncoding</a> at any time before you actually start parsing.
+
+
+<p>
+<a name=XML_ParserFree>
+<strong><font size=+1>XML_ParserFree</font></strong>
+<blockquote>
+   <a href=#XML_Parser>XML_Parser</a> <i>parser</i>
+</blockquote>
+Frees up resources associated with a parser (including all the allocated names and values, so watch out!)
+
+<p>
+<a name="XML_ParserCreateNS">
+<strong><font size=+1>XML_ParserCreateNS</font></strong> returns <a href=#XML_Parser>XML_Parser</a><br>
+<blockquote>
+   const <a href=#XML_Char>XML_Char</a> *<i>encoding</i>,<br>
+   <a href=#XML_Char>XML_Char</a> <i>namespaceSeparator</i>
+</blockquote>
+From the header:<br>
+<code>/* Constructs a new parser and namespace processor.  Element type names<br>
+and attribute names that belong to a namespace will be expanded;<br>
+unprefixed attribute names are never expanded; unprefixed element type<br>
+names are expanded only if there is a default namespace. The expanded<br>
+name is the concatenation of the namespace URI, the namespace separator character,<br>
+and the local part of the name.  If the namespace separator is '\0' then<br>
+the namespace URI and the local part will be concatenated without any<br>
+separator.  When a namespace is not declared, the name and prefix will be<br>
+passed through without expansion. */</code>
+<p>
+So far none of my XML stuff has required namespaces, so I have no words of wisdom at this point.
+
+<p>
+<a name="XML_ExternalEntityParserCreate">
+<strong><font size=+>XML_ExternalEntityParserCreate</font></strong> returns <a href=#XML_Parser>XML_Parser</a><br>
+<blockquote>
+   <a href=#XML_Parser>XML_Parser</a> <i>parser</i>,<br>
+   const <a href=#XML_Char>XML_Char</a> *<i>context</i>,<br>
+   const <a href=#XML_Char>XML_Char</a> *<i>encoding</i>
+</blockquote>
+Used to parse an external entity in the context of an ongoing main parse.
+<p>
+From the header again:<br>
+<code>
+/* Creates an XML_Parser object that can parse an external general entity;<br>
+context is a '\0'-terminated string specifying the parse context;<br>
+encoding is a '\0'-terminated string giving the name of the externally specified encoding,<br>
+or null if there is no externally specified encoding.<br>
+The context string consists of a sequence of tokens separated by formfeeds (\f);<br>
+a token consisting of a name specifies that the general entity of the name<br>
+is open; a token of the form prefix=uri specifies the namespace for a particular<br>
+prefix; a token of the form =uri specifies the default namespace.<br>
+This can be called at any point after the first call to an ExternalEntityRefHandler<br>
+so longer as the parser has not yet been freed.<br>
+The new parser is completely independent and may safely be used in a separate thread.<br>
+The handlers and userData are initialized from the parser argument.<br>
+Returns 0 if out of memory.  Otherwise returns a new XML_Parser object. */<br></code>
+<br><br>
+</td></tr>
+
+
+<tr><td>
+<p>
+<hr width=50%>
+<a name="setup">
+<center><font face=arial size=+1>FUNCTIONS: SETTING UP THE PARSER</font><br>
+<hr width=50%>
+</td></tr>
+
+
+<tr><td>
+
+<a name="XML_SetExternalEntityRefHandlerArg">
+<strong><font size=+1>XML_SetExternalEntityRefHandlerArg</font></strong>
+<blockquote>
+  <a href="#XML_Parser">XML_Parser</a> <i>parser</i>,<br>
+  void *<i>arg</i>
+</blockquote>
+If you specify a non-NULL value for arg, then the external entity reference handler will get this argument instead of the
+parser, which is its usual first argument.
+
+<p>
+
+<a name="XML_SetUserData">
+<strong><font size=+1>XML_SetUserData</font></strong>
+<blockquote>
+  <a href="#XML_Parser">XML_Parser</a> <i>parser</i>,<br>
+  void *<i>userData</i>
+</blockquote>
+Sets a value to be passed to each handler during the parse.  The void pointer is then cast to whatever data structure
+is appropriate.
+<p>   
+
+<pre>
+/* This can be called within a handler for a start element, end element,
+processing instruction or character data.  It causes the corresponding
+markup to be passed to the default handler. */
+void XMLPARSEAPI XML_DefaultCurrent(XML_Parser parser);
+
+
+/* This is equivalent to supplying an encoding argument
+to XML_CreateParser. It must not be called after XML_Parse
+or XML_ParseBuffer. */
+
+int XMLPARSEAPI
+XML_SetEncoding(XML_Parser parser, const XML_Char *encoding);
+
+
+/* If this function is called, then the parser will be passed
+as the first argument to callbacks instead of userData.
+The userData will still be accessible using XML_GetUserData. */
+
+void XMLPARSEAPI
+XML_UseParserAsHandlerArg(XML_Parser parser);
+
+/* Sets the base to be used for resolving relative URIs in system identifiers in
+declarations.  Resolving relative identifiers is left to the application:
+this value will be passed through as the base argument to the
+XML_ExternalEntityRefHandler, XML_NotationDeclHandler
+and XML_UnparsedEntityDeclHandler. The base argument will be copied.
+Returns zero if out of memory, non-zero otherwise. */
+
+int XMLPARSEAPI
+XML_SetBase(XML_Parser parser, const XML_Char *base);
+</pre>
+</td></tr>
+
+<tr><td>
+<p>
+<hr width=50%>
+<a name="handlers">
+<center><font face=arial size=+1>FUNCTIONS: SETTING HANDLERS</font><br>
+<hr width=50%>
+</td></tr>
+
+<tr><td>
+<a name="XML_SetElementHandler">
+<big><strong>XML_SetElementHandler</strong></big>
+<blockquote>
+<i><a href="#XML_Parser">XML_Parser</a> parser,</i><br>
+<i><a href="#XML_StartElementHandler">XML_StartElementHandler</a> start,</i><br>
+<i><a href="#XML_EndElementHandler">XML_EndElementHandler</a> end</i>
+</blockquote>
+
+/* atts is array of name/value pairs, terminated by 0;
+   names and values are 0 terminated. */
+<pre>
+<a name="XML_StartElementHandler">
+typedef void (*<b>XML_StartElementHandler</b>)(void *userData,
+					const XML_Char *name,
+					const XML_Char **atts);
+<a name="XML_EndElementHandler">
+typedef void (*<b>XML_EndElementHandler</b>)(void *userData,
+				      const XML_Char *name);
+</pre>
+
+
+<p>
+
+<pre>
+
+XML_SetCharacterDataHandler(XML_Parser parser,
+			    XML_CharacterDataHandler handler);
+
+/* s is not 0 terminated. */
+typedef void (*XML_CharacterDataHandler)(void *userData,
+					 const XML_Char *s,
+					 int len);
+
+
+<p>
+
+XML_SetProcessingInstructionHandler(XML_Parser parser,
+				    XML_ProcessingInstructionHandler handler);
+
+/* target and data are 0 terminated */
+typedef void (*XML_ProcessingInstructionHandler)(void *userData,
+						 const XML_Char *target,
+						 const XML_Char *data);
+
+
+<p>
+XML_SetCommentHandler(XML_Parser parser,
+                      XML_CommentHandler handler);
+
+/* data is 0 terminated */
+typedef void (*XML_CommentHandler)(void *userData, const XML_Char *data);
+
+
+
+<p>
+XML_SetCdataSectionHandler(XML_Parser parser,
+			   XML_StartCdataSectionHandler start,
+			   XML_EndCdataSectionHandler end);
+
+typedef void (*XML_StartCdataSectionHandler)(void *userData);
+typedef void (*XML_EndCdataSectionHandler)(void *userData);
+
+
+
+<p>
+XML_SetDefaultHandler(XML_Parser parser,
+		      XML_DefaultHandler handler);
+/* This sets the default handler and also inhibits expansion of internal entities.
+The entity reference will be passed to the default handler. */
+
+XML_SetDefaultHandlerExpand(XML_Parser parser,
+		            XML_DefaultHandler handler);
+/* This sets the default handler but does not inhibit expansion of internal entities.
+The entity reference will not be passed to the default handler. */
+
+
+/* This is called for any characters in the XML document for
+which there is no applicable handler.  This includes both
+characters that are part of markup which is of a kind that is
+not reported (comments, markup declarations), or characters
+that are part of a construct which could be reported but
+for which no handler has been supplied. The characters are passed
+exactly as they were in the XML document except that
+they will be encoded in UTF-8.  Line boundaries are not normalized.
+Note that a byte order mark character is not passed to the default handler.
+There are no guarantees about how characters are divided between calls
+to the default handler: for example, a comment might be split between
+multiple calls. */
+
+typedef void (*XML_DefaultHandler)(void *userData,
+				   const XML_Char *s,
+				   int len);
+
+<p>
+XML_SetUnparsedEntityDeclHandler(XML_Parser parser,
+				 XML_UnparsedEntityDeclHandler handler);
+
+/* This is called for a declaration of an unparsed (NDATA)
+entity.  The base argument is whatever was set by XML_SetBase.
+The entityName, systemId and notationName arguments will never be null.
+The other arguments may be. */
+
+typedef void (*XML_UnparsedEntityDeclHandler)(void *userData,
+					      const XML_Char *entityName,
+					      const XML_Char *base,
+					      const XML_Char *systemId,
+					      const XML_Char *publicId,
+					      const XML_Char *notationName);
+
+
+
+<p>
+XML_SetNotationDeclHandler(XML_Parser parser,
+			   XML_NotationDeclHandler handler);
+
+
+/* This is called for a declaration of notation.
+The base argument is whatever was set by XML_SetBase.
+The notationName will never be null.  The other arguments can be. */
+
+typedef void (*XML_NotationDeclHandler)(void *userData,
+					const XML_Char *notationName,
+					const XML_Char *base,
+					const XML_Char *systemId,
+					const XML_Char *publicId);
+
+
+<p>
+XML_SetNamespaceDeclHandler(XML_Parser parser,
+			    XML_StartNamespaceDeclHandler start,
+			    XML_EndNamespaceDeclHandler end);
+
+/* When namespace processing is enabled, these are called once for
+each namespace declaration. The call to the start and end element
+handlers occur between the calls to the start and end namespace
+declaration handlers. For an xmlns attribute, prefix will be null.
+For an xmlns="" attribute, uri will be null. */
+
+typedef void (*XML_StartNamespaceDeclHandler)(void *userData,
+					      const XML_Char *prefix,
+					      const XML_Char *uri);
+
+typedef void (*XML_EndNamespaceDeclHandler)(void *userData,
+					    const XML_Char *prefix);
+
+
+
+<p>
+XML_SetNotStandaloneHandler(XML_Parser parser,
+			    XML_NotStandaloneHandler handler);
+
+/* This is called if the document is not standalone (it has an
+external subset or a reference to a parameter entity, but does not
+have standalone="yes"). If this handler returns 0, then processing
+will not continue, and the parser will return a
+XML_ERROR_NOT_STANDALONE error. */
+
+typedef int (*XML_NotStandaloneHandler)(void *userData);
+
+
+<p>
+XML_SetExternalEntityRefHandler(XML_Parser parser,
+				XML_ExternalEntityRefHandler handler);
+
+/* This is called for a reference to an external parsed general entity.
+The referenced entity is not automatically parsed.
+The application can parse it immediately or later using
+XML_ExternalEntityParserCreate.
+The parser argument is the parser parsing the entity containing the reference;
+it can be passed as the parser argument to XML_ExternalEntityParserCreate.
+The systemId argument is the system identifier as specified in the entity declaration;
+it will not be null.
+The base argument is the system identifier that should be used as the base for
+resolving systemId if systemId was relative; this is set by XML_SetBase;
+it may be null.
+The publicId argument is the public identifier as specified in the entity declaration,
+or null if none was specified; the whitespace in the public identifier
+will have been normalized as required by the XML spec.
+The context argument specifies the parsing context in the format
+expected by the context argument to
+XML_ExternalEntityParserCreate; context is valid only until the handler
+returns, so if the referenced entity is to be parsed later, it must be copied.
+The handler should return 0 if processing should not continue because of
+a fatal error in the handling of the external entity.
+In this case the calling parser will return an XML_ERROR_EXTERNAL_ENTITY_HANDLING
+error.
+Note that unlike other handlers the first argument is the parser, not userData. */
+
+typedef int (*XML_ExternalEntityRefHandler)(XML_Parser parser,
+					    const XML_Char *context,
+					    const XML_Char *base,
+					    const XML_Char *systemId,
+					    const XML_Char *publicId);
+
+
+
+<p>
+XML_SetUnknownEncodingHandler(XML_Parser parser,
+			      XML_UnknownEncodingHandler handler,
+			      void *encodingHandlerData);
+
+/* This is called for an encoding that is unknown to the parser.
+The encodingHandlerData argument is that which was passed as the
+second argument to XML_SetUnknownEncodingHandler.
+The name argument gives the name of the encoding as specified in
+the encoding declaration.
+If the callback can provide information about the encoding,
+it must fill in the XML_Encoding structure, and return 1.
+Otherwise it must return 0.
+If info does not describe a suitable encoding,
+then the parser will return an XML_UNKNOWN_ENCODING error. */
+
+typedef int (*XML_UnknownEncodingHandler)(void *encodingHandlerData,
+					  const XML_Char *name,
+					  XML_Encoding *info);
+
+
+</pre>
+
+
+</td></tr>
+
+
+
+<tr><td>
+<p>
+<hr width=50%>
+<a name="parse">
+<center><font face=arial size=+1>FUNCTIONS: ACTUALLY PARSING</font><br>
+<hr width=50%>
+</td></tr>
+
+<tr><td>
+<pre>
+/* Parses some input. Returns 0 if a fatal error is detected.
+The last call to XML_Parse must have isFinal true;
+len may be zero for this call (or any other). */
+int XMLPARSEAPI
+XML_Parse(XML_Parser parser, const char *s, int len, int isFinal);
+
+void XMLPARSEAPI *
+XML_GetBuffer(XML_Parser parser, int len);
+
+int XMLPARSEAPI
+XML_ParseBuffer(XML_Parser parser, int len, int isFinal);
+
+/* If XML_Parse or XML_ParseBuffer have returned 0, then XML_GetErrorCode
+returns information about the error. */
+
+enum XML_Error XMLPARSEAPI XML_GetErrorCode(XML_Parser parser);
+
+
+/* Returns the last value set by XML_SetUserData or null. */
+#define XML_GetUserData(parser) (*(void **)(parser))
+
+
+const XML_Char XMLPARSEAPI *
+XML_GetBase(XML_Parser parser);
+
+/* Returns the number of the attributes passed in last call to the
+XML_StartElementHandler that were specified in the start-tag rather
+than defaulted. */
+
+int XMLPARSEAPI XML_GetSpecifiedAttributeCount(XML_Parser parser);
+
+
+/* These functions return information about the current parse location.
+They may be called when XML_Parse or XML_ParseBuffer return 0;
+in this case the location is the location of the character at which
+the error was detected.
+They may also be called from any other callback called to report
+some parse event; in this the location is the location of the first
+of the sequence of characters that generated the event. */
+
+int XMLPARSEAPI XML_GetCurrentLineNumber(XML_Parser parser);
+int XMLPARSEAPI XML_GetCurrentColumnNumber(XML_Parser parser);
+long XMLPARSEAPI XML_GetCurrentByteIndex(XML_Parser parser);
+
+/* Return the number of bytes in the current event.
+Returns 0 if the event is in an internal entity. */
+
+int XMLPARSEAPI XML_GetCurrentByteCount(XML_Parser parser);
+
+/* For backwards compatibility with previous versions. */
+#define XML_GetErrorLineNumber XML_GetCurrentLineNumber
+#define XML_GetErrorColumnNumber XML_GetCurrentColumnNumber
+#define XML_GetErrorByteIndex XML_GetCurrentByteIndex
+
+/* Returns a string describing the error. */
+const XML_LChar XMLPARSEAPI *XML_ErrorString(int code);
+
+</pre>
+
+</td></tr>
+
+
+
+
+<tr><td>
+<p>
+<hr width=50%>
+<a name="data">
+<center><font face=arial size=+1>DATA STRUCTURES</font><br>
+<hr width=50%>
+</td></tr>
+
+<tr><td>
+<a name="create">
+<a name="XML_Parser">
+<big><strong>XML_Parser</strong></big>
+<br>The central data structure of the <code>xmlparse</code> API, the <code>XML_Parser</code> provides a place to hang
+handlers, user data, and parsing state.
+
+<p>
+<a name="XML_Error">
+<big><strong>XML_Error</strong></big>
+<br>The usual enum of error returns from XML_Parser.  <a href="#errors">The list of errors is here.</a>
+
+<p>
+<a name="XML_Char"><a name="XML_LChar">
+<big><strong>XML_Char</strong></big><br>
+<big><strong>XML_LChar</strong></big>
+<br>Character types.  The default is 8-byte (UTF-8), but if you define either XML_UNICODE or XML_UNICODE_WCHAR_T, then
+these will be 16-bit values.  In the latter case, the type <code>wchar_t</code> will be used.  I believe that <code>wchar_t</code>
+is Windows-specific, but I haven't worked much with 16-bit character types, so I'm probably wrong.  So much to learn, so
+little time.
+
+<p>
+<a name="XML_UNICODE"><a name="XML_UNICODE_WCHAR_T">
+<code>#define</code> <big><strong>XML_UNICODE</strong></big><br>
+<code>#define</code> <big><strong>XML_UNICODE_WCHAR_T</strong></big>
+<br>The <code>#define</code>s used in the above.
+
+
+<p>
+<a name="XML_Encoding">
+<big><strong>XML_Encoding</strong></big><br>
+<code>struct {<br>
+&nbsp;&nbsp;int map[256];<br>
+&nbsp;&nbsp;void *data;<br>
+&nbsp;&nbsp;int (*convert)(void *data, const char *s);<br>
+&nbsp;&nbsp;void (*release)(void *data);<br>
+}<br></code>
+<br> From the header, but HTMLized a bit:<br>
+This structure is filled in by the <a href="#XML_UnknownEncodingHandler">XML_UnknownEncodingHandler</a>
+to provide information to the parser about encodings that are unknown
+to the parser.<br>
+The map[b] member gives information about byte sequences
+whose first byte is b.<ul>
+<li>If map[b] is c where c is >= 0, then b by itself encodes the Unicode scalar value c.
+<li>If map[b] is -1, then the byte sequence is malformed.
+<li>If map[b] is -n, where n >= 2, then b is the first byte of an n-byte
+sequence that encodes a single Unicode scalar value.
+</ul>
+The data member will be passed as the first argument to the convert function.
+The convert function is used to convert multibyte sequences;
+s will point to a n-byte sequence where map[(unsigned char)*s] == -n.
+The convert function must return the Unicode scalar value
+represented by this byte sequence or -1 if the byte sequence is malformed.
+The convert function may be null if the encoding is a single-byte encoding,
+that is if map[b] >= -1 for all bytes b.
+When the parser is finished with the encoding, then if release is not null,
+it will call release passing it the data member;
+once release has been called, the convert function will not be called again.
+<p>
+Expat places certain restrictions on the encodings that are supported
+using this mechanism.
+<ul>
+<li>Every ASCII character that can appear in a well-formed XML document,
+other than the characters
+<blockquote><code>
+  $@\^`{}~
+</code></blockquote>
+must be represented by a single byte, and that byte must be the
+same byte that represents that character in ASCII.
+
+<li> No character may require more than 4 bytes to encode.
+
+<li> All characters encoded must have Unicode scalar values <= 0xFFFF,
+(ie characters that would be encoded by surrogates in UTF-16
+are  not allowed).  Note that this restriction doesn't apply to
+the built-in support for UTF-8 and UTF-16.
+
+<li> No Unicode character may be encoded by more than one distinct sequence
+of bytes.
+</ul>
+
+</td></tr>
+
+
+<tr><td>
+<p>
+<hr width=50%>
+<a name="errors">
+<center><font face=arial size=+1>ERROR LIST</font><br>
+<hr width=50%>
+</td></tr>
+
+
+<tr><td>
+These errors are of the enum type <a href="#XML_Error">XML_Error</a>.  Use <a href="#XML_ErrorString">XML_ErrorString</a> to get the
+descriptive string.
+<table border=0>
+<tr bgcolor=f0f0f0><td><center>Error<br>number</center></td><td valign=top><center><code>#define</code> name</center></td><td valign=top>Message returned by <a href="#XML_ErrorString">XML_ErrorString</a></td></tr> 
+<tr><td>0</td><td> XML_ERROR_NONE</td><td><i>no error</i></td></tr> 
+<tr><td>1</td><td> XML_ERROR_NO_MEMORY</td><td><code>out of memory</code></td></tr> 
+<tr><td>2</td><td> XML_ERROR_SYNTAX</td><td><code>syntax error</code></td></tr> 
+<tr><td>3</td><td> XML_ERROR_NO_ELEMENTS</td><td><code>no element found</code></td></tr> 
+<tr><td>4</td><td> XML_ERROR_INVALID_TOKEN</td><td><code>not well-formed</code></td></tr> 
+<tr><td>5</td><td> XML_ERROR_UNCLOSED_TOKEN</td><td><code>unclosed token</code></td></tr> 
+<tr><td>6</td><td> XML_ERROR_PARTIAL_CHAR</td><td><code>unclosed token</code></td></tr> 
+<tr><td>7</td><td> XML_ERROR_TAG_MISMATCH</td><td><code>mismatched tag</code></td></tr> 
+<tr><td>8</td><td> XML_ERROR_DUPLICATE_ATTRIBUTE</td><td><code>duplicate attribute</code></td></tr> 
+<tr><td>9</td><td> XML_ERROR_JUNK_AFTER_DOC_ELEMENT</td><td><code>junk after document element</code></td></tr> 
+<tr><td>10</td><td> XML_ERROR_PARAM_ENTITY_REF</td><td><code>illegal parameter entity reference</code></td></tr> 
+<tr><td>11</td><td> XML_ERROR_UNDEFINED_ENTITY</td><td><code>undefined entity</code></td></tr> 
+<tr><td>12</td><td> XML_ERROR_RECURSIVE_ENTITY_REF</td><td><code>recursive entity reference</code></td></tr> 
+<tr><td>13</td><td> XML_ERROR_ASYNC_ENTITY</td><td><code>asynchronous entity</code></td></tr> 
+<tr><td>14</td><td> XML_ERROR_BAD_CHAR_REF</td><td><code>reference to invalid character number</code></td></tr> 
+<tr><td>15</td><td> XML_ERROR_BINARY_ENTITY_REF</td><td><code>reference to binary entity</code></td></tr> 
+<tr><td>16</td><td> XML_ERROR_ATTRIBUTE_EXTERNAL_ENTITY_REF</td><td><code>reference to external entity in attribute</code></td></tr> 
+<tr><td>17</td><td> XML_ERROR_MISPLACED_XML_PI</td><td><code>xml processing instruction not at start of external entity</code></td></tr> 
+<tr><td>18</td><td> XML_ERROR_UNKNOWN_ENCODING</td><td><code>unknown encoding</code></td></tr> 
+<tr><td>19</td><td> XML_ERROR_INCORRECT_ENCODING</td><td><code>encoding specified in XML declaration is incorrect</code></td></tr> 
+<tr><td>20</td><td> XML_ERROR_UNCLOSED_CDATA_SECTION</td><td><code>unclosed CDATA section</code></td></tr> 
+<tr><td>21</td><td> XML_ERROR_EXTERNAL_ENTITY_HANDLING</td><td><code>error in processing external entity reference</code></td></tr> 
+<tr><td>22</td><td> XML_ERROR_NOT_STANDALONE</td><td><code>document is not standalone</code></td></tr> 
+</table>
+
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

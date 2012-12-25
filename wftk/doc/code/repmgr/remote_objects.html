@@ -1,0 +1,137 @@
+<html><head><title>Repository manager: Working with individual objects</title></head>
+<body>
+<h2>Working with individual objects</h2>
+<center>
+[&nbsp;<a href="remote_iteration.html">Previous: Iterating across list contents</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_reports.html">Next: Working with individual objects as reports</a>&nbsp;]
+</center>
+
+<hr>
+Here's where things get interesting: this allows lightweight clients to toss data to repositories, which is what we really want to do
+with our lives when you get right down to it.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   FN_NAME(repos_add) (XML * repository, const char * list_id, XML * object)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (sock) { /* Remote. */
+      xml_setf (sock->parms, "outgoing", "add %s -\n", list_id);
+      _repos_send (sock);
+      xml_set (sock->parms, "outgoing", xml_string (object));
+      _repos_send (sock);
+      xml_set (sock->parms, "outgoing", "\n>>\n");
+      _repos_send (sock);
+      if (*_repos_receive (sock) == '-') {
+         return 1;
+      } else {
+         return 0;
+      }
+   }
+
+   /* TODO: something with return values. */
+
+   return 0;
+}
+
+
+WFTK_EXPORT int   FN_NAME(repos_del) (XML * repository, const char * list_id, const char * key)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (sock) { /* Remote. */
+      xml_setf (sock->parms, "outgoing", "del %s %s\n", list_id, key);
+      _repos_send (sock);
+      if (*_repos_receive (sock) == '-') {
+         return 1;
+      } else {
+         return 0;
+      }
+   }
+
+   return 0;
+}
+
+WFTK_EXPORT int   FN_NAME(repos_mod) (XML * repository, const char * list_id, XML * object, const char * key)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (!object &amp;&amp; !key) return 1; /* This combination can occur in error situations but has no semantics. */
+
+   if (sock) { /* Remote. */
+      if (key) {
+         if (object) {
+            xml_setf (sock->parms, "outgoing", "mod %s - %s\n", list_id, key);
+         } else {
+            xml_setf (sock->parms, "outgoing", "changed %s %s\n", list_id, key);
+         }
+      } else {
+         xml_setf (sock->parms, "outgoing", "mod %s -\n", list_id);
+      }
+      _repos_send (sock);
+      if (object) {
+         xml_set (sock->parms, "outgoing", xml_string (object));
+         _repos_send (sock);
+         xml_set (sock->parms, "outgoing", "\n>>\n");
+         _repos_send (sock);
+      }
+      if (*_repos_receive (sock) == '-') {
+         return 1;
+      } else {
+         return 0;
+      }
+   }
+
+   return 0;
+}
+WFTK_EXPORT int   FN_NAME(repos_merge) (XML * repository, const char * list_id, XML * object, const char * key)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (!object) return 1;  /* Unlike mod, merge makes no sense in a key-only situation. */
+
+      if (key) {
+         xml_setf (sock->parms, "outgoing", "merge %s - %s\n", list_id, key);
+      } else {
+         xml_setf (sock->parms, "outgoing", "merge %s -\n", list_id);
+      }
+      _repos_send (sock);
+      if (object) {
+         xml_set (sock->parms, "outgoing", xml_string (object));
+         _repos_send (sock);
+         xml_set (sock->parms, "outgoing", "\n>>\n");
+         _repos_send (sock);
+      }
+      if (*_repos_receive (sock) == '-') {
+         return 1;
+      } else {
+         return 0;
+      }
+}
+</pre></td></tr></table>
+
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT const char * FN_NAME(repos_getkey) (XML * repository, const char * list_id, XML * object)
+{
+   return ( xml_attrval (object, "key"));
+}
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="remote_iteration.html">Previous: Iterating across list contents</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_reports.html">Next: Working with individual objects as reports</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,279 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Usage scenarios -- Trade show organization</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Usage scenarios: trade show organization</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/usage_scenarios.html>usage&nbsp;scenarios</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+<i>(2/15/00) New!  <a href=../process_defn/tradeshow_defn.html>XML process definition</a>.</i>
+<p>
+
+Our next trick is the organization of a trade show.  This was the second of the scenarios proposed in the original
+RFP, and after the <a href=chair.html>chair scenario</a> was so easy to model, I thought this was going to be simple.
+Let's look at the actual things done in this scenario.  First, the person who initiates the workflow this time isn't
+a spectator, as the chairless employee was in the chair scenario.  In this case, the person who initiates the process
+is the organizer.  In the jargon, this role is often called a <i>case worker</i> because each instance of a process is
+a case (so, for instance, an insurance case or a loan application).  The case worker is responsible for the entire
+process, even if other people are doing some or most or even all the actual processing.
+<p>
+So OK.  Our first role is thus the Organizer, who is responsible for monitoring the process and making sure everything
+gets done.  If people have problems, the organizer is the person who solves them.  If special action is required, the
+organizer is the person who takes that action.
+<p>
+Since I've never organized a trade show, I made up four actions required.  You can elaborate as you see fit.  But in
+general, the whole process is kind of like this:<ol>
+<li> Organizer assigns roles and starts process.
+<li> Somebody books the hotel.
+<li> Somebody creates a floor plan.
+<li> Somebody roughs out a schedule.
+<li> Somebody books the caterer.
+<li> Produce a brochure listing the hotel, showing a floor plan and the schedule.
+</ol>
+Obviously the entire process would be considerably more complicated: the booths are reserved, the rooms are blocked out,
+the tickets are sold, and so on and so forth.  But this much already illustrates all that this example will illustrate,
+so I'm not going to waste time going into too much detail (although it might be interesting later to show a really complex
+example and this one would certainly be interesting to see in full-blown glory, with pictures and arrows and four-part
+harmony.  For instance, booth reservation is a completely asynchronous task, depending on people outside the organization,
+communicating by mail or something.)
+<p>
+<i>PERT charts and task dependencies</i><br>
+When I got down and started drawing the RAD for this process, I noticed a few things.  First, the order of the tasks needn't
+be linear -- but they can't be done in just <i>any</i> order, either.  For instance, the caterer could be booked before
+the hotel is booked, but we can't create a floor plan without knowing which hotel we're going to be in because we don't know
+the size or layout of the convention rooms there.  The RAD isn't set up to represent this sort of
+prerequisite relationship.  The graphical formalism most people use to show tasks which depend on one another is a bunch
+of boxes with arrows between them: a <i>PERT chart</i>.  (PERT was formalized by the military and it stands for Program
+Evaluation and Review Technique.  Sigh.  These are the people who call a pair of glasses a Vision Correction Device.)
+The thing about the PERT chart is, everybody uses it automatically.  It's the most natural way to show tasks in a project
+and which tasks have to be done first.  Unfortunately, the PERT chart doesn't really show roles well, so it abstracts away
+some of the information most useful in the RAD.
+<p>
+Here is this project shown as a PERT chart:<center>
+<img src=ts_pert.gif></center>
+As you can see, PERT charts are extremely easy to understand, which is the main reason everybody uses them.  But after I
+drew this, I realized that it can be translated back into the RAD pretty easily, and this is the result:<center>
+<table><tr><td>
+<img src=ts_rad.gif></td><td>where:<br><b>Or</b> is the organizer<br><b>Gr</b> is a graphic designer<br>and <b>X</b> is
+everybody else.
+</td></tr></table></center>
+Now, I find it easier to see the task dependencies in the PERT layout, but you can see the same structure in the RAD as well.
+Once this project gets into a sufficiently advanced state that we're considering graphical tools for workflow representation,
+I propose that we use both.  (Another useful layout is the Gannt chart, which I won't be using in these usage scenarios, but
+suffice it to say that Microsoft Office uses PERT and Gannt for project display.)
+<p>
+<i>Task assignment</i><br>
+Although task assignment was part of step 1 in the original description of this scenario, I don't think it belongs in
+the process definition at all, for a couple of reasons.  First, we don't need to assign roles until each task becomes
+active.  We might have some ideas about who should do what, but there's no reason to force that early on, because then we
+might just have to change it later anyway.  Second, task assignment must ultimately be done in <i>every</i> project for <i>every</i>
+task, so it's silly to have to represent it in every one.
+<p>
+That said, task assignment could be as complex or as simple as it needs to be.  A manager may assign all tasks.  Or the
+different workers may choose tasks to suit themselves.  Tasks may be prioritized, or some other system may be used to force
+task assignment: first-in-first-out, last-in-first-out, and so on.  In fact, if we consider each role a queue, there is
+an entire branch of mathematics (strangely enough, called <i>queue theory</i>) which describes and compares different
+strategies of task assignment.  Ultimately the workflow engine should support any number of task assignment strategies.
+<p>
+A further lesson about roles and task assignments is apparent from this process: basically, except for the special role
+of Organizer, <i>anybody</i> could perform the other tasks.  Well, presumably the preparation of the brochure would fall to
+a graphic designer, but the other organizational tasks could easily be in a single role.  The organizer could perform
+some or all of them, or could delegate all of them.  They could be performed by one or more people.
+<p>
+<i>Deliverables</i><br>
+This task is different from the chair scenario in a further respect: the process itself, and some of the internal tasks,
+have <i>deliverables</i>.  A deliverable is an object or document which is created during the task or process, and which is
+the point of the process, usually.  In this case, one deliverable is the brochure, another the floor plan, another the
+rough schedule.  The deliverable of the overall process is in a sense all these together, as an information packet or
+something.
+<p>
+<i>Usage</i><br>
+It might be a good idea to consider how such a process would be used, especially given that this is a usage scenario.
+  A process is initiated either by anonymous trigger
+(say, a customer clicks on a customer-service form button), or by a system user (the chairless employee or the trade show
+organizer.)  Each role can be considered a queue, as I mentioned above, and so the tasks which start the process off are
+placed in their respective role queues.  The tasks are then assigned as specified in their own definitions: either they're
+assigned automatically, by hand by a manager, or people who belong to the roles choose tasks from the queue.  Once a task
+is assigned (or chosen, depending on how you look at it), the task is active and the actor is working on it.  A task may then
+complete normally, it may be thrown back (say the person assigned calls in sick; the task must be reassigned), or it may
+fail.  (If it fails, this is an exception, and either the process must define an exception handling procedure, or the
+process owner must take some corrective action.)
+<p>
+As tasks are completed, they trigger new tasks, and notification may also be sent to various people.  These new tasks
+enter their respective queues as they are activated, and so forth.
+<p>
+<i>Compound workflow</i><br>
+<i>(1/24/00)</i> After the above was posted, Anthony O'Krongly came back with some excellent
+feedback, to wit:
+<blockquote>
+The trade show flowchart is a good attempt.  It doesn't correspond with what
+we do, but it does show another example of how the application will work.
+<p>
+Let me see if I can explain what I was thinking when I put that in. (You
+don't have to change the existing chart.  This is just a demonstration of
+our vision.)
+<p>
+#1.  Take each item in the existing workflow and make it a separate workflow
+similar to the detail included in the "Chair Request" workflow.  Booking
+hotel, creating a schedule, creating a floor plan, etc. would each be a
+separate and distinct workflow.
+<p>
+This does two things.<ol>
+<li> It keeps it simple.  Each workflow can be set up as needed by the person
+who most intimately understands what's involved.
+<li> It keeps it flexible.  By "Grouping"  (See #2 Below) simple workflows
+into "Compound" workflows the system becomes very flexible.  If one piece of
+the Compound workflow no longer applies, it can be quickly and easily
+removed.  The same is true if you want to change a piece of a workflow.
+Some very simple workflows would be used repeatedly in numerous compound
+workflows.  I can't think of an example at the moment, but it will happen.
+Then if some aspect of that often reused simple flow changes, then all the
+others will change automatically.
+</ol>
+<p>
+#2.  We saw a workflow as complex as a Tradeshow setup being comprised of
+multiple simple workflows that are all GROUPED TOGETHER.  Let's call this a
+COMPLEX workflow.
+<p>
+Does it sound crazy?  Let's call it the Internet Chaos Paradigm.  Take
+something as complicated as the Internet.  Billions of pages, millions of
+sites, etc.  It's crazy and unmanageable!!!  But with each person doing
+their own part in their little corner of the web it works out fairly well.
+Give users an easy, consistent interface and all of a sudden something which
+is Chaos Incarnate becomes smooth sailing.
+<p>
+So, here's how it relates to our little application.
+<p>
+Sally, the buffet booker, sets up a workflow that helps her set up a buffet.
+Jon, the media guru, sets up a workflow that helps him coordinate hotel
+media for meetings.
+Steven, the Tradeshow booth expert, sets up a workflow that helps him plan
+booth space layouts
+Etc. Etc.
+<p>
+Now Vice President G.O. Devine (GOD for short)- who is over the tradeshow
+department wants to set up a master workflow for setting up a tradeshow.
+Since he's a bright guy with a Management Degree and a 2 pm Tee Time,  he
+takes all the flows created by his busy minions and groups them together.
+Maybe he adds a little workflow in front of the group that says, "Start the
+busy bees on their tasks".  His "intro workflow" might notify some people of
+deadlines or whatever.  He call this Complex workflow "The Hand of GOD"
+<p>
+A client calls and says, "I want a tradeshow".  GOD runs his "Hand of God"
+workflow.  It asks for some info and then starts all the other workflows
+when it gets to them.  Viola, the simple becomes complex.  The hard to
+manage becomes easy.  The incomprehensible becomes compre.... You get the
+idea.
+<p>
+Now, I know I left out some details.  But that's the goal.  Goal #1 - Figure
+out a way to make a simple workflow.  Goal #2 - Figure out a way to group
+simple workflows TOGETHER both linearly and in parallel.  Goal #3 - Go have
+a beer because you're done.
+</blockquote>
+In short, the existing RAD works pretty well, as long as you realize that <i>a
+task may actually represent an entire process</i>.  Actually, we're going to see some more
+examples of this in a couple of the other usage scenarios but Anthony's vision of cooperative
+workflow is just so impressive I had to include it now.  This allows the organization of
+workflow to mirror the organization of the work -- Susan knows about buffets and so Susan
+defines what it is she does.  GOD wants to make sure the whole trade show comes off and so
+his workflow coordinates everybody else's.  When Susan realizes her process doesn't work
+very well, she can change it -- and nobody else is affected in the least!  It's beautiful.
+<p>
+<i>Summary</i><br>
+Again, a short list of things that look like requirements:<ul>
+<li>Tasks may have deliverables.
+<li>Tasks may have complex dependency relationships.
+<li>PERT charts are nice.
+<li>Roles are queues, and task assignment may be arbitrarily complex.
+<li>Exception handling (what to do when things go wrong) must be handled, if not perfectly then at least gracefully.
+<li>An individual task may represent a subprocess.
+</ul>
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Initial implementation</TITLE>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Initial implementation</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+The implementation of wftk (or better, as I've titled it, the "initial implementation") has been split into two parts: the
+core engine and other "doing workflow" kinds of things, and then the workflow process definition editor.  I stress the
+"initial implementation" because the whole point of this effort is to modularize things to the point where any component
+will surely be replaced entirely many times, especially for use in differing environments.
+<p>
+I've begun the first part, and that breaks down into the following components:<ul>
+<b><li><a href="/wftk/todomgr/index.html">The active process repository and to-do list management.</a></b><br>
+I was rather surprised by this, but to-do list management is really very central to what this whole thing is all about.
+If I have a to-do manager, then essentially adding workflow consists of two hooks: first, the workflow engine can create
+new tasks for me, and second, when I complete a task, the workflow engine decides what to do about it.  The to-do manager
+is growing out of some other work that I've been mulling over for a while, and its initial implementation is
+<a href="/wftk/todomgr/index.html">here</a>.  This implementation is AOLserver/Tcl (the same platform running the site you're
+reading right now), partly due to my need to get it up quickly, and partly to underscore the point that <i>any</i>
+implementation of the user interface should work just the same with the rest of the system.
+<b><li>The core engine</b><br>
+The core engine itself is that part of the system which is called to create new processes, and to complete tasks.  In each
+case, the engine decides what to activate next.  That's essentially all it needs to do (yes, it is slightly more complicated
+than that.)
+<b><li>The datasheet repository and process definition repository</b><br>
+Due to (premature) mulling over of what it will take to create a Web-based editor for the XML process definition, I've
+come up with a dandy little component for both repositories.  Each of these repositories is used to store XML documents,
+so I'm working out a protocol by which pieces of those documents may be retrieved, not just the entire document at one
+fell swoop.  This component will use intra-document locations to retrieve and modify single elements and values.
+</ul>
+<p></p>
+<i>April 20, 2000</i>
+<p></p>
+At this point, the first round of development is complete for the <a href="/wftk/todomgr/index.html">task list manager</a>,
+even though I still really haven't decided whether it's a task list manager or a to-do list manager.  It's running
+<a href="/todomgr/">here</a>.  You can use the userid 'demo' and password 'demo', or you can ask me for a different userid
+for yourself if you want to really bang on it.  I'd appreciate any suggestions or comments short of derisive laughter.
+It's raw but I think it's usable.  Your mileage may, of course, vary; if so, please drop me a line.
+<p>
+For my next trick I'll be attacking the datasheet repository.  This will allow me to attach arbitrary values to tasks (and
+of course to anything else I like, heh, heh).  It will be an XML-based solution, and like the task list manager, I will be
+developing it to be useful as an independent application.  The same component will also be used to develop the process
+definition repository and editor.  More on that theme in a day or two.
+<p>
+Once the datasheet repository is working, then I can do the core engine itself; the reason I'm not doing that first is that
+the engine will store process and task state information in the datasheet.  I guess I could do that in the database, but
+at the moment it seems to make more sense this way.  Anyway, that's my plan.  Watch this space for further details.
+<p>
+All in all, this project is getting bigger as I get closer.  (Of course, I expected that but it's always so surprising.)  I
+think this task list manager is a good, solid start.
+
+
+<p></p>
+<i>May 13, 2000</i>
+<p></p>
+Datasheet attachment is working, and you can scope out the code <a href=http://www.vivtek.com/wftk/todomgr/datasheet_stuff.html>here, mostly</a>.
+I wrote the whole thing based on my <a href=/xmltools/>command-line XML utilities</a>, which
+are in turn based on James Clark's <a href=/expat.html>expat</a> parser.  Anyway, finally
+knowing how the heck to use expat means I'm close to finishing this longest of all
+project milestones.
+
+
+<p></p>
+<i>May 27, 2000</i>
+<p></p>
+Well, <i>that</i> was a grueling two weeks.  The bare bones of a core engine are now working.  <a href=http://www.vivtek.com/wftk/wftk/index.html>You
+can see things here.</a>  The basic implementation of the core engine is as a rather simple command-line program which is
+given a command such as "start this process with this process definition", loads the definition, creates a datasheet, then
+replies with a list of the tasks to be started.  When a task completes, the commend is given "complete this task in this
+process", and the engine gets the datasheet (which contains the current dependency state of the process among other things),
+retrieves the process definition again, and tells you what happens next.
+<p></p>
+Integration of that with the task manager required yet another piece to be started, and that's the process definition
+manager (or PDM).  The PDM knows how to find the current version of a process definition (or procdef), how to present the
+list of procdefs, how to generate an initial startup form for a process from its definition, and so forth.  The PDM will
+also manage editing in the next milestone.  <a href=http://www.vivtek.com/wftk/pdm/>You can see the PDM's code here.</a>
+
+
+<p></p>
+<i>July 10, 2000</i>
+<p></p>
+
+OK.  The procdef manager, or <i>PDM</i>, is now a working prototype.  You can run it
+<a href="/workflow/wftk_exec/pdm/pdm.cgi">here</a> and browse the code
+<a href="/workflow/wftk_exec/pdm/">here</a>.  The implementation of the PDM is in C and it
+runs either from the command line (for many functions) or as a CGI program.  It auto-detects
+which mode you're running it in.  Cool, eh?  Anyway, I developed a
+<a href="/workflow/wftk_exec/user/">user module</a> during this phase of development
+which provides a very fine-grained control over users and the actions they're permitted to
+take.  That functionality now has to go into the rest of the system (primarily the task
+manager, but wftk core will also need to use it in some cases.)
+<p></p>
+Man, there's still a lot to do here.
+
+
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

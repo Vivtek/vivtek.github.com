@@ -1,0 +1,50 @@
+<html><head><title>wftk source documentation</title></head>
+<body>
+<h2>wftk: source code</h2>
+<center>
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+Source documentation:<ul>
+<li><a href="wftk/index.html">Core library and adaptors</a>
+<li><a href="xmlapi/index.html">XMLAPI library</a>
+</ul>
+
+This page is a central point for the wftk code documentation.  Some explanation is in order.
+The wftk is coded in a <i>literate style</i>, which means that the source code and
+its documentation are maintained together.  The source files are XML documentation which are
+processed by means of my little tool <a href="http://www.vivtek.com/lpml.html>LPML</a>, which is
+a Perl script and is included in the wftk distribution.  I plan to replace it with a C tool
+so that no external dependence on Perl exists for a build, but that point hasn't come yet.
+<p>
+The wftk itself is embodied in a library which is implemented in ANSI C.  It relies
+very heavily on in-memory structures which are based on XML (and these structures are naturally
+thus always writable as XML).  The library which manipulates those is the XMLAPI and is documented
+<a href="xmlapi/index.html">here</a>.
+<p>
+The code for the wftk library is <a href="wftk/index.html">here</a>.  The way it works is that
+the core library defines the workflow API and implements the basic logic, while all interaction
+with other systems is put into what I call <i>adaptors</i>.  An adaptor encapsulates everything
+the wftk needs to know about a system (for instance, a datasheet storage repository, where
+process information is kept).  Then you can implement an adaptor which talks to any arbitrary
+system, and the wftk should work transparently with it.
+<p>
+Adaptors fall into classes, and each class has its own subdirectory in the main wftk code
+directory, so you can browse around to see what I mean.
+<p>
+Included with the wftk_lib library is also a rudimentary command-line interface to allow you
+to do things from the shell.  It doesn't expose the full wftk API, though.  Too much work to
+think it through.
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

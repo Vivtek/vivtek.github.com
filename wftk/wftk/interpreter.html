@@ -1,0 +1,236 @@
+<html><head><title>wftk core engine: Interpreting command streams</title></head>
+<body>
+<h2>Interpreting command streams</h2>
+<center>
+[&nbsp;<a href="output.html">Previous: Our oh-so-complex output stream</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk core index</a>&nbsp;]
+[&nbsp;<a href="load_datasheet.html">Next: Loading the datasheet for an active process</a>&nbsp;]
+</center>
+
+<hr>
+The command stream is simply a list of notifications of events which have occurred.  The
+engine must open the datasheet for the process involved, find the procdef which applies, and
+then move down the command list, making appropriate changes to the datasheet as defined in
+the procdef.  As this is done, output lines are being written to communicate back to the
+task manager what things have been changes.
+<p></p>
+Most particularly, when the procdef tells the engine that it is time to activate a task, the
+engine must stop and notify the task manager.  This is simply because the task manager must
+assign the task instance a unique identifier.  Once this is done, the task manager must
+call the core engine again to active the task, because the datasheet must reflect the task ID
+of the new task.  (I think.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="load_datasheet.html">Loading the datasheet for an active process</a></i>
+void interpret (COMMAND * list)
+{
+   FILE * temp;
+   int  datasheet_dirty;
+   char line[1024];
+   char * mark;
+   XML * holder;
+
+   datasheet_dirty = 0;
+
+   while (list) {
+      if (!strcmp (list->name, "start")) {
+         <i>See <a href="interpreter.html#start">'start' command</a></i>
+      } else if (!strcmp (list->name, "complete")) {
+         <i>See <a href="interpreter.html#complete">'complete' command</a></i>
+      } else if (!strcmp (list->name, "reject")) {
+         <i>See <a href="interpreter.html#reject">'reject' command</a></i>
+      } else if (!strcmp (list->name, "setvalue")) {
+         <i>See <a href="interpreter.html#setvalue">'setvalue' command</a></i>
+      } else if (!strcmp (list->name, "script")) {
+         <i>See <a href="interpreter.html#script">'script' command</a></i>
+      } else {
+         output ('E', "Unknown command %s encountered", list->name);
+      }
+skip_command:
+      list = list->next;
+   }
+
+   if (datasheet != NULL &amp;&amp; datasheet_dirty) {
+      sprintf (sbuf, "%s%s", DATASHEET_REPOSITORY, process);
+      temp = fopen (sbuf, "w");
+      if (!temp) {
+         output ('E', "Can't write to datasheet for process %s.", process);
+      } else {
+         xml_write (temp, datasheet);
+         fclose (temp);
+      }
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="start">
+<i>'start' command</i><br>
+Starting a process consists of these steps:
+<ul>
+<li>Finding the process definition
+<li>Opening a datasheet and marking the current version of the procdef into it
+<li>Calling the procdef interpreter on the procdef
+<li>Writing the datasheet out to the appropriate file
+</ul>
+Of these steps, the last, writing the datasheet, is taken care of centrally.  If the
+<code>datasheet_dirty</code> flag is set, then the datasheet will be written when the
+interpreter finishes.
+<p></p>
+
+So let's find our process definition.  The procdef identifier we're given is a general name;
+we have to find the current version of that procdef and mark that version as the one we're
+actually using.  Otherwise if changes are made, things are going to get rapidly out of whack.
+<p></p>
+So in the process definition repository, there is a file <code>procdef_versions.txt</code>
+for procdef ID 'procdef'.  That consists of lines of text, the first tab-delimited field of
+which is the number of a version.  The last line, therefore, identifies the current version.
+<p></p>
+For version <code>2a</code> of procdef <code>procdef</code>, the actual definition XML will be
+in the file <code>procdef_2a.xml</code>.  That's what we'll write into our datasheet as our
+governing procdef.
+<p></p>
+And yeah, I'm using a goto here.  Sue me.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (procdef != NULL) {
+   output ('E', "Start command must be first.  Skipping command.");
+   goto skip_command;
+}
+
+if (list->argc < 1) {
+   sprintf (sbuf, "%s%s", DATASHEET_REPOSITORY, process);
+   temp = fopen (sbuf, "r");
+   if (!temp) {
+      output ('E', "No process '%s' exists.", process);
+      return;
+   }
+
+   datasheet = xml_read (temp);
+   fclose (temp);
+
+   sprintf (sbuf, "%s%s", PROCESS_DEFINITION_REPOSITORY, xml_attrval (datasheet, "procdef"));
+} else {
+   sprintf (sbuf, "%s%s_versions.txt", PROCESS_DEFINITION_REPOSITORY, list->argv[0]);
+   temp = fopen (sbuf, "r");
+   if (!temp) {
+      output ('E', "No process '%s' defined.", list->argv[0]);
+      return;
+   }
+
+   *line = '\0';
+   while (!feof (temp)) { fgets(line, 1023, temp); }
+   fclose (temp);
+   mark = strchr (line, '\t');
+   if (mark) *mark = '\0';
+
+   sprintf (sbuf, "%s%s_%s.xml", PROCESS_DEFINITION_REPOSITORY, list->argv[0], line);
+}
+
+temp = fopen (sbuf, "r");
+if (!temp) {
+   output ('E', "Process definition version file '%s' is missing.", sbuf);
+   return;
+}
+
+procdef = xml_read(temp);
+fclose (temp);
+
+if (datasheet == NULL) {
+   datasheet = xml_create("datasheet");
+   sprintf (sbuf, "%s_%s.xml", list->argv[0], line);
+   xml_set(datasheet, "procdef", sbuf);
+}
+
+datasheet_dirty = 1;
+
+output ('N', xml_attrval (procdef, "name"));
+output ('O', xml_attrval (procdef, "author"));
+holder = xml_loc (procdef, "workflow.note[description]");
+if (holder != NULL) {
+   xml_writecontent (stdout, holder);
+}
+printf ("\nEOF\n");
+
+queue_procdef (procdef);
+process_procdef();
+</pre></td></tr></table>
+<br><br>
+<a name="complete">
+<i>'complete' command</i><br>
+To complete a task, we: <ul>
+<li>Load datasheet and procdef
+<li>Mark the task as complete
+<li>Hand off to the procdef interpreter
+</ul>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>load_datasheet();
+mark = strrchr (list->argv[0], ':');
+if (mark) mark++;
+else (mark = list->argv[0]);
+
+sprintf (sbuf, "queue.item[%s]", mark);
+holder = xml_loc (queue, sbuf);
+if (holder) xml_set (holder, "block", "resume");
+datasheet_dirty = 1;
+process_procdef();
+</pre></td></tr></table>
+<br><br>
+<a name="reject">
+<i>'reject' command</i><br>
+Rejection of a task is pretty much the same as completion, except that we invoke
+exception handlers.
+<br><br>
+<a name="setvalue">
+<i>'setvalue' command</i><br>
+To set a value, we simply:<ul>
+<li>Load the datasheet
+<li>Set the value
+</ul>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>
+</pre></td></tr></table>
+<br><br>
+<a name="script">
+<i>'script' command</i><br>
+The <code><i>script</i></code> command allows us to use command files (or stdin) to
+signify several events at once.  Note that all commands in a single run <i>must</i> be
+applied to the same process, and that process is specified on the command line.  The commands
+to be found in a script file lack the process ID, because it's already been specified.
+<p></p>
+In keeping with the idea that these commands are really state transitions, we will simply
+tack commands from script files onto the end of the current list.  Thus we really don't
+care that scripts run in order -- all this is conceptually happening simultaneously.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>temp = NULL;
+if (list->argc) {
+   output ('D', "Script %s", list->argv[0]);
+   temp = fopen (list->argv[0], "r");
+   if (!temp) { output ('E', "Unable to open script file '%s'", list->argv[0]); }
+} else {
+   output ('D', "Script on stdin");
+   temp = stdin;
+}
+
+if (temp) {
+   output ('D', "This is where the script would be loaded.", list->argv[0]);
+   if (temp != stdin) fclose (temp);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="output.html">Previous: Our oh-so-complex output stream</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk core index</a>&nbsp;]
+[&nbsp;<a href="load_datasheet.html">Next: Loading the datasheet for an active process</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,148 @@
+<html><head><title>xmltools: Overview of the program and main()</title></head>
+<body>
+<h2>Overview of the program and main()</h2>
+<center>
+[&nbsp;<a href="index.html">Previous: xmltools index</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: xmltools index</a>&nbsp;]
+[&nbsp;<a href="data_structures.html">Next: Data structures: frames and tags</a>&nbsp;]
+</center>
+
+<hr>
+The overall layout of the file is pretty much like any single-file C program: includes at the
+top, followed by type and struct definitions, then globals, then functions, and finally the
+main function.
+<p></p>
+The structure of this code is a little weird, because it's generating four executables
+instead of one.  The four are:
+<table>
+<tr><td>xmlsnip</td><td><code>#define XMLSNIP</code></td><td>excerpts a named section</td></tr>
+<tr><td>xmlreplace</td><td><code>#define XMLREPLACE</code></td>
+     <td>replaces a named section</td></tr>
+<tr><td>xmlset</td><td><code>#define XMLSET</code></td>
+     <td>sets an attribute, otherwise not touching the file</td></tr>
+<tr><td>xmlinsert</td><td><code>#define XMLINSERT</code></td>
+     <td>inserts stdin somewhere in the tree</td></tr>
+</table>
+
+All these write to stdout; snip and set can read the source from stdin, but replace
+and insert need stdin for the thing to be inserted, so a file must be given explicitly.
+
+<p></p>
+And now that I notice, none of these defines is used in the main function; they're all out
+in the handlers, which is appropriate.  The main function is short and sweet; it reads the
+command line (which initializes the global state variables), figures out where the input
+is coming from, then enters the regular expat loop, as I explain in my 
+<a href="/xml/using_expat.html">expat tutorial</a>.  All the real work is done in the handlers.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;malloc.h>
+#include "xmlparse.h"
+
+
+<i>See <a href="data_structures.html">Data structures: frames and tags</a></i>
+<i>See <a href="globals.html">Global variables (state)</a></i>
+
+<i>See <a href="data_structures.html#freeing">Freeing frames and the stack</a></i>
+<i>See <a href="print_stack.html">Printing the current stack as a locator</a></i>
+<i>See <a href="startElement.html">Handling elements: startElement</a></i>
+<i>See <a href="endElement.html">Handling elements: endElement</a></i>
+<i>See <a href="charData.html">Handling non-element data: charData</a></i>
+<i>See <a href="globals.html#init">Reading the command line</a></i>
+
+
+int main(int argc, char * argv[])
+{
+   char buf[BUFSIZ];
+   FILE * in;
+   XML_Parser parser;
+
+   init(argc, argv);
+
+   if (!stack.locator) {
+     <i>See <a href="main.html#print_usage">Print usage description</a></i>
+   }
+
+   if (!infile) {
+      in = stdin;
+   } else if (!(in = fopen (infile, "r"))) {
+      printf ("Unable to open input file %s\n", infile);
+      exit (2);
+   }
+  
+   parser = XML_ParserCreate(NULL);
+
+   XML_SetElementHandler(parser, startElement, endElement);
+   if (emit_content) XML_SetCharacterDataHandler(parser, charData);
+
+   done = 0;
+   finished = 0;
+
+   do {
+      size_t len = fread(buf, 1, sizeof(buf), in);
+      done = len &lt; sizeof(buf);
+      if (!XML_Parse(parser, buf, len, done)) {
+         fprintf(stderr,
+            "%s at line %d\n",
+            XML_ErrorString(XML_GetErrorCode(parser)),
+            XML_GetCurrentLineNumber(parser));
+         return 1;
+      }
+   } while (!done &amp;&amp; !finished);
+   XML_ParserFree(parser);
+
+   free_stack();
+
+   if (emit_tags) printf ("\n");
+
+   if (in != stdin) fclose (in);
+   return 0;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="print_usage">
+<i>Print usage description</i><br>
+To print usage, we just print some stuff.  In the original version of this program, I made
+this a separate function <code>print_usage()</code> for readability.  In the literate
+presentation, there's no reason to do that, so I save a whole function call.  Ha.  You may
+scoff at that, and in this case of course one piddling function call is trivial -- but the
+whole concept of breaking functions into smaller functions for readability is obviated by
+a literate style.  OK, end of soapbox.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifdef XMLSNIP
+   printf ("usage: xmlsnip &lt;flags> &lt;location> [&lt;file>]\n");
+#endif
+#ifdef XMLREPLACE
+   printf ("usage: xmlreplace &lt;flags> &lt;location> &lt;file>\n  - Replacement on stdin\n");
+#endif
+#ifdef XMLSET
+   printf ("usage: xmlset &lt;flags> &lt;location> &lt;attr> &lt;new value> [&lt;file>]\n");
+#endif
+#ifdef XMLINSERT
+   printf ("usage: xmlsnip &lt;flags> &lt;insertwhere> &lt;location> &lt;file>\n  - Insert on stdin\n");
+#endif
+   printf ("  Flags: (not all may make sense for this program; xmltools share the flags.\n");
+   printf ("  -c : include comments\n");
+   printf ("  -o : exclude elements\n");
+   printf ("  -t : exclude nonelement content\n");
+   printf ("  -m : exclude the matching tag\n");
+   printf ("  -p : include processing instructions (PIs)\n");
+   printf ("  -l : include locator when match occurs\n");
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="index.html">Previous: xmltools index</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: xmltools index</a>&nbsp;]
+[&nbsp;<a href="data_structures.html">Next: Data structures: frames and tags</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,357 @@
+<html><head><title>Repository manager: Creating and administering lists</title></head>
+<body>
+<h2>Creating and administering lists</h2>
+<center>
+[&nbsp;<a href="macros.html">Previous: Macro processing</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="iteration.html">Next: Iterating across list contents</a>&nbsp;]
+</center>
+
+<hr>
+The basic core of list administration is the definition of the data in the list.  The repository manager is very flexible when it comes
+to what can be in objects -- essentially, it doesn't care what XML you toss in there, as long as it can figure out a couple of fields.
+However, your needs may require restrictions, and of course if the list is stored in a relational database then the database may also
+impose some restrictions.  Changing those restrictions may require addition of columns, or even the complete reload of a table, depending
+on how much change you actually need.  So naturally (as per usual procedure) I'm glossing over most of that for now.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   repos_create  (XML * repository, const char * list)
+{
+   return 0;
+}
+WFTK_EXPORT int   repos_drop    (XML * repository, const char * list)
+{
+   return 0;
+}
+</pre></td></tr></table>
+
+Returning the definition of a list is a pretty straightforward process; this might get a little more fraught with detail after we
+get more serious about the various special-purpose pseudolists.  We'll see.
+<p></p>
+TODO: may need pseudolist post-processing of definition retrieval for _publog: we *always* need, for instance, a "start" field with
+special "now" handling.
+<p></p>
+<i>November 29, 2002</i>: Here we go.  The definition of the "_sessions" list must be returned correctly even if it's not defined.
+Thus we first look at the repository to find a definition, and return that (overriding) definition if found.  But if it's not overridden,
+we return a default definition.  We'll eventually be doing much the same thing with all the system lists (and not only here in the
+defn return function, but also in various access and editing functions as well.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_defn    (XML * repository, const char * list_id)
+{
+   XML * list;
+   XML * defn;
+   FILE * file;
+
+   list = xml_locf (repository, ".list[%s]", list_id);
+   if (!list) {
+      if (!strcmp (list_id, "_sessions")) {
+         list = xml_parse ("<list id=\"_sessions\" storage=\"localdir:_sessions\">\n<field id=\"key\" special=\"key\"/>\n</list>");
+      }
+
+      if (list) xml_append (repository, list);
+      return list;
+   }
+
+   if (*xml_attrval (list, "defn")) {
+      file = _repos_fopen (repository, xml_attrval (list, "defn"), "r");
+      if (file) {
+         defn = xml_parse_general (file, (XMLAPI_DATARETRIEVE) fread);
+         if (!xml_is (defn, "xml-error")) {
+            xml_copyinto (list, defn);
+            xml_set (list, "defn", "");
+            xml_free (defn);
+         }
+         fclose (file);
+      }
+   }
+
+   return list;
+}
+</pre></td></tr></table>
+
+<i>(30 July 2002)</i>: So I'm just now getting down to the business of displaying object edit forms now that I'm working on the CGI
+interface (i.e. the first actual use of object edit forms).  The way I'm doing this is going to be pretty complex in the end -- I want
+the ability to encode wizards into the list definition, so the actual display of an edit form will depend on three variables: the <i>mode</i>
+is specified by the caller (example: edit, display), the <i>status</i> of the object is the second, and third the <i>user</i> making the
+request can also have an effect on the form actually displayed.  For the time being, of course, I'm ignoring most of that.  This is just
+the game plan.  TODO: (as usual) implement the big plan.
+<p></p>
+The overall steps for building an edit (or display) form are:<ul>
+<li>Find or build a layout for the object.
+<li>For each field in the layout, retrieve a value.<ul>
+    <li>The value may be a display-only value.
+    <li>The value may be an edit field, either blank or filled out.
+    </ul>
+<li>Express the fields in the layout appropriately.
+</ul>
+It's the layout where we're going to get clever with our Big Plan.  If there is no layout (which for the time being will always be the
+case) then we build a default layout consisting of a table with labels and fields as appropriate.  So there's a meaningful improvement
+path ahead of us.
+<p></p>
+<i>(2 Jan 2003)</i>: so.  Breaking ground with integration of workflow and repmgr, at last; today the form display function learns
+how to display states and available transitions.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_form    (XML * repository, const char * list_id, const char * key, const char * mode)
+{
+   XML * list;
+   if (!repository) return NULL;
+   list = repos_defn (repository, list_id);
+   if (!list) return NULL;
+   return repos_form_direct (repository, list, key, mode);
+}
+WFTK_EXPORT XML * repos_form_direct (XML * repository, XML * list, const char * key, const char * mode)
+{
+   XML * layout = NULL;
+   XML * row;
+   XML * col;
+   XML * val;
+   XML * spec;
+   XML * field;
+   XML * object;
+   XML * state;
+   XML * mark;
+   XML * holder;
+   WFTK_ADAPTOR * ad;
+
+   if (!mode) mode = "new";
+
+   /* Retrieve the object. */
+   if (key) {
+      object = repos_get (repository, xml_attrval (list, "id"), key);
+      if (!object) return NULL;
+   } else {
+      object = NULL;
+   }
+
+   /* Ask the list how we should lay the current object out, assuming there is one. */
+   /* Otherwise we build our default. */
+   if (!layout) {
+      layout = xml_create ("table");
+      field = xml_firstelem (list);
+      while (field) {
+         if (xml_is (field, "field")) {
+            row = xml_create ("tr");
+            xml_append_pretty (layout, row);
+            col = xml_create ("td");
+            xml_append (row, col);
+            xml_append (col, xml_createtext (*xml_attrval (field, "label") ? xml_attrval (field, "label") : xml_attrval (field, "id")));
+            if (strcmp (xml_attrval (field, "type"), "text") &amp;&amp; strcmp (xml_attrval (field, "type"), "wiki")) {
+               col = xml_create ("td");
+               xml_append (row, col);
+               val = xml_create ("template:value");
+               xml_set (val, "name", xml_attrval (field, "id"));
+               xml_set (val, "mode", mode);
+               xml_append (col, val);
+            } else {
+               xml_set (col, "colspan", "2");
+               row = xml_create ("tr");
+               xml_append_pretty (layout, row);
+               col = xml_create ("td");
+               xml_append (row, col);
+               xml_set (col, "colspan", "2");
+               val = xml_create ("template:value");
+               xml_set (val, "name", xml_attrval (field, "id"));
+               xml_set (val, "mode", mode);
+               xml_append (col, val);
+            }
+         } /* TODO: how about lists and links? */
+         field = xml_nextelem (field);
+      }
+   }
+
+   /* Express the object using the layout we just retrieved or built. */
+   field = xml_firstelem (layout);
+   while (field) {
+      if (xml_is (field, "template:value")) {
+         spec = xml_locf (list, ".field[%s]", xml_attrval (field, "name"));
+         val = NULL;
+         if (!object || !strcmp (xml_attrval (field, "mode"), "new")) {
+            if (!*xml_attrval (spec, "type") || !strcmp (xml_attrval (spec, "type"), "string")
+                                             || !strcmp (xml_attrval (spec, "type"), "numeric")) {
+               val = xml_create ("input");
+               xml_set (val, "name", xml_attrval (spec, "id"));
+               if (*xml_attrval (spec, "size")) xml_set (val, "size", xml_attrval (spec, "size"));
+               if (*xml_attrval (spec, "class")) xml_set (val, "class", xml_attrval (spec, "class"));
+               if (*xml_attrval (spec, "style")) xml_set (val, "style", xml_attrval (spec, "style"));
+            } else if (!strcmp (xml_attrval (spec, "type"), "text") ||
+                       !strcmp (xml_attrval (spec, "type"), "wiki")) {
+               val = xml_create ("textarea");
+               xml_set (val, "name", xml_attrval (spec, "id"));
+               if (*xml_attrval (spec, "rows")) xml_set (val, "rows", xml_attrval (spec, "rows"));
+               if (*xml_attrval (spec, "cols")) xml_set (val, "cols", xml_attrval (spec, "cols"));
+               if (*xml_attrval (spec, "class")) xml_set (val, "cols", xml_attrval (spec, "class"));
+               if (*xml_attrval (spec, "style")) xml_set (val, "style", xml_attrval (spec, "style"));
+            } else if (!strcmp (xml_attrval (spec, "type"), "state")) {
+               val = xml_create ("div");
+               xml_set (val, "name", xml_attrval (spec, "id"));
+               if (*xml_attrval (spec, "class")) xml_set (val, "cols", xml_attrval (spec, "class"));
+               if (*xml_attrval (spec, "style")) xml_set (val, "style", xml_attrval (spec, "style"));
+               state = xml_search (list, "state", NULL, NULL);
+               if (state) {
+                  if (*xml_attrval (state, "label")) {
+                     xml_append (val, xml_createtextf ("(%s)", xml_attrval (state, "label")));
+                  } else {
+                     xml_append (val, xml_createtextf ("(%s)", xml_attrval (state, "id")));
+                  }
+               } else {
+                  xml_append (val, xml_createtext ("(system will supply)"));
+               }
+            } else if (!strcmp (xml_attrval (spec, "type"), "system")) {
+               val = xml_create ("div");
+               xml_set (val, "name", xml_attrval (spec, "id"));
+               if (*xml_attrval (spec, "class")) xml_set (val, "cols", xml_attrval (spec, "class"));
+               if (*xml_attrval (spec, "style")) xml_set (val, "style", xml_attrval (spec, "style"));
+               xml_append (val, xml_createtext ("(system will supply)"));
+            } else {
+               ad = wftk_get_adaptor (repository, DATATYPE, xml_attrval (spec, "type"));
+               if (ad) {
+                  val = wftk_call_adaptor (ad, "htmlblank", object, spec);
+                  wftk_free_adaptor (repository, ad);
+               }
+            }
+         } else if (!strcmp (xml_attrval (field, "mode"), "edit")) {
+            if (!*xml_attrval (spec, "type") || !strcmp (xml_attrval (spec, "type"), "string")
+                                             || !strcmp (xml_attrval (spec, "type"), "numeric")) {
+               val = xml_create ("input");
+               xml_set (val, "name", xml_attrval (spec, "id"));
+               if (*xml_attrval (spec, "type")) xml_set (val, "type", xml_attrval (spec, "type"));
+               if (*xml_attrval (spec, "size")) xml_set (val, "size", xml_attrval (spec, "size"));
+               if (*xml_attrval (spec, "class")) xml_set (val, "class", xml_attrval (spec, "class"));
+               if (*xml_attrval (spec, "style")) xml_set (val, "style", xml_attrval (spec, "style"));
+               xml_set_nodup (val, "value", xmlobj_get (object, list, xml_attrval (field, "name")));
+            } else if (!strcmp (xml_attrval (spec, "type"), "text") ||
+                       !strcmp (xml_attrval (spec, "type"), "wiki")) {
+               val = xml_create ("textarea");
+               xml_set (val, "name", xml_attrval (spec, "id"));
+               if (*xml_attrval (spec, "rows")) xml_set (val, "rows", xml_attrval (spec, "rows"));
+               if (*xml_attrval (spec, "cols")) xml_set (val, "cols", xml_attrval (spec, "cols"));
+               if (*xml_attrval (spec, "class")) xml_set (val, "cols", xml_attrval (spec, "class"));
+               if (*xml_attrval (spec, "style")) xml_set (val, "style", xml_attrval (spec, "style"));
+               xml_append (val, xml_createtext_nodup (xmlobj_get (object, list, xml_attrval (field, "name"))));
+            } else if (!strcmp (xml_attrval (spec, "type"), "state")) {
+               val = xml_create ("select");
+               xml_set (val, "name", xml_attrval (spec, "id"));
+               if (*xml_attrval (spec, "size")) xml_set (val, "size", xml_attrval (spec, "size"));
+               if (*xml_attrval (spec, "class")) xml_set (val, "class", xml_attrval (spec, "class"));
+               if (*xml_attrval (spec, "style")) xml_set (val, "style", xml_attrval (spec, "style"));
+               xml_set_nodup (val, "state", xmlobj_get (object, list, xml_attrval (field, "name")));
+
+               /* TODO: abstract this into a function, which will later take authuser into account. */
+               /*       Well, although actually repos_defn is going to take authuser into account.... */
+               /*       So maybe this isn't a TODO at all. */
+               if (*xml_attrval (val, "state")) {
+                  state = xml_search (list, "state", "id", xml_attrval (val, "state"));
+               } else {
+                  state = xml_search (list, "state", NULL, NULL);
+                  if (state) xml_set (val, "state", xml_attrval (state, "id"));
+               }
+               mark = NULL;
+               if (state) mark = xml_search (state, "transition", NULL, NULL);
+               if (!mark) { /* No transitions (or no such state): all states are fair game. */
+                  mark = xml_search (list, "state", NULL, NULL);
+                  while (mark) {
+                     if (xml_is (mark, "state")) {
+                        holder = xml_create ("option");
+                        xml_set (holder, "value", xml_attrval (mark, "id"));
+                        if (!strcmp (xml_attrval (mark, "id"), xml_attrval (val, "state"))) {
+                           xml_set (holder, "selected", "yes");
+                        }
+                        xml_append (holder, xml_createtext (*xml_attrval (mark, "label")
+                                                            ? xml_attrval (mark, "label")
+                                                            : xml_attrval (mark, "id")));
+                        xml_append (val, holder);
+                     }
+                     mark = xml_nextelem (mark);
+                  }
+               } else { /* Current state has restricted transition list. */
+                  holder = xml_create ("option");
+                  xml_set (holder, "value", xml_attrval (val, "state"));
+                  xml_set (holder, "selected", "yes");
+                  xml_append (holder, xml_createtext (*xml_attrval (state, "label")
+                                                      ? xml_attrval (state, "label")
+                                                      : xml_attrval (state, "id")));
+                  xml_append (val, holder);
+                  while (mark) {
+                     if (xml_is (mark, "transition")) {
+                        state = xml_search (list, "state", "id", xml_attrval (mark, "to"));
+                        if (strcmp (xml_attrval (state, "id"), xml_attrval (val, "state"))) {
+                           holder = xml_create ("option");
+                           xml_set (holder, "value", xml_attrval (mark, "to"));
+                           xml_append (holder, xml_createtext (*xml_attrval (state, "label")
+                                                               ? xml_attrval (state, "label")
+                                                               : xml_attrval (state, "id")));
+                           xml_append (val, holder);
+                        }
+                     }
+                     mark = xml_nextelem (mark);
+                  }
+               }
+               xml_unset (val, "state");
+            } else if (!strcmp (xml_attrval (spec, "type"), "system")) {
+               val = xml_create ("div");
+               xml_set (val, "name", xml_attrval (spec, "id"));
+               if (*xml_attrval (spec, "class")) xml_set (val, "cols", xml_attrval (spec, "class"));
+               if (*xml_attrval (spec, "style")) xml_set (val, "style", xml_attrval (spec, "style"));
+               xml_append (val, xml_createtext_nodup (xmlobj_get (object, list, xml_attrval (field, "name"))));
+            } else {
+               ad = wftk_get_adaptor (repository, DATATYPE, xml_attrval (spec, "type"));
+               if (ad) {
+                  val = wftk_call_adaptor (ad, "html", object, spec);
+                  wftk_free_adaptor (repository, ad);
+               }
+            }
+         } else {
+            val = xml_createtext_nodup (xmlobj_get (object, list, xml_attrval (field, "name")));
+         }
+         if (!val) val = xml_createtext ("");
+         xml_replace (field, val);
+         field = val;
+      } /* TODO: presumably we'll have some sort of list things too. */
+
+      if (xml_firstelem (field)) {
+         field = xml_firstelem (field);
+      } else do {
+         if (xml_nextelem (field)) {
+            field = xml_nextelem (field);
+            break;
+         } else {
+            field = xml_parent (field);
+            if (!field) break;
+         }
+      } while (1);
+   }
+
+   /* Return the result. */
+   return (layout);
+}
+</pre></td></tr></table>
+
+At some point, the repmgr API will also be able to redefine lists on the fly.  This is the function which will do it.  This is safely
+in the future at this point.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   repos_define  (XML * repository, const char * list, XML * defn)
+{
+   printf ("define\n");
+   return 0;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="macros.html">Previous: Macro processing</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="iteration.html">Next: Iterating across list contents</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

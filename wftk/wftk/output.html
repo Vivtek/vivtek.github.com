@@ -1,0 +1,49 @@
+<html><head><title>wftk core engine: Our oh-so-complex output stream</title></head>
+<body>
+<h2>Our oh-so-complex output stream</h2>
+<center>
+[&nbsp;<a href="command_input.html">Previous: The command stack and how to load it</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk core index</a>&nbsp;]
+[&nbsp;<a href="interpreter.html">Next: Interpreting command streams</a>&nbsp;]
+</center>
+
+<hr>
+The output stream for this incarnation of wftk-core is simply a list of lines.  The first
+character of each line tells what it does:<ul>
+<li> <b>A</b>: activate task
+<li> <b>C</b>: complete process
+<li> <b>O</b>: set owner of process
+<li> <b>D</b>: debugging output
+<li> <b>E</b>: error output
+</ul>
+
+The simplest way of doing this, of course, is with a nice little call to <code>vprintf</code>.
+The output stream is always on <code>stdout</code>.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void output (char type, const char *format, ...)
+{
+   va_list args;
+   va_start (args, format);
+   printf ("%c ", type);
+   vprintf (format, args);
+   va_end (args);
+   printf ("\n");
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="command_input.html">Previous: The command stack and how to load it</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk core index</a>&nbsp;]
+[&nbsp;<a href="interpreter.html">Next: Interpreting command streams</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

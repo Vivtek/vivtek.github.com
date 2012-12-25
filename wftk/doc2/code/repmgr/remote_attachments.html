@@ -1,0 +1,99 @@
+<html><head><title>Repository manager: Working with attachments</title></head>
+<body>
+<h2>Working with attachments</h2>
+<center>
+[&nbsp;<a href="remote_synching.html">Previous: Synching data with remote data sources</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_index.html">Next: Repository manager</a>&nbsp;]
+</center>
+
+<hr>
+It's my hope that by providing a better handle on the whole remote-server question,
+this module will help implement remote attachments, because we really need remote attachments.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * FN_NAME(repos_attach_open) (XML * repository, const char *list_id, const char * key, const char * field, const char * filename)
+{
+   return NULL;
+}
+WFTK_EXPORT int   FN_NAME(repos_attach_write) (void * buf, size_t size, size_t number, XML * handle)
+{
+   return 0;
+}
+WFTK_EXPORT int   FN_NAME(repos_attach_cancel) (XML * handle)
+{
+   return 0;
+}
+WFTK_EXPORT int   FN_NAME(repos_attach_close) (XML * repository, XML * handle)
+{
+   return 0;
+}
+WFTK_EXPORT int   FN_NAME(repos_attach) (XML * repository, const char * list_id, const char * key, const char * field, const char * filename, FILE * incoming)
+{
+   return 0;
+}
+</pre></td></tr></table>
+
+It's really only in retrieval that we need any version awareness.  But of course we also need a function to tell us the current
+version.  When actually retrieving the current version, of course, we don't necessarily need to retrieve the object itself; if
+the attachment field is defined in the list definition instead of in the object, then we can cut right to the chase and retrieve
+the current version from the attachment adaptor.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void FN_NAME(repos_attach_getver) (XML * repository, const char * list_id, const char * key, const char * field)
+{
+}
+</pre></td></tr></table>
+
+Note that the version value here is returned as an attribute on the repository data structure.  This is a pretty comfortable way
+to return a string value using the XMLAPI, but I haven't used it widely.  I may start.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * FN_NAME(repos_retrieve_open) (XML * repository, const char * list_id, const char * key, const char * field, const char * ver)
+{
+   return NULL;
+}
+WFTK_EXPORT int   FN_NAME(repos_retrieve_read) (void * buf, size_t size, size_t number, XML * handle)
+{
+   return 0;
+}
+WFTK_EXPORT int   FN_NAME(repos_retrieve_close) (XML * handle)
+{
+   return 0;
+}
+WFTK_EXPORT int   FN_NAME(repos_retrieve) (XML * repository, const char * list_id, const char * key, const char * field, const char * ver, FILE * outgoing)
+{
+   int  total = 0;
+   return total;
+}
+</pre></td></tr></table>
+
+<i>(August 13, 2002)</i>: so I've come up with a more convenient way to deal with selected
+attachments.  If they're XML, I've got repos_retrieve_load to load the attachment into an XML
+structure.  This makes it really simple to write simple utilities that can work with attached
+documents.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * FN_NAME(repos_retrieve_load) (XML * repository, const char * list_id, const char * key, const char * field, const char * ver)
+{
+   return NULL;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="remote_synching.html">Previous: Synching data with remote data sources</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_index.html">Next: Repository manager</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

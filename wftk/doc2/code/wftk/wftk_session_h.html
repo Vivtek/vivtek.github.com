@@ -1,0 +1,146 @@
+<html><head><title>wftk context handling: Include file (and API definition)</title></head>
+<body>
+<h2>Include file (and API definition)</h2>
+<center>
+[&nbsp;<a href="wftk_session.html">Previous: wftk context handling</a>&nbsp;]
+[&nbsp;<a href="wftk_session.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_session_c.html">Next: Function definitions</a>&nbsp;]
+</center>
+
+<hr>
+Not much to say about the include file, as always.  It pretty much speaks for itself.
+Note that in addition to the earlier public parts of the API (the session functions) this
+area now includes functions that were earlier parts of the wftk internals.  At this point
+it seems silly to hide them, and indeed the repository manager is what prompted me to
+expose them, as the whole session/config/adaptor functionality is pretty useful for
+any kind of adaptable application.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifndef WFTK_SESSION_H
+#define WFTK_SESSION_H
+#include &lt;stdio.h>
+#include &lt;string.h>
+#include &lt;stdarg.h>
+#include "xmlapi.h"
+#include "xmlobj.h"
+
+#ifndef WFTK_EXPORT
+#define WFTK_EXPORT
+#endif
+
+
+
+typedef struct wftk_adaptor WFTK_ADAPTOR;
+typedef struct wftk_adaptorlist WFTK_ADAPTORLIST;
+typedef XML * (*WFTK_API_FUNC) (WFTK_ADAPTOR * ad, va_list args);
+typedef struct wftk_adaptor_list WFTK_ADAPTOR_LIST;
+typedef struct wftk_cache_list WFTK_CACHE_LIST;
+typedef struct wftk_adaptor_info * (WFTK_ADAPTOR_INFO_FN) (void);
+typedef void (*WFTK_ADAPTOR_LOG_FN) (XML *, WFTK_ADAPTOR *, int, const char *);
+
+struct wftk_adaptor {
+   int num;                /* Supplied by the adaptor class. */
+   XML * parms;            /* Supplied by the caller. */
+   int  nfuncs;            /* Supplied by the adaptor class. */
+   char ** names;          /* Supplied by the adaptor class. */
+   WFTK_API_FUNC * vtab;   /* Supplied by the adaptor driver. */
+   void * bindata;         /* Supplied by the adaptor driver (a general stash pointer.) */
+   void * session;         /* Supplied by the config module on allocation. */
+   WFTK_ADAPTOR_LOG_FN log; /* Supplied by the config module depending on repmgr vs. wftk-bare configuration. */
+};
+struct wftk_adaptor_info {
+   int  nfuncs;
+   char ** names;
+   WFTK_API_FUNC * vtab;
+};
+struct wftk_adaptorlist {
+   int count; /* The number of adaptors in this list. */
+   WFTK_ADAPTOR * ads[1];
+};
+struct wftk_adaptor_list { /* Note the unfortunate similarity of names.  This one's used internally; the other isn't. */
+   WFTK_ADAPTOR * ad;
+   WFTK_ADAPTOR_LIST *next;
+};
+struct wftk_cache_list {
+   XML * cached;
+   WFTK_CACHE_LIST * next;
+};
+
+
+typedef struct wftk_session WFTK_SESSION;
+typedef struct wftk_adaptor_info * (*WFTK_MODULE_LOOKUP_FN) (int adaptor_class, int name_length, const char * adaptor_descriptor);
+
+struct wftk_session {
+   WFTK_ADAPTOR_LIST *ads;
+   XML * user;
+   XML * config;
+   XML * datasheet;
+   XML * procdef;
+
+   XML * context;
+
+   WFTK_MODULE_LOOKUP_FN static_module_lookup;
+
+   XML * values;
+   WFTK_CACHE_LIST * cache;
+};
+
+#define DSREP         1
+#define DATASTORE     2
+#define DATATYPE      3
+#define PDREP         4
+#define USER          5
+#define PERMS         6
+#define TASKINDEX     7
+#define NOTIFY        8
+#define ACTION        9
+#define DEBUG_MSG    10
+#define LIST         11
+
+
+
+WFTK_EXPORT XML  * wftk_session_alloc      ();
+WFTK_EXPORT void * wftk_session_init       (XML * session);
+WFTK_EXPORT void   wftk_session_cleanup    (XML * session);
+WFTK_EXPORT void   wftk_session_current    (XML * session, XML * object);
+WFTK_EXPORT void   wftk_session_configure  (XML * session, XML * config);
+WFTK_EXPORT void   wftk_session_setlookup  (XML * session, WFTK_MODULE_LOOKUP_FN fn);
+WFTK_EXPORT void   wftk_session_setuser    (XML * session, char * userid);
+WFTK_EXPORT void   wftk_session_storeuser  (XML * session, XML * user);
+WFTK_EXPORT XML  * wftk_session_getuser    (XML * session);
+WFTK_EXPORT void   wftk_session_setcontext (XML * session, XML * context);
+WFTK_EXPORT XML  * wftk_session_getcontext (XML * session);
+WFTK_EXPORT XML  * wftk_session_stashvalue (XML * session, const char * value);
+WFTK_EXPORT void   wftk_session_freevalue  (XML * session, const char * value);
+WFTK_EXPORT XML  * wftk_session_cache      (XML * session, XML * key, int * found);
+WFTK_EXPORT XML  * wftk_session_cachecheck (XML * session, XML * key);
+
+WFTK_EXPORT void               wftk_config_cleanup         (void);
+WFTK_EXPORT const char *       wftk_config_get_value       (XML * session, const char *name);
+WFTK_EXPORT void               wftk_config_debug_message   (char type, const char * message, ...);
+
+
+WFTK_EXPORT WFTK_ADAPTOR *     wftk_get_adaptor      (XML * session, int type, const char * name);
+WFTK_EXPORT XML *              wftk_call_adaptor     (WFTK_ADAPTOR * ad, const char * funcname, ...);
+WFTK_EXPORT void               wftk_free_adaptor     (XML * session, WFTK_ADAPTOR * ad);
+WFTK_EXPORT WFTK_ADAPTORLIST * wftk_get_adaptorlist  (XML * session, int type);
+WFTK_EXPORT int                wftk_call_adaptorlist (WFTK_ADAPTORLIST * ad, const char * funcname, ...);
+WFTK_EXPORT void               wftk_free_adaptorlist (XML * session, WFTK_ADAPTORLIST * list);
+
+#endif
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_session.html">Previous: wftk context handling</a>&nbsp;]
+[&nbsp;<a href="wftk_session.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_session_c.html">Next: Function definitions</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

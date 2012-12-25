@@ -1,0 +1,187 @@
+<html><head><title>wftk-j: Java client library</title></head>
+<body>
+<h2>wftk-j: Java client library (Repository class)</h2>
+<center>
+[<a href="index.html">wftk-j</a> ] [ <a href="repository.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+This set of classes effectively forms a client for a wftk server.  The server itself can either be a remote server with which we use some protocol
+(e.g. SOAP) to communicate with, or it can be a local implementation of a repository.  Either way, the objects we use to build workflow-savvy code
+are the same.  The sane way to implement this in Java is by designing a parent class ("Repository") which is extended by one or more specific classes
+("RemoteSOAPRepository" and "LocalJNIRepository").  The parent class may or may not be abstract; I'm going to start with it <i>not</i> being abstract,
+and see how far I can get.  Certainly I want to have entries, lists, and such implemented at the level of the parent class and blithely unaware of
+the underlying implementation of the repository.  I had originally thought to make those subclasses, but I think that's wrong.  So I changed my mind.
+
+<p></p>
+So.  Let's push some boilerplate.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>// Copyright (c) 2003, Vivtek.
+//
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
+//  
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//  
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+</pre></td></tr></table>
+
+Next up, as always, our includes.  Who knows what'll end up here?
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>package org.wftk;
+import java.io.*;
+import java.util.Vector;
+import java.util.Map;
+</pre></td></tr></table>
+
+Now down to business.  We define a single superclass, Repository.  This class will be used by classes "list", "entry", and "task", at the very
+least, but where we go from there is of course unclear.  For the moment, entries will be assumed to be simple mappings (name->value) and we'll ignore
+all refinements like subrecords, list values, attachments, and so forth.  They're only partially implemented here and there anyway, so no great loss.
+
+<p></p>
+Here's how I envision this working.  Each function in Repository first does some common work (such as creating an entry object) and then
+calls an implementation-specific function or functions in order to do the actual work.  So for "get", we create the entry object and we
+prepopulate some of its fields, then we call _get to actually do the retrieval.  At first I was thinking that this class would define some
+kind of simple local pure-Java functionality -- but then I reconciled myself to the fact that this is indeed the whole reason for having
+abstract classes.  So Repository is an abstract class.  Feast your eyes.
+
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>public abstract class Repository {
+   public Entry get (String list, String key) throws WftkException {
+      Entry result = new Entry (this);
+      result.list_id = list;
+      result.key = key;
+
+      _get(result);
+
+      return result;
+   }
+   abstract void _get (Entry e) throws WftkException;
+   public Entry get_task (Entry e, String local_key) throws WftkException {
+      Entry result = new Entry (this);
+      result.list_id = "_tasks";
+
+      _get_task(result, e.list_id, e.key, local_key);
+
+      return result;
+   }
+   abstract void _get_task (Entry e, String list, String key, String local_key) throws WftkException;
+
+   public String format (String list, String key, String mode) throws WftkException {
+      return _format(list, key, mode);
+   }
+   abstract String _format (String list, String key, String mode) throws WftkException;
+
+   public void add (String list, Entry obj) throws WftkException {
+      obj.list_id = list;
+      _add (list, obj);  // _add must set "key" attribute properly according to implementation (SOAP returns it, for instance)
+   }
+   abstract void _add (String list, Entry obj) throws WftkException;
+
+   public void merge (String list, Entry obj, String key) throws WftkException {
+      _merge (list, obj, key);
+   }
+   abstract void _merge (String list, Entry obj, String key) throws WftkException;
+
+   public void mod (String list, Entry obj, String key) throws WftkException {
+      _mod (list, obj, key);
+   }
+   abstract void _mod  (String list, Entry obj, String key) throws WftkException;
+
+   public void del (String list, String key) throws WftkException {
+      _del (list, key);
+   }
+   abstract void _del (String list, String key) throws WftkException;
+
+   public List list (String list) throws WftkException {
+      List l = new List (this);
+      l.id = list;
+      _list (l);
+      return (l);
+   }
+   public void list (List l) throws WftkException {
+      _list (l);
+   }
+   abstract void _list (List l) throws WftkException;
+   public List lists () throws WftkException { return (list("_lists")); }
+
+   public List tasks () throws WftkException {
+      List t = new List(this);
+      t.id = "_tasks";
+
+      _tasks (t);
+
+      return (t);
+   }
+   public List tasks (Entry e) throws WftkException {
+      List t = new List(this);
+      t.id = "_tasks";
+
+      _tasks (t,e);
+
+      return (t);
+   }
+   abstract void _tasks (List t) throws WftkException;
+   abstract void _tasks (List t, Entry e) throws WftkException;
+
+   public List todo () throws WftkException {
+      List t = new List(this);
+      t.id = "_todo";
+
+      _todo (t);
+
+      return (t);
+   }
+   abstract void _todo (List t) throws WftkException;
+
+   String userid = null;
+   String authtoken = null;
+   public boolean auth (String userid, String passwd) throws WftkException {
+      this.userid = userid;
+      return _auth (userid, passwd);
+   }
+   abstract boolean _auth (String userid, String passwd) throws WftkException;
+
+   private Log log = null;
+   public void setlog (Log _log) { log = _log; }
+   public void textlog (int level, String str) {
+      if (log == null) return;
+      if (level > loglevel) return;
+      log.textLog (str);
+   }
+   public void linklog (int level, String linktext, String content) {
+      if (log == null) return;
+      if (level > loglevel) return;
+      log.linkLog (linktext, content);
+   }
+   private int loglevel = 0;
+   public void set_loglevel (int level) { loglevel = level; }
+   public int  get_loglevel ()          { return loglevel;  }
+}
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

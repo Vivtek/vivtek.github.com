@@ -1,0 +1,389 @@
+<html><head><title>Repository manager: #include file for interface (links to code sections, so it's a good place to start understanding the API)</title></head>
+<body>
+<h2>#include file for interface (links to code sections, so it's a good place to start understanding the API)</h2>
+<center>
+[&nbsp;<a href="wrapper.html">Previous: Command-line interface</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="library.html">Next: Repository management library</a>&nbsp;]
+</center>
+
+<hr>
+The API has turned out, of course, to fall into a series of natural sections.  I've mostly kept those more-or-less natural sections
+on separate pages in the documentation, but all in all it just goes to show me how much more work I have to put into these documentation
+systems.  Anyway, links to the various sections can be found below.
+
+<p></p>
+Before we define functions, we have to include a bunch of stuff.  Let's do that.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifndef REPMGR_H
+#define REPMGR_H
+#include <stdio.h>
+#include <string.h>
+#ifndef XMLAPI_H
+#include "xmlobj.h"
+#endif
+#include "wftk_session.h"
+
+#ifndef WFTK_EXPORT
+#define WFTK_EXPORT
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+</pre></td></tr></table>
+
+<p></p>
+<a href="repositories.html">Working with repository objects</a>.
+<p></p>
+All right.  First up is just working with repository objects.  We don't do a lot with them yet beyond opening and closing.  Once the
+API has been extended to <i>write</i> repository definition files, this will probably still not be in this section, but rather in the
+individual data section (because we'll be treating the repository object just like any other object, of course.)  
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_open (XML * repository, WFTK_MODULE_LOOKUP_FN * lookup_function, const char * calling_app);
+WFTK_EXPORT XML * repos_open_file (const char * repfile, WFTK_MODULE_LOOKUP_FN * lookup_function, const char * calling_app);
+WFTK_EXPORT void  repos_close     (XML * repository);
+
+</pre></td></tr></table>
+
+<p></p>
+<a href="publishing.html">Publishing objects: internals</a>.
+<p></p>
+Next up is the publishing machinery.  This was the original point of departure for the repository manager when I started re-implementing
+its Perl-language predecessor OPM.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   repos_publish_all   (XML * repository);
+WFTK_EXPORT int   repos_publish_list  (XML * repository, const char * list);
+WFTK_EXPORT int   repos_publish_obj   (XML * repository, const char * list, const char * key);
+WFTK_EXPORT int   repos_publish_pages (XML * repository);
+WFTK_EXPORT int   repos_publish_page  (XML * repository, const char * page);
+
+</pre></td></tr></table>
+
+<p></p>
+<a href="lists.html">Creating and administering lists</a>.
+<p></p>
+Working with lists as entities sets the stage for working with list entries.  A lot of this section remains unimplemented, as my
+immediate needs are simply to work with entries, not lists.  However, eventually this section will take care of the creation and
+destruction of lists within a repository, and allow the user to redefine lists as well.  This will ultimately even allow bulk loading
+of SQL tables and things like that, all without any need for the user to care where things are located or how things are moved around.
+The repository manager has the potential to be "Access done right."
+<p></p>
+This section includes list creation routines (unimplemented as of 2003-06-25) as well as metadata query routines and formatting routines.
+For metadata, we have repos_defn (which retrieves the definition of a list) and repos_list_choices (which returns a list of valid values for
+a field given an object and which list it belongs to).  The repos_define function, unimplemented, will provide a way to change the definition
+of a list.
+<p></p>
+<i>June 29, 2003</i>: for historical reasons which I don't really understand, I also put object-formatting routines in this list.  I guess
+there's reason for this: display and formatting are metadata-intensive operations.  Whatever.  Anyway, there are five different routines here:
+<ul>
+<li>repos_form: given a list ID and a key, gives you an edit form (or a display chunk) depending on the mode you give.  Modes are things like
+new, edit, view, and ideally are looked up in the repository definition (although I haven't actually implemented this.
+<li>repos_form_direct: given a list description and a key, does the same.
+<li>repos_form_object: given a list ID and an object (thus possibly an object which isn't stored, but which has just been constructed) formats the object.
+<li>repos_form_object_direct: gets everything explicitly except the mode
+<li>repos_format_object: gets just an explicit format, and an object, and formats the object.  This allows us to build a view on the fly and format it
+without any extra logic getting in the way.
+</ul>
+<p></p>
+
+<i>2004-02-04</i>:<br>
+For more strange historical reasons, I have several different ways of formatting objects which I like to use.  The layout form is an XML-driven
+layout and is handy in many instances, but when I really lay out sites or emails I much prefer the template flags I've used in AOLserver
+for many years: [&#35;#tag##] is replaced by the named "tag".  I'm arbitrarily deciding that this is the setup I'll use for views retrieved from
+the _views list.  The _views list is a lines-based storage, with one line of key followed by any number of lines of format.  The output of such an
+expression is just a string, and so it may
+be used to express either HTML or text or whatever, you see.  Very convenient, and easy to write and to understand.  Which is why I've used it for
+so long.
+<p></p>
+Anyway, this format will be used in place of XML layout for many purposes, and at some point the XML layout may well just disappear.  We'll see.
+I never liked it much.  It has its uses, thought, so .. in a couple of years I'll know, I guess.  There's no reason not to have two good ways
+of doing something, though.  This is a toolkit, after all.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   repos_create  (XML * repository, const char * list);
+WFTK_EXPORT int   repos_drop    (XML * repository, const char * list);
+
+WFTK_EXPORT XML * repos_defn    (XML * repository, const char * list);
+WFTK_EXPORT int   repos_define  (XML * repository, const char * list, XML * defn);
+WFTK_EXPORT XML * repos_list_choices (XML * repository, const char * list, XML * obj, const char * field);
+
+WFTK_EXPORT char * repos_view_find (XML * repository, XML * list, XML * object, const char * mode);
+WFTK_EXPORT char * repos_view_express (XML * repository, XML * list, XML * object, const char * view);
+
+WFTK_EXPORT XML * repos_form               (XML * repository, const char * list, const char * key, const char * mode);
+WFTK_EXPORT XML * repos_form_direct        (XML * repository, XML * list,        const char * key, const char * mode);
+WFTK_EXPORT XML * repos_form_object        (XML * repository, const char * list, XML * object,     const char * mode);
+WFTK_EXPORT XML * repos_form_object_direct (XML * repository, XML * list,        XML * object,     const char * mode);
+
+WFTK_EXPORT XML * repos_form_object_field  (XML * repository, XML * list, XML * object, const char * field);
+
+WFTK_EXPORT XML * repos_format_object      (XML * repository, XML * list,        XML * object,     XML * layout);
+
+</pre></td></tr></table>
+
+<p></p>
+<a href="objects.html">Working with individual objects</a>.
+<p></p>
+As it so happens, data storage and retrieval is turning out to be the most heavily used area of repository management.  This section
+simply defines addition, deletion, and modification of entries in lists.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   repos_add   (XML * repository, const char * list, XML * object);
+WFTK_EXPORT int   repos_del   (XML * repository, const char * list, const char * key);
+WFTK_EXPORT int   repos_mod   (XML * repository, const char * list, XML * object, const char * key);
+WFTK_EXPORT int   repos_merge (XML * repository, const char * list, XML * object, const char * key);
+
+</pre></td></tr></table>
+<p></p>
+<a href="retrieval.html">Data retrieval</a>.
+<p></p>
+Once data is stored, retrieval is also a convenient thing to be able to do.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_get     (XML * repository, const char * list, const char * key);
+
+</pre></td></tr></table>
+
+<p></p>
+<a href="iteration.html">Iterating across list contents</a>.
+<p></p>
+Next is querying of lists -- we can query raw lists, or we can specify order and selection criteria.  The order clause has been implemented
+in most adaptors already and is a standard SQL order.  Selection criteria are still rather spotty unless you're working with an
+RDBMS-hosted list.  Since list queries try to use indices first, an RDBMS-indexed list can also do selection.  It may well be that I'll
+end up with the requirement that you can only trust selection if your list is indexed or something.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_list       (XML * repository, XML * list);
+WFTK_EXPORT XML * repos_list_first (XML * repository, XML * list);
+WFTK_EXPORT XML * repos_list_next  (XML * repository, XML * list);
+WFTK_EXPORT XML * repos_changes    (XML * repository, XML * list, const char *date, const char * list_id);
+WFTK_EXPORT XML * repos_snapshot   (XML * repository, const char * list_id);
+
+</pre></td></tr></table>
+
+<p></p>
+<a href="users.html">User authentication and group membership</a>.
+<p></p>
+User authentication is a relatively new thing.  It uses the USER adaptor class, which makes that class the first to be imported from
+the wftk core implementation to work in the repmgr framework.  Cool.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_user_auth    (XML * repository, const char * user_id, const char * passwd);
+WFTK_EXPORT XML * repos_user_ingroup (XML * repository, const char * user_id, const char * group_id);
+
+</pre></td></tr></table>
+
+<p></p>
+<a href="context.html">Context/user session handling</a>.
+<p></p>
+Session contexts are a complicated bit of machinery which allow a session to be established and saved in the repository for later
+use.  A session can at minimum store named values, and will eventually also include useful things like the last list used, a command
+history, and such.  Any currently open transaction will also be attached to the session, allowing very long-lived transactions.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT char * repos_context_save (XML * repository);
+WFTK_EXPORT XML  * repos_context_switch (XML * repository, const char * context_id);
+WFTK_EXPORT char * repos_context_get  (XML * repository, const char * name);
+WFTK_EXPORT void   repos_context_set  (XML * repository, const char * name, const char * value);
+
+</pre></td></tr></table>
+
+<p></p>
+<a href="xact.html">Transactions</a>.
+<p></p>
+Transactions group changes to data into chunks.  These chunks can be submitted as single change entities, allowing them to undergo
+authorization and processing all at once.  While a transaction is active, it may be used as a "lens" to view the repository as though
+the suggested changes had already been completed.  Powerful stuff.  In theory, anyway -- if I ever have the chance to write it.
+<p></p>
+As transactions have not yet been implemented, this API will change.  I include it only because I want to get
+the indexing out of the way.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML  * repos_xact_open  (XML * repository, const char * key);
+WFTK_EXPORT XML  * repos_xact_get   (XML * repository, const char * list, const char * key, XML * xact);
+WFTK_EXPORT char * repos_xact_save  (XML * repository, XML * xact);
+WFTK_EXPORT XML  * repos_xact_start (XML * repository, XML * xact); /* Might be char * key? */
+</pre></td></tr></table>
+
+<p></p>
+<a href="processing.html">Actions, asynchronous process, and stuff like that.</a>.
+<p></p>
+Actions are a complex area of functionality which I'm really just now (Feb 15, 2004) starting to understand.  The old wftk core
+included an action performer call which could either perform an action immediately or queue it for approval; generalizing that
+is proving to be pretty fruitful on a conceptual level, but as usual I'm really not entirely sure where the whole thing will
+end up.
+<p></p>
+Anyway, one aspect of action is the asynchronous processing of actions, which effectively means that if we know something's
+going to take a while, we can kick it off to be done by a separate process or even machine, and still return immediately to a
+waiting user.  The processing action is modelled as a pending transaction, and the processing entity writes some kind of
+progress information to it, so we can check up on it.
+<p></p>
+In a sense, of course, any workflow process is an asynchronous process.  How we would write progress information is a good
+question, but it's a natural one.  Probably need to think about this more carefully at some point....
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_action_do (XML * repository, XML * action);
+WFTK_EXPORT XML * repos_action_do_object (XML * repository, XML * action, XML * object);
+</pre></td></tr></table>
+
+We also need some way of figuring out what actions are currently afforded by an object.  An object may have potential or passive
+tasks that can be performed, any object has mod/del actions, a non-saved object can be added, and objects can have state transitions.
+Task objects can be completed.  And any or all of those actions might be forbidden to the current user, and any or all of them might
+be inappropriate to the view the user is currently using.  Our API for this corresponds to the API of views.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_action_list               (XML * repository, const char * list, const char * key, const char * mode);
+WFTK_EXPORT XML * repos_action_list_direct        (XML * repository, XML *        list, const char * key, const char * mode);
+WFTK_EXPORT XML * repos_action_list_object        (XML * repository, const char * list, XML *     object, const char * mode);
+WFTK_EXPORT XML * repos_action_list_object_direct (XML * repository, XML *        list, XML *     object, const char * mode);
+</pre></td></tr></table>
+
+Finally, a function to check for timed actions (scheduled events) which need to be completed.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT char * repos_process (XML * repository, const char * list, const char * key);
+</pre></td></tr></table>
+
+<p></p>
+<a href="workflow.html">Workflow</a>.
+<p></p>
+Given that the repository manager is indeed part of the workflow toolkit, you'd think that workflow would play a larger part in
+its API.  But as it turns out, not only did I go more than a year without integrating the repmgr with the core workflow engine,
+workflow doesn't really need all that much API support.
+There are three basic workflow API calls, to allow the attachment of workflow (either as an ad-hoc workflow structure, or as a keyword-indexed
+procdef from a designated list of procdefs, or, I suppose, both at once) and the simple creation and enumeration of tasks.
+Most of the rest of workflow is integrated with state changes and data modification events.
+Each of these calls can either work with a list/key combination, or with an object already retrieved.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void repos_workflow_start (XML * repository, const char * list, const char * key, XML * wf_defn, const char * wf_id);
+WFTK_EXPORT void repos_workflow_start_direct (XML * repository, XML * obj, XML * wf_defn, const char * wf_id);
+WFTK_EXPORT void repos_task_add (XML * repository, const char * list, const char * key, XML * task_defn);
+WFTK_EXPORT void repos_task_add_direct (XML * repository, XML * obj, XML * task_defn);
+WFTK_EXPORT XML * repos_tasks (XML * repository, XML * tasklist, const char * list, const char * key, const char * user);
+WFTK_EXPORT XML * repos_tasks_direct (XML * repository, XML * tasklist, XML * obj, const char * user);
+WFTK_EXPORT XML * repos_task_get (XML * repository, const char * list, const char * key, const char * local_key);
+WFTK_EXPORT XML * repos_task_get_direct (XML * repository, XML * obj, const char * local_key);
+
+</pre></td></tr></table>
+
+<p></p>
+<a href="notification.html">Notifications</a> are a generalized outgoing email-like thing; notifications can be generated
+during workflow or by the system when various event occur.  This is yet another area where a lot more could be done than I've
+actually done so far, but it's a start.
+<p></p>
+The functions in this section take more parameters than most of my API.  I'm really not sure if this is a good thing or whether
+I'm overcomplicating things; I've always found the overblown twenty-parameter Windows API calls to be rather humorous and I
+hate to see myself succumb to that urge.  But let's see if it all makes sense.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void repos_notify (XML * repository, const char * list, const char * key, XML * obj, const char * notification_id,
+                               const char * subject, const char * recipient);
+WFTK_EXPORT void repos_notify_direct (XML * repository, const char * list, const char * key, XML * obj, XML * notification,
+                               const char * subject, const char * recipient);
+</pre></td></tr></table>
+
+<p></p>
+<a href="repository.html">Repository queries</a> for repos_get_layout.  The rest of this stuff isn't too important.
+<p></p>
+Various other things are scattered here and there and make me want to take a day or two and clean up this API a little.
+<p></p>
+<i>Oct 11, 2003</i>: Logging function.  Why here?  Why not?
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_get_layout (XML * repository, const char * layout_id);
+WFTK_EXPORT void  repos_xml_free (XML * xml); /* Used to reduce DLL dependencies. */
+
+WFTK_EXPORT const char * repos_getkey (XML * repository, const char * list, XML * object);
+
+WFTK_EXPORT char * repos_getvalue (XML * repository, const char * list, const char * key, const char * field);
+WFTK_EXPORT void   repos_setvalue (XML * repository, const char * list, const char * key, const char * field, const char * value);
+
+WFTK_EXPORT void   repos_log (XML * repository, int level, int type, XML * object, const char * subsystem, const char * message, ...);
+</pre></td></tr></table>
+
+<p></p>
+<a href="reports.html">Working with individual objects as reports</a>.
+<p></p>
+The report-building API is something I tossed off to make it easier for C programs to build objects using ongoing processes.
+I'm still not entirely sure it made sense to put it at the API level, but eh, here it is.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   repos_report_start  (XML * repository, const char * list, const char * name);
+WFTK_EXPORT int   repos_report_close  (XML * repository, const char * report);
+WFTK_EXPORT int   repos_report_cancel (XML * repository, const char * report);
+WFTK_EXPORT int   repos_report_log    (XML * repository, const char * report, const char * format, ...);
+WFTK_EXPORT XML * repos_report_getobj (XML * repository, const char * report);
+
+</pre></td></tr></table>
+
+<p></p>
+<a href="synching.html">Synchronizing with remote repositories</a>.
+<p></p>
+Synchronization with remote repositories currently works on a list-by-list basis.  Eventually record-specific remote relationships
+will be supported, allowing for instance the local mirroring of tasks defined by remote servers.  This will be pretty darned cool.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   repos_push     (XML * repository, const char *list_id, const char *remote_id);
+WFTK_EXPORT int   repos_push_all (XML * repository, const char *list_id, const char *remote_id);
+WFTK_EXPORT int   repos_pull     (XML * repository, const char *list_id, const char *remote_id, XML * changelist);
+WFTK_EXPORT int   repos_pull_all (XML * repository, const char *list_id, const char *remote_id, XML * changelist);
+WFTK_EXPORT int   repos_synch    (XML * repository, const char *list_id, const char *remote_id, XML * changelist);
+WFTK_EXPORT int   repos_mark_time (XML * repository, const char *attr);
+
+</pre></td></tr></table>
+
+<p></p>
+<a href="attachments.html">Working with attachments</a>.
+<p></p>
+Attachments are how the repository manager supports document management.  Attachments are (possibly large) binary files associated with
+objects.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_attach_open (XML * repository, const char *list_id, const char * key, const char * field, const char * filename);
+WFTK_EXPORT int   repos_attach_write (void * buf, size_t size, size_t number, XML * handle);
+WFTK_EXPORT int   repos_attach_cancel (XML * handle);
+WFTK_EXPORT int   repos_attach_close (XML * repository, XML * handle);
+WFTK_EXPORT int   repos_attach (XML * repository, const char * list_id, const char * key, const char * field, const char * filename, FILE * incoming);
+
+WFTK_EXPORT void  repos_attach_getver (XML * repository, const char * list_id, const char * key, const char * field);
+
+WFTK_EXPORT XML * repos_retrieve_open (XML * repository, const char * list_id, const char * key, const char * field, const char * ver);
+WFTK_EXPORT int   repos_retrieve_read (void * buf, size_t size, size_t number, XML * handle);
+WFTK_EXPORT int   repos_retrieve_close (XML * handle);
+WFTK_EXPORT int   repos_retrieve (XML * repository, const char * list_id, const char * key, const char * field, const char * ver, FILE * outgoing);
+WFTK_EXPORT XML * repos_retrieve_load (XML * repository, const char * list_id, const char * key, const char * field, const char * ver);
+
+</pre></td></tr></table>
+
+OK, now to wrap up the file and get down to business.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifdef __cplusplus
+}
+#endif
+#endif
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wrapper.html">Previous: Command-line interface</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="library.html">Next: Repository management library</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

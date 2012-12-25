@@ -1,0 +1,169 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Process definition example -- ecommerce</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Process definition example -- ecommerce</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/process_defn.html>process&nbsp;definition</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+This is an attempt at the basic process outlined in the <a href=../usage/ecomm.html>retail electronic commerce
+scenario</a>.  I found that the ability of <code>&lt;data&gt;</code> tags to talk to databases leaves this one pretty easy.
+
+<pre>
+&lt;?xml version="1.0"?>
+
+&lt;<b>workflow</b> name="Ecomm order" author="Michael: michael@vivtek.com">
+  &lt;<b>role</b> name="Merchant">&lt;/role>
+  &lt;<b>role</b> name="Supplier">&lt;/role>
+
+  &lt;<b>data</b> name="customer" type="record" storage="database:something">&lt;/data>
+  &lt;<b>data</b> name="order" type="record" storage="database:something">&lt;/data>
+
+  &lt;<b>sequence</b>>
+     &lt;<b>if</b> expr="${order.payment_processed} = false">
+        &lt;<b>task</b> label="Process payment" role="Merchant">
+           &lt;<b>data</b> name="order">
+           &lt;/data>
+        &lt;/task>
+        &lt;<b>data</b> name="order.payment_processed" value="true">&lt/data>
+        &lt;<b>alert</b> type="email" to="${customer.email}">
+           Your payment has been processed and your order will be shipped soon.  Blah, blah.
+        &lt;/alert>
+     &lt;/if>
+     
+     &lt;<b>data</b> name="suppliers" readonly="yes"
+           storage="select distinct(supplier) from order_detail where order_number='${order.order_number}'">
+     &lt;/data>
+
+     &lt;<b>parallel</b> foreach="supplier" values="${suppliers}">
+        &lt;<b>task</b> label="Fulfill" role="Supplier" agent="${agent}">
+           &lt;<b>data</b> name="order items"
+                 storage="select * from order_detail where order_number='${order.order_number} and supplier='${agent}'">
+           &lt;/data>
+        &lt;/task>
+     &lt;/parallel>
+     &lt;<b>alert</b> type="email" to="${customer.email}">
+        Your order has been shipped.  Blah, blah with link to order status.
+     &lt;/alert>
+  &lt;/sequence>
+&lt;/workflow>
+
+</pre>
+
+<i>Whoops, another sort of iteration</i><br>
+This one brought up something new.  When I send notification to my suppliers, I am actually doing two things.  First,
+I'm creating a task for each supplier <i>based on the order data</i>, and second, I'm already assigning the agent to
+the task!  Both of these are new ideas.  So you'll see that I've decorated the parallel tag with a "foreach" modifier.
+The foreach names the data item which each new task will see, and the "values" modifier on that is a list of values
+used to create the task.
+<p>
+This feels to me like another almost-ad-hoc kind of situation.  It's not precisely ad-hoc, but it's a case where the
+actual tasks to be performed depend on the situation and can't be specified 100% in advance.
+<p>
+<i>Oy, another weird &lt;data&gt; tag</i><br>
+You'll notice the "suppliers" data item.  The type of data is a collection of text values, but the source of the data
+is an SQL query.  A normal value assignment could use a <code>value=</code> modifier, but there's no straightforward way
+to represent a whole query situation in one string.  This seems like a good way to represent this.
+<p>
+Note that this is <i>not</i> the same as defining a query as a data item.  I would consider that to work like this:<br>
+<code>
+  &lt;<b>data</b> name="suppliers" type="sql" database="something" query="select ...">&lt;/data><br>
+</code>
+I would consider a query data item to be (1) readonly and (2) re-run each time it was used in the process.  What I'm getting
+at is simply a perfectly normal list of strings which is retrieved once from the database using a query.  (In this particular
+case I could use either one with the same result, as the item is referred to only once anyway.)
+<p>
+<i>${customer.email}</i><br>
+I'm also using a dotted form to specify a field of a record.  This is easy to understand, but I think the rule for parsing
+will have to be that the name of the item extends to the first non-alphanum character.  That name is then used to retrieve
+the appropriate data item, the type of that item is discovered at that point, and then that is used to determine which
+data adapter gets to figure out the value.  Make sense?  It does to me.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

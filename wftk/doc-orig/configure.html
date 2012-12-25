@@ -1,0 +1,48 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: Configuration</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>wftk: Configuration</h2>
+<center>
+[ <a href=index.html>documentation home</a> ]
+[ <a href=configure.html>configuration</a> ]
+[ <a href=code.html>design/implementation</a> ]
+</center>
+<hr>
+
+Configuration of a complete wftk system can roughly follow this plan:
+<ol>
+<li><b>Interface to existing systems</b><br>
+Interaction with other systems is done by means of <i>adaptor</i>.  In some cases, there may
+already be adaptors for the interoperable systems you need (for instance, there are database
+adaptors for ODBC on Windows and for Oracle, there is a notification adaptor for SMTP outgoing
+mail, and so on), but you may need to write some adaptors.  If you find yourself in that
+situation, see <a href="interfaces/index.html">the Interface Writer's Guide</a>.
+<li><b>Determine front-end needs</b><br>
+The wftk at present (July 25, 2001) has no front-end software; it is a library suitable for
+embedding in other programs.  (The exception to this is the command-line utility, but that 
+doesn't expose all the functionality of the library.)  Work is in progress for a Zope frontend,
+which will include a Python wrapper, and CGI programs are also easy to create for wftk.
+<li><b>Create a configuration file</b><br>
+The configuration file needn't actually be a file.  The configuration is attached to the session
+by the calling program, so it can be implemented any way you need.  An example config.xml file
+is included in the distribution; at the moment there is no other documentation.  (Coming soon.)
+<li><b>Define users and groups</b><br>
+If you write a user adaptor to an existing directory, you don't need this step.
+<li><b>Define permissions, if you will be using the action interface</b><br>
+<li><b>Define processes (procdefs)</b><br>
+See the example chair procdef for, yes, sigh, the only documentation I've written so far.
+</ol>
+As you can see, there's a lot for me to document still.  Please bother me until you're satisfied.
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2000 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

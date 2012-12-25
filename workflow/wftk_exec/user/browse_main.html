@@ -1,0 +1,93 @@
+<html><head><title>Browser:: user.c: implementation</title></head>
+<body>
+<h2>user.c: implementation</h2>
+<center>
+[&nbsp;<a href="browse.html">Previous: Folder browser</a>&nbsp;]
+[&nbsp;<a href="browse.html">Top: </a>&nbsp;]
+[&nbsp;<a href="browse_dirview_create.html">Next: Traversing the user/group repositories to build a directory view</a>&nbsp;]
+</center>
+
+<hr>
+First off is our includes.  Note that local wftk includes are in the parent directory; we're compiling browse.c out of
+the user module directory.  The <code>localdefs.h</code> file contains definitions local to the current installation;
+under Unix that typically includes the location of the various repositories (of which we need two), but under Windows
+that is taken care of in the Registry.  However, the ending for CGI programs is also included in <code>localdefs.h</code>.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "user.h"
+#include "xmlcgi.h"
+#include "../localdefs.h"
+
+/* ------------------------------------------------------------------ */
+/* browse.c                                                           */
+/* A CGI program for folder-oriented, permission-based hierarchical   */
+/* browsing.  This program is part of the wftk workflow toolkit and   */
+/* is distributed under the terms of the GNU license.                 */
+/* Copyright (c) 2000, Vivtek: wftk@vivtek.com                        */
+/* ------------------------------------------------------------------ */
+</pre></td></tr></table>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * cgi;
+XML * environment;
+XML * input;
+
+XML * current_user;
+
+XML * view;
+
+<i>See <a href="browse_dirview_create.html">Traversing the user/group repositories to build a directory view</a></i>
+<i>See <a href="browse_dirview_show.html">Presenting a directory view in HTML</a></i>
+
+int main (int argc, char * argv[])
+{
+   XML * elem;
+
+   cgi = cgi_init ();
+   environment = xml_loc (cgi, "cgicall.environment");
+   input = xml_loc (cgi, "cgicall.query");
+
+   current_user = user_authenticate (environment, AUTH_DOMAIN);
+   if (!current_user) {
+      printf ("&lt;html>&lt;head>&lt;title>User authentication required&lt;/title>&lt;/head>\n");
+      printf ("&lt;body>&lt;h2>User authentication required &lt;/h2>&lt;hr>\n");
+      printf ("A valid user authentication response is required to access this area.\n");
+      printf ("&lt;/body>&lt;/html>\n");
+      xml_free (cgi);
+      exit(0);
+   }
+
+   view = xml_create ("dirview");
+   xml_set (view, "root", xml_attrval (input, "root"));
+   xml_set (view, "curuser", xml_attrval (current_user, "name"));
+   xml_set (view, "state", xml_attrval (input, "state"));
+
+   dirview_create (view, current_user);
+
+   printf ("Content-type: text/html\n\n");
+   dirview_show (stdout, view);
+
+   xml_free (cgi);
+   xml_free (current_user);
+   xml_free (view);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="browse.html">Previous: Folder browser</a>&nbsp;]
+[&nbsp;<a href="browse.html">Top: </a>&nbsp;]
+[&nbsp;<a href="browse_dirview_create.html">Next: Traversing the user/group repositories to build a directory view</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

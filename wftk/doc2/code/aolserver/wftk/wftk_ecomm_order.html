@@ -1,0 +1,138 @@
+<html><head><title>AOLserver/wftk e-commerce app: wftk_ecomm_order: displaying an order (shopping cart contents)</title></head>
+<body>
+<h2>wftk_ecomm_order: displaying an order (shopping cart contents)</h2>
+<center>
+[&nbsp;<a href="wftk_ecomm_error.html">Previous: wftk_ecomm_error: handle errors gracefully</a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm_format.html">Next: wftk_ecomm_format: format text from ns_set inputs</a>&nbsp;]
+</center>
+
+<hr>
+Presenting an order is actually pretty straightforward.  What can actually be <i>done</i> to an order once presented is rife with
+possibilities.  Fortunately, today we're going to be very simplified.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc wftk_ecomm_order {conn merchant} {
+   set form [ns_conn form]
+   if {$form == ""} { set form [ns_set create] }
+
+   set repos [wftk repository [nsv_get wftk_ecomm basedir]/$merchant/merchant.defn]
+
+   set order_key [ns_set get $form order]
+   # Retrieve open cart if no order key supplied.
+   if {$order_key == ""} {
+      # TODO: implement.
+   } else {
+      set order [wftk getxml $repos orders $order_key]
+   }
+
+   set fields [wftk xml2ns_set $order]
+
+   # Determine which view we need.
+   set view [ns_set get $form view]
+
+   if {$view == ""} {
+      if {[xmlobj get $order "" state] == "active"} {
+         set view "status"
+      } else {
+         set view "open"
+      }
+   }
+
+   # Retrieve format for selected view.  If current role is not allowed a view, we fall back to the default. (This is a TODO)
+   # Similarly, if a view is simply not found, we fall back to the default.  This allows merchant-specific views to be defined.  Kewl.
+   # If a view is not found or an attempt is made to view inappropriately, we should log an error.
+   set view_file "orders_$view" ;# Note: list-view format..  TODO: define a system list for this logic.  Use for everything.
+   set format [wftk_ecomm_loadfile $view_file $merchant]
+   if {$format == ""} {
+      set view "status"
+      set view_file "orders_$view"
+      set format [wftk_ecomm_loadfile $view_file $merchant]
+   }
+   # TODO: in case of misconfiguration, there should be a boilerplate handler here.
+
+   # Format the view.  Some fields will be dyamically created, so we pass in a function to create them, and args for that function.
+   # TODO: consider something like this in the C repmgr_format code.
+   set page [wftk_ecomm_format $format $fields wftk_ecomm_formatdetails [list $repos $order $view $merchant]]
+
+   wftk release $order
+
+   ns_return 200 text/html $page
+}
+</pre></td></tr></table>
+
+OK.  Bearing in mind the quasi-prototypical nature of this code, then, let's go forward with field determination.  Note that
+dynamic fields in this case are largely a matter of formatting some subfields and iterating through sublists.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc wftk_ecomm_formatdetails {field fields repos order view merchant} {
+   switch -- $field {
+      line_items {
+         set lines_list [wftk gethandle]
+         set line_item  [wftk gethandle]
+         set line_items_text ""
+         set default_line_item_format [xmlobj get $repos "" default_line_item_format]
+         if {$default_line_item_format == ""} {
+            set default_line_item_format "<tr><td>\[&#35;#part##]</td><td>\[&#35;#item_name##]</td><td>\[&#35;#unit_price##]</td><td>\[&#35;#qty##]</td><td>\[&#35;#line_price##]</td><td>\[&#35;#line_shipping##]</td></tr>\n"
+         }
+         set default_line_item_regformat [xmlobj get $repos "" default_line_item_regformat]
+         if {$default_line_item_regformat == ""} {
+            set default_line_item_regformat "<tr><td colspan=2><font size=-1>Details of registration:</font><br><pre>\[&#35;#format##]</font></td><td colspan=4></td></tr>\n"
+         }
+
+         xml loc $lines_list ".list\[lines]" $order
+         for {xml firstelem $line_item $lines_list} {[xml is_element $line_item]} {xml nextelem $line_item $line_item} {
+            # TODO: item-specific override of format
+            set line_item_set [wftk xml2ns_set $line_item]
+            append line_items_text [wftk_ecomm_format $default_line_item_format $line_item_set]
+            if [string compare "" [ns_set get $line_item_set format]] {
+               append line_items_text [wftk_ecomm_format $default_line_item_regformat $line_item_set]
+            }
+         }
+         wftk release $line_item
+         wftk release $lines_list
+
+         return $line_items_text
+      }
+      credit_card_choice {
+         set ret "<table>"
+         foreach cc {{VISA {<img align=center src="/images/visa_icon.gif" alt="Visa card">}}
+                     {MC   {<img align=center src="/images/mc_icon.gif" alt="MasterCard">}}
+                     {AMEX {American Express}}} {
+            append ret "<tr><td><input type=radio name=payment.type"
+            if {[lindex $cc 0] == [xmlobj get $order "" payment.type]} { append ret " checked" }
+            append ret " value=[lindex $cc 0]></td><td>[lindex $cc 1]</td></tr>\n"
+         }
+         append ret "</table>"
+         return $ret
+      }
+      message { ;# This is here to fish any credit card errors out and display them properly.
+         set errmsg [xmlobj get $order "" payment.status]
+         if [string match ERR:* $errmsg] {
+            return [string range $errmsg 4 end]
+         } else {
+            return ""
+         }
+      }
+   }
+
+   # A bit of a kludge to cover for the fact that xml2ns_set doesn't see dotted fields (e.g. payment.type)
+   return [xmlobj get $order "" $field]
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_ecomm_error.html">Previous: wftk_ecomm_error: handle errors gracefully</a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm_format.html">Next: wftk_ecomm_format: format text from ns_set inputs</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

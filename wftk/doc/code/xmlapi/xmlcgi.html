@@ -1,0 +1,211 @@
+<html><head><title>CGI interface based on XMLAPI</title></head>
+<body>
+<h2>CGI interface based on XMLAPI</h2>
+<center>
+[ <a href="xmlapi.zip">download</a> ] [ <a href="xmlcgi.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/xml/discuss.pl">discussion</a> ]
+</center>
+
+<hr>
+This is a little extension to the <a href="http://www.vivtek.com/xml/xmlapi/index.html">XMLAPI</a>
+library that I use for working with XML in C.  It uses the XML element data structure as a handy
+little hash-table-like thing (yeah, OK, I know it's not really a hash table yet.)  
+<p></p>
+It returns an XML structure like this:
+<pre>
+&lt;cgicall>
+   &lt;environment SERVER_TYPE="..." .../>
+   &lt;query this="that" .../>
+&lt;/cgicall>
+</pre>
+<p></p>
+Why, the whole thing almost makes me feel as though I'm writing Perl!
+<p></p>
+The <code>cgi_init_env_vars</code> is a list of strings to check in the environment.  I'd much
+rather store the environment whole cloth, but I can't find a way to do that in C (I
+suppose I could go read the Perl code for how the %ENV hash is generated, but I fear it would
+be non-portable.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdlib.h>
+#include &lt;string.h>
+#include "xmlapi.h"
+#include "xmlobj.h"
+#ifdef WINDOWS
+#include &lt;fcntl.h>
+#endif
+
+void xml_urldecode (XML * element, char *string);
+char * cgi_init_env_vars[] = {
+   "SERVER_TYPE",
+   "SERVER_NAME",
+   "GATEWAY_INTERFACE",
+   "SERVER_PROTOCOL",
+   "SERVER_PORT",
+   "REQUEST_METHOD",
+   "PATH_INFO",
+   "PATH_TRANSLATED",
+   "SCRIPT_NAME",
+   "QUERY_STRING",
+   "REMOTE_HOST",
+   "REMOTE_ADDR",
+   "AUTH_TYPE",
+   "REMOTE_USER",
+   "REMOTE_IDENT",
+   "CONTENT_TYPE",
+   "CONTENT_LENGTH",
+   "HTTP_ACCEPT",
+   "HTTP_USER_AGENT",
+   "HTTP_REFERER",
+   "HTTP_AUTHORIZATION",
+   "HTTP_COOKIE",
+   "HTTP_HOST",
+   "HTTP_CONNECTION",
+   "HTTP_PRAGMA",
+   "HTTPS",
+   "HTTP_ACCEPT_LANGUAGE",
+   "HTTP_ACCEPT_CHARSET",
+   "HTTP_ACCEPT_ENCODING",
+   "SERVER_PORT_SECURE",
+   ""
+};
+XML * xmlcgi_init () {
+   XML * ret;
+   XML * env;
+   XML * query;
+   char ** var;
+   char * val;
+
+   val = getenv ("SERVER_NAME");
+   if (!val) return (NULL); /* This seems like a sufficient test... */
+
+   ret = xml_create ("cgicall");
+   env = xml_create ("environment");
+   query = xml_create ("query");
+   xml_append (ret, env);
+   xml_append (ret, query);
+
+   var = cgi_init_env_vars;
+   while (var &amp;&amp; *var &amp;&amp; **var) {
+      val = getenv (*var);
+      if (val) xml_set (env, *var, val);
+      var ++;
+   }
+
+   val = (char *) malloc (strlen (xml_attrval (env, "QUERY_STRING")) + 1);
+   strcpy (val, xml_attrval (env, "QUERY_STRING"));
+   xml_urldecode (query, val);
+   free (val);
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+The URL decoding and dequoting functions are a couple of useful helpers.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void xml_urldequote (char * str);
+void xml_urldecode (XML * xml, char * q)
+{
+   char * and;
+   char * equals;
+   and = strchr (q, '&amp;');
+   equals = strchr (q, '=');
+   while (equals) {
+      if (and) *and = '\0';
+      *equals = '\0';
+      xml_urldequote (q);
+      xml_urldequote (equals + 1);
+      xml_set (xml, q, equals + 1);
+      if (!and) break;
+      q = and + 1;
+      and = strchr (q, '&amp;');
+      equals = strchr (q, '=');
+   }
+}
+
+#define HEXDIGITVAL(x) ((x>='0'&amp;&amp;x<='9')?(x-'0'):((x>='a'&amp;&amp;x<='f')?(x-'a'+10):((x>='A'&amp;&amp;x<='F')?(x-'A'+10):0)))
+void xml_urldequote (char * str)
+{
+   while (*str) {
+      if (str[0] == '+') str[0] = ' ';
+      if (str[0] == '%') {
+         if (str[1] &amp;&amp; str[2]) {
+            str[0] = 16 * HEXDIGITVAL (str[1]) + HEXDIGITVAL (str[2]);
+            strcpy (str + 1, str + 3);
+         }
+      }
+      str++;
+   }
+}
+</pre></td></tr></table>
+
+<i>(1 August 2002)</i>: now that I'm working with this library again in the context of the <a href="../repmgr/repmgr_cgi.html">repmgr
+CGI interface</a>, I've realized that
+the other main point of interest in dealing with a CGI environment is reading input information off stdin.  The format of this
+information depends on whether uploaded files are included per RFC 1867; the XMLCGI will shortly know how to deal with those, but in the
+meantime I'm going to ignore it and just read regular URL-encoded field information into an xmlobj-formatted object.  And since we're
+talking about an xmlobj object, xmlcgi_readstdin also takes a pointer to a list definition.
+<p></p>
+Since the headers contain information about the encoding of the data on stdin, I'm requiring that in the function in order to
+leave the door open for file upload, because file upload is going to be extremely important indeed for most sensible uses of a
+repository manager.  TODO: RFC 1867 file upload.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * xmlcgi_readstdin (XML * cgi, XML * list) {
+   XML * env = xml_loc (cgi, ".environment");
+   XML * obj = xml_create ("record");
+   XML * scr = xml_create ("s");
+   char buf[1024];
+   int  bytes;
+   char * val;
+   char * and;
+   char * equals;
+
+   if (!strcmp (xml_attrval (env, "CONTENT_TYPE"), "application/x-www-form-urlencoded")) {
+      xml_set (scr, "s", "");
+#ifdef WIN32
+      _setmode (_fileno (stdin), _O_BINARY);
+#endif
+      while ((bytes = fread (buf, 1, 1024, stdin)) > 0) {
+         xml_attrncat (scr, "s", buf, bytes);
+      }
+      val = (char *) xml_attrval (scr, "s");
+      equals = strchr (val, '=');
+      while (equals) {
+         and = strchr (val, '&amp;');
+         if (and) *and = '\0';
+         *equals = '\0';
+         xml_urldequote (val);
+         xml_urldequote (equals + 1);
+         xmlobj_set (obj, list, val, equals + 1);
+         if (!and) break;
+         val = and + 1;
+         equals = strchr (val, '=');
+      }
+   } else if (!strcmp (xml_attrval (env, "CONTENT_TYPE"), "multipart/form-data")) {
+      /* TODO: handle RFC1867-formatted input. */
+   }
+
+   xml_free (scr);
+   return obj;
+}
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font>
+</td>
+</tr>
+</table>
+</center>
+</body></html>
+

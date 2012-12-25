@@ -1,0 +1,73 @@
+<html><head><title>wftk core library: Getting and setting process status</title></head>
+<body>
+<h2>Getting and setting process status</h2>
+<center>
+[&nbsp;<a href="wftk_value.html">Previous: Dealing with values</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_role.html">Next: Working with roles</a>&nbsp;]
+</center>
+
+<hr>
+Getting process status is simple; setting it may involve activation of potential task branches.  I'm still not sure about
+this.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>const char * wftk_status_get (void * session, XML * datasheet) {
+   const char * status;
+   if (!datasheet) return "none";
+   status = xml_attrval (datasheet, "status");
+   if (*status) return status;
+   return "start";
+}
+int wftk_status_set (void * session, XML * datasheet, const char * status) {
+   const char * cur_status;
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!datasheet) return 0;
+
+   cur_status = wftk_status_get (session, datasheet);
+   if (!strcmp (cur_status, status)) return 1;
+
+   xml_set (datasheet, "status", status);
+
+   /* Notify task indices. */
+   if (!strcmp (status, "complete")) {
+      adlist = wftk_get_adaptorlist (session, TASKINDEX);
+      wftk_call_adaptorlist (adlist, "proccomplete", xml_attrval (datasheet, "id"));
+      wftk_free_adaptorlist (session, adlist);
+   } else if (!strcmp (status, "error")) {
+      adlist = wftk_get_adaptorlist (session, TASKINDEX);
+      wftk_call_adaptorlist (adlist, "procerror", xml_attrval (datasheet, "id"));
+      wftk_free_adaptorlist (session, adlist);
+   } else {
+      adlist = wftk_get_adaptorlist (session, TASKINDEX);
+      wftk_call_adaptorlist (adlist, "procput", datasheet);
+      wftk_free_adaptorlist (session, adlist);
+   }
+
+   if (!strcmp (status, "complete")) {
+      /* TODO: If the process is attached as a subproc of another task, retrieve that task and complete it. */
+   } else if (!strcmp (status, "error")) {
+      /* TODO: Does this need special handling?  Figure that out. */
+   }
+
+   return 1;
+}
+</pre></td></tr></table>
+
+These are hardly final forms.
+
+
+
+<center>
+[&nbsp;<a href="wftk_value.html">Previous: Dealing with values</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_role.html">Next: Working with roles</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

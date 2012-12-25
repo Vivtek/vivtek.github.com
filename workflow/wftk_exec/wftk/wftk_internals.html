@@ -1,0 +1,63 @@
+<html><head><title>wftk core library: Internal definitions</title></head>
+<body>
+<h2>Internal definitions</h2>
+<center>
+[&nbsp;<a href="wftk_h.html">Previous: Include file (and API definition)</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="library.html">Next: Function definitions</a>&nbsp;]
+</center>
+
+<hr>
+Here are a few things that the library functions will use (and adaptor code as well) but that don't really need
+to be exposed to the cold, hard world.  First are the IDs for the types of adaptor.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#define DSREP         0
+#define PDREP         1
+#define USER          2
+#define DB            3
+#define NOTIFY        4
+#define SCRIPT        5
+#define DATATYPE      6
+#define DEBUG         7
+#define CONFIG        8
+
+</pre></td></tr></table>
+
+And the other is the definition of the WFTK_ADAPTOR structure used to pass APIs back and forth.  Sort of a poor
+man's ActiveX, I guess.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>typedef struct _wftk_adaptor WFTK_ADAPTOR;
+struct _wftk_adaptor {
+   int dummy;
+};
+
+</pre></td></tr></table>
+
+Whoops, almost forgot prototypes for the adaptor functions.  (Now to figure out where I want to define the functions.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_ADAPTOR * wftk_get_adaptor (int type, const char * name);
+XML * wftk_call_adaptor (WFTK_ADAPTOR * ad, const char * funcname, ...);
+</pre></td></tr></table>
+
+Cool, that varargs thing for <code>wftk_call_adaptor</code>, isn't it?
+
+
+
+<center>
+[&nbsp;<a href="wftk_h.html">Previous: Include file (and API definition)</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="library.html">Next: Function definitions</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

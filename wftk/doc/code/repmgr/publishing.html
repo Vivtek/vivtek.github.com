@@ -1,0 +1,970 @@
+<html><head><title>Repository manager: Publishing objects: internals</title></head>
+<body>
+<h2>Publishing objects: internals</h2>
+<center>
+[&nbsp;<a href="repositories.html">Previous: Working with repository objects</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="macros.html">Next: Macro processing</a>&nbsp;]
+</center>
+
+<hr>
+We have three different functions for this, simply because it's cleaner than passing NULLs in for
+wildcards.  Publishing is, of course, the bulk of the library, because working with lists is farmed
+out to adaptors.  So the repository API for lists and objects is mostly just another set of wrappers
+around the appropriate adaptor.  But publishing -- publishing is large and complicated.
+
+<p></p>
+Publishing is done by <i>tools</i>.  At the moment, the tools are hardcoded.  Obviously, publishing
+tools would be an excellent adaptor class, and eventually I'll do that, but for now I just don't have
+time.  I've got the tools I already have implemented, and they'll have to do.
+
+<p></p>
+There are five different publishing modes, which take different combinations of data pushing and data
+pulling styles of dataflow.  <i>Pages</i> are files which are constructed using arbitrary collections
+of data sources, including lists and page-specific values, area-specific values, macro resolution, and
+a boatload of other things (including rather free-form text formating in the Wiki Wiki style.)
+<i>Publishers</i>, on the other hand, are explicit dataflow linkages which are triggered when data
+is changes.  A publisher may publish to a page, it may publish to files on the sly, or it may notify
+some external system of events.
+<p></p>
+Publishing does <i>not</i> activate change notification.
+
+<p></p>
+The five modes are "publish all", which publishes pages and then mops up non-page publication links;
+"publish list", which activates all publishers attached to a data source; "publish object", which
+activates all publishers attached to a data source, but does so for a single object; "publish pages",
+which simply iterates along the pages and publishes each; and "publish page", which publishes a single
+page.  The latter two are exposed in the command-line utility via the "make" command, as "publishpage"
+would be too cumbersome to type.
+
+<p></p>
+<i>(August 31, 2002)</i>: I'm introducing verbose logging using the reporting API I just wrote.  This
+will make it possible to see <i>every time</i> what exactly the repmgr did.  Yes, there is a story behind
+this, and a quiet look of panic in my eye as I write these words.  At any rate, each API-level function
+opens a report, and each internal function will inform us what it's doing.
+
+<p></p>
+<i>(December 26, 2002)</i>: Introducing the concept (long needed) of a <i>publishing context</i>, a
+structure which carries along with it where precisely we are in the current publishing operation.  In this
+case, the publishing context is really just the list we're in the midst of publishing -- and where we are
+in that list.  As we iterate the list, we also publish individual objects in it, if we have a detail
+publisher attached.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int _repos_publish_file (XML * pubcon, XML * publisher, const char * filespec, XML * object);
+int _repos_publish_page (XML * pubcon, XML * page, XML * object, XML * publisher);
+void _repos_publish_prepare (XML * repository);
+WFTK_EXPORT int   repos_publish_all  (XML * repository)
+{
+   XML * pub;
+   XML * pubcon = xml_create ("pubcon");
+   XML * pubto = xml_loc (repository, ".publish-to");
+
+   repos_report_start (repository, "_publog", NULL);
+   repos_report_log (repository, "_publog", "repos_publish_all");
+
+   /* Publish pages first. */
+   repos_publish_pages (repository);
+
+   /* Mop up non-page publishers. */
+   pub = xml_firstelem (repository);
+   while (pub) {
+      if (xml_is (pub, "publish")) {
+         /*  xml_set (pubcon, "list", xml_attrval (pub, "from")); -- TODO: this was broken for over a year.  Sigh. */
+         if (!*xml_attrval (pub, "to")) {
+            if (pubto) xml_set (pubcon, "fullfilespec", xml_attrval (pubto, "dir")); else xml_set (pubcon, "fullfilespec", "./");
+            xml_attrcat (pubcon, "fullfilespec", xml_attrval (pub, "as"));
+            xml_set (pubcon, "filespec", xml_attrval (pub, "as"));
+            _repos_publish_file (repository, pub, xml_attrval (pubcon, "fullfilespec"), NULL);
+         }
+      }
+      pub = xml_nextelem (pub);
+   }
+
+   repos_report_close (repository, "_publog");
+   xml_free (pubcon);
+   return 0;
+}
+
+WFTK_EXPORT int   repos_publish_list (XML * repository, const char * list)
+{
+   XML * pub;
+   XML * page;
+   XML * pubto = xml_loc (repository, ".publish-to");
+   XML * pubcon = xml_create ("pubcon");
+   XML * hook;
+
+   repos_report_start (repository, "_publog", NULL);
+   repos_report_log (repository, "_publog", "repos_publish_list (%s)", list);
+   _repos_publish_prepare (repository);
+   repos_log (repository, 4, 4, NULL, "publish", "repos_publish_list (%s)", list);
+
+   hook = xml_create ("repository");
+   xml_setbin (hook, repository, NULL);
+   xml_append (pubcon, hook);
+
+   hook = xml_create ("files");
+   xml_append (pubcon, hook);
+
+   xml_set (pubcon, "list", list);
+
+   /* Iterate along publishers, publishing those emanating from the given list. */
+   pub = xml_firstelem (repository);
+   while (pub) {
+      if (xml_is (pub, "publish")) {
+         if (!strcmp (xml_attrval (pub, "from"), list)) {
+            if (*xml_attrval (pub, "to")) {
+               page = xml_search (repository, "page", "id", xml_attrval (pub, "to"));
+               if (page) _repos_publish_page (pubcon, page, NULL, pub);
+               else      repos_report_log (repository, "_publog", "No page id '%s' found for publisher id '%s'",
+                                           xml_attrval (pub, "to"), xml_attrval (pub, "id"));
+            } else if (*xml_attrval (pub, "as")) {
+               if (pubto) xml_set (pubcon, "fullfilespec", xml_attrval (pubto, "dir")); else xml_set (pubcon, "fullfilespec", "./");
+               xml_attrcat (pubcon, "fullfilespec", xml_attrval (pub, "as"));
+               xml_set (pubcon, "filespec", xml_attrval (pub, "as"));
+               _repos_publish_file (repository, pub, xml_attrval (pubcon, "fullfilespec"), NULL);
+            } else {
+               repos_report_log (repository, "_publog", "No destination ('to' or 'as') specified for publisher id '%s'",
+                                 xml_attrval (pub, "id"));
+            }
+         }
+      }
+      pub = xml_nextelem (pub);
+   }
+   repos_report_close (repository, "_publog");
+   xml_free (pubcon);
+   return 0;
+}
+
+int _repos_publish_obj (XML * pubcon, const char * list, XML * object);
+WFTK_EXPORT int   repos_publish_obj  (XML * repository, const char * list, const char * key)
+{
+   int ret;
+   XML * object;
+   XML * pubcon = xml_create ("pubcon");
+   XML * hook;
+
+   repos_report_start (repository, "_publog", NULL);
+   repos_report_log (repository, "_publog", "repos_publish_obj (%s, %s)", list, key);
+   _repos_publish_prepare (repository);
+
+   hook = xml_create ("repository");
+   xml_setbin (hook, repository, NULL);
+   xml_append (pubcon, hook);
+
+   hook = xml_create ("files");
+   xml_append (pubcon, hook);
+
+   /* Do the same, but give the specific key to be published. */
+   /* Find the object. */
+   object = repos_get (repository, list, key);
+   if (!object) {
+      repos_report_log (repository, "_publog", "object not found");
+      repos_report_close (repository, "_publog");
+      xml_free (pubcon);
+      return 0;
+   }
+
+   ret = _repos_publish_obj (pubcon, list, object);
+   xml_free (object);
+
+   repos_report_close (repository, "_publog");
+   xml_free (pubcon);
+   return ret;
+}
+
+int _repos_publish_obj (XML * pubcon, const char * list, XML * object)
+{
+   XML * pub;
+   XML * page;
+   XML * hook;
+   XML * pubto = NULL;
+   int   free_pubcon;
+
+   XML * repository;
+
+   if (xml_is (pubcon, "pubcon")) { /* Normal mode. */
+      repository = xml_search (pubcon, "repository", NULL, NULL);
+      if (!repository) return 0;
+      repository = xml_getbin(repository);
+      if (!repository) return 0;
+      free_pubcon = 0;
+      pubto = xml_loc (repository, ".publish-to");
+   } else { /* Library-internal call with no publishing context; this is the repository. */
+      repository = pubcon;
+      pubcon = xml_create ("pubcon");
+      hook = xml_create ("repository");
+      xml_setbin (hook, repository, NULL);
+      xml_append (pubcon, hook);
+      hook = xml_create ("files");
+      xml_append (pubcon, hook);
+      free_pubcon = 1;
+   }
+
+   xml_set (pubcon, "list", list);
+
+   hook = xml_search (pubcon, "object", NULL, NULL);
+   if (!hook) {
+      hook = xml_create ("object");
+      xml_append (pubcon, hook);
+   }
+   xml_setbin (hook, object, NULL);
+
+   repos_log (repository, 4, 1, NULL, "repmgr", "publishing object from list '%s'", list);
+
+   pub = xml_firstelem (repository);
+   while (pub) {
+      if (xml_is (pub, "publish")) {
+         if (!strcmp (xml_attrval (pub, "from"), list)) {
+            if (*xml_attrval (pub, "to")) {
+               page = xml_search (repository, "page", "id", xml_attrval (pub, "to"));
+               if (page) _repos_publish_page (pubcon, page, object, pub);
+            } else {
+               if (pubto) xml_set (pubcon, "fullfilespec", xml_attrval (pubto, "dir")); else xml_set (pubcon, "fullfilespec", "./");
+               xml_attrcat (pubcon, "fullfilespec", xml_attrval (pub, "as"));
+               xml_set (pubcon, "filespec", xml_attrval (pub, "as"));
+               _repos_publish_file (pubcon, pub, xml_attrval (pubcon, "fullfilespec"), object);
+            }
+         }
+      }
+      pub = xml_nextelem (pub);
+   }
+   xml_delete (xml_search (pubcon, "object", NULL, NULL));
+   if (free_pubcon) xml_free (pubcon);
+   return 0;
+}
+</pre></td></tr></table>
+
+A quick note on preparing the repository for publishing -- each page has an ID but optionally may also
+specify a different place to publish itself.  Thus id="page1" may well have page="otherpage.html" -- but
+when getting the URL for a page, we don't want to have to look for the page attribute and then default to
+building something if it's not there.  So first we just scan the repository and set a page attribute before
+doing any publishing procedure.  This is called before each of the publishing API calls, so it could do
+other preparation as well.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _repos_publish_prepare (XML * repository)
+{
+   XML * page;
+
+   page = xml_search (repository, "page", NULL, NULL);
+   while (page) {
+      if (xml_is (page, "page")) {
+         if (!*xml_attrval (page, "page")) xml_setf (page, "page", "%s.html", xml_attrval (page, "id"));
+      }
+      page = xml_search_next (repository, page, "page", NULL, NULL);
+   }
+
+   /* TODO: create default _info publisher, if necessary. */
+}
+
+WFTK_EXPORT int   repos_publish_pages  (XML * repository)
+{
+   XML * page;
+   XML * publisher;
+   int close_report;
+   XML * pubcon = xml_create ("pubcon");
+   XML * hook;
+
+   close_report = !repos_report_start (repository, "_publog", NULL);
+   repos_report_log (repository, "_publog", "repos_publish_pages");
+   _repos_publish_prepare (repository);
+
+   hook = xml_create ("repository");
+   xml_setbin (hook, repository, NULL);
+   xml_append (pubcon, hook);
+
+   hook = xml_create ("files");
+   xml_append (pubcon, hook);
+
+   /* Iterate along the pages, publishing each in turn. */
+   page = xml_search (repository, "page", NULL, NULL);
+   while (page) {
+      if (xml_is (page, "page")) {
+         publisher = xml_search (repository, "publish", "to", xml_attrval (page, "id"));
+         xml_set (pubcon, "list", publisher ? xml_attrval (publisher, "from") : "");
+         _repos_publish_page (pubcon, page, NULL, publisher);
+      }
+      page = xml_search_next (repository, page, "page", NULL, NULL);
+   }
+
+   if (close_report) repos_report_close (repository, "_publog");
+   xml_free (pubcon);
+   return 0;
+}
+
+
+WFTK_EXPORT int   repos_publish_page  (XML * repository, const char * key)
+{
+   XML * page;
+   XML * publisher;
+   XML * pubcon = xml_create ("pubcon");
+   XML * hook;
+
+   repos_report_start (repository, "_publog", NULL);
+   repos_report_log (repository, "_publog", "repos_publish_page (%s)", key);
+   _repos_publish_prepare (repository);
+
+   hook = xml_create ("repository");
+   xml_setbin (hook, repository, NULL);
+   xml_append (pubcon, hook);
+
+   hook = xml_create ("files");
+   xml_append (pubcon, hook);
+
+   /* Given a page, publish it. */
+   page = xml_search (repository, "page", "id", key);
+   if (!page) {
+      repos_report_log (repository, "_publog", "No such page as %s", key);
+      repos_report_close (repository, "_publog");
+      xml_free (pubcon);
+   }
+
+   publisher = xml_search (repository, "publish", "to", key);
+   xml_set (pubcon, "list", publisher ? xml_attrval (publisher, "from") : "");
+   _repos_publish_page (pubcon, page, NULL, NULL);
+
+   repos_report_close (repository, "_publog");
+
+   xml_free (pubcon);
+   return 0;
+}
+
+void _repos_merge_layout (XML * repository, XML * publisher, XML * layout)
+{
+   XML * obj_layout;
+   FILE * file;
+   const char * replaces;
+   XML * member;
+   XML * mark;
+
+   obj_layout = NULL;
+   if (*xml_attrval (publisher, "defn")) {
+      file = _repos_fopen (repository, xml_attrval (publisher, "defn"), "r");
+      if (file) {
+         obj_layout = xml_parse_general (file, (XMLAPI_DATARETRIEVE) fread);
+         if (xml_is (obj_layout, "xml-error")) {
+            repos_report_log (repository, "_publog", "Bad XML in layout definition %s for publisher %s",
+                                                  xml_attrval (publisher, "defn"), xml_attrval (publisher, "id"));
+            xml_free (obj_layout); 
+            obj_layout = NULL;
+         } else {
+            if (xml_is (obj_layout, "list")) xml_set (publisher, "list-layout", "yes");
+            xml_copyinto (publisher, obj_layout);
+            obj_layout = publisher;
+         }
+         fclose (file);
+         xml_set (publisher, "defn", "");
+      } else {
+         repos_report_log (repository, "_publog", "can't find layout definition %s for publisher %s",
+                                                  xml_attrval (publisher, "defn"), xml_attrval (publisher, "id"));
+      }
+   } else {
+      obj_layout = publisher;
+   }
+
+   if (obj_layout) {
+      if (*xml_attrval (obj_layout, "list-layout")) {
+         member = xml_firstelem (obj_layout);
+         while (member) {
+            replaces = xml_attrval (member, "replaces");
+            if (!*replaces) replaces = "content";
+            mark = xml_search (layout, "template:value", "name", replaces);
+            if (mark) xml_replacewithcontent (mark, member);
+
+            member = xml_nextelem (member);
+         }
+      } else {
+         replaces = xml_attrval (obj_layout, "replaces");
+         if (!*replaces) replaces = "content";
+         mark = xml_search (layout, "template:value", "name", replaces);
+         if (mark) xml_replacewithcontent (mark, obj_layout);
+      }
+   }
+}
+
+int _repos_publish_to_files (XML * pubcon, const char * filespec, XML * layout, XML * page, XML * object);
+int _repos_publish_page (XML * pubcon, XML * page, XML * object, XML * publisher)
+{
+   XML * layout;
+   XML * repository;
+   XML * hook;
+   XML * pubto;
+   int   free_pubcon;
+
+   if (xml_is (pubcon, "pubcon")) { /* Normal mode. */
+      repository = xml_search (pubcon, "repository", NULL, NULL);
+      if (!repository) return 0;
+      repository = xml_getbin(repository);
+      if (!repository) return 0;
+      free_pubcon = 0;
+   } else { /* Library-internal call with no publishing context; this is the repository. */
+      repository = pubcon;
+      pubcon = xml_create ("pubcon");
+      hook = xml_create ("repository");
+      xml_setbin (hook, repository, NULL);
+      xml_append (pubcon, hook);
+      hook = xml_create ("files");
+      xml_append (pubcon, hook);
+      free_pubcon = 1;
+   }
+   pubto = xml_loc (repository, ".publish-to");
+
+   xml_delete (xml_search (pubcon, "page", NULL, NULL));
+   hook = xml_create ("page");
+   xml_setbin (hook, page, NULL);
+   xml_append (pubcon, hook);
+
+   xml_delete (xml_search (pubcon, "publisher", NULL, NULL));
+   hook = xml_create ("publisher");
+   xml_setbin (hook, publisher, NULL);
+   xml_append (pubcon, hook);
+
+   /* Find layout for page. */
+   layout = repos_get_layout (repository, xml_attrval (page, "layout"));
+   if (!layout) return 0;
+
+   repos_log (repository, 4, 1, NULL, "repmgr", "publishing to page '%s'", xml_attrval (page, "id"));
+
+   /* If an object is given, get the object format and merge it with the layout. */
+   /* If no object layout is specified, then no mapping is necessary. */
+   _repos_merge_layout (repository, publisher, layout);
+
+   /* Publish filespec. */
+   if (pubto) xml_set (pubcon, "fullfilespec", xml_attrval (pubto, "dir")); else xml_set (pubcon, "fullfilespec", "./");
+   xml_attrcat (pubcon, "fullfilespec", xml_attrval (page, "page"));
+   xml_set (pubcon, "filespec", xml_attrval (page, "page"));
+   _repos_publish_to_files (pubcon, xml_attrval (pubcon, "fullfilespec"), layout, page, object);
+   if (free_pubcon) xml_free (pubcon);
+   return 1;
+}
+int _repos_publish_file (XML * pubcon, XML * publisher, const char * filespec, XML * object)
+{
+   XML * layout = NULL;
+   XML * obj_layout;
+   FILE * file;
+   const char * replaces;
+   XML * member;
+   XML * mark;
+   XML * hook;
+   int   free_pubcon;
+
+   XML * repository;
+
+   if (xml_is (pubcon, "pubcon")) { /* Normal mode. */
+      repository = xml_search (pubcon, "repository", NULL, NULL);
+      if (!repository) return 0;
+      repository = xml_getbin(repository);
+      if (!repository) return 0;
+      free_pubcon = 0;
+   } else { /* Library-internal call with no publishing context; this is the repository. */
+      repository = pubcon;
+      pubcon = xml_create ("pubcon");
+      hook = xml_create ("repository");
+      xml_setbin (hook, repository, NULL);
+      xml_append (pubcon, hook);
+      hook = xml_create ("files");
+      xml_append (pubcon, hook);
+      free_pubcon = 1;
+   }
+
+   xml_delete (xml_search (pubcon, "page", NULL, NULL));
+
+   /* If layout named, retrieve it. */
+   if (*xml_attrval (publisher, "layout")) layout = repos_get_layout (repository, xml_attrval (publisher, "layout"));
+
+   /* If an object is given, get the object format and merge it with the layout. */
+   /* If no object layout is specified, then no mapping is necessary. */
+   _repos_merge_layout (repository, publisher, layout);
+   
+   _repos_publish_to_files (pubcon, filespec, layout, NULL, object);
+   if (free_pubcon) xml_free (pubcon);
+   return 0;
+}
+</pre></td></tr></table>
+
+All the real work of publication is done here.
+<i>(23 Feb 2003)</i>: introduced _repos_pagefile_open, which opens a page file being published.  It looks for a configuration
+value of "pagebase", then if that's not there, goes ahead with the repository's "basedir" value.  It opens the file for writing.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static FILE * _repos_pagefile_open (XML * repos, const char * filename)
+{
+   XML * scratch = xml_create ("s");
+   FILE * ret;
+
+   xml_set_nodup (scratch, "dir", xmlobj_getconf (repos, "pagebase", xml_attrval (repos, "basedir")));
+   if (*filename == '/' || *filename == '\\') {
+      xml_set (scratch, "f", filename);
+   } else {
+      xml_setf (scratch, "f", "%s%s", xml_attrval (scratch, "dir"), filename);
+   }
+   ret = fopen (xml_attrval (scratch, "f"), "w");
+   xml_free (scratch);
+   return (ret);
+}
+
+char * _repos_publish_getvalue (XML * context, XML * object, const char * value);
+int _repos_publish_to_files (XML * pubcon, const char * filespec, XML * layout, XML * page, XML * object)
+{
+   XML * result;
+   XML * publisher;
+   XML * list = NULL;
+   XML * list_t;
+   int free_list = 0;
+   XML * mark;
+   XML * first;
+   XML * prev;
+   XML * cur;
+   XML * next;
+   XML * last;
+   XML * repository;
+   XML * hook;
+   char * filesp = NULL;
+   const char * detail;
+   FILE * file;
+   XML * files;
+   XML * pubto;
+
+   repository = xml_search (pubcon, "repository", NULL, NULL);
+   repository = xml_getbin (repository);
+   publisher = xml_search (pubcon, "publisher", NULL, NULL);
+   if (publisher) publisher = xml_getbin (publisher);
+
+   /* Express template, once if object is supplied or filespec is a single file; iteratively otherwise. */
+   if (object || !strchr (filespec, '[') || !page) { /* This case is a single file, but may express a list. */
+      repos_report_log (repository, "_publog", " -- write to %s", filespec);
+
+      xml_set (pubcon, "file", filespec);
+      if (object) {
+         /* Format filespec as flat template. */
+         filesp = xmlobj_format (object, NULL, filespec);
+         xml_set (pubcon, "file", filesp);
+      }
+      repos_log (repository, 6, 1, NULL, "repmgr", "publishing single object to file %s", filesp ? filesp : filespec);
+
+      /* Is the template a list template?  If so, attempt to figure out which list should be expressed. */
+      list_t = xml_search (layout, "template:list", NULL, NULL);
+      if (list_t) {
+         xml_set (list_t, "list", xml_attrval (pubcon, "list"));
+         if (!*xml_attrval (list_t, "list")) list_t = NULL;
+      }
+      if (!list_t) { /* Nope, not a list expression, just a plain old page. */
+         result = xml_template_apply (pubcon, layout, object, _repos_publish_getvalue);
+      } else {
+         list = xml_search (pubcon, "list", NULL, NULL);
+         if (list) list = xml_getbin (list);
+         if (!list) { /* If the publishing context doesn't already have a list, retrieve the named list. */
+            list = xml_create ("list");
+            free_list = 1;
+            xml_set (list, "id", xml_attrval (list_t, "list"));
+            xml_set (list, "order", xml_attrval (list_t, "order"));
+            if (!*xml_attrval (list, "order")) xml_set (list, "order", xml_attrval (publisher, "order"));
+            xml_set (list, "record", "record");
+            repos_list (repository, list);
+            hook = xml_create ("list");
+            xml_append (pubcon, hook);
+            xml_setbin (hook, list, NULL);
+         }
+         result = xml_template_apply_list (pubcon, layout, list, NULL, _repos_publish_getvalue);
+      }
+
+      /* Write */
+      file = _repos_pagefile_open (repository, filesp ? filesp : filespec);
+      if (file) {
+         repos_log (repository, 7, 1, NULL, "repmgr", "file %s opened successfully", filesp ? filesp : filespec);
+         if (!*xml_attrval (result, "type") || !strcmp (xml_attrval (result, "type"), "page")) {
+            fprintf (file, "<!doctype html public \"-//w3c//dtd html 4.0 transitional//en\">\n<html>\n");
+            xml_writecontenthtml (file, result);
+            fprintf (file, "\n</html>\n");
+         } else {
+            xml_writecontenthtml (file, result);
+         }
+         fclose (file);
+         files = xml_search (pubcon, "files", NULL, NULL);
+         if (!files) {
+            files = xml_create ("files");
+            xml_append (pubcon, files);
+         }
+         hook = xml_create ("file");
+         xml_append (files, hook);
+         xml_set (hook, "file", xml_attrval (pubcon, "file"));
+      }
+      xml_free (result);
+      if (filesp) free (filesp);
+
+      if (!*xml_attrval (publisher, "detail")) {
+         if (free_list) xml_free (list);
+         return 0;
+      }
+
+      /* So we're now going to write the detail page(s) of this list.  Let's retrieve the proper publisher. */
+      detail = xml_attrval (publisher, "detail");
+      if (detail) {
+         if (publisher) publisher = xml_search (repository, "publish", "id", xml_attrval (publisher, "detail"));
+         if (!publisher) {
+            repos_report_log (repository, "_publog", "Detail publisher '%s' not found", xml_attrval (publisher, "detail"));
+         }
+      }
+
+      if (!detail || !publisher) { /* no detail publisher, or not found */
+         if (free_list) xml_free (list);
+         return 0;
+      }
+
+      /* Load proper detail page, set in pubcon, error if not found. */
+      pubto = xml_loc (repository, ".publish-to");
+      if (pubto) xml_set (pubcon, "fullfilespec", xml_attrval (pubto, "dir")); else xml_set (pubcon, "fullfilespec", "./");
+      page = xml_search (repository, "page", "id", xml_attrval (publisher, "to"));
+      xml_attrcat (pubcon, "fullfilespec", xml_attrval (page, "page"));
+      xml_set (pubcon, "filespec", xml_attrval (page, "page"));
+      filespec = xml_attrval (pubcon, "fullfilespec");
+
+      /* Load and merge detail layout. */
+      layout = repos_get_layout (repository, xml_attrval (page, "layout"));
+      if (*xml_attrval (publisher, "layout")) layout = repos_get_layout (repository, xml_attrval (publisher, "layout"));
+      _repos_merge_layout (repository, publisher, layout);
+   }
+
+   /* If we're here, then this filespec refers to multiple files.  It might be a detail of a list published above. */
+   repos_report_log (repository, "_publog", " -- write list %s to %s", xml_attrval (pubcon, "list"), filespec);
+   repos_log (repository, 6, 1, NULL, "repmgr", "publishing multiple objects to files %s", filespec);
+
+   if (!list) {
+      list = xml_create ("list");
+      free_list = 1;
+      xml_set (list, "id", xml_attrval (pubcon, "list"));
+      xml_set (list, "order", xml_attrval (publisher, "order"));
+      xml_set (list, "record", "record");
+      repos_list (repository, list);
+      hook = xml_create ("list");
+      xml_append (pubcon, hook);
+      xml_setbin (hook, list, NULL);
+   }
+
+   /* TODO: rewrite all this below to store records in the pubcon by list/key combination and not by list position. */
+   first = xml_firstelem (list);
+   if (!first) {
+      repos_report_log (repository, "_publog", "list empty");
+      if (free_list) xml_free (list);
+      return 0;
+   }
+   xml_set (list, "first", xml_attrval (first, "id"));
+   /*first = repos_get (repository, xml_attrval (pubcon, "list"), xml_attrval (first, "id"));*/
+   hook = xml_search (pubcon, "first", NULL, NULL);
+   if (!hook) {
+      hook = xml_create ("first");
+      xml_append (pubcon, hook);
+   }
+   xml_setbin (hook, first, NULL);
+
+   last = xml_lastelem (list);
+   xml_set (list, "last", xml_attrval (last, "id"));
+   /*if (strcmp (xml_attrval (list, "first"), xml_attrval (list, "last"))) {
+      last = repos_get (repository, xml_attrval (pubcon, "list"), xml_attrval (last, "id"));
+   } else {
+      last = xml_copy (first);
+   }*/
+   hook = xml_search (pubcon, "last", NULL, NULL);
+   if (!hook) {
+      hook = xml_create ("last");
+      xml_append (pubcon, hook);
+   }
+   xml_setbin (hook, last, NULL);
+
+   xml_set (list, "cur", xml_attrval (first, "id"));
+   /*cur = xml_copy (first);*/
+   cur = first;
+
+   mark = xml_firstelem (list);
+   next = xml_nextelem (mark);
+   /*if (next) next = repos_get (repository, xml_attrval (pubcon, "list"), xml_attrval (next, "id"));*/
+   hook = xml_search (pubcon, "next", NULL, NULL);
+   if (!hook) {
+      hook = xml_create ("next");
+      xml_append (pubcon, hook);
+   }
+   xml_setbin (hook, next, NULL);
+   prev = NULL;
+   hook = xml_search (pubcon, "prev", NULL, NULL);
+   if (!hook) {
+      hook = xml_create ("prev");
+      xml_append (pubcon, hook);
+   }
+   xml_setbin (hook, prev, NULL);
+
+   mark = xml_firstelem (list);
+   while (mark) {
+      /* Format filespec as flat template. */
+      /* printf ("cur object: %s\n\n", xml_string (cur));*/
+      filesp = xmlobj_format (cur, NULL, filespec);
+      xml_set (pubcon, "file", filesp);
+
+      result = xml_template_apply (pubcon, layout, cur, _repos_publish_getvalue);
+
+      /* Write */
+      repos_log (repository, 7, 1, NULL, "repmgr", "publishing object with key %s to %s", xml_attrval (list, "cur"), filesp);
+      file = _repos_pagefile_open (repository, filesp);
+      if (file) {
+         if (!*xml_attrval (result, "type") || !strcmp (xml_attrval (result, "type"), "page")) {
+            fprintf (file, "<!doctype html public \"-//w3c//dtd html 4.0 transitional//en\">\n<html>\n");
+            xml_writecontenthtml (file, result);
+            fprintf (file, "\n</html>\n");
+         } else {
+            xml_writecontenthtml (file, result);
+         }
+         fclose (file);
+         files = xml_search (pubcon, "files", NULL, NULL);
+         if (!files) {
+            files = xml_create ("files");
+            xml_append (pubcon, files);
+         }
+         hook = xml_create ("file");
+         xml_append (files, hook);
+         xml_set (hook, "file", xml_attrval (pubcon, "file"));
+      }
+      free (filesp);
+      xml_free (result);
+
+      if (!next) break;
+
+      mark = xml_nextelem (mark);
+
+      /*if (prev) xml_free (prev);*/
+      prev = cur;
+      xml_setbin (xml_search (pubcon, "prev", NULL, NULL), prev, NULL);
+      cur = next; /* With new setup, cur and mark are always going to be pointing to the same structure. */
+      xml_set (list, "prev", xml_attrval (prev, "id"));
+      xml_set (list, "cur", xml_attrval (cur, "id"));
+      xml_set (list, "next", xml_attrval (next, "id"));
+      next = xml_nextelem (mark);
+      /*if (next) next = repos_get (repository, xml_attrval (pubcon, "list"), xml_attrval (next, "id"));*/
+      xml_setbin (xml_search (pubcon, "next", NULL, NULL), next, NULL);
+   }
+   /*if (prev) xml_free (prev);
+   if (cur) xml_free (cur);
+   if (first) xml_free (first);
+   if (last) xml_free (last);*/
+   if (free_list) xml_free (list);
+}
+</pre></td></tr></table>
+
+Finally, a callback to retrieve a named value given the (rather complicated) context of the value.  The search for values proceeds
+as follows:<ol>
+<li>Page attribute, with one pass through flat-template expression against the object using [] notation
+<li>Macro value (search siblings, then parent siblings, etc.)
+<li>Field value from object -- permits named object to be used: (next), (first), (prev), (last)
+<li>HTML text value from text directory
+<li>Wiki text value from text directory, Wiki-ized
+<li>Page field value (treat the page as a record.)
+</ol>
+
+In case I forget to define flat-template expression elsewhere, it's just the ability to take a string such as "obj[key].html" and
+return a value of, say, "obj2874.html" using the key of the object.
+
+<p></p>
+Eventually there should be a cache mechanism for values, but frankly I don't expect this thing to have to scale very hard anyway.
+I'll probably prove myself wrong at some point, but until then I'm not going to think it through.
+
+<p></p>
+<i>(December 27, 2002)</i> - added named records attached to the context.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>char * _repos_macro_resolve (XML * repository, XML * page, XML * object, XML * macro, const char * value);
+
+/* Quick little hack. */
+void xml_read_attr (XML * xml, const char * attr, FILE * file)
+{
+   char line[1024];
+
+   xml_set (xml, attr, "");
+   while (fgets (line, sizeof(line) - 1, file)) {
+      xml_attrcat (xml, attr, line);
+   }
+}
+
+char * _repos_publish_getvalue (XML * context, XML * object, const char * value)
+{
+   const char * val;
+   XML * mark;
+   XML * srch;
+   XML * page = context;
+   XML * list = NULL;
+   XML * defn;
+   XML * repository = context;
+   char * chmark;
+   char filename[256];
+   char filename2[256];
+   FILE * file;
+   XML * wiki;
+   XML * finished;
+   XML * todo;
+
+
+   /* Find top.  If the context *is* the top, then we haven't got a page. */
+   if (xml_is (context, "pubcon")) {
+      page = xml_search (context, "page", NULL, NULL);
+      if (page) page = xml_getbin (page);
+      repository = xml_search (context, "repository", NULL, NULL);
+      if (repository) repository = xml_getbin (repository);
+      list = xml_search (context, "list", NULL, NULL);
+      if (list) list = xml_getbin (list);
+      defn = repos_defn (repository, xml_attrval (context, "list"));
+   } else { /* Don't know if this will ever get used, but ... */
+      while (xml_parent (repository)) repository = xml_parent (repository);
+      if (page == repository) page = NULL;
+   }
+
+   /* Macro value? */
+   srch = repository;
+   if (page) if (xml_parent(page)) srch = xml_parent(page);
+   mark = NULL;
+   while (!mark) {
+      mark = xml_search (srch, "macro", "id", value);
+      if (!mark) {
+         if (srch == repository) break;
+         srch = xml_parent (srch);
+         if (!srch) break;
+      }
+   }
+   if (mark) {
+      val = _repos_macro_resolve (repository, page, object, mark, value);
+      if (val) return ((char *)val);
+   }
+
+   /* Field value? */
+   if (*value == '(') { /* Named object in context. */
+      strncpy (filename, value+1, sizeof (filename)-1);
+      chmark = strchr (filename, ')');
+      if (chmark) {
+         value += chmark - filename + 2;
+         *chmark = '\0';
+         object = xml_search (context, filename, NULL, NULL);
+         if (xml_getbin (object)) object = xml_getbin (object);
+      }
+   }
+   if (object) {
+      if (!*value) { /* default value is URL of object */
+         val = xmlobj_format (object, defn, xml_attrval (context, "filespec"));
+         return ((char *) val);
+      }
+      if (strchr (value, '[')) {
+         val = xmlobj_format (object, defn, value);
+         if (val) return ((char *)val);
+      } else {
+         val = xmlobj_get (object, defn, value);
+         mark = xml_search (defn, "field", "id", value);
+         if (val &amp;&amp; !strcmp ("wiki", xml_attrval (mark, "type"))) {
+            wiki = wiki_parse (val);
+            todo = xml_loc (repository, "todo");
+            if (!todo) {
+               todo = xml_create ("todo");
+               xml_append (repository, todo);
+            }
+            finished = wiki_build (repository, wiki, todo);
+            xml_free (wiki);
+            free ((void *)val);
+            val = xml_stringcontenthtml (finished);
+            xml_free (finished);
+         }
+         if (val) return ((char *)val);
+      }
+      if (!strcmp (value, "_key")) {
+         return (strdup (xml_attrval (object, "key")));
+      }
+      if (!strcmp (value, "_list")) {
+         return (strdup (xml_attrval (object, "list")));
+      }
+   }
+
+   /* Page attribute? */
+   if (page) {
+      val = xml_attrval (page, value);
+      if (*val) return (xmlobj_format (object, NULL, val));
+      if (!strcmp (val, "_page")) {
+         return (strdup (xml_attrval (page, "id")));
+      }
+      if (!strcmp (value, "_section")) {
+         if (xml_loc (page, ".page")) {
+            return (strdup (xml_attrval (page, "id")));
+         } else if (xml_is (xml_parent(page), "page")) {
+            return (strdup (xml_attrval (xml_parent (page), "id")));
+         } else {
+            return (strdup (xml_attrval (page, "id")));
+         }
+      }
+   }
+
+   /* HTML text from text directory? */
+   strcpy (filename, *xml_attrval (repository, "text") ? xml_attrval (repository, "text") : "opmtext");
+   strcat (filename, "/");
+   strcat (filename, xml_attrval (page, "id"));
+   strcat (filename, "_");
+   strcat (filename, value);
+
+   sprintf (filename2, "%s.html", filename);
+   file = _repos_fopen (repository, filename2, "r");
+   if (!file) {
+      sprintf (filename2, "%s.htm", filename);
+      file = _repos_fopen (repository, filename2, "r");
+   }
+   if (file) {
+      mark = xml_create ("scratch");
+      xml_read_attr (mark, "scratch", file);
+      val = strdup (xml_attrval (mark, "scratch"));
+      xml_free (mark);
+      fclose (file);
+      return (char *) val;
+   }
+
+   /* Wiki text? */
+   sprintf (filename2, "%s.wiki", filename);
+   file = _repos_fopen (repository, filename2, "r");
+   if (!file) {
+      sprintf (filename2, "%s.txt", filename);
+      file = _repos_fopen (repository, filename2, "r");
+   }
+   if (file) {
+      mark = xml_create ("scratch");
+      xml_read_attr (mark, "scratch", file);
+      wiki = wiki_parse (xml_attrval (mark, "scratch"));
+      xml_free (mark);
+      todo = xml_loc (repository, "todo");
+      if (!todo) {
+         todo = xml_create ("todo");
+         xml_append (repository, todo);
+      }
+      finished = wiki_build (repository, wiki, todo);
+      xml_free (wiki);
+      val = xml_stringcontenthtml (finished);
+      xml_free (finished);
+      fclose (file);
+      return (char *) val;
+   }
+
+   /* Page field value? */
+   if (page) {
+      val = xmlobj_get (page, NULL, value);
+      if (val) return ((char *)val);
+   }
+
+   return (strdup (""));
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="repositories.html">Previous: Working with repository objects</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="macros.html">Next: Macro processing</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2005, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

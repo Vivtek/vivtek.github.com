@@ -1,0 +1,2163 @@
+<html><head><title>TASKINDEX adaptor: Oracle</title></head>
+<body>
+<h2>TASKINDEX adaptor: Oracle</h2>
+<hr>
+<p></p>
+My first paying project involves Oracle.  So here is a native Oracle interface for the task index.  This is pretty much
+based on the ODBC adaptor, of course, but with ODBC calls replaced by the corresponding OCI (Oracle Call Interface)
+calls.  Getting it to work will be a trip.
+<p></p>
+Anyway, this is the third taskindex adaptor I'm writing.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include &lt;string.h>
+#include &lt;sys/types.h>
+#include &lt;sys/stat.h>
+#include &lt;io.h>
+#include &lt;errno.h>
+#include &lt;oci.h>
+#include "xmlapi.h"
+#include "../wftk_session.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+
+   "insert",
+   "select",
+   "update",
+   "delete",
+   "colget",
+   "colput",
+   "xmlget",
+   "xmlput",
+
+   "procnew",
+   "procdel",
+   "procget",
+   "procput",
+   "proclist",
+   "proccomplete",
+   "procerror",
+
+   "tasknew",
+   "taskdel",
+   "taskget",
+   "taskput",
+   "tasklist",
+   "taskcomplete",
+   "taskreject",
+
+   "reqnew",
+   "reqdel",
+   "reqget",
+   "reqput",
+   "reqlist",
+   "reqaccept",
+   "reqdecline"
+};
+
+XML * TASKINDEX_oracle_init (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_free (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_info (WFTK_ADAPTOR * ad, va_list args);
+
+XML * TASKINDEX_oracle_insert (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_select (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_update (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_delete (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_colget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_colput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_xmlget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_xmlput (WFTK_ADAPTOR * ad, va_list args);
+
+XML * TASKINDEX_oracle_procnew (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_procdel (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_procget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_procput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_proclist (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_proccomplete (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_procerror (WFTK_ADAPTOR * ad, va_list args);
+
+XML * TASKINDEX_oracle_tasknew (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_taskdel (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_taskget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_taskput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_tasklist (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_taskcomplete (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_taskreject (WFTK_ADAPTOR * ad, va_list args);
+
+XML * TASKINDEX_oracle_reqnew (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_reqdel (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_reqget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_reqput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_reqlist (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_reqaccept (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_oracle_reqdecline (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   TASKINDEX_oracle_init,
+   TASKINDEX_oracle_free,
+   TASKINDEX_oracle_info,
+
+   TASKINDEX_oracle_insert,
+   TASKINDEX_oracle_select,
+   TASKINDEX_oracle_update,
+   TASKINDEX_oracle_delete,
+   TASKINDEX_oracle_colget,
+   TASKINDEX_oracle_colput,
+   TASKINDEX_oracle_xmlget,
+   TASKINDEX_oracle_xmlput,
+
+   TASKINDEX_oracle_procnew,
+   TASKINDEX_oracle_procdel,
+   TASKINDEX_oracle_procget,
+   TASKINDEX_oracle_procput,
+   TASKINDEX_oracle_proclist,
+   TASKINDEX_oracle_proccomplete,
+   TASKINDEX_oracle_procerror,
+
+   TASKINDEX_oracle_tasknew,
+   TASKINDEX_oracle_taskdel,
+   TASKINDEX_oracle_taskget,
+   TASKINDEX_oracle_taskput,
+   TASKINDEX_oracle_tasklist,
+   TASKINDEX_oracle_taskcomplete,
+   TASKINDEX_oracle_taskreject,
+
+   TASKINDEX_oracle_reqnew,
+   TASKINDEX_oracle_reqdel,
+   TASKINDEX_oracle_reqget,
+   TASKINDEX_oracle_reqput,
+   TASKINDEX_oracle_reqlist,
+   TASKINDEX_oracle_reqaccept,
+   TASKINDEX_oracle_reqdecline
+};
+
+static struct wftk_adaptor_info _TASKINDEX_oracle_info =
+{
+   32,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct wftk_adaptor_info * TASKINDEX_oracle_get_info ()
+{
+   return &amp; _TASKINDEX_oracle_info;
+}
+</pre></td></tr></table>
+
+Thus concludes the communication with the config module.  Now on with the actual implementation
+of functionality.  Initialization of an Oracle connection isn't brain surgery, but it's not trivial, either.  Oracle
+maintains a <i>lot</i> of handles.  Yikes.  But before we get embroiled with connection, let's
+define a quick little error handler that will format up a readable message in times of woe.  This
+is largely taken from the sample code in the OCI documentation, but it's jazzed up a tad to fit in.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _TASKINDEX_oracle_builderrmsg (XML * ap, const char * message, dvoid * errhp, sword status)
+{
+   char buf[1024];
+   text errbuf[512];
+   sb4 errcode = 0;
+
+   switch (status)
+   {
+   case OCI_SUCCESS_WITH_INFO:
+     xml_setf (ap, "error", "%s - OCI_SUCCESS_WITH_INFO", message);
+     break;
+   case OCI_NEED_DATA:
+     xml_setf (ap, "error", "%s - OCI_NEED_DATA", message);
+     break;
+   case OCI_NO_DATA:
+     xml_setf (ap, "error", "%s - OCI_NO_DATA", message);
+     break;
+   case OCI_ERROR:
+    *errbuf = '\0';
+    (void) OCIErrorGet((dvoid *)errhp, (ub4) 1, (text *) NULL, &amp;errcode,
+                        errbuf, (ub4) sizeof(errbuf), OCI_HTYPE_ERROR);
+     xml_setf (ap, "error", "%s - Oracle error %d: %s", message, errcode, errbuf);
+     break;
+   case OCI_INVALID_HANDLE:
+     xml_setf (ap, "error", "%s - OCI_INVALID_HANDLE", message);
+     break;
+   case OCI_STILL_EXECUTING:
+     xml_setf (ap, "error", "%s - OCI_STILL_EXECUTING", message);
+     break;
+   case OCI_CONTINUE:
+     xml_setf (ap, "error", "%s - OCI_CONTINUE", message);
+     break;
+  }
+}
+</pre></td></tr></table>
+
+OK.  On with the show.  As I was saying, Oracle builds a pretty complex set of connection structures.  Since we're
+doing things in a pretty simplified way, it's not as horrible as it <i>might</i> have been, but it's still more
+complicated than the setup for ODBC.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _TASKINDEX_oracle_handles {
+   OCIEnv *envhp;
+   OCIError *errhp;
+   OCISession *authp;
+   OCIServer *srvhp;
+   OCISvcCtx *svchp;
+   int ok;
+};
+XML * TASKINDEX_oracle_init (WFTK_ADAPTOR * ad, va_list args) {
+   const char * parms;
+   char buf[1024];
+   sword status;
+   struct _TASKINDEX_oracle_handles *handles = (struct _TASKINDEX_oracle_handles *) malloc (sizeof (struct _TASKINDEX_oracle_handles));
+
+   if (!handles) {
+      xml_set (ad->parms, "error", "Unable to allocate binary stash.");
+      return (XML *) 0;
+   }
+   ad->bindata = (void *) handles;
+
+   /* The following sets up the Oracle environment and its various handles.  It's taken from the OCI sample code.  Wish me luck. */
+   handles->envhp = 0;
+   handles->ok = 0;
+
+   parms = xml_attrval (ad->parms, "parm");
+   if (!*parms) parms = wftk_config_get_value (ad->session, "taskindex.oracle.default");
+   if (!*parms) {
+      xml_set (ad->parms, "error", "No connection specified and no default connection configured.");
+      free ((void *)handles);
+      ad->bindata = 0;
+      return (XML *) 0;
+   }
+
+   xml_setf (ad->parms, "spec", "oracle:%s", parms);
+   sprintf (buf, "taskindex.oracle.%s.conn", parms);
+   xml_set (ad->parms, "conn", wftk_config_get_value (ad->session, buf));
+   sprintf (buf, "taskindex.oracle.%s.userid", parms);
+   xml_set (ad->parms, "userid", wftk_config_get_value (ad->session, buf));
+   sprintf (buf, "taskindex.oracle.%s.password", parms);
+   xml_set (ad->parms, "password", wftk_config_get_value (ad->session, buf));
+
+   /* OK, let's connect to this database specified. */
+   /* -- Initialize OCI and make an environment. */
+   (void) OCIInitialize((ub4) OCI_DEFAULT, 0, 0, 0, 0);
+   (void) OCIEnvInit( (OCIEnv **) &amp;(handles->envhp), OCI_DEFAULT, 0, 0);
+   (void) OCIHandleAlloc( (dvoid *) (handles->envhp), (dvoid **) &amp;(handles->errhp), OCI_HTYPE_ERROR, 0, 0);
+
+   /* -- Server and service contexts */
+   (void) OCIHandleAlloc( (dvoid *) (handles->envhp), (dvoid **) &amp;(handles->srvhp), OCI_HTYPE_SERVER, 0, 0);
+   (void) OCIHandleAlloc( (dvoid *) (handles->envhp), (dvoid **) &amp;(handles->svchp), OCI_HTYPE_SVCCTX, 0, 0);
+   (void) OCIServerAttach( handles->srvhp, handles->errhp, (text *)xml_attrval (ad->parms, "conn"), strlen(xml_attrval (ad->parms, "conn")), 0);
+
+   /* -- Attach server to service context and allocate an authentication context. */
+   (void) OCIAttrSet( (dvoid *) (handles->svchp), OCI_HTYPE_SVCCTX, (dvoid *)(handles->srvhp), 0, OCI_ATTR_SERVER, handles->errhp);
+   (void) OCIHandleAlloc((dvoid *) (handles->envhp), (dvoid **)&amp;(handles->authp), OCI_HTYPE_SESSION, 0, 0);
+
+   /* -- Set username and password in the authentication context. */
+   (void) OCIAttrSet((dvoid *) (handles->authp), (ub4) OCI_HTYPE_SESSION,
+                  (dvoid *) xml_attrval (ad->parms, "userid"), (ub4) strlen(xml_attrval (ad->parms, "userid")),
+                  (ub4) OCI_ATTR_USERNAME, handles->errhp);
+   (void) OCIAttrSet((dvoid *) (handles->authp), (ub4) OCI_HTYPE_SESSION,
+                  (dvoid *) xml_attrval (ad->parms, "password"), (ub4) strlen(xml_attrval (ad->parms, "password")),
+                  (ub4) OCI_ATTR_PASSWORD, handles->errhp);
+
+   /* -- Start session!  Finally! */
+   if (OCI_SUCCESS != (status = OCISessionBegin ( handles->svchp, handles->errhp, handles->authp, OCI_CRED_RDBMS, OCI_DEFAULT))) {
+      _TASKINDEX_oracle_builderrmsg (ad->parms, "Unable to connect to server", (dvoid *) (handles->errhp), status);
+      free ((void *)handles);
+      ad->bindata = 0;
+      return (XML *) 0;
+   }
+
+   /* -- And stash the authorization context in the service context.  Why this doesn't happen beforehand, I don't know. */
+   (void) OCIAttrSet((dvoid *) (handles->svchp), (ub4) OCI_HTYPE_SVCCTX,
+                     (dvoid *) (handles->authp), (ub4) 0,
+                     (ub4) OCI_ATTR_SESSION, handles->errhp);
+
+   handles->ok = 1;   
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+Freeing the Oracle context is simple, at least: you free the environment and it takes care of everything you attached to it.
+That almost makes up for the crap you have to go through to set it up.  Incidentally, you can also do a kind of <code>malloc</code>
+thing with these handles, in that you allocate an arbitrary buffer and attach it to a handle.  Then when you clean the handle up,
+it frees those buffers as well.  I don't think I'll be using it, but it's kinda neat.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_oracle_free (WFTK_ADAPTOR * ad, va_list args) {
+   struct _TASKINDEX_oracle_handles * handles = (struct _TASKINDEX_oracle_handles *) (ad->bindata);
+   if (handles) {
+      if (handles->envhp) OCIHandleFree((dvoid *) (handles->envhp), OCI_HTYPE_ENV);
+      free (handles);
+      ad->bindata = (void *) 0;
+   }
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+Info is also straightforward, as always.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_oracle_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "taskindex");
+   xml_set (info, "name", "oracle");
+   xml_set (info, "ver", "1.1.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+
+The way I built the ODBC adaptor was probably a mistake, and faced with Oracle, I realized it: instead of centralizing
+(and thus exposing) the basic insert/select/update functionality of a database, I chose to expose only the process-specific
+(and then task-specific, and then request-specific) functions.  The result was a whole lot of cut and pasted code, and of
+course that means three times the work to fix or change anything.  Moreover, since I want to be able to build a dsrep
+adaptor on the database, I had hidden the very functionality I'd need later.
+So I'm taking the chance now while writing the first draft of the Oracle adaptor to fix that mistake.  I'll propagate
+the design back to the Oracle adaptor as soon as I can.
+<p></p>
+Anyway, each of these functions comes in two flavors, due to the difficulty of building and passing <code>va_list</code>s.
+The internal version just takes plain old parameters, and the externally visible version will be a <code>va_list</code>-type
+function, but just a thin wrapper around the internal version.
+<p></p>
+Let's start with insert: it's the one I have working from <code>procnew</code>, so it shouldn't be too hard.  An insert
+function has a main query, plus a number of insertable values.  These are arranged in an XML query structure like this:<pre>
+&lt;sql query="insert into process (id, title, status, started) values (:id, :title, :status, SYSDATE)"&gt;
+   &lt;value name="id" value="42"&gt;
+   &lt;value name="title" value="My Process"&gt;
+   &lt;value name="status" value="active"&gt;
+&lt;/sql&gt;
+</pre>
+This structure should work for basically any database, except that some of the details will naturally change: Oracle uses
+colons and named parameter slots, whereas ODBC uses question marks and bindings are strictly positional.  We'll find out what
+the other folks do when we get that far.  But the basic idea is the same: we can toss a parameterized query into a structure
+like this and have the adaptor do the Right Thing to get it done.
+<p></p>
+Anyway, insertion just takes that query and nothing more.
+<p></p>
+<i>(July 25, 2001)</i> And here we are for v1.1 of this adaptor, which will allow it to work
+with DSREP_database to store datasheets directly in the database.  The chief requirement for
+this is the ability to use an autoincrement column for the datasheet ID, then using a RETURNING
+clause to retrieve the value of that column after insertion.  To do this in the OCI, however,
+requires us to define and pass a couple of callback functions to retrieve the data, as Oracle's
+RETURNING bind mechanism is both complex and powerful.  Kinda neat mechanism, really.  I do
+like Oracle; if it were open-source I'd probably use it an awful lot.
+<p></p>
+Anyway, these callbacks are pretty easy, really.  A dynamic bind takes two callbacks; the
+"in bind" returns data to Oracle and the "out bind" receives from Oracle.  In this case, we
+don't need the in bind, so we provide a dummy.  This is taken with very little modification
+from the Oracle example code.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static sb4 _TASKINDEX_oracle_insert_incallback (
+                                dvoid            *ictxp,
+                                OCIBind          *bindp,
+                                ub4              iter, 
+                                ub4              index, 
+                                dvoid            **bufpp,
+                                ub4              *alenp,
+                                ub1              *piecep, 
+                                dvoid            **indpp)
+{
+   *bufpp = (dvoid *) 0;
+   *indpp = (dvoid *) 0;
+   *alenp = 0;
+   *piecep = OCI_ONE_PIECE;
+   return OCI_CONTINUE;
+}
+</pre></td></tr></table>
+The out bind does the actual setting of the returning parameter; it's still pretty
+straightforward.  The "octxp" parameter is an arbitrary parameter that we define during
+the bind; we'll pass in a pointer to a little struct to describe the receiving buffer.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _TASKINDEX_oracle_insert_recvbuf {
+   char * data;
+   ub4  datalen;
+   ub1  indicator;
+   ub2  rcode;
+};
+static sb4 _TASKINDEX_oracle_insert_outcallback (
+                                dvoid            *octxp,
+                                OCIBind          *bindp,
+                                ub4              iter, 
+                                ub4              index, 
+                                dvoid            **bufpp, 
+                                ub4              **alenpp,
+                                ub1              *piecep,
+                                dvoid            **indpp, 
+                                ub2              **rcodepp)
+{
+   struct _TASKINDEX_oracle_insert_recvbuf * rb = (struct _TASKINDEX_oracle_insert_recvbuf *) octxp;
+   *bufpp = (dvoid *) (rb->data);
+   *alenpp = &amp;(rb->datalen);
+   *piecep = OCI_ONE_PIECE;
+   *indpp = &amp;(rb->indicator);
+   *rcodepp = &amp;(rb->rcode);
+   return OCI_CONTINUE;
+}
+</pre></td></tr></table>
+
+So with those defined, we can go ahead with the main insert function.  Note that the callbacks
+are only used in the case where the 
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _TASKINDEX_oracle_insert (WFTK_ADAPTOR * ad, XML * query)
+{
+   struct _TASKINDEX_oracle_handles *handles = (struct _TASKINDEX_oracle_handles *) ad->bindata;
+   OCIStmt * stmthp;
+   sword status;
+   char namebuf[64];
+   const char *value;
+   OCIBind *bindp = 0;
+   XML * parm;
+   XML * idparm = NULL;
+   struct _TASKINDEX_oracle_insert_recvbuf rb;
+   char returning[256];
+
+   if (!handles) return;
+   if (!handles->ok) return;
+
+   if (OCI_SUCCESS == (status = OCIHandleAlloc ((dvoid *) (handles->envhp), (dvoid **) &amp;stmthp, OCI_HTYPE_STMT, 0, 0)))
+   {
+      OCIStmtPrepare(stmthp, handles->errhp, (text *) xml_attrval (query, "query"), strlen(xml_attrval (query, "query")),
+                     (ub4) OCI_NTV_SYNTAX, (ub4) OCI_DEFAULT);
+      parm = xml_firstelem (query);
+      while (parm) {
+         if (strcmp (parm->name, "parm")) continue;
+         sprintf (namebuf, ":%s", xml_attrval (parm, "name"));
+         value = xml_attrval (parm, "value");
+
+         if (*xml_attrval (parm, "returning")) {
+            idparm = parm;
+            rb.data = returning;
+            memset (returning, sizeof(returning), '\0');
+            rb.datalen = sizeof(returning);
+            rb.indicator = 0;
+            rb.rcode = 0;
+            OCIBindByName (stmthp, &amp;bindp, handles->errhp, (text*)namebuf, strlen (namebuf), (dvoid *) 0, (sword) 256, SQLT_CHR, 0, 0, 0, 0, 0, OCI_DATA_AT_EXEC);
+            OCIBindDynamic (bindp, handles->errhp, NULL, _TASKINDEX_oracle_insert_incallback, &amp;rb, _TASKINDEX_oracle_insert_outcallback);
+         } else {
+            OCIBindByName (stmthp, &amp;bindp, handles->errhp, (text*)namebuf, strlen (namebuf), (dvoid *) value, (sword) strlen (value) + 1, SQLT_STR, 0, 0, 0, 0, 0, OCI_DEFAULT);
+         }
+
+         parm = xml_nextelem (parm);
+      }
+
+      status = OCIStmtExecute(handles->svchp, stmthp, handles->errhp, 1, 0, NULL, NULL, OCI_COMMIT_ON_SUCCESS);
+      if (status == 1) {
+         xml_set (ad->parms, "error", "not unique");
+      } else if (status) {
+         _TASKINDEX_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+      }
+      /*OCI_SUCCESS != (status = OCITransCommit(handles->svchp, handles->errhp, 0))*/
+      OCIHandleFree((dvoid *) (handles->envhp), OCI_HTYPE_STMT);
+
+      if (idparm) {
+         xml_set (idparm, "value", returning);
+      }
+   }
+}
+XML * TASKINDEX_oracle_insert (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * query = (XML *) 0;
+
+   if (args) query = va_arg (args, XML *);
+   if (!query) {
+      xml_set (ad->parms, "error", "No query given.");
+      return (XML *) 0;
+   }
+
+   _TASKINDEX_oracle_insert (ad, query);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+As far as I can tell, deletion is exactly the same as insertion.  I'm tempted to say we'd always know the number of parameters
+(i.e. the key to delete) but maybe that's too restrictive.  Anyway, at the moment, this is just the insert stuff, copied.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _TASKINDEX_oracle_delete (WFTK_ADAPTOR * ad, XML * query)
+{
+   struct _TASKINDEX_oracle_handles *handles = (struct _TASKINDEX_oracle_handles *) ad->bindata;
+   OCIStmt * stmthp;
+   sword status;
+   char namebuf[64];
+   const char *value;
+   OCIBind *bindp = 0;
+   XML * parm;
+
+   if (!handles) return;
+   if (!handles->ok) return;
+
+   if (OCI_SUCCESS == (status = OCIHandleAlloc ((dvoid *) (handles->envhp), (dvoid **) &amp;stmthp, OCI_HTYPE_STMT, 0, 0)))
+   {
+      OCIStmtPrepare(stmthp, handles->errhp, (text *) xml_attrval (query, "query"), strlen(xml_attrval (query, "query")),
+                     (ub4) OCI_NTV_SYNTAX, (ub4) OCI_DEFAULT);
+      parm = xml_firstelem (query);
+      while (parm) {
+         if (strcmp (parm->name, "parm")) continue;
+         sprintf (namebuf, ":%s", xml_attrval (parm, "name"));
+         value = xml_attrval (parm, "value");
+         OCIBindByName (stmthp, &amp;bindp, handles->errhp, (text*)namebuf, -1, (dvoid *) value, (sword) strlen (value) + 1, SQLT_STR, 0, 0, 0, 0, 0, OCI_DEFAULT);
+         parm = xml_nextelem (parm);
+      }
+
+      status = OCIStmtExecute(handles->svchp, stmthp, handles->errhp, 1, 0, NULL, NULL, OCI_COMMIT_ON_SUCCESS);
+      if (status == OCI_SUCCESS_WITH_INFO) {
+         xml_set (ad->parms, "error", "not unique");
+      } else if (status) {
+         _TASKINDEX_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+      }
+      OCIHandleFree((dvoid *) (handles->envhp), OCI_HTYPE_STMT);
+   }
+}
+XML * TASKINDEX_oracle_delete (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * query = (XML *) 0;
+
+   if (args) query = va_arg (args, XML *);
+   if (!query) {
+      xml_set (ad->parms, "error", "No query given.");
+      return (XML *) 0;
+   }
+
+   _TASKINDEX_oracle_delete (ad, query);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+For update, we get into a new sticky wicket.  The way I want to do updates is that if the update fails for lack of a row, I want
+to do an insert instead.  The rationale is that if the database is missing a process row for whatever reason, and I index a change
+to the process, I don't want to lose that change.  I suppose that in a properly administered database environment, this sort of thing
+shouldn't happen, but as I'm aiming the wftk towards environments which probably <i>aren't</i> properly administered, I want it to
+recover as gracefully as possible.  Besides, I hate that division between insert and update in SQL.  There are <i>plenty</i> of situations
+where I don't know whether a key is already there, and I just want to update if it is, and insert if it's not.
+<p></p>
+I think the most orderly way to handle this is to supply a first query and a fallback query.  If the first query affects no rows, the
+second will be done instead.  This is pretty convenient under Oracle, where we have named parameters for binding.  I'm not sure how
+I'll translate it back to ODBC.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _TASKINDEX_oracle_update (WFTK_ADAPTOR * ad, XML * query)
+{
+   struct _TASKINDEX_oracle_handles *handles = (struct _TASKINDEX_oracle_handles *) ad->bindata;
+   OCIStmt * stmthp;
+   OCIStmt * stmt2hp;
+   sword status;
+   char namebuf[64];
+   const char *value;
+   ub4 rows;
+   OCIBind *bindp = 0;
+   XML * parm;
+
+   if (!handles) return;
+   if (!handles->ok) return;
+   if (OCI_SUCCESS == (status = OCIHandleAlloc ((dvoid *) (handles->envhp), (dvoid **) &amp;stmthp, OCI_HTYPE_STMT, 0, 0)))
+   {
+      OCIStmtPrepare(stmthp, handles->errhp, (text *) xml_attrval (query, "query"), strlen(xml_attrval (query, "query")),
+                     (ub4) OCI_NTV_SYNTAX, (ub4) OCI_DEFAULT);
+      parm = xml_firstelem (query);
+      while (parm) {
+         if (!strcmp (parm->name, "parm")) {
+            sprintf (namebuf, ":%s", xml_attrval (parm, "name"));
+            value = xml_attrval (parm, "value");
+            OCIBindByName (stmthp, &amp;bindp, handles->errhp, (text*)namebuf, -1, (dvoid *) value, (sword) strlen (value) + 1, SQLT_STR, 0, 0, 0, 0, 0, OCI_DEFAULT);
+         }
+         parm = xml_nextelem (parm);
+      }
+
+      status = OCIStmtExecute(handles->svchp, stmthp, handles->errhp, 1, 0, NULL, NULL, OCI_COMMIT_ON_SUCCESS);
+      if (!status) {
+         OCIAttrGet ((dvoid *)stmthp, OCI_HTYPE_STMT, &amp;rows, NULL, OCI_ATTR_ROW_COUNT, handles->errhp);
+         if (rows == 0) {
+            if (strcmp ("", xml_attrval (query, "fallback"))) {
+               OCIHandleAlloc ((dvoid *) (handles->envhp), (dvoid **) &amp;stmt2hp, OCI_HTYPE_STMT, 0, 0);
+               OCIStmtPrepare(stmt2hp, handles->errhp, (text *) xml_attrval (query, "fallback"), strlen(xml_attrval (query, "fallback")),
+                              (ub4) OCI_NTV_SYNTAX, (ub4) OCI_DEFAULT);
+               parm = xml_firstelem (query);
+               while (parm) {
+                  if (!strcmp (parm->name, "parm")) {
+                     sprintf (namebuf, ":%s", xml_attrval (parm, "name"));
+                     value = xml_attrval (parm, "value"); 
+                     OCIBindByName (stmt2hp, &amp;bindp, handles->errhp, (text*)namebuf, -1, (dvoid *) value, (sword) strlen (value) + 1, SQLT_STR, 0, 0, 0, 0, 0, OCI_DEFAULT);
+                  }
+                  parm = xml_nextelem (parm);
+               }
+               status = OCIStmtExecute(handles->svchp, stmt2hp, handles->errhp, 1, 0, NULL, NULL, OCI_COMMIT_ON_SUCCESS);
+            }
+         }
+      }
+
+      if (status) {
+         _TASKINDEX_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+      }
+      OCIHandleFree((dvoid *) (handles->envhp), OCI_HTYPE_STMT);
+   }
+}
+XML * TASKINDEX_oracle_update (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * query = (XML *) 0;
+
+   if (args) query = va_arg (args, XML *);
+   if (!query) {
+      xml_set (ad->parms, "error", "No query given.");
+      return (XML *) 0;
+   }
+
+   _TASKINDEX_oracle_update (ad, query);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+Now we get down to something much more interesting: selects.  For a select, we're faced with the need to retrieve multiple rows, each
+of which we'll turn into a detail element which is attached to a list.  Anything in the table will get tossed into the detail elements.
+The structure of such a query thus consists of a regular query, with parameters, like the above query methods, plus the name of the
+detail element to use (e.g. "task").  There must also be a results list passed in.  Optionally the query may specify a unique return,
+in which case it functions like a get operation.  In this case the list structure is ignored (and may be NULL) and the (hopefully unique)
+result is returned as a return value.  It is effectively a single detail element.
+<p></p>
+Probably we're going to want to handle LOBs in these things separately; maybe we'll want to retrieve LOBs <i>only</i> for unique
+retrievals.  I'm not yet sure how to handle updates to LOBs.  We'll see what makes sense.
+<p></p>
+Another "feature" I'm not sure of is the special ability to map some fields onto other fields.  I think I want to keep it, because
+different database have different sets of reserved words.  I've already run afoul of "user", and who knows?  Somebody might be
+reserving "role" someday.  Then I'd just have to come back to this anyway.  So there can be an optional "map" element, which contains
+one attribute for each mapping.  The attrname is the <i>database</code> name, and the attrvalue is the <i>wftk</i> name.
+<p></p>
+Here is an example query, which retrieves a set of tasks:<pre>
+&lt;sql query="select * from task where user=:owner" element="task" unique="no"&gt;
+   &lt;map owner="user" description="label"/&gt;
+   &lt;parm name="owner" value="ford_prefect"/&gt;
+&lt;/sql&gt;
+</pre>
+
+This retrieves all tasks belonging to Ford Prefect, and maps "owner" onto "user", etc.  Other fields are simply copied into the
+new task elements by name.
+<p></p>
+A second example, this one a retrieval query:<pre>
+&lt;sql query="select * from task where process=:process and id=:id" element="task" unique="yes"&gt;
+   &lt;map owner="user" description="label"/&gt;
+   &lt;parm name="process" value="48"/&gt;
+   &lt;parm name="id" value="10"/&gt;
+&lt;/sql&gt;
+</pre>
+This retrieves task 10 from process 48 and returns the task as its return value.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * _TASKINDEX_oracle_select (WFTK_ADAPTOR * ad, XML * query, XML * list)
+{
+   struct _TASKINDEX_oracle_handles *handles = (struct _TASKINDEX_oracle_handles *) ad->bindata;
+   OCIStmt * stmthp;
+   sword status;
+   char namebuf[64];
+   const char *value;
+   OCIBind *bindp = 0;
+   OCIDefine *defnp = 0;
+   XML * parm;
+   XML * map = NULL;
+   OCIParam * parhp;
+   ub4 cols;
+   ub4 counter;
+   ub4 len;
+   char ** names;
+   char ** mapped;
+   char ** values;
+   sb2 * indicators;
+   ub2 * sizes;
+   XML * ret;
+   const char * element;
+   const char * name;
+   int rows = 0;
+
+   if (!handles) return (list);
+   if (!handles->ok) return (list);
+
+   if (OCI_SUCCESS == (status = OCIHandleAlloc ((dvoid *) (handles->envhp), (dvoid **) &amp;stmthp, OCI_HTYPE_STMT, 0, 0)))
+   {
+      OCIStmtPrepare(stmthp, handles->errhp, (text *) xml_attrval (query, "query"), strlen(xml_attrval (query, "query")),
+                     (ub4) OCI_NTV_SYNTAX, (ub4) OCI_DEFAULT);
+      parm = xml_firstelem (query);
+      while (parm) {
+         if (!strcmp (parm->name, "map")) map = parm; /* Stash name mapping if found. */
+         if (!strcmp (parm->name, "parm")) {
+            sprintf (namebuf, ":%s", xml_attrval (parm, "name"));
+            value = xml_attrval (parm, "value");
+            OCIBindByName (stmthp, &amp;bindp, handles->errhp, (text*)namebuf, -1, (dvoid *) value, (sword) strlen (value) + 1, SQLT_STR, 0, 0, 0, 0, 0, OCI_DEFAULT);
+         }
+         parm = xml_nextelem (parm);
+      }
+
+      status = OCIStmtExecute(handles->svchp, stmthp, handles->errhp, 0, 0, NULL, NULL, OCI_COMMIT_ON_SUCCESS);
+      if (status) {
+         if (status != OCI_NO_DATA) { /* No rows are just no rows.  Not an error. */
+            _TASKINDEX_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+         }
+      } else {
+         /* Retrieve data! */
+         /* -- First, get all the names and sizes of the data, and allocate room and define it to the statement. */
+         OCIAttrGet((dvoid*) stmthp, OCI_HTYPE_STMT, (dvoid*) &amp;cols,(ub4 *) 0, (ub4) OCI_ATTR_PARAM_COUNT, handles->errhp);
+         names  = (char **) malloc (cols * sizeof (char *));
+         mapped = (char **) malloc (cols * sizeof (char *));
+         values = (char **) malloc (cols * sizeof (char *));
+         sizes  = (ub2 *) malloc (cols * sizeof (ub2));
+         indicators = (sb2 *) malloc (cols * sizeof (sb2));
+         for (counter = 1; counter <= cols; counter++) {
+            OCIParamGet(stmthp, OCI_HTYPE_STMT, handles->errhp, &amp;parhp, counter);
+            len = 64;
+            names[counter - 1] = (char *) malloc (len + 1);
+            OCIAttrGet((dvoid*) parhp, OCI_DTYPE_PARAM, (dvoid*) &amp;name,(ub4 *) &amp;len, (ub4) OCI_ATTR_NAME, handles->errhp);
+            if (len > 64) len = 64; /* Just in case somebody someday goes a little overboard with naming, we don't want a buffer overflow. */
+            strncpy (names[counter-1], name, (size_t) len);
+            names[counter-1][len] = '\0';
+            strlwr (names[counter-1]);
+            if (map) {
+               mapped[counter - 1] = (char *) xml_attrval (map, names[counter - 1]);
+               if (!*mapped[counter - 1]) mapped[counter - 1] = names[counter - 1];
+            } else {
+               mapped[counter - 1] = names[counter - 1];
+            }
+            if (strcmp (mapped[counter - 1], "!hide")) {
+               OCIAttrGet((dvoid*) parhp, OCI_DTYPE_PARAM, (dvoid*) &amp;(sizes[counter-1]), 0, OCI_ATTR_DATA_SIZE, handles->errhp);
+               if (sizes[counter-1] < 32) sizes[counter-1] = 32; /* Dates return 7 bytes, but expand when converted to strings. */
+               values[counter - 1] = (char *) malloc (sizes[counter-1] + 1);
+               OCIDefineByPos (stmthp, &amp;defnp, handles->errhp, counter, values[counter-1], sizes[counter-1] + 1, SQLT_STR, &amp;indicators[counter-1], 0, 0, OCI_DEFAULT);
+            }
+         }
+
+         /* -- OK, now fetch until there are no more rows. */
+         while (OCI_SUCCESS == (status = OCIStmtFetch (stmthp, handles->errhp, 1, OCI_FETCH_NEXT, OCI_DEFAULT))) {
+            rows ++;
+            element = xml_attrval (query, "element");
+            if (!*element) element = "elem";
+            ret = xml_create (element);
+            if (list) xml_append (list, ret);
+
+            for (counter = 0; counter < cols; counter++) {
+               if (strcmp (mapped[counter], "!hide")) {
+                  if (indicators[counter] != -1) {
+                     xml_set (ret, mapped[counter], values[counter]);
+                  } else {
+                     xml_set (ret, mapped[counter], "");
+                  }
+               }
+            }
+         }
+         if (list) xml_setnum (list, "count", rows);
+
+         if (status == -1) _TASKINDEX_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+
+
+         /* -- Free up our temporary space. */
+         for (counter = 0; counter < cols; counter++) {
+            free ((void *) names[counter]);
+            free ((void *) mapped[counter]);
+            free ((void *) values[counter]);
+         }
+         free ((void *) names);
+         free ((void *) sizes);
+         free ((void *) indicators);
+         free ((void *) values);
+      }
+      OCIHandleFree((dvoid *) (handles->envhp), OCI_HTYPE_STMT);
+   }
+
+   return (ret);  /* Note side effect: last row retrieved is always returned. */
+}
+XML * TASKINDEX_oracle_select (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * query = (XML *) 0;
+   XML * list = (XML *) 0;
+
+   if (args) query = va_arg (args, XML *);
+   if (!query) {
+      xml_set (ad->parms, "error", "No query given.");
+      return (XML *) 0;
+   }
+   list = va_arg (args, XML *);
+
+   return (_TASKINDEX_oracle_select (ad, query, list));
+}
+</pre></td></tr></table>
+
+<i>(July 25, 2001)</i> The DSREP_database adaptor, of course, makes use of the XML get/put
+functions, which work with large objects and store XML values into them.
+In the ODBC adaptor I built a string for xmlput with xml_string, then used it as a bound
+value to update the large-object field; with Oracle we have a nicer API (that is, we <i>have</i>
+an API) for large objects, so I'm going to go a little more scalable and avoid writing that
+buffer, instead writing to the large object handle.  (<i>July 27, 2001</i>: or not...)
+<p></p>
+
+Note the way this works: we first select a LOB locator for update, then use the OCILobWrite
+function to write our XML, then we commit the transaction.  That's rather different from the
+ODBC way of handling large values, which is simply with the same update statement as any other
+value.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _TASKINDEX_oracle_xmlput (WFTK_ADAPTOR * ad, char * table, char * keycol, char * keyval, char * col, XML * val)
+{
+   struct _TASKINDEX_oracle_handles *handles = (struct _TASKINDEX_oracle_handles *) ad->bindata;
+   OCIStmt * stmthp;
+   sword status;
+   OCIBind *bindp = 0;
+   OCIDefine *defnp = 0;
+   OCILobLocator *clob;
+   OCIParam * parhp;
+   sb2 indicator;
+   const char *value;
+   int valuelen;
+   
+   XML * query;
+
+   if (!handles) return;
+   if (!handles->ok) return;
+
+   if (OCI_SUCCESS == (status = OCIHandleAlloc ((dvoid *) (handles->envhp), (dvoid **) &amp;stmthp, OCI_HTYPE_STMT, 0, 0)))
+   {
+      value = xml_string (val); /* Yeah, OK, I'm lazy here.  TODO: write proper handler, like I said I would. */
+      valuelen = strlen (value);
+      query = xml_create ("sql");
+
+      /* We can't write to a NULL lob.  So let's make sure if it's NULL, we make it empty instead. */
+      xml_setf (query, "query", "update %s set %s=empty_clob() where %s=:keyval and %s is null", table, col, keycol, col);
+      OCIStmtPrepare(stmthp, handles->errhp, (text *) xml_attrval (query, "query"), strlen(xml_attrval (query, "query")),
+                     (ub4) OCI_NTV_SYNTAX, (ub4) OCI_DEFAULT);
+      OCIBindByName (stmthp, &amp;bindp, handles->errhp, ":keyval", -1, keyval, strlen(keyval) + 1, SQLT_STR, 0, 0, 0, 0, 0, OCI_DEFAULT);
+      status = OCIStmtExecute(handles->svchp, stmthp, handles->errhp, 1, 0, NULL, NULL, OCI_COMMIT_ON_SUCCESS);
+
+      xml_setf (query, "query", "select %s from %s where %s=:keyval for update", col, table, keycol);
+
+      OCIStmtPrepare(stmthp, handles->errhp, (text *) xml_attrval (query, "query"), strlen(xml_attrval (query, "query")),
+                     (ub4) OCI_NTV_SYNTAX, (ub4) OCI_DEFAULT);
+      OCIBindByName (stmthp, &amp;bindp, handles->errhp, ":keyval", -1, keyval, strlen(keyval) + 1, SQLT_STR, 0, 0, 0, 0, 0, OCI_DEFAULT);
+
+      status = OCIStmtExecute(handles->svchp, stmthp, handles->errhp, 0, 0, NULL, NULL, OCI_DEFAULT);
+
+      if (status) {
+         if (status != OCI_NO_DATA) {
+            xml_setf (ad->parms, "error", "Unable to locate %s with %s '%s'", table, keycol, keyval);
+         } else {
+            _TASKINDEX_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+         }
+      } else {
+         /* Retrieve data! */
+         status = OCIDescriptorAlloc(handles->envhp, &amp;clob, OCI_DTYPE_LOB, 0, 0);
+         status = OCIDefineByPos (stmthp, &amp;defnp, handles->errhp, 1, &amp;clob, -1, SQLT_CLOB, &amp;indicator, 0, 0, OCI_DEFAULT);
+         if (OCI_SUCCESS == (status = OCIStmtFetch (stmthp, handles->errhp, 1, OCI_FETCH_NEXT, OCI_DEFAULT))) {
+            status = OCILobWrite(handles->svchp, handles->errhp, clob, &amp;valuelen, 1,
+                            (dvoid *) value, valuelen, OCI_ONE_PIECE, 0, 0, 0, SQLCS_IMPLICIT);
+         }
+         if (status != OCI_SUCCESS) {
+            _TASKINDEX_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+         }
+         OCIDescriptorFree (clob, OCI_DTYPE_LOB);
+      }
+      OCITransCommit(handles->svchp, handles->errhp, 0);
+      OCIHandleFree((dvoid *) (handles->envhp), OCI_HTYPE_STMT);
+      xml_free (query);
+      free (value);
+   }
+
+   return;
+}
+XML * TASKINDEX_oracle_xmlput (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * table = NULL;
+   char * keycol = NULL;
+   char * keyval = NULL;
+   char * col = NULL;
+   XML * val = (XML *) 0;
+
+   if (!args) return (XML *) 0;
+   table  = va_arg (args, char *);
+   keycol = va_arg (args, char *);
+   keyval = va_arg (args, char *);
+   col    = va_arg (args, char *);
+   val    = va_arg (args, XML *);
+
+   _TASKINDEX_oracle_xmlput (ad, table, keycol, keyval, col, val);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+Last is the xmlget function, which is the first chance I've had to test general XML parsing.
+General XML parsing is the same as xml_read, but it takes an arbitrary function to grab a
+buffer full of data; thus we eliminate overhead for large XML objects in tables.  This function
+was pretty simple under ODBC, and actually it's not too bad under Oracle; we just have to
+define a little structure to hold all the information we need.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _TASKINDEX_oracle_xmlget_structure {
+   struct _TASKINDEX_oracle_handles *handles;
+   OCILobLocator *clob;
+   ub4 offset;
+   sword status;
+};
+size_t _TASKINDEX_oracle_xmlget_fetch (char * buf, size_t chunk, size_t num, void * st)
+{
+   XML * error;
+   struct _TASKINDEX_oracle_xmlget_structure *state = (struct _TASKINDEX_oracle_xmlget_structure *) st;
+   ub4 value_len = 0;
+
+   state->status = OCILobRead(state->handles->svchp, state->handles->errhp, state->clob, &amp;value_len,
+                       state->offset, (dvoid *) buf, num*chunk, 0, 0, 0, SQLCS_IMPLICIT);
+
+   state->offset += value_len;
+
+   if (state->status == OCI_NEED_DATA) return num; /* There is more. */
+   if (state->status == OCI_SUCCESS) return value_len / chunk; /* Retrieved a partial piece. */
+   return 0; /* Error.  I wonder what will happen? */
+}
+XML * _TASKINDEX_oracle_xmlget (WFTK_ADAPTOR * ad, char * table, char * keycol, char * keyval, char * col)
+{
+   struct _TASKINDEX_oracle_handles *handles = (struct _TASKINDEX_oracle_handles *) ad->bindata;
+   OCIStmt * stmthp;
+   sword status;
+   OCIBind *bindp = 0;
+   OCIDefine *defnp = 0;
+   OCILobLocator *clob;
+   OCIParam * parhp;
+   sb2 indicator;
+   struct _TASKINDEX_oracle_xmlget_structure state;
+   
+   XML * query;
+   XML * ret = NULL;
+
+   char * stuff;
+   ub4 loblen;
+
+   if (!handles) return ((XML *) 0);
+   if (!handles->ok) return ((XML *) 0);
+
+   if (OCI_SUCCESS == (status = OCIHandleAlloc ((dvoid *) (handles->envhp), (dvoid **) &amp;stmthp, OCI_HTYPE_STMT, 0, 0)))
+   {
+      query = xml_create ("sql");
+      xml_setf (query, "query", "select %s from %s where %s=:keyval", col, table, keycol);
+
+      OCIStmtPrepare(stmthp, handles->errhp, (text *) xml_attrval (query, "query"), strlen(xml_attrval (query, "query")),
+                     (ub4) OCI_NTV_SYNTAX, (ub4) OCI_DEFAULT);
+      OCIBindByName (stmthp, &amp;bindp, handles->errhp, ":keyval", -1, keyval, strlen(keyval) + 1, SQLT_STR, 0, 0, 0, 0, 0, OCI_DEFAULT);
+
+      status = OCIStmtExecute(handles->svchp, stmthp, handles->errhp, 0, 0, NULL, NULL, OCI_COMMIT_ON_SUCCESS);
+
+      if (status) {
+         if (status != OCI_NO_DATA) {
+            xml_setf (ad->parms, "error", "Unable to locate %s with %s '%s'", table, keycol, keyval);
+         } else {
+            _TASKINDEX_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+         }
+      } else {
+         /* Retrieve data! */
+         status = OCIDescriptorAlloc(handles->envhp, &amp;clob, OCI_DTYPE_LOB, 0, 0);
+
+         OCIDefineByPos (stmthp, &amp;defnp, handles->errhp, 1, (dvoid *) &amp;clob, -1, SQLT_CLOB, &amp;indicator, 0, 0, OCI_DEFAULT);
+         if (OCI_SUCCESS == (status = OCIStmtFetch (stmthp, handles->errhp, 1, OCI_FETCH_NEXT, OCI_DEFAULT))) {
+            if (indicator == -1) { /* NULL clob */
+               ret = NULL;
+            } else {
+               state.handles = handles;
+               state.offset = 1;
+               state.clob = clob;
+
+               ret = xml_parse_general ((void *) &amp;state, _TASKINDEX_oracle_xmlget_fetch);
+               if (ret) {
+                  if (xml_is (ret, "xml-error")) {
+                     if (xml_attrvalnum (ret, "code") != 3) {
+                        xml_setf (ad->parms, "error", "Unable to parse %s from %s with %s '%s': (%s) %s", col, table, keycol, keyval, xml_attrval (ret, "code"), xml_attrval (ret, "message"));
+                     }
+                     xml_free (ret);
+                     ret = NULL;
+                  }
+               } else {
+                  _TASKINDEX_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+               }
+            }
+         } else {
+            _TASKINDEX_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+         }
+         OCIDescriptorFree (clob, OCI_DTYPE_LOB);
+      }
+      OCIHandleFree((dvoid *) (handles->envhp), OCI_HTYPE_STMT);
+      xml_free (query);
+   }
+
+   return ret;
+}
+XML * TASKINDEX_oracle_xmlget (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * table = NULL;
+   char * keycol = NULL;
+   char * keyval = NULL;
+   char * col = NULL;
+
+   if (!args) return (XML *) 0;
+   table  = va_arg (args, char *);
+   keycol = va_arg (args, char *);
+   keyval = va_arg (args, char *);
+   col    = va_arg (args, char *);
+
+   return _TASKINDEX_oracle_xmlget (ad, table, keycol, keyval, col);
+}
+</pre></td></tr></table>
+
+<i>(July 25, 2001)</i> To round out the list of functions introduced to support DSREP_database,
+here are the colget and colput functions.  While these aren't used by the DSREP_database
+adaptor itself, they are used to support its associate, DATASTORE_currecord, which allows the
+write-through caching of column values represented as normal values in the datasheet.  And
+<i>that</i> is a pretty slick mechanism indeed!
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _TASKINDEX_oracle_colput (WFTK_ADAPTOR * ad, char * table, char * keycol, char * keyval, char * col, char * value)
+{
+   struct _TASKINDEX_oracle_handles *handles = (struct _TASKINDEX_oracle_handles *) ad->bindata;
+   OCIStmt * stmthp;
+   XML * query;
+   sword status;
+   OCIBind *bindp = 0;
+
+   if (!handles) return;
+   if (!handles->ok) return;
+
+   if (OCI_SUCCESS == (status = OCIHandleAlloc ((dvoid *) (handles->envhp), (dvoid **) &amp;stmthp, OCI_HTYPE_STMT, 0, 0)))
+   {
+      query = xml_create ("sql");
+      xml_setf (query, "query", "update %s set %s=:val where %s=:keyval", table, col, keycol);
+
+      OCIStmtPrepare(stmthp, handles->errhp, (text *) xml_attrval (query, "query"), strlen(xml_attrval (query, "query")),
+                     (ub4) OCI_NTV_SYNTAX, (ub4) OCI_DEFAULT);
+
+      OCIBindByName (stmthp, &amp;bindp, handles->errhp, ":val", -1, value, strlen(value) + 1, SQLT_STR, 0, 0, 0, 0, 0, OCI_DEFAULT);
+      OCIBindByName (stmthp, &amp;bindp, handles->errhp, ":keyval", -1, keyval, strlen(keyval) + 1, SQLT_STR, 0, 0, 0, 0, 0, OCI_DEFAULT);
+
+      status = OCIStmtExecute(handles->svchp, stmthp, handles->errhp, 1, 0, NULL, NULL, OCI_COMMIT_ON_SUCCESS);
+
+      if (status) {
+         _TASKINDEX_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+      }
+      OCIHandleFree((dvoid *) (handles->envhp), OCI_HTYPE_STMT);
+      xml_free (query);
+   }
+}
+XML * TASKINDEX_oracle_colput (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * table = NULL;
+   char * keycol = NULL;
+   char * keyval = NULL;
+   char * col = NULL;
+   char * value = NULL;
+
+   if (!args) return (XML *) 0;
+   table  = va_arg (args, char *);
+   keycol = va_arg (args, char *);
+   keyval = va_arg (args, char *);
+   col    = va_arg (args, char *);
+   value  = va_arg (args, char *);
+
+   _TASKINDEX_oracle_colput (ad, table, keycol, keyval, col, value);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+Last <i>really</i> is the colget function.  Boy, messing with value retrieval is such a pain
+under Oracle.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * _TASKINDEX_oracle_colget (WFTK_ADAPTOR * ad, char * table, char * keycol, char * keyval, char * col)
+{
+   struct _TASKINDEX_oracle_handles *handles = (struct _TASKINDEX_oracle_handles *) ad->bindata;
+   OCIStmt * stmthp;
+   sword status;
+   OCIBind *bindp = 0;
+   OCIDefine *defnp = 0;
+   char valuebuf[256];
+   OCIParam * parhp;
+   sb2 indicator;
+   
+   XML * query;
+   XML * ret = NULL;
+
+   if (!handles) return ((XML *) 0);
+   if (!handles->ok) return ((XML *) 0);
+
+   if (OCI_SUCCESS == (status = OCIHandleAlloc ((dvoid *) (handles->envhp), (dvoid **) &amp;stmthp, OCI_HTYPE_STMT, 0, 0)))
+   {
+      query = xml_create ("sql");
+      xml_setf (query, "query", "select %s from %s where %s=:keyval", col, table, keycol);
+
+      OCIStmtPrepare(stmthp, handles->errhp, (text *) xml_attrval (query, "query"), strlen(xml_attrval (query, "query")),
+                     (ub4) OCI_NTV_SYNTAX, (ub4) OCI_DEFAULT);
+      OCIBindByName (stmthp, &amp;bindp, handles->errhp, ":keyval", -1, keyval, strlen(keyval) + 1, SQLT_STR, 0, 0, 0, 0, 0, OCI_DEFAULT);
+
+      status = OCIStmtExecute(handles->svchp, stmthp, handles->errhp, 0, 0, NULL, NULL, OCI_COMMIT_ON_SUCCESS);
+
+      if (status) {
+         if (status != OCI_NO_DATA) {
+            xml_setf (ad->parms, "error", "Unable to locate %s with %s '%s'", table, keycol, keyval);
+         } else {
+            _TASKINDEX_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+         }
+      } else {
+         /* Retrieve data! */
+         OCIDefineByPos (stmthp, &amp;defnp, handles->errhp, 1, valuebuf, sizeof(valuebuf), SQLT_STR, &amp;indicator, 0, 0, OCI_DEFAULT);
+         if (OCI_SUCCESS == (status = OCIStmtFetch (stmthp, handles->errhp, 1, OCI_FETCH_NEXT, OCI_DEFAULT))) {
+            ret = xml_create ("value");
+            xml_set (ret, "value", valuebuf);
+         } else {
+            _TASKINDEX_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+         }
+      }
+      OCIHandleFree((dvoid *) (handles->envhp), OCI_HTYPE_STMT);
+      xml_free (query);
+   }
+   return ret;
+}
+XML * TASKINDEX_oracle_colget (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * table = NULL;
+   char * keycol = NULL;
+   char * keyval = NULL;
+   char * col = NULL;
+
+   if (!args) return (XML *) 0;
+   table  = va_arg (args, char *);
+   keycol = va_arg (args, char *);
+   keyval = va_arg (args, char *);
+   col    = va_arg (args, char *);
+
+   return _TASKINDEX_oracle_colget (ad, table, keycol, keyval, col);
+}
+</pre></td></tr></table>
+
+
+
+
+So now the job of the data-specific functions becomes simply one of wrapping up the proper queries for consumption by
+the utility functions.  Note that we're calling <i>internal</i> functions, not their exposed wrappers.  The wrappers are
+there for use by other adaptors, more than anything else.  
+<p></p>
+This is all pretty much the same for any database adaptor, with the occasional riff for various ways
+of dealing with things.  Oracle, for instance, has much the same binding mechanism as ODBC.  Other databases don't, if
+I recall correctly, so we'll have to do it ourselves, more's the pity.
+<p></p>
+The only real discomfort I now feel about this adaptor design is that really I should have two levels.  In other words, I
+should have a taskindex-on-db adaptor which talks to any database adaptor.  Inertia is the only reason I'm not doing this,
+plus the sneaking suspicion that different databases really are different enough that I'll have to do some fudging.  Anyway,
+this might change someday.  We'll see after we get a little more experience with all this.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_oracle_procnew (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * datasheet = (XML *) 0;
+   XML * sql;
+   XML * parm;
+   XML * idparm = NULL;
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+
+   if (*xml_attrval (datasheet, "id")) {
+      xml_set (sql, "query", "insert into process (id, title, status, started) values (:id, :title, :status, SYSDATE)");
+
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "id");
+      xml_set (parm, "value", xml_attrval (datasheet, "id"));
+      xml_append (sql, parm);
+
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "title");
+      xml_set (parm, "value", xml_attrval (datasheet, "label"));
+      xml_append (sql, parm);
+
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "status");
+      xml_set (parm, "value", xml_attrval (datasheet, "status"));
+      if (!*xml_attrval (parm, "value")) xml_set (parm, "value", "active"); /* Default status is active. */
+      xml_append (sql, parm);
+   } else {
+      xml_set (sql, "query", "insert into process (id, title, status, started) values ('auto' || process_id.nextval, :title, :status, SYSDATE) RETURNING id into :id");
+
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "id");
+      xml_set (parm, "value", xml_attrval (datasheet, "id"));
+      xml_set (parm, "returning", "yes");
+      xml_append (sql, parm);
+      idparm = parm;
+
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "title");
+      xml_set (parm, "value", xml_attrval (datasheet, "label"));
+      xml_append (sql, parm);
+
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "status");
+      xml_set (parm, "value", xml_attrval (datasheet, "status"));
+      if (!*xml_attrval (parm, "value")) xml_set (parm, "value", "active"); /* Default status is active. */
+      xml_append (sql, parm);
+   }
+
+   _TASKINDEX_oracle_insert (ad, sql);
+
+   if (idparm) {
+      xml_set (datasheet, "id", xml_attrval (idparm, "value"));
+   }
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+See?  That's almost too easy.  It's begging for further analysis, isn't it?  There should be just a simple way to say, "To add
+processes, look at this and that and use this query, no matter what DB you're talking to."  Except for that silly <code>SYSDATE</code>
+there.  Under ODBC, that's <code>{NOW()}</code>, and it's different on every database.  Now, granted, ODBC's main purpose is to
+abstract away some of this rubbish and work with any database, but it makes me uncomfortable.  Microsoft doesn't ever quite finish
+anything, and although I know there's OpenODBC on Unix, I don't know how stable it is.  Anyway, on with the show.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_oracle_procdel (WFTK_ADAPTOR * ad, va_list args)
+{
+   char *id = NULL;
+   XML * sql;
+   XML * parm;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "delete from process where id=:id");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", id);
+   xml_append (sql, parm);
+
+   _TASKINDEX_oracle_delete (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_oracle_procget (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+   XML * proc = (XML *) 0;
+   char * stuff;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+   sql = xml_create ("sql");
+   xml_set (sql, "element", "proc");
+   xml_set (sql, "query", "select * from process where id=:id");
+   parm = xml_create ("map");
+   xml_set (parm, "title", "label");
+   xml_set (parm, "owner", "user");
+   xml_set (parm, "datasheet", "!hide");
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", id);
+   xml_append (sql, parm);
+
+   proc = _TASKINDEX_oracle_select (ad, sql, NULL);
+
+   xml_free (sql);
+   return proc;
+}
+XML * TASKINDEX_oracle_procput (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * datasheet = NULL;
+   XML * sql;
+   XML * parm;
+   XML * idparm = NULL;
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+
+   sql = xml_create ("sql");
+   if (*xml_attrval (datasheet, "id")) {
+      xml_set (sql, "query",    "update process set title=:title, status=:status where id=:id");
+      xml_set (sql, "fallback", "insert into process (id, title, status, started) values (:id, :title, :status, SYSDATE)");
+
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "id");
+      xml_set (parm, "value", xml_attrval (datasheet, "id"));
+      xml_append (sql, parm);
+
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "title");
+      xml_set (parm, "value", xml_attrval (datasheet, "label"));
+      xml_append (sql, parm);
+
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "status");
+      xml_set (parm, "value", xml_attrval (datasheet, "status"));
+      if (!*xml_attrval (parm, "value")) xml_set (parm, "value", "active"); /* Default status is active. */
+      xml_append (sql, parm);
+
+      _TASKINDEX_oracle_update (ad, sql);
+   } else { /* We treat this as a plain old procnew with no ID. */
+      xml_set (sql, "query", "insert into process (id, title, status, started) values ('auto' || process_id.nextval, :title, :status, SYSDATE) RETURNING id into :id");
+
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "id");
+      xml_set (parm, "value", xml_attrval (datasheet, "id"));
+      xml_set (parm, "returning", "yes");
+      xml_append (sql, parm);
+      idparm = parm;
+
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "title");
+      xml_set (parm, "value", xml_attrval (datasheet, "label"));
+      xml_append (sql, parm);
+
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "status");
+      xml_set (parm, "value", xml_attrval (datasheet, "status"));
+      if (!*xml_attrval (parm, "value")) xml_set (parm, "value", "active"); /* Default status is active. */
+      xml_append (sql, parm);
+
+      _TASKINDEX_oracle_insert (ad, sql);
+
+      xml_set (datasheet, "id", xml_attrval (idparm, "value"));
+   }
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_oracle_proclist (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = (XML *) 0;
+   XML * sql;
+   XML * parm;
+   XML * ret;
+   const char * field;
+   int fields = 0;
+   char query[1024];
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list specified.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   parm = xml_create ("map");
+   xml_set (parm, "title", "label");
+   xml_set (parm, "owner", "user");
+   xml_set (parm, "datasheet", "!hide");
+   xml_append (sql, parm);
+
+   strcpy (query, "select * from process where ");
+
+   field = xml_attrval (list, "status");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, "status=:status ");
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "status");
+      xml_set (parm, "value", field);
+      xml_append (sql, parm);
+   }
+
+   field = xml_attrval (list, "user");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, "owner=:owner ");
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "owner");
+      xml_set (parm, "value", field);
+      xml_append (sql, parm);
+   }
+
+   field = xml_attrval (list, "where");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, field);
+   }
+
+   if (fields) {
+      xml_set (sql, "query", query);
+   } else {
+      xml_set (sql, "query", "select * from process");
+   }
+   xml_set (sql, "element", "process");
+
+   ret = _TASKINDEX_oracle_select (ad, sql, list);
+
+   xml_free (sql);
+   return ret;
+   return (XML *) 0;
+}
+XML * TASKINDEX_oracle_proccomplete (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "update process set status='complete', completed=SYSDATE where id=:id");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", id);
+   xml_append (sql, parm);
+
+   _TASKINDEX_oracle_update (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_oracle_procerror (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "update process set status='error' where id=:id");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", id);
+   xml_append (sql, parm);
+
+   _TASKINDEX_oracle_update (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+
+
+
+So now we just do the <i>same thing</i> for tasks, right?
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_oracle_tasknew (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * datasheet = (XML *) 0;
+   XML * sql;
+   XML * parm;
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "insert into task (id, process, status, description, role, owner, created) values (:id, :process, 'active', :label, :role, :owner, SYSDATE)");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", xml_attrval (datasheet, "id"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "process");
+   xml_set (parm, "value", xml_attrval (datasheet, "process"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "label");
+   xml_set (parm, "value", xml_attrval (datasheet, "label"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "role");
+   xml_set (parm, "value", xml_attrval (datasheet, "role"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "owner");
+   xml_set (parm, "value", xml_attrval (datasheet, "user"));
+   xml_append (sql, parm);
+
+   _TASKINDEX_oracle_insert (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_oracle_taskdel (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+   char *process;
+   char *id;
+   XML * sql;
+   XML * parm;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "delete from task where process=:process and id=:id");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "process");
+   xml_set (parm, "value", process);
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", id);
+   xml_append (sql, parm);
+
+   _TASKINDEX_oracle_delete (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_oracle_taskget (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * process = NULL;
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+   XML * proc = (XML *) 0;
+   char * stuff;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+   id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task ID given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "element", "task");
+   xml_set (sql, "query", "select * from task where process=:process and id=:id");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "process");
+   xml_set (parm, "value", process);
+   xml_append (sql, parm);
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", id);
+   xml_append (sql, parm);
+
+   proc = _TASKINDEX_oracle_select (ad, sql, NULL);
+
+   xml_free (sql);
+   return proc;
+}
+XML * TASKINDEX_oracle_taskput (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+   XML * sql;
+   XML * parm;
+
+   if (args) task = va_arg (args, XML *);
+   if (!task) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query",    "update task set description=:label, role=:role, owner=:owner, status=:status where process=:process and id=:id");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "process");
+   xml_set (parm, "value", xml_attrval (task, "process"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", xml_attrval (task, "id"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "label");
+   xml_set (parm, "value", xml_attrval (task, "label"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "role");
+   xml_set (parm, "value", xml_attrval (task, "role"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "owner");
+   xml_set (parm, "value", xml_attrval (task, "user"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "status");
+   xml_set (parm, "value", xml_attrval (task, "status"));
+   if (!*xml_attrval (parm, "value")) xml_set (parm, "value", "active"); /* Default status is active. */
+   xml_append (sql, parm);
+
+   _TASKINDEX_oracle_update (ad, sql);
+
+   return (XML *) 0;
+}
+XML * TASKINDEX_oracle_tasklist (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = (XML *) 0;
+   XML * sql;
+   XML * parm;
+   XML * ret;
+   const char * field;
+   int fields = 0;
+   char query[1024];
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list specified.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   parm = xml_create ("map");
+   xml_set (parm, "description", "label");
+   xml_set (parm, "owner", "user");
+   xml_append (sql, parm);
+
+   strcpy (query, "select * from task where ");
+
+   field = xml_attrval (list, "process");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, "process=:process ");
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "process");
+      xml_set (parm, "value", field);
+      xml_append (sql, parm);
+   }
+
+   field = xml_attrval (list, "status");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, "status=:status ");
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "status");
+      xml_set (parm, "value", field);
+      xml_append (sql, parm);
+   }
+
+   field = xml_attrval (list, "role");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, "role=:role ");
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "role");
+      xml_set (parm, "value", field);
+      xml_append (sql, parm);
+   }
+
+   field = xml_attrval (list, "user");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, "owner=:owner ");
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "owner");
+      xml_set (parm, "value", field);
+      xml_append (sql, parm);
+   }
+
+   field = xml_attrval (list, "where");
+   if (*field) {
+      if (fields++) strcat (query, "and ");
+      strcat (query, field);
+   }
+
+   if (fields) {
+      xml_set (sql, "query", query);
+   } else {
+      xml_set (sql, "query", "select * from task");
+   }
+   xml_set (sql, "element", "task");
+
+   ret = _TASKINDEX_oracle_select (ad, sql, list);
+
+   xml_free (sql);
+   return ret;
+}
+XML * TASKINDEX_oracle_taskcomplete (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * process = NULL;
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) process = "";
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "update task set status='complete', complete=SYSDATE where process=:process and id=:id and status='active'");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "process");
+   xml_set (parm, "value", process);
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", id);
+   xml_append (sql, parm);
+
+   _TASKINDEX_oracle_update (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_oracle_taskreject (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * process = NULL;
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) process = "";
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "update task set status='reject' where process=:process and id=:id and status='active'");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "process");
+   xml_set (parm, "value", process);
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", id);
+   xml_append (sql, parm);
+
+   _TASKINDEX_oracle_update (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+
+
+
+
+
+
+
+
+And then the request stuff.  Requests, as far as the task index is concerned, are just funny tasks with state=request.  All the good
+stuff (notifications, workflow, reassignment) requires a datasheet for now.  It's imperfect, but it's a start.  If a non-datasheet
+request is accepted, it turns into an active task.  If a datasheet request is accepted, or any request is declined, it's just deleted.
+Pretty simple, actually.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_oracle_reqnew (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * datasheet = (XML *) 0;
+   XML * sql;
+   XML * parm;
+
+   char * query = "insert into task (id, title, status, started) values (:1, :2, :3, SYSDATE)";
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "insert into task (id, process, status, description, role, owner, created) values (:id, :process, 'request', :label, :role, :owner, SYSDATE)");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", xml_attrval (datasheet, "id"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "process");
+   xml_set (parm, "value", xml_attrval (datasheet, "process"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "label");
+   xml_set (parm, "value", xml_attrval (datasheet, "label"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "role");
+   xml_set (parm, "value", xml_attrval (datasheet, "role"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "owner");
+   xml_set (parm, "value", xml_attrval (datasheet, "of"));
+   xml_append (sql, parm);
+
+   _TASKINDEX_oracle_insert (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_oracle_reqdel (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+   char *process;
+   char *id;
+   XML * sql;
+   XML * parm;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "delete from task where process=:process and id=:id and status='request'");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "process");
+   xml_set (parm, "value", process);
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", id);
+   xml_append (sql, parm);
+
+   _TASKINDEX_oracle_delete (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_oracle_reqget (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * process = NULL;
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+   XML * proc = (XML *) 0;
+   char * stuff;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+   id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No request ID given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "element", "request");
+   xml_set (sql, "query", "select * from request where process=:process and id=:id and status='request'");
+   parm = xml_create ("map");
+   xml_set (parm, "owner", "of");
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "process");
+   xml_set (parm, "value", process);
+   xml_append (sql, parm);
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", id);
+   xml_append (sql, parm);
+
+   proc = _TASKINDEX_oracle_select (ad, sql, NULL);
+
+   xml_free (sql);
+   return proc;
+}
+
+XML * TASKINDEX_oracle_reqput (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+   XML * sql;
+   XML * parm;
+
+   if (args) task = va_arg (args, XML *);
+   if (!task) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query",    "update task set description=:label, role=:role, owner=:owner where process=:process and id=:id");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "process");
+   xml_set (parm, "value", xml_attrval (task, "process"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", xml_attrval (task, "id"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "label");
+   xml_set (parm, "value", xml_attrval (task, "label"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "role");
+   xml_set (parm, "value", xml_attrval (task, "role"));
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "owner");
+   xml_set (parm, "value", xml_attrval (task, "of"));
+   xml_append (sql, parm);
+
+   _TASKINDEX_oracle_update (ad, sql);
+
+   return (XML *) 0;
+}
+XML * TASKINDEX_oracle_reqlist (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = (XML *) 0;
+   XML * sql;
+   XML * parm;
+   XML * ret;
+   const char * field;
+   int fields = 0;
+   char query[1024];
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list specified.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   parm = xml_create ("map");
+   xml_set (parm, "description", "label");
+   xml_set (parm, "owner", "user");
+   xml_append (sql, parm);
+
+   strcpy (query, "select * from task where status='request' ");
+
+   field = xml_attrval (list, "process");
+   if (*field) {
+      fields++;
+      strcat (query, "and process=:process ");
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "process");
+      xml_set (parm, "value", field);
+      xml_append (sql, parm);
+   }
+
+   field = xml_attrval (list, "status");
+   if (*field) {
+      fields++;
+      strcat (query, "and status=:status ");
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "status");
+      xml_set (parm, "value", field);
+      xml_append (sql, parm);
+   }
+
+   field = xml_attrval (list, "role");
+   if (*field) {
+      fields++;
+      strcat (query, "and role=:role ");
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "role");
+      xml_set (parm, "value", field);
+      xml_append (sql, parm);
+   }
+
+   field = xml_attrval (list, "user");
+   if (*field) {
+      fields++;
+      strcat (query, "and owner=:owner ");
+      parm = xml_create ("parm");
+      xml_set (parm, "name", "owner");
+      xml_set (parm, "value", field);
+      xml_append (sql, parm);
+   }
+
+   field = xml_attrval (list, "where");
+   if (*field) {
+      fields++;
+      strcat (query, "and ");
+      strcat (query, field);
+   }
+
+   if (fields) {
+      xml_set (sql, "query", query);
+   }
+   xml_set (sql, "element", "task");
+
+   ret = _TASKINDEX_oracle_select (ad, sql, list);
+
+   xml_free (sql);
+   return ret;
+}
+XML * TASKINDEX_oracle_reqaccept (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * process = NULL;
+   char * id = NULL;
+   XML * sql;
+   XML * parm;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) process = "";
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "update task set status='active' where process=:process and id=:id and status='request'");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "process");
+   xml_set (parm, "value", process);
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", id);
+   xml_append (sql, parm);
+
+   _TASKINDEX_oracle_update (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+XML * TASKINDEX_oracle_reqdecline (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+   char *process;
+   char *id;
+   XML * sql;
+   XML * parm;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   sql = xml_create ("sql");
+   xml_set (sql, "query", "delete from task where process=:process and id=:id and status='request'");
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "process");
+   xml_set (parm, "value", process);
+   xml_append (sql, parm);
+
+   parm = xml_create ("parm");
+   xml_set (parm, "name", "id");
+   xml_set (parm, "value", id);
+   xml_append (sql, parm);
+
+   _TASKINDEX_oracle_delete (ad, sql);
+
+   xml_free (sql);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

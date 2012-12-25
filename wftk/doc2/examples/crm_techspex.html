@@ -1,0 +1,413 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Applying the wftk: CRM -- Techspex.com (no-frills bug tracking)</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Applying the wftk: CRM -- Techspex.com (no-frills bug tracking)</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="crm.html">CRM example home</a> ]
+<hr>
+
+<h3>Contents (linked entries have been written)</h3>
+<ul>
+<li><a href=#techspex>Techspex.com</a>
+<li><a href=#basic>The basic issue tracking system</a>
+<li><a href=#frontend>Front end planning</a>
+<li><a href=#publishers>Publishing static HTML for system status</a>
+<li><a href=#datamgt>Data management interface (adding/modifying issues)</a>
+<li><a href=#resolution>Resolving issues and archiving resolved issues</a>
+<li><a href=#cvs>Interaction with CVS</a>
+<li><a href=#more>Where from here?</a>
+</ul>
+
+<a name=techspex>
+<h3>Techspex.com</h3>
+Techspex.com is a searchable database of machine tools which has been in continuous operation since
+1995.  I started working with them in November of 1995 and have stuck with them ever since, through
+their acquisition in the dot-com boom and their subsequent de-acquisition shortly after said boom.
+The site is based on AOLserver and the code itself is written in Tcl.  There are two major sections
+of functionality; the "site proper," which is the part in operation since 1995 (much modified)
+and the searchable
+database itself, consisting of about 120,000 lines of code; and the "self-maintenance" portion, started
+early in 2002 and now in production, which is a collaborative data management application allowing
+the industry community to contribute to accuracy in the database.  The self-maintenance application
+is partially wftk-based and consists of about 30,000 lines of really nitpicking code so far, and we've
+only addressed maintenance of information about companies (i.e. nothing about machine tools yet).
+<p>
+Since I'm the only programmer attached to the project, this means I have a lot of issues to keep track
+of.  And if you've followed the course of development of the wftk, you know that I'm not the most
+organized of people.  So an issue tracking system is a really logical thing to implement for my work
+at Techspex.  This page represents a chronicle of my attempt to do this; since much of the implementation
+will require development of wftk to work, you can expect progress here to be really spotty.  (But again,
+if you've been following the wftk, you're used to that.)
+<p>
+<a name=basic>
+<h3>The basic issue tracking system</h3>
+The issue tracking system <i>per se</i> consists of a single list of issues.  Since there is only one
+customer, there's no need to track customers.  Since there are only two really meaningful subsystems,
+I see no need to muddy the waters by tracking them, either.  So this is an example of what I've been
+thinking of as a "simple bug-tracking system," and it's a good place to start working on a real live system.
+<p>
+I call the single issues list "issues", and I end up with a
+site description file like this:
+<center><table width="90%"><tr><td bgcolor=eeeeee><pre>
+&lt;site&gt;
+&lt;list id="issues" defn="issues.xml" order="priority desc, date"/&gt;
+&lt;/site&gt;
+</pre></td></tr></table></center>
+This leaves me to configure the issues list in the definition file issues.xml, which I initially set
+up as follows:
+<center><table width="90%"><tr><td bgcolor=eeeeee><pre>
+&lt;list&gt;
+&lt;field id="id" special="key"/&gt;
+&lt;field id="date" type="date" special="add"/&gt;
+&lt;field id="expected" type="date"/&gt;
+&lt;field id="desc"/&gt;
+&lt;field id="notes" type="wiki" rows="10" cols="80"/&gt;>
+&lt;/list&gt;
+</pre></td></tr></table></center>
+This gives me an ID which the list adaptor will ensure is a unique key (the special="key" part), a date
+which will be filled in automatically when the issue is opened (the special="add" part), an expected
+date of completion, a title, and
+a general notespace of type="text".  This doesn't mean I can't add arbitrary other data values,
+including attached files, as appropriate to each issue, but it does define the minimal set of values
+along with some information about how to build an edit screen.
+<p>
+I also create a directory named "issues" in my main directory; this will store each issue file, which
+will be a localdir XML file by default.  Note that I could have chosen a different storage area for the
+issues list.
+<p>
+The "order" attribute on the list definition defines the default order for issue listings.  This could
+be omitted entirely to save some overhead, but it makes a lot of sense to use it, especially once we
+get into publishing below.
+<p>
+The notes field is a "Wiki text"; it is edited as a textarea (with the rows and columns as specified
+in its field definition) but formatted as structured text.  My inspiration for this was the WikiWikiWeb
+concept which you can easily find in Google; the point is to make it simple to produce formatted text,
+links and all, without typing HTML.  In my structured text setup, skipped lines are paragraph breaks,
+asterisks introduce links, and so forth.  True to wftk form, I haven't yet documented this (partly
+because I expect it to remain in flux for a while.)  The point is that the notes are designed to be
+quick ways to create formatted content.
+<p>
+So far, time expended (ignoring the time I'm taking to document this) has been under ten minutes.  <i>If</i>
+I had a fully functional front-end, I'd really already have a simple issue tracking system, because the
+wftk already supports tasks against objects (like issues), indexing of tasks, and so forth.  But I don't
+have a front-end yet, just pieces of them.  Let's talk about the front end a little.
+<p>
+<a name=frontend>
+<h3>Front end planning</h3>
+Presentation of issues can be seen in terms of use cases, more or less as follows:
+<ul>
+<li><b>System status</b>: Techspex management or I can get a quick overview of active issues and their relative priorities.
+<li><b>Issue status</b>: Techspex management or I can view a particular issue and see its history, notes, etc.
+<li><b>Issue creation</b>: Techspex or I can create a new issue
+<li><b>Issue resolution</b>: I can mark an issue as resolved
+<li><b>Issue modification</b>: Techspex or I can add new data or notes to an issue, or change its priority
+</ul>
+
+Of these, the status pages can easily be thought of as either live database queries or as published
+static HTML pages.  Since I haven't involved a database with this system yet, that leaves me with
+published static HTML pages.  I'll want to create two publishers which will be called whenever the
+list of issues is changed.  The first will be a list template to publish a sorted list of all active
+issues; the second will operate for each issue and will publish a static representation of that issue.
+The static issue page will also include hooks for actions to be taken.
+<p>
+I kind of like this model for active site development.  Information that doesn't
+change often can be written a single time and then handed out to many viewers with only minor processor
+overload.  This would, therefore, scale very well.  But it still permits the normal navigation of the
+data to be used to find items to modify and actions to take, so that (active) users of the site needn't
+keep two pictures of the data in their heads at once.
+<p>
+A second advantage of static HTML (or other static data representations, like an XML file of some sort)
+is that it lends itself to publishing on some system other than the one actively hosting the bug
+tracker.  In the Techspex case, this doesn't apply, but it can be seen as a distinct advantage.
+<p>
+At any rate, the front end for this system breaks conveniently into two portions: static HTML publishers
+for system and issue status pages, plus active maintenance code to make actual changes to the issue
+list.  The first is well-supported by code current in December 2002, while the latter category is only
+spottily supported -- at the moment, it is partially addressed by the CGI front end, but that's the
+extent.  So as part of this exercise, I'm going to address myself first to fixing up the CGI front end
+sufficiently to work for this system, but I'd also like to start laying out a native AOLserver front end,
+since that's the HTTP server used by Techspex and thus I'd like to use it in other Techspex applications.
+<p>
+<a name=publishers>
+<h3>Publishing static HTML for system status</h3>
+Let's go ahead and define our publishers for the issue list.  This is really pretty easy; first we define
+two pages to provide a place for the publishers to publish to, and then we provide the publishers.
+We modify the site.opm file to look like this:
+<center><table width="90%"><tr><td bgcolor=eeeeee><pre>
+&lt;site&gt;
+&lt;list id="issues" defn="issues.xml"/&gt;
+&lt;page id="issues" page="index.html" displays="issues"/&gt;
+&lt;page id="issue" page="issue[id].html"/&gt;
+&lt;publish id="issues" from="issues" to="issues" defn="index_template.xml"/&gt;
+&lt;publish id="issue" from="issues" to="issue" defn="issue_template.xml"/&gt;
+&lt;layout id="default" defn="layout.xml"/&gt;
+&lt;/site&gt;
+</pre></td></tr></table></center>
+The pages could be used for a navigation interface, but since we only have one datasource that'd be
+fairly pointless.  So instead they just provide a place to define the URL used by each publisher.  The
+publisher elements define the dataflow in this system, which is strictly from the single list into
+two sets of pages (one of which happens to be a single page.)  The layout defines the overall
+HTML template to be used for all pages on the site; again, this system involves so few pages there
+would be no point in being more sophisticated with layout types.
+<p>
+Note that the page value for the page "issue" contains square brackets like this: <code>issue[id].html</code>.
+This is something I call a flat template (because it's not an XML template like the ones we're about
+to define below) and it gives us a simple way to specify how to build a filename for the static HTML
+file associated with any particular object: we simply replace <code>[id]</code> with the value of the
+"id" field for the object.  Nifty.
+<p>
+The "displays" attribute on the issues page is there to tell the CGI data management interface that when
+displaying the full list after modification, it should use that page.  This allows the published page to
+be an effective center for navigation when editing the list.
+<p>
+So now all we have to do is define three templates: the overall site layout, the issue list template, and the
+issue detail template.  Since this system isn't really for public consumption, there's very little
+reason to pretty it up, so I'm going to keep all of this to a bare minimum to make it easier to see
+what's where (and also to save me some development time.)
+<p>
+All layouts are effectively <i>templates</i>, that is, they are XML which is run through the
+xml_template library and then written using xml_writehtml, which makes sure, for instance, that the XML
+element <code>&lt;br/&gt;</code> gets turned into <code>&lt;br&gt;</code> and the like.  Slots in the
+templates are filled using template:value elements.  For the general layout, there is one slot named
+"content" defined by the system; that will be the default target of whatever page is published.  A
+layout may also optionally define other value slots, which can be filled in using a couple of different
+mechanisms, only one of which I'll be using here, to fill in the title slot.
+<p>
+Here's the general layout:
+<center><table width="90%"><tr><td bgcolor=eeeeee><pre>
+&lt;layout type="page"&gt;
+&lt;head&gt;
+   &lt;title&gt;&lt;template:value name="title"/&gt;&lt;/title&gt;
+&lt;/head&gt;
+&lt;body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000"&gt;
+&lt;template:value name="pagetitle"/&gt;
+&lt;template:value name="content"/&gt;
+&lt;/body&gt;
+&lt;/layout&gt;
+</pre></td></tr></table></center>
+This gives us three slots for each page: a title slot, which is just going to be a value; a page
+title slot, which will contain some formatting for the title (because I don't want the index page
+to look exactly like an issue page); and finally, the content itself, which will be filled in with
+whatever is appropriate for the page at hand.
+<p>
+We have two different basic kinds of page here; one lists entries from a list as a table, while the
+other publishes an individual object.  A list template must contain a <code>template:list</code>
+element, which will connect with the list in question, retrieve it, order it, and proceed.
+<p>
+The list template is the longest file I've quoted yet, but it's still pretty easy to understand:
+<center><table width="90%"><tr><td bgcolor=eeeeee><pre>
+&lt;list&gt;
+&lt;template replaces="title"&gt;Techspex issue tracker&lt;/template&gt;
+&lt;template replaces="pagetitle"&gt;&lt;h2&gt;Techspex issue tracker&lt;/h2&gt;&lt;/template&gt;
+&lt;template&gt;
+The Techspex issue tracker lists active issues.  Click an issue to see or
+modify it.
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td bgcolor="eeeeee"&gt;Priority&lt;/td&gt;
+&lt;td bgcolor="eeeeee"&gt;Date entered&lt;/td&gt;
+&lt;td bgcolor="eeeeee"&gt;Description&lt;/td&gt;
+&lt;/tr&gt;
+&lt;template:list order="priority desc, date"&gt;
+&lt;tr&gt;
+&lt;td align="right"&gt;&lt;template:value name="priority"/&gt;&lt;/td&gt;
+&lt;td&gt;&lt;template:value name="date" format="date"/&gt;&lt;/td&gt;
+&lt;td&gt;&lt;template:value name="desc" format="link:issue[id].html"/&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/template:list&gt;
+&lt;/table&gt;
+&lt;template:value format="link:repmgr_cgi?mode=new&amp;amp;list=issues"&gt;Add new issue&lt;/template:value&gt;
+&lt;/template&gt;
+&lt;/list&gt;
+</pre></td></tr></table></center>
+Note in particular that the top-level element of this template is <i>not</i> a "template" element, but a
+"list" element, denoting that it is a list of templates.  The individual templates are then used to
+replace the values of the slots in the layout; if a template is not named, it is assumed to be the
+content template and will replace the content value in the layout.  Clear as mud, right?
+<p>
+Order in list retrieval is specified using an SQL-standard order specifier.  If the underlying storage
+is an RDBMS, then this spec is used directly when building the query; otherwise, it's passed to the
+xmlobj_list_sort function by non-RDBMS adaptors.
+<p>
+When we insert a single test task into the list with the above index template, the result looks like this:
+<center><img src="crm_t1.png" border=1></center>
+<p>
+For the detail, we build a similar very simple template as follows:
+<center><table width="90%"><tr><td bgcolor=eeeeee><pre>
+&lt;list&gt;
+&lt;template replaces="title"&gt;Techspex issue &lt;template:value name="id"/&gt;: &lt;template:value name="desc"/&gt;&lt;/template&gt;
+&lt;template replaces="pagetitle"&gt;&lt;h2&gt;&lt;template:value name="desc"/&gt;&lt;/h2&gt;&lt;/template&gt;
+&lt;template&gt;
+&lt;table&gt;
+&lt;tr&gt;&lt;td&gt;ID:&lt;/td&gt;&lt;td&gt;&lt;template:value name="id"/&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;Priority:&lt;/td&gt;&lt;td&gt;&lt;template:value name="priority"/&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;Date entered:&lt;/td&gt;&lt;td&gt;&lt;template:value name="date" format="date"/&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td colspan="2"&gt;&lt;u&gt;Notes&lt;/u&gt;&lt;br/&gt;&lt;template:value name="notes"/&gt;&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;template:value format="link:repmgr_cgi?mode=edit&amp;amp;list=issues&amp;amp;key=[id]"&gt;Edit this entry&lt;/template:value&gt;
+&lt;a href="index.html"&gt;Back to list&lt;/a&gt;
+&lt;/template&gt;
+&lt;/list&gt;
+</pre></td></tr></table></center>
+Again, this template is a list of three templates to cover our three layout slots.  The layout of this
+detail is pretty boring, and there is as yet no specification of tasks to be done, history, attachments,
+or indeed much of anything, because there isn't much code there to format any of that.  That will be
+forthcoming soon, I hope, but it's a wftk "soon", so it may be a year before I really get down to it.
+<p>
+The test task referenced above ends up looking like this:
+<center><img src="crm_t2.png" border=1></center>
+<p>
+This much gives us a basis for working with the system, even if there is as yet no mature Web interface to
+manage data; to date, when using the publishing code of the repository manager, I either enter the
+data by hand through the repmgr command-line interface plus a text editor invoked by the CLI, or I
+generate the data using Perl scripts running on the system, and simply use the repmgr "publish" command
+to run off a set of pages showing the current state of the system.  I can use either of those
+approaches with this system as well.  But naturally, a Web interface for data management will make
+the system far, far easier to use.
+<p>
+<a name=datamgt>
+<h3>Data management interface (adding/modifying issues)</h3>
+Even though my heart wants to build a native AOLserver interface for this system, my head is telling
+me there's no chance I'll get around to that in a timely fashion.  So instead I'm going to recycle the
+repmgr CGI interface, which is already half-done as of this writing (December 2002).  I'm hoping that
+using this system on a more or less daily basis will motivate me to make improvements to the CGI
+interface (most of which will probably be easily wrapped in Tcl to create an AOLserver-native version.)
+<p>
+The issue detail above links to repmgr.cgi
+to "Edit this entry" -- that and the analogous "Add issue" link on the index page are our means of
+entry to the data management interface.  Beyond making sure that a CGI symlink is present in the repository
+directory, there's nothing more to specify in order to provide CGI access to the system.  Once alternative
+front ends are available, they will likewise be precisely this easy to set up, since they all work off
+the same site definition file we use for publishing information.  At most we need to set configuration
+parameters (like the "displays" attribute on the index page) in order to modify the default way in which
+a front end works.
+
+<a name=resolution>
+<h3>Resolving issues and archiving resolved issues</h3>
+At first glance, resolving issues is simple -- we just delete the issue.  However, this really isn't a great way
+to handle resolution, for two reasons (neither of which is that the CGI interface doesn't delete things yet as
+of this writing).
+First, when a list entry is deleted, the publisher doesn't remove the file
+it was published to.  If someone has bookmarked the page, a fresh visit won't tell them that the issue has been
+resolved; it will simply have vanished from the master list of open issues, leaving a fossil detail page in place.
+Moreover, deletion doesn't provide
+any history at all -- when was the issue resolved?  How long did the resolution take?All in all, maintaining a
+database of only active issues is a weak solution.
+<p>
+The best way to handle this is to build a state machine for the issues list.  If we have two states (say, "active"
+and "resolved") then we can specify archival when the issue reaches the "resolved" state.  Archival moves the object
+into a second list, where it can be published using completely different templates, if necessary.  This is rather
+handy, since the template for a resolved issue can be made visibly different, making it easy to see that something
+has changed.
+<p>
+The list template for resolved issues can also publish to a separate page, and can sort by something other than
+priority -- say, by resolution date.  And if we specify the archival list with an "add" date, it will automatically
+mark the date of resolution of the issue.
+<p>
+Another benefit the state machine gives us is that we can define more states -- for instance, we could define an
+"emergency" state for an issue.  The emergency state could be triggered by an automatic process which scans
+active issues for signs of neglect, and entry of the emergency state could notify management, or page a senior
+developer, or ... whatever.  The "whatever" is the whole point of a workflow toolkit, after all.
+
+<p>
+To set all this up, we add a new list "issue_archive", and define the state machine for the issues list.  Both of these
+are done in site.opm (although the state machine could just as well be defined in the defn file for the issues list,
+issues.xml -- the definition is merged with the information already in site.opm, so it doesn't really matter where
+we define the state machine.)  The resulting site.opm, which is getting a little more ungainly as a simple example,
+looks like this:
+<center><table width="90%"><tr><td bgcolor=eeeeee><pre>
+&lt;site&gt;
+&lt;list id="issues" defn="issues.xml" order="priority desc, date"&gt;
+&lt;state id="active" label="Active"/&gt;p
+&lt;state id="urgent" label="Urgent"/&gt;
+&lt;state id="resolved" label="Resolved" archive-to="issue_archive"/&gt;
+&lt;/list&gt;
+&lt;page id="issues" page="index.html" displays="issues"/&gt;
+&lt;page id="issue" page="issue[id].html"/&gt;
+&lt;publish id="issues" from="issues" to="issues" defn="index_template.xml"/&gt;
+&lt;publish id="issue" from="issues" to="issue" defn="issue_template.xml"/&gt;
+
+&lt;list id="issue_archive" defn="issue_archive.xml" order="resolved desc"/&gt;
+&lt;page id="issue_archive_list" page="old_issues.html"/&gt;
+&lt;page id="issue_archive_detail" page="issue[id].html"/&gt;
+&lt;publish id="issue_archive_list" from="issue_archive" to="issue_archive_list" defn="archive_template.xml"/&gt;
+&lt;publish id="issue_archive_detail" from="issue_archive" to="issue_archive_detail" defn="archive_detail_template.xml"/&gt;
+
+&lt;layout id="default" defn="layout.xml"/&gt;
+&lt;/site&gt;
+</pre></td></tr></table></center>
+I slipped in an extra state "urgent" just to show where it might go; if you wanted to use that, you'd have to display
+it in some way by modifying the display templates for the issues list, plus you'd probably want to sort on the state
+in order to have urgent issues float to the top of the list.  But I don't want to spend time on that right now.
+Similarly, I'm not going to show you the templates for the issue_archive list, because they're essentially the same as those
+for the issues list.
+
+<p>
+The "archive-to" attribute on the resolved state indicates that this state is a sink -- that is, when
+the object hits this state, it will be moved entirely into the issue_archive list.  An archival state
+circumvents any workflow attached to an object, and archival removes all active workflow (or at least,
+these statements will be true once the integration of the repository manager with the wftk core is
+complete.)  However, the addition to the new list can invoke whatever workflow is required in the
+context of the new list.  From a state-machine point of view, an archival transition can be seen as a
+compartmentalization of the state machine into manageable submachines (one per list.)
+
+<p>
+The issue archive has no state machine, and thus cannot transition back to the issues list.  There's a case to be made 
+either for the ability to bring an issue back to life by making it an active issue, or forcing the system to create a
+new issue instead -- I've opted for the latter, mostly because it's simpler.  It could easily be changed, of course, 
+by defining an "archiving" state machine for issue_archive.
+
+
+
+<a name=cvs>
+<h3>Interaction with CVS</h3>
+Since I manage the code for Techspex.com using CVS, I'd like some integration between CVS and the
+issue tracking system.  The real question is what form this integration should take; I have a number of interesting
+possibilities, none of which are actually working yet.
+
+<ul>
+<li>Tracking of code changes made in response to issues (and conversely, issues prompting each code change.)<br>
+    This would effectively mean that wftk would access the CVS logging functions and store informative information
+    about events in CVS, and it's a reporting feature.  This would link "cvs diff" to active issues, which would 
+    involve some extra accounting overhead while programming.  The obvious way to deal with this would be for a
+    cron job to check "cvs update" periodically and make sure there are no changes which weren't accounted for;
+    if new changes were detected, then they'd go into a task list of "stuff to resolve".  This would augment the
+    list of current issues with a shorter list of "active issues" -- issues attached to currently changed files
+    which haven't been committed yet.
+<li>Actual commit and/or putting into production of code changes upon issue resolution.<br>\
+    Since I run two versions
+    of the Techspex site (one with a sandbox set of code for pretesting changes, and the actual production site),
+    code gets checked in and moved into production after an issue is resolved.  This would utilize the code-change-to-issue
+    link from above.
+<li>Resolution of issue upon code commit.<br>
+    This works in the other direction, of course -- if I commit a code change or set of changes, then it would be
+    equivalent to the resolution of the issue.  This could be done in either of two ways.  If we want to build a
+    Web interface to the resolution/commit system, then that system would do whatever's necessary.  But sometimes
+    it's convenient to use CVS from the command line, and in this case it would be dangerous to allow commit without
+    some way to close out active issues for consistency's sake.  So it would be nice if we could use CVS's commitinfo
+    or loginfo hooks to take appropriate action when a code file is committed.  (It would be even nicer if we could
+    initiate workflow on such a commit, and officially commit the file only upon approval, but that will require some
+    more finicky work than what I'm talking about here.)
+</ul>
+
+Anyway, eventually I'll get around to exploring all this.  Watch this space for further details.
+
+<a name=more>
+<h3>Where from here?</h3>
+
+There are naturally an infinite number of features which one can incorporate into any system, and the bug tracker (even the
+simple one!) is no exception.  I haven't had much time to write anything down, but eventually there will be more.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2002 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

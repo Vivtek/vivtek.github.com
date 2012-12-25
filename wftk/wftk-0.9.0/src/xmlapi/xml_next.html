@@ -1,0 +1,85 @@
+<html><head><title>xmlapi: Siblings: xml_next and xml_prev</title></head>
+<body>
+<h2>Siblings: xml_next and xml_prev</h2>
+<center>
+[&nbsp;<a href="xml_first.html">Previous: Children: xml_first and xml_last</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_insert.html">Next: inserting things: xml_insertbefore and xml_insertafter</a>&nbsp;]
+</center>
+
+<hr>
+For next and previous, we have to find the current element in its parent's children list,
+and then we're good to go.  Each function comes in two flavors: one sees plain text and the
+other (e.g. xml_nextelem) doesn't.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * xml_next(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return (NULL);
+   if (xml->parent == NULL) return (NULL);
+   list = xml->parent->children;
+   while (list != NULL &amp;&amp; list->element != xml) list = list->next;
+   if (list == NULL) return (NULL);
+   if (list->next == NULL) return (NULL);
+   return (list->next->element);
+}
+XML * xml_nextelem(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return (NULL);
+   if (xml->parent == NULL) return (NULL);
+   list = xml->parent->children;
+   while (list != NULL &amp;&amp; list->element != xml) list = list->next;
+   if (list == NULL) return (NULL);
+   while (list->next != NULL) {
+      if (list->next->element->name != NULL) break;
+      list = list->next;
+   }
+   if (list->next == NULL) return (NULL);
+   return (list->next->element);
+}
+XML * xml_prev(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return (NULL);
+   if (xml->parent == NULL) return (NULL);
+   list = xml->parent->children;
+   while (list != NULL &amp;&amp; list->element != xml) list = list->next;
+   if (list == NULL) return (NULL);
+   if (list->prev == NULL) return (NULL);
+   return (list->prev->element);
+}
+XML * xml_prevelem(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return (NULL);
+   if (xml->parent == NULL) return (NULL);
+   list = xml->parent->children;
+   while (list != NULL &amp;&amp; list->element != xml) list = list->next;
+   if (list == NULL) return (NULL);
+   while (list->prev != NULL) {
+      if (list->prev->element->name != NULL) break;
+      list = list->prev;
+   }
+   if (list->prev == NULL) return (NULL);
+   return (list->prev->element);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_first.html">Previous: Children: xml_first and xml_last</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_insert.html">Next: inserting things: xml_insertbefore and xml_insertafter</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

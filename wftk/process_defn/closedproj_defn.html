@@ -1,0 +1,163 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Process definition example -- closed source project</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Process definition example -- closed source project</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/process_defn.html>process&nbsp;definition</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+This is an attempt at the basic process outlined in the <a href=../usage/closedproj.html>closed source software
+development scenario</a>.  This scenario is the first one which involves creation of a project plan which is then
+executed as a subprocess.  <i>(2/24/00)</i> Revised to conform to the new data-tag structures I thought out yesterday.
+
+<pre>
+&lt;?xml version="1.0"?>
+
+&lt;<b>workflow</b> name="Closed source release project" author="Michael: michael@vivtek.com>">
+  &lt;<b>role</b> name="Analyst">&lt;/role>
+
+  &lt;<b>data</b> name="Description" type="text">&lt;/data>
+  &lt;<b>data</b> name="Mailing list">
+    &lt;<b>list</b>>&lt;<b>data</b> type="text">&lt;/data>&lt;/list>
+  &lt;/data>
+
+  &lt;<b>sequence</b>>
+     &lt;<b>task</b> label="Analyze" role="Analyst">
+        &lt;<b>data</b> name="changesource" storage="database/select * from changerequests where status='open'" readonly="yes">&lt;/data>
+        &lt;<b>data</b> name="changes" type="structure" value="${changesource}">&lt;/data>
+     &lt;/task>
+     &lt;<b>data</b> name="changes.status" value="in progress">&lt;/data>
+     &lt;<b>data</b> name="changes.project" value="${Current process}">&lt;/data>
+     &lt;<b>task</b> label="Plan" role="Analyst">
+        &lt;<b>data</b> name="Project plan" type="document:application/xml-workflow">&lt;/data>
+     &lt;/task>
+     &lt;<b>start</b> name="${Project plan}" location="deliverable" mode="merged">&lt;/start>
+     &lt;<b>data</b> name="changes.status" value="complete">&lt;/data>
+  &lt;/sequence>
+&lt;/workflow>
+
+</pre>
+
+<i>More data type shenanigans</i><br>
+This time I tossed in a collection of records.  I'm thinking that if a data item is a collection of something, then the
+way you fill that collection is to select from a universe of items.  So you should be able to specify the universe that
+can be selected from, and that is what I'm doing with that record select statement.  All in all, there will certainly be
+a lot of interaction with databases, so it makes sense to have rich ways of specifying that interaction.
+<p>
+Another aspect I just tossed in is the setting of data values by the system, not merely by agents during tasks.  And of
+course I did it rather weirdly, by setting the value of one field in each record of a set.  It seems to me that collections
+need to be smart enough to pass actions on to their elements, and that records need to be smart enough to figure out how
+to select and update field values as necessary.  I think it's obvious what these <code>data</code> tags are doing there,
+and it feels like a natural consequence of the syntax we're working out.  Comments are welcome.
+<p>
+<i>${Current process}</i><br>
+For those times when you just have to make reference to the current process, you pretty much have to have a way to get its
+identifier.  This seems like a natural way of doing it.  There will probably be a whole list of values that should be
+defined by default.
+<p>
+<i>Different modes of &lt;start&gt;</i><br>
+You'll notice when starting the project plan, I introduced a couple of new modifiers: location specifies where to
+obtain the named process definition when starting a new plan (default is the process definition repository, but this plan
+isn't <i>in</i> the process definition repository, it's in the deliverable repository).  I also figure we need different
+modes of start: default would be as a separate namespace, but "merged" would be nice if the points in the plan are to be
+considered part of the parent process (which also allows a single datasheet, which is very convenient).  Then the subprocess
+also gets to introduce new roles, and the old (already-assigned) roles are conveniently inherited by the parent process.
+Another convenient start mode would be "independent" -- which would simply start a new process and go on with the present
+one.
+<p>
+Another modifier that we'll eventually need for <code>start</code> would be something like <code>data="something"</code>,
+which would save the workflow identifier for later interaction.
+<p>
+Coming back to the default start mode...  It should be "task" and would show in the parent process as a single task, but
+would appear in the list of active processes as an independent process, as long as it's a named workflow.  If it's an
+anonymous subprocess, then I guess its tasks would have to appear in the parent process.  Meaning it's merged?  I guess
+this needs some more thought, too.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

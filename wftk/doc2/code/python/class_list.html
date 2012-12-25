@@ -1,0 +1,48 @@
+<html><head><title>Repository manager: list: a data source</title></head>
+<body>
+<h2>list: a data source</h2>
+<center>
+[&nbsp;<a href="class_repository.html">Previous: repository: the system</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="class_entry.html">Next: entry: an individual list entry</a>&nbsp;]
+</center>
+
+<hr>
+The list object would almost appear to be a superfluity given the fact that the repmgr API really treats a list name and key as
+nearly equivalent <i>coordinates</i> of an entry -- but lists are indeed somewhat privileged, and a useful function for the list
+object to fulfill is that it can act as an iterator along a list or query.  I'm probably going to end up conflating the list and
+query notions into a single list object -- this is because a list storage in the repository needn't necessarily be the only kind
+of list we think of as a "list".  In short, a list should be thought of as <i>any</i> collection of entries, even if it's not
+strictly a storage-oriented list defined by the repository.
+<p></p>
+In fact, a list could even be constructed dynamically and simply contain a bunch of otherwise unrelated entries or something.
+We'll see what makes the most sense later.  This is fun.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class list(xml):
+   """Implements a repository manager list.
+   """
+
+   #def query
+   #def setquery
+   #def rewind
+   #def advance
+   #def current
+   #def prev
+   #def next
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="class_repository.html">Previous: repository: the system</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="class_entry.html">Next: entry: an individual list entry</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

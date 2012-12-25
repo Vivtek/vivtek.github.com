@@ -1,0 +1,440 @@
+<html><head><title>LIST functionality: Dealing with SQL</title></head>
+<body>
+<h2>LIST functionality: Dealing with SQL</h2>
+<hr>
+<p></p>
+This is the first common-code addition to the adaptor functionality of the wftk.  Since SQL is pretty much standard (you'd think that since the 'S'
+stands for "Standard" it'd be completely standard, but that's life) it's pretty easy to write some common code to generate SQL from objects
+to do our usual tasks.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include &lt;string.h>
+#include &lt;time.h>
+#include &lt;stdlib.h>
+#include "xmlapi.h"
+#include "xmlobj.h"
+#include "../wftk.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+A useful little helper function:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static void sql_escaped_append (XML * s, const char * q, const char * v)
+{
+   char * mark;
+   if (!v) return;
+   while (mark = strchr (v, '\'')) {
+      xml_attrncat (s, q, v, mark - v);
+      xml_attrcat (s, q, "'");
+      v = mark + 1;
+   }
+   xml_attrcat (s, q, v);
+}
+</pre></td></tr></table>
+
+The four main tasks are, of course, SELECT, INSERT, UPDATE, and DELETE.  Generating SQL from our objects is actually more complicated than you'd think,
+because we have a whole lot of default semantics to take into consideration.  But this is code which has been with us a long time -- it started out in
+the ODBC taskindex adaptors, got modified to handle MySQL and Oracle, moved into the list adaptors with MySQL, and then had another pass through
+Oracle.  So it's getting pretty general by now, and handles a lot of sophisticated stuff.  Which is good.
+<p></p>
+But enough chit-chat.  Here's the code.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>
+void wftk_sql_build_select (XML * list, char * key, WFTK_SQL_FORCE_MAPPING force)
+{
+   XML * field;
+   XML * query = xml_create ("q");
+   char * value;
+
+   /* Make sure table is set in list definition. */
+   if (!*xml_attrval (list, "table")) xml_set (list, "table", xml_attrval (list, "id"));
+
+   /* Build the where clause for the query. */
+   /* TODO: this is incredibly naive and needs to know a lot more about the new where specs. */
+   /* TODO: See whether Oracle minds quotes around numeric constants, as MySQL doesn't. */
+   /* TODO: Make sure we look at type in the first place, oy. */
+   xml_set (query, "where", xml_attrval (list, "where"));
+   field = xml_firstelem (list);
+   while (field) {
+      if (xml_is (field, "field")) {
+         if (force) { (*force) (field); }
+         if (!strcmp (xml_attrval (field, "special"), "constant")) {
+            value = xml_stringcontenthtml (field);
+            if (*xml_attrval (query, "where")) { xml_attrcat (query, "where", " and "); }
+            xml_attrcat (query, "where", xml_attrval (field, "alias"));
+            xml_attrcat (query, "where", "='");
+            sql_escaped_append (query, "where", value);
+            xml_attrcat (query, "where", "'");
+            free ((void *) value);
+         }
+      }
+      field = xml_nextelem (field);
+   }
+
+   if (key) {
+      if (!*xml_attrval (list, "key")) {
+         field = xml_search (list, "field", NULL, NULL);
+         xml_set (list, "key", xml_attrval (field, "id"));
+      }
+      if (*xml_attrval (query, "where")) { xml_attrcat (query, "where", " and "); }
+      xml_attrcat (query, "where", xml_attrval (list, "key")); /* TODO: map key */
+      xml_attrcat (query, "where", "='");
+      sql_escaped_append (query, "where", key);
+      xml_attrcat (query, "where", "'");
+   }
+
+   /* Build the query itself. */
+   /* TODO: note that our order builder is also way too damned naive. */
+   xml_setf (list, "_select", "select * from %s", xml_attrval (list, "table"));
+   if (*xml_attrval (query, "where")) {
+      xml_attrcat (list, "_select", " where ");
+      xml_attrcat (list, "_select", xml_attrval (query, "where"));
+   }
+   if (*xml_attrval (list, "order")) {
+      xml_attrcat (list, "_select", " order by ");
+      xml_attrcat (list, "_select", xml_attrval (list, "order"));
+   }
+
+   xml_free (query);
+}
+
+XML * wftk_sql_build_insert (XML * list, XML * object, WFTK_SQL_FORCE_MAPPING force) 
+{
+   XML * query = xml_create ("q");
+   XML * mark;
+   XML * field;
+   XML * rest_xml = NULL;
+   char * value;
+   int keygen = 0;
+   char timebuf[20];
+   struct tm * timeptr;
+   time_t julian;
+
+   /* Make sure table is set in list definition. */
+   if (!*xml_attrval (list, "table")) xml_set (list, "table", xml_attrval (list, "id"));
+
+   xml_set (query, "fields", "");
+   xml_set (query, "values", "");
+
+   keygen = 0;
+
+   /* Get the time. */
+   time (&amp;julian);
+   timeptr = localtime (&amp;julian);
+   sprintf (timebuf, "'%04d%02d%02d_%02d%02d%02d'",
+                      timeptr->tm_year + 1900, timeptr->tm_mon + 1, timeptr->tm_mday,
+                      timeptr->tm_hour, timeptr->tm_min, timeptr->tm_sec);
+
+   for (mark = xml_firstelem (list); mark; mark = xml_nextelem (mark)) { /* First scan to see whether there's a rest_xml field. */
+      if (xml_is (mark, "field") &amp;&amp; force) { (*force) (mark); }
+      if (xml_is (mark, "field") &amp;&amp; !strcmp ("rest_xml", xml_attrval (mark, "special"))) {
+         rest_xml = xml_copy (object);
+         xml_set (rest_xml, "storage", xml_attrval (mark, "storage"));
+         xml_set (rest_xml, "field",   xml_attrval (mark, "alias"));
+         break;
+      }
+   }
+
+   for (mark = xml_firstelem (list); mark; mark = xml_nextelem (mark)) { /* Second scan to build actual query. */
+      if (xml_is (mark, "field")) {
+         if (!keygen &amp;&amp; !strcmp (xml_attrval (mark, "special"), "key")) {
+            keygen = 1;
+            xml_set (query, "keygen", xml_attrval (mark, "id"));
+            field = xml_search (object, "field", "id", xml_attrval (mark, "id"));
+            if (!field) {
+               field = xml_create ("field");
+               xml_set (field, "id", xml_attrval (mark, "id"));
+               if (*xml_attrval (mark, "type")) xml_set (field, "type", xml_attrval (mark, "type"));
+               xml_prepend_pretty (object, field);
+            }
+            xml_set_nodup (query, "keygeninit", xmlobj_get (object, list, xml_attrval (mark, "id")));  /* TODO: LIST_localdir should do this, too. */
+            if (!*xml_attrval (mark, "keygen")) xml_set (mark, "keygen", xml_attrval (list, "_keygen"));
+            if (*xml_attrval (mark, "keygen")) {
+               xml_unset (query, "keygen");
+               xml_attrcat (query, "fields", ", ");
+               xml_attrcat (query, "fields", xml_attrval (mark, "alias"));
+               xml_attrcat (query, "values", ", ");
+               xml_setf (query, "_keygen", xml_attrval (mark, "keygen"), xml_attrval (list, "table"), xml_attrval (mark, "id"));
+               xml_attrcat (query, "values", xml_attrval (query, "_keygen"));
+               xml_set (list, "_keycol", xml_attrval (mark, "id"));
+            }
+
+            xmlobj_unset (rest_xml, NULL, xml_attrval (mark, "id"));
+         } else {
+            if (rest_xml) {
+               if (!strcmp (xml_attrval (mark, "special"), "constant") ||
+                   !strcmp (xml_attrval (mark, "special"), "key") ||
+                   !strcmp (xml_attrval (mark, "special"), "rest_xml") ||
+                   !strcmp (xml_attrval (mark, "id"), xml_attrval (list, "keycol")) ||
+                   (!strcmp (xml_attrval (mark, "storage"), "record") ||
+                    !strncmp (xml_attrval (mark, "storage"), "record:", 7))) {
+                  xmlobj_unset (rest_xml, NULL, xml_attrval (mark, "id"));
+               } else {
+                  continue;  /* If not stored in record, skip this field. */
+               }
+            }
+
+            /* Handle field. */
+            xml_attrcat (query, "fields", ", ");
+            xml_attrcat (query, "fields", xml_attrval (mark, "alias"));
+
+            xml_attrcat (query, "values", ", ");
+            if (strcmp (xml_attrval (mark, "special"), "constant")) {
+               value = xmlobj_get (object, list, xml_attrval (mark, "id"));
+               if (!value) value = strdup ("");
+            } else {
+               value = xml_stringcontenthtml (mark);
+               field = xml_search (object, "field", "id", xml_attrval (mark, "id"));
+               if (!field) {
+                  field = xml_create ("field");
+                  xml_set (field, "id", xml_attrval (mark, "id"));
+                  if (*xml_attrval (mark, "type")) xml_set (field, "type", xml_attrval (mark, "type"));
+                  xml_append_pretty (object, field);
+               }
+               xml_replacecontent (field, xml_createtext (value));
+            }
+
+            if (!strcmp (xml_attrval (mark, "special"), "now") || !strcmp (xml_attrval (mark, "special"), "add")) {
+               xml_attrcat (query, "values", *xml_attrval (list, "_now") ? xml_attrval (list, "_now") : timebuf);
+            } else if (!strncmp (xml_attrval (mark, "type"), "numeric", 7)) {
+               if (!value) {
+                  xml_attrcat (query, "values", "0");
+               } else if (!*value) {
+                  xml_attrcat (query, "values", "0");
+               } else {
+                  xml_attrcat (query, "values", value);
+               }
+            } else if (!strcmp (xml_attrval (mark, "special"), "rest_xml")) {
+               xml_attrcat (query, "values", *xml_attrval (list, "_blob") ? xml_attrval (list, "_blob") : "''");
+            } else {
+               xml_attrcat (query, "values", "'");
+               sql_escaped_append (query, "values", value);
+               xml_attrcat (query, "values", "'");
+            }
+            if (value) free ((void *)value);
+         }
+      }
+   }
+
+   if (keygen &amp;&amp; *xml_attrval (query, "keygen")) {
+      sprintf (timebuf + 16, "_%d", rand() * 100 / RAND_MAX);
+      xml_setf (list, "_keyval", "%s%s", xml_attrval (query, "keygeninit"), timebuf + 1);
+      xml_set (list, "_retry", "yes");
+      xml_setf (list, "_insert", "insert into %s (%s %s) values ('%s' %s)",
+                                  xml_attrval (list, "table"),
+                                  xml_attrval (query, "keygen"),
+                                  xml_attrval (query, "fields"),
+                                  xml_attrval (list, "_keyval"),
+                                  xml_attrval (query, "values"));
+   } else {
+      xml_unset (list, "_retry");
+      xml_unset (list, "_keyval");
+      xml_setf (list, "_insert", "insert into %s (%s) values (%s)",
+                                  xml_attrval (list, "table"),
+                                  xml_attrval (query, "fields") + 2,
+                                  xml_attrval (query, "values") + 2);
+   }
+   xml_free (query);
+
+
+   return (rest_xml);
+}
+</pre></td></tr></table>
+
+Building an update query is similar to insertion -- except that (1) we don't have to worry about the key field, (2) we only look at fields which are
+actually in the object (allowing a short query for diffs), (3) we do have to watch out for attempts to change constant fields, and (4) we have to
+tack on special fields marked as "now" or "mod" so that timestamps are honored.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * wftk_sql_build_update (XML * list, XML * object, WFTK_SQL_FORCE_MAPPING force) 
+{
+   XML * query = xml_create ("q");
+   XML * mark;
+   XML * field;
+   XML * rest_xml = NULL;
+   char * value;
+   int table_fields = 0;
+   int keygen = 0;
+   char timebuf[20];
+   struct tm * timeptr;
+   time_t julian;
+
+   /* Make sure table is set in list definition. */
+   if (!*xml_attrval (list, "table")) xml_set (list, "table", xml_attrval (list, "id"));
+
+   /* Get the time. */
+   time (&amp;julian);
+   timeptr = localtime (&amp;julian);
+   sprintf (timebuf, "'%04d%02d%02d_%02d%02d%02d'",
+                      timeptr->tm_year + 1900, timeptr->tm_mon + 1, timeptr->tm_mday,
+                      timeptr->tm_hour, timeptr->tm_min, timeptr->tm_sec);
+
+   xml_set (query, "key", xml_attrval (object, "id"));  /* TODO: why is this here? */
+   if (!*xml_attrval (query, "key")) xml_set (query, "key", xml_attrval (object, "key"));
+
+   if (!*xml_attrval (query, "key")) {
+      xml_set_nodup (query, "key", xmlobj_getkey (object, list));
+   }
+   if (!*xml_attrval (query, "key")) {
+      xml_free (query);
+      xml_set (list, "_error", "Unable to determine key for update.");
+      return NULL;
+   }
+   if (!*xml_attrval (list, "key")) {
+      mark = xml_firstelem (list);
+      while (mark) {
+         if (xml_is (mark, "field") &amp;&amp; !strcmp (xml_attrval (mark, "special"), "key")) {
+            xml_set (list, "key", xml_attrval (mark, "id"));
+         }
+         mark = xml_nextelem (mark);
+      }
+   }
+   if (!*xml_attrval (list, "key")) {
+      xml_free (query);
+      xml_set (list, "_error", "Unable to determine key field in list definition.");
+      return NULL;
+   }
+   xml_unset (list, "_error");
+
+   xml_set (query, "sets", "");
+
+   for (field = xml_firstelem (list); field; field = xml_nextelem (field)) { /* First scan to see whether there's a rest_xml field. */
+      if (xml_is (field, "field") &amp;&amp; force) { (*force) (field); }
+
+      if (xml_is (field, "field") &amp;&amp; !strcmp ("rest_xml", xml_attrval (field, "special"))) {
+         rest_xml = xml_copy (object);
+         xml_set (rest_xml, "storage", xml_attrval (field, "storage"));
+         xml_set (rest_xml, "field",   xml_attrval (field, "alias"));
+         break;
+      }
+   }
+
+   for (field = xml_firstelem (object); field; field = xml_nextelem (field)) { /* Second scan to build SQL. */
+      if (xml_is (field, "field")) {
+         mark = xml_search (list, "field", "id", xml_attrval (field, "id"));
+         if (mark &amp;&amp; strcmp (xml_attrval (mark, "special"), "constant") 
+                  &amp;&amp; strcmp (xml_attrval (mark, "special"), "now")
+                  &amp;&amp; strcmp (xml_attrval (mark, "special"), "mod")
+                  &amp;&amp; strcmp (xml_attrval (mark, "special"), "rest_xml")) {
+            if (rest_xml) {
+               if (!strcmp (xml_attrval (mark, "special"), "key") ||
+                   !strcmp (xml_attrval (mark, "id"), xml_attrval (list, "keycol")) ||
+                   (!strcmp (xml_attrval (mark, "storage"), "record") ||
+                    !strncmp (xml_attrval (mark, "storage"), "record:", 7))) {
+                  xmlobj_unset (rest_xml, NULL, xml_attrval (mark, "id"));
+               } else {
+                  continue;  /* If not stored in record, skip this field. */
+               }
+            }
+
+
+            table_fields++;
+
+            xml_attrcat (query, "sets", ", ");
+            xml_attrcat (query, "sets", xml_attrval (mark, "alias"));
+            xml_attrcat (query, "sets", "=");
+
+            value = xmlobj_get (object, list, xml_attrval (mark, "id"));
+            if (!strncmp (xml_attrval (mark, "type"), "numeric", 7)) {
+               if (!*value) {
+                  xml_attrcat (query, "sets", "0");
+               } else {
+                  xml_attrcat (query, "sets", value);
+               }
+            } else {
+               xml_attrcat (query, "sets", "'");
+               sql_escaped_append (query, "sets", value);
+               xml_attrcat (query, "sets", "'");
+            }
+            free ((void *)value);
+         }
+      }
+   }
+
+   /* Now scan for now and mod fields. */
+   mark = xml_firstelem (list);
+   while (mark) {
+      if (xml_is (mark, "field") &amp;&amp; (!strcmp (xml_attrval (field, "special"), "now")  || !strcmp (xml_attrval (field, "special"), "mod"))) {
+         xml_attrcat (query, "sets", ", ");
+         xml_attrcat (query, "sets", xml_attrval (mark, "alias"));
+         xml_attrcat (query, "sets", "=");
+         xml_attrcat (query, "sets", *xml_attrval (list, "_now") ? xml_attrval (list, "_now") : timebuf);
+         table_fields++;
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   if (table_fields) {
+      xml_setf (list, "_update", "update %s set %s where %s='%s'",
+                                  xml_attrval (list, "table"),
+                                  xml_attrval (query, "sets") + 2,
+                                  xml_attrval (list, "key"), /* TODO: map key */
+                                  xml_attrval (query, "key"));
+   } else {
+      xml_set (list, "_update", "");
+   }
+   xml_free (query);
+
+   return (rest_xml);
+}
+
+void wftk_sql_build_delete (XML * list, char * key, WFTK_SQL_FORCE_MAPPING force)
+{
+   XML * mark;
+   XML * key_field;
+   const char * key_name;
+
+   /* Make sure table is set in list definition. */
+   if (!*xml_attrval (list, "table")) xml_set (list, "table", xml_attrval (list, "id"));
+
+   if (!*xml_attrval (list, "key")) {
+      mark = xml_firstelem (list);
+      while (mark) {
+         if (xml_is (mark, "field") &amp;&amp; !strcmp (xml_attrval (mark, "special"), "key")) {
+            xml_set (list, "key", xml_attrval (mark, "id"));
+         }
+         mark = xml_nextelem (mark);
+      }
+   }
+   if (!*xml_attrval (list, "key")) {
+      xml_set (list, "_error", "Unable to determine key field in list definition.");
+      return;
+   }
+   xml_unset (list, "_error");
+
+   key_name = xml_attrval (list, "key");
+   key_field = xml_search (list, "field", "id", key_name);
+   if (key_field) {
+      if (force) { (*force) (key_field); }
+      if (*xml_attrval (key_field, "alias")) {
+         key_name = xml_attrval (key_field, "alias");  /* TODO: (2004-03-01) this doesn't seem to make much sense. */
+      }
+   }
+
+   xml_setf (list, "_delete", "delete from %s where %s='%s'",
+                               xml_attrval (list, "table"),
+                               key_name,
+                               key);
+}
+
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

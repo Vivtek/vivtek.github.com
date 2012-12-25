@@ -1,0 +1,53 @@
+<html><head><title>wftk context handling: Function definitions</title></head>
+<body>
+<h2>Function definitions</h2>
+<center>
+[&nbsp;<a href="wftk_session_h.html">Previous: Include file (and API definition)</a>&nbsp;]
+[&nbsp;<a href="wftk_session.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_session_handling.html">Next: Working with sessions</a>&nbsp;]
+</center>
+
+<hr>
+So.  As mentioned above, the context handling functionality falls into three areas: session handling,
+configuration management, and adaptor management.  All three of these areas are now going to be munged into
+this single object file, because they're really pretty interdependent anyway.  Makes things neat.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdarg.h>
+#include &lt;stdio.h>
+#include &lt;malloc.h>
+#include &lt;string.h>
+#include "wftk_session.h"
+#include "time.h"
+#include "stdarg.h"
+#include "wftk_internals.h"
+#include "xmlapi.h"
+#include "xmlobj.h"
+/*#include "localdefs.h" -- don't know whether I want this or not at this point. */
+#ifdef WINDOWS
+#include &lt;windows.h>  /* For DLL machinery for adaptor loading. */
+#endif
+
+#ifdef WFTK_WITH_REPMGR
+#include "../repmgr/repmgr.h"
+#endif
+
+<i>See <a href="wftk_session_handling.html">Working with sessions</a></i>
+<i>See <a href="wftk_config.html">wftk configuration module</a></i>
+<i>See <a href="wftk_adaptors.html">wftk adaptor code</a></i>
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_session_h.html">Previous: Include file (and API definition)</a>&nbsp;]
+[&nbsp;<a href="wftk_session.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_session_handling.html">Next: Working with sessions</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

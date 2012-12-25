@@ -1,0 +1,72 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk: enactment</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk: working with the enactment history</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="index.html">wftk programmer's guide home</a> ]
+<hr>
+
+<h3>The enactment history</h3>
+Each action taken during the course of a process is recorded in the enactment history.  You can get that
+enactment (an XML structure) or write to it; for ease of use, there's also <code>wftk_log</code>, which
+writes an arbitrary string to the enactment history.
+<p>
+<h3>Functions</h3>
+<pre>
+XML  * wftk_enactment       (void * session, XML * datasheet);
+int    wftk_enactment_write (void * session, XML * datasheet, XML * xml, const char * attribute, const char * value);
+int    wftk_log             (void * session, XML * datasheet, char * log);
+</pre>
+
+<h3>Details</h3>
+
+<a name="wftk_enactment"></a>
+<font size=+1>wftk_enactment</font> returns <code>XML *</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>
+</blockquote>
+
+Returns a pointer to the process's enactment structure.
+
+<br><br>
+
+<a name="wftk_enactment_write"></a>
+<font size=+1>wftk_enactment_write</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>XML * xml</code>,<br>
+<code>const char * attribute</code>,<br>
+<code>const char * value</code>
+</blockquote>
+
+Creates an enactment entry for the process.  The enactment structure is created if necessary.
+An arbitrary attribute may be attached using <i>attribute</i> and <i>value</i>; if not used,
+these should be NULL.
+
+<br><br>
+<a name="wftk_log"></a>
+<font size=+1>wftk_log</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>const char * message</code>
+</blockquote>
+
+Logs a simple text message to the process's enactment history.  Useful for marking points in
+time.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

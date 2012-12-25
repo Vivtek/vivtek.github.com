@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Applying the wftk: lartmeister.com</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Applying the wftk: lartmeister.com</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+<hr>
+
+<h3>LART tool central</h3>
+The idea for LARTmeister has been one of the motivating impulses for wftk for me over the last two years.
+I first came up with the idea while active in online spam/scam fighting at the <a href="http://www.mmfhoh.org">MMF Hall of Humiliation</a>;
+just as a matter of clarification, the slang term LART stands for "Loser Attitude Readjustment Tool" and it's
+basically a question of finding out who to notify about a particular Net abuser so that relevant accounts can be
+terminated.
+<p>
+Finding the culprit in Net abuse can be an entertaining pastime, but I found it rather tedious in short order.  There are certain
+well-known tools to be used, such as host, whois and traceroute to determine Internet configuration and responsibility for various
+net blocks and domain names.  There are Web pages to check (and cache in case they're removed), diagnostics to run, and so forth -- all
+entertaining enough.  But if you really want to fight spam, you have to report the spam and keep track of what you've done, and that
+requires organization.  And organization is boring.
+<p>
+So back in 1999 or so I thought it'd be really nice to have a tool to help me organize my LARTs, and from there it was a natural
+extension to extend that notion to a free service available to the masses, which would both help combat Net abuse and also provide
+a natural way to <i>track</i> Net abuse to identify trends.  I sketched out some ideas, implemented some of the tools in online form,
+and ... got distracted with other things, like building <a href="http://www.despammed.com">the Despammed.com free mail filtration service</a>.
+But of course, I get a lot of abuse reports from Despammed.com users, and boy it'd be nice to organize all that.  Wouldn't it?
+<p>
+So what I need is of course a workflow system.  And thus it's no coincidence that I have written one.  But until the last few months, I
+wasn't sure where to start building the LARTmeister, because it entails more than just a simple
+case object.  Now, I think there is enough basic work done on wftk and the repository manager that the LARTmeister should be something approaching
+child's play.  I'll be working it out here and documenting the time I spend, so we'll see how easy wftk makes a rather complex web site.
+
+<h3>Overview</h3>
+So it seemed to me that the logical place to start with such a system design would be to get an idea of
+the <i>objects</i> involved, the <i>people</i> who use the system, the <i>processes</i> which get things
+done, and the <i>interfaces</i> to other systems required.  This is set out below in the methodology
+section, but first, let's muse a little on some of the conceptual universe that LARTmeister needs to
+understand.
+<p>
+First and foremost, the LARTmeister is driven by reports of <b>abuse incidents</b> by <b>submitters</b>.
+An incident is a case, in the workflow sense, and is the center of attention for actual activity in the
+system.  The abuse incident may be an email spam, a newsgroup spam, or a website which promulgates a
+scam of some sort.
+<p>
+However, the case draws on a large and somewhat complex database of known information, such as
+a list of <b>known spammers</b> and <b>known MMFools</b> (people who participate in chain letter scams).
+The system also tracks <b>ISPs</b> and <b>whitehats</b> (known effective abuse fighters) for abuse
+reporting.  It may utilize external resources such as <a href="http://www.abuse.net/">abuse.net</a> to
+manage this information.
+<p>
+Once an incident has been reported, there are various standard steps which can be taken.  These mostly
+take the form of execution of standard tools.  In the case of email spam, for instance, headers can
+be analyzed in an attempt to determine the source of the mailing or any relays abused on the way.  In
+the case of a website, whois and host can be used to determine the owner of the site, and traceroute
+can be run to determine the site's hosting and upstream.  Once responsible parties have been identified
+(if possible), then reports can be dispatched.  Each report should have a return address uniquely tied
+to the incident, so that any and all replies or related correspondence (even by BCC) can be attached to
+the incident with no further ado.  (Once a case is closed, its attached email address is disabled and
+can even be used as a spamtrap!)
+<p>
+If the abuse concerns a webpage (even if this is a page spamvertised in an email) then the system can
+automatically monitor the page in question, to track when and if it is disabled, check that it is not
+re-enabled, and notify the submitter if the page is changed in any way.  In this case, <b>known scam
+pages</b> are established and can be screened in later incidents.
+<p>
+I can go on.  I have reams of this kind of idea.  If you've done any spam fighting, you do, too.  But this
+is meant to be a general overview, a sketch of what is doable.  So I'll stop, but I will challenge you
+to one thing: if you're a programmer, try to get an idea of the programming involved if you were starting
+from scratch using, say, CGIs and a database.  Please <a href="mailto:wftk@vivtek.com">email me with your
+estimate</a> just so I can get an idea.  I know this is the kind of project I characteristically
+underbid, so I don't trust my own judgment, except to note that until I got this far with the wftk,
+<i>I didn't even start implementing this</i> for fear it'd consume me.
+<p>
+I'll be logging actual time spent on the project.  This overview and some other notes took me
+approximately 1.5 hours to create, and I started on it on Wednesday, January 16, 2002.  Wish me luck.
+
+<h3>Methodology</h3>
+Not that I'm a real expert on this, but here's the methodology I'm going to follow while working on the
+LARTmeister example.  I'll change it as I work, and link from the headings to the actual documents
+as they're created.
+
+<ol>
+<li><a href="lm_use.html">Write some use cases.</a> (19 Jan 2002)<br>
+The use cases follow individual users through interactions with the system.
+By identifying the important use cases, we can identify the objects, pages, and interfaces needed to
+implement them.  Extensions to the system can be seen as new use cases or modifications to existing
+ones.
+<li>Simultaneous with this, start planning Website layout.<br>Since the LARTmeister is going to be
+at lartmeister.com, it needs supporting content and a consistent look and feel.  This effort can progress
+completely parallel with development of the active portions, of course.
+<li>Define objects and enumerate roles.<br>Complete object definitions will probably be long in coming,
+but initial layout of the schema will give us a way to toss in some test data and test our intuitions
+about the use cases.
+<li>Define and implement interfaces.<br>Since data management is already implemented as soon as the
+objects and roles are defined, the logical next step is to implement the ways that the system will
+actually be able to take action.
+<li>Define and implement processes and tools.<br>Tools (such as wrappers for whois and traceroute) may
+turn out to be the most complicated part of this system.  I'm not sure yet.
+</ol>
+
+What I'm only now starting to see (even though I'd always planned it) is that construction of a system using
+wftk is ideally <i>no more than defining it</i>.  In other words, a careful description of a complex
+system of data interactions should itself <i>be</i> that system, because all the necessary logic is
+already implemented in wftk.  That's the idea behind 4GL (fourth-generation languages) of course: you
+tell the system what to do, not how to do it, and it takes it from there.  Let's hope that wftk will
+really make this as easy as I think.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2002 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

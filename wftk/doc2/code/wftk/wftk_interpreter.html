@@ -1,0 +1,492 @@
+<html><head><title>wftk core library: The interpreter: figuring out what to do next</title></head>
+<body>
+<h2>The interpreter: figuring out what to do next</h2>
+<center>
+[&nbsp;<a href="wftk_decide.html">Previous: Making decisions: wftk_decide</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Next: wftk core library</a>&nbsp;]
+</center>
+
+<hr>
+The interpreter consists of two functions, <code>queue_procdef</code> and <code>process_procdef</code>.  Both work
+from the queue which is part of the state of the process.  The <code>queue_procdef</code> function takes a procdef
+or piece of one and adds it to the queue.  Simple enough.  The <code>process_procdef</code> function, then, does
+the bulk of the work.  It runs through the queue, looking at each queued item in turn.  If the "block" attribute
+of an item is "yes", then it's skipped; otherwise it is consumed.  Various actions, of course, can then queue
+other items.  The function returns only when the queue is empty (at which point the process is complete) or everything
+in the queue is blocked, meaning that there are only tasks waiting on further input.
+<p></p>
+Let's look at <code>queue_procdef</code> first.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * queue_procdef (XML * session, XML * datasheet, XML * action, const char * where, int extrabit)
+{
+   XML * item;
+   XML * queue = xml_loc (datasheet, ".state.queue");
+   char * locbuf;
+   char * mark;
+   int  idcount;
+
+   if (action == NULL) return NULL;
+
+   idcount = wftk_value_counter (session, datasheet, "idcount");
+
+   item = xml_create("item");
+   xml_setnum (item, "id", idcount);
+   xml_set (item, "type", xml_name(action));
+   locbuf = xml_getlocbuf (action);
+   mark = strstr (locbuf, ".workflow");
+   if (mark) {
+      mark ++;
+      mark = strchr (mark, '.');
+   }
+   if (mark) {
+      xml_set (item, "loc", mark+1);
+      free (locbuf);
+   } else {
+      xml_set_nodup (item, "loc", locbuf);
+   }
+   xml_setf (item, "where", where, extrabit);
+   xml_set (item, "oncomplete", xml_attrval (action, "oncomplete"));
+   xml_set (item, "fortask", xml_attrval (action, "fortask"));
+   xml_append (queue, item);
+   return (item);
+}
+</pre></td></tr></table>
+
+OK.  So what does it take to do the interpretation itself?  Not too much, actually.  Let's look at the overall structure of
+<code>process_procdef</code>, then talk about why it's the way it is, and then we'll fill in the various actions afterwards.
+<p></p>
+<i>(May 27, 2002)</i> Once a workflow finishes, we need to check whether it was a top-level workflow.
+If so, then we delete the workflow.  (We may log this event in the enactment at some point.  TODO)  If this was
+the start task of a defined workflow, then we have to queue up the defined workflow as well.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void process_procdef(XML * session, XML * datasheet, XML * state, XML * queue)
+{
+   XML * item;
+   XML * workflow;
+   XML * procdef;
+   XML * def;
+   XML * holder;
+   XML * mark;
+   XML * task;
+   XML * data;
+   XML * next;
+   XML * newfield;
+   XML * enactment;
+   char * defn;
+   char * value;
+   const char * type;
+   int count;
+   int keep;
+   WFTK_ADAPTORLIST * adlist;
+
+   item = xml_firstelem (queue);
+
+   repos_log (session, 5, 2, NULL, "wfcore", "process_procdef running");
+   /*log_xml_object (session, 6, 2, "wfcore", "QUEUE", queue);*/
+
+   while (item != NULL) {
+      if (!strcmp("yes", xml_attrval(item, "block"))) {
+         item = xml_nextelem(item);
+         continue;
+      }
+
+      /*log_xml_object (session, 6, 2, "wfcore", "ITEM", item);*/
+
+      workflow = xml_loc (datasheet, xml_attrval (item, "where"));
+      if (!workflow) {
+         repos_log (session, 1, 2, NULL, "wfcore", "Unable to find workflow %s in object %s:%s",
+                                                   xml_attrval (item, "where"),
+                                                   xml_attrval (datasheet, "dsrep"),
+                                                   xml_attrval (datasheet, "key"));
+         item = xml_nextelem (item);
+         continue;
+      } /* TODO: saner error behavior. */
+
+      /*log_xml_object (session, 7, 2, "wfcore", "WORKFLOW", workflow);*/
+
+      procdef = _procdef_load (session, workflow);
+      if (!procdef) {
+         repos_log (session, 1, 2, NULL, "wfcore", "Unable to find procdef for workflow %s in object %s:%s",
+                                                   xml_attrval (item, "where"),
+                                                   xml_attrval (datasheet, "dsrep"),
+                                                   xml_attrval (datasheet, "key"));
+         item = xml_nextelem (item);
+         continue;
+      } /* TODO: saner error behavior. */
+
+      def = xml_loc (procdef, xml_attrval (item, "loc"));
+      if (!def) {
+         repos_log (session, 1, 2, NULL, "wfcore", "Unable to locate item %s in procdef for workflow %s object %s:%s",
+                                                   xml_attrval (item, "loc"),
+                                                   xml_attrval (item, "where"),
+                                                   xml_attrval (datasheet, "dsrep"),
+                                                   xml_attrval (datasheet, "key"));
+         item = xml_nextelem (item);
+         continue;
+      } /* TODO: saner error behavior. */
+
+      type = xml_attrval (item, "type");
+
+      keep = 0;
+      next = NULL;
+             if (!strcmp (type, "parallel")) {
+         <i>See <a href="wftk_interpreter.html#parallel">Handling parallel</a></i>
+      } else if (!strcmp (type, "task")) {
+         <i>See <a href="wftk_interpreter.html#task">Handling task</a></i>
+      } else if (!strcmp (type, "action")) {
+         <i>See <a href="wftk_interpreter.html#action">Handling action</a></i>
+      } else if (!strcmp (type, "data")) {
+         <i>See <a href="wftk_interpreter.html#data">Handling data</a></i>
+      } else if (!strcmp (type, "situation")) {
+         <i>See <a href="wftk_interpreter.html#situation">Handling situation</a></i>
+      } else if (!strcmp (type, "decide")) {
+         <i>See <a href="wftk_interpreter.html#decide">Handling decide</a></i>
+      } else if (!strcmp (type, "alert")) {
+         <i>See <a href="wftk_interpreter.html#alert">Handling alerts</a></i>
+      } else if (!strcmp (type, "start")) {
+         <i>See <a href="wftk_interpreter.html#start">start: Starting subprocesses</a></i>
+      } else { /* Treat it as a sequence. */
+         <i>See <a href="wftk_interpreter.html#sequence">Handling sequence</a></i>
+      }
+
+      if (keep) {
+         xml_set (item, "block", "yes");
+         item = xml_nextelem(item);
+      } else {
+         if (*xml_attrval (item, "oncomplete")) {
+            _status_set (session, datasheet, xml_attrval (item, "oncomplete"), 0);
+         }
+         if (*xml_attrval (item, "parent")) {
+            next = xml_locf (queue, ".item[%s]", xml_attrval (item, "parent"));
+            xml_delete (item);
+            item = next;
+            xml_set (item, "block", "no");
+         } else { /* The workflow piece has finished (no parent item). */
+            holder = NULL;
+            if (*xml_attrval (item, "fortask")) {
+               holder = xml_locf (datasheet, ".state.queue.item[%s]", xml_attrval (item, "fortask"));
+               if (holder) { /* A workflow task; we'll just handle that case right in the interpreter. */
+               } else { /* Maybe it's an ad-hoc task or something; wftk_task_complete can handle it. */
+                  holder = xml_create ("task");
+                  xml_set (holder, "id", xml_attrval (item, "fortask"));
+                  xml_set (holder, "dsrep", xml_attrval (datasheet, "repository"));
+                  xml_set (holder, "process", xml_attrval (datasheet, "id"));
+                  wftk_task_complete (session, holder);
+                  xml_delete (holder);
+                  holder = NULL;
+               }
+            }
+
+            mark = xml_parent (def);
+            if (!xml_parent (mark)) {
+               /* Defined workflow has completed.  We delete it unless it contains state transitions. */
+               if (strcmp (xml_attrval (workflow, "state"), "yes")) xml_delete_pretty (workflow);
+            } else if (mark == workflow) {
+               /* Ad-hoc or startup workflow has completed. */
+               if (*xml_attrval (workflow, "procdef")) {
+                  /* Startup workflow for a defined procdef. */
+                  mark = xml_first (workflow);
+                  while (mark) {
+                     xml_delete (mark);
+                     mark = xml_first (workflow);
+                  }
+                  procdef = _procdef_load (session, workflow);
+                  holder = queue_procdef (session, datasheet, procdef, xml_attrval (item, "where"), 0);
+               } else {
+                  /* Ad-hoc workflow has completed. */
+                  if (strcmp (xml_attrval (workflow, "state"), "yes")) xml_delete_pretty (workflow);
+               }
+            }
+
+            xml_delete (item);
+            item = holder;
+         }
+      }
+   }
+}
+</pre></td></tr></table>
+
+As you can see, the whole thing is the loop which walks along the queue.  If an item is blocked, we skip it, otherwise
+we process it.  The details of processing are below, and remember that processing might entail the queuing of new items.
+Once the item has been processed, it may either be blocked, in which case we block it, or it's finished and we delete it.
+If it's finished, control returns to its parent, if it has one, and things go on.  If the parent decides to block, then
+the queue continues.  Pretty neat, actually.  The "parent" here is not the parent node of the procdef action, but rather
+the parent <i>item</i> of the completed item in the queue.  Its identifier is thus a number created by
+<code>queue_procdef</code>.
+<br><br>
+<a name="state">
+<i>Definition of _state structure</i><br>
+In the prototype, state was kept as global variables.  If the wftk core engine were always called as a simple command-line
+program, this would work out fine, I suppose, but if we want to build it into things like linakable libraries, we have to
+worry about contention.  So I've split out the global state into a state structure which is to be passed around internally
+to keep track of where we are.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _state {
+   XML * datasheet;
+   XML * state;
+   XML * queue;
+   XML * procdef;
+};
+</pre></td></tr></table>
+<br><br>
+<a name="sequence">
+<i>Handling sequence</i><br>
+So let's look at the individual action handlers for the above, starting with the sequence handler.
+The sequence handler takes care of the sequence tag and also the contents of the outer
+workflow tag (which are executed sequentially).  If the "cur" attribute is not yet set, then
+this is the first time we've encountered this sequence, and we queue up the first child of
+the sequence (and note its location with "cur", of course).  Otherwise, we find the child
+located by "cur", find its next sibling, and queue that up.
+<p></p>
+If something gets queued, then we block.  Remember, we signify blocking by setting <code>keep</code> to 1.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!strcmp ("", xml_attrval (item, "cur"))) {
+   next = xml_firstelem (def);
+} else {
+   mark = xml_loc (procdef, xml_attrval (item, "cur"));
+   next = xml_nextelem (mark);
+}
+
+if (next) {
+   holder = queue_procdef (session, datasheet, next, xml_attrval (item, "where"), 0);
+   xml_set (holder, "parent", xml_attrval (item, "id"));
+   xml_set (item, "cur", xml_attrval (holder, "loc"));
+   keep = 1;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="parallel">
+<i>Handling parallel</i><br>
+The parallel item queues up all its children, then blocks.  When a child completes, it counts
+the number of children complete; when its counter decrements to zero, it completes.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!strcmp ("", xml_attrval (item, "remaining"))) {
+   count = 0;
+   next = xml_firstelem (def);
+   while (next != NULL) {
+      count ++;
+      xml_set (queue_procdef (session, datasheet, next, xml_attrval (item, "where"), 0), "parent", xml_attrval (item, "id"));
+      next = xml_nextelem (next);
+   }
+} else {
+   count = xml_attrvalnum (item, "remaining");
+   count--;
+}
+xml_setnum (item, "remaining", count);
+if (count > 0) keep = 1;
+</pre></td></tr></table>
+<br><br>
+<a name="task">
+<i>Handling task</i><br>
+Doing a task is nothing more than setting up task data and telling the task manager that the
+task has been activated.  We'll take as the task ID the process ID plus our internal task ID;
+this will make things easier to handle in the task manager, as it means our task IDs will 
+always be unique (well, assuming the task manager always gives us unique process IDs.)
+<p></p>
+If the task defines data, then we create a placeholder in the datasheet when the task is activated.
+This is to allow things like option lists to get their values for display, and so that the
+value will show up in the value list (as a blank, of course).
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (strcmp (xml_attrval (item, "block"), "resume")) {
+   /* Notify task indices of the new active task. */
+   task = xml_create ("task");
+   xml_set (task, "id", xml_attrval (item, "id"));
+   xml_set_nodup (task, "label", wftk_value_interpreta (session, datasheet, xml_attrval (def, "label")));
+   if (*xml_attrval (def, "role"))     xml_set (task, "role", xml_attrval (def, "role"));
+   if (*xml_attrval (def, "user"))     xml_set (task, "user", xml_attrval (def, "user"));
+   if (*xml_attrval (def, "tag"))      xml_set (task, "tag", xml_attrval (def, "tag"));
+   xml_set_nodup (task, "priority", wftk_value_interpreta (session, datasheet, xml_attrval (def, "priority")));
+   if (!*xml_attrval (task, "user") &amp;&amp; *xml_attrval (task, "role")) {
+      xml_set (task, "user", wftk_role_user (session, datasheet, xml_attrval (task, "role")));
+   }
+   xml_set (task, "process", xml_attrval (datasheet, "id"));
+   if (*xml_attrval (datasheet, "list")) {
+      xml_setf (task, "list", xml_attrval (datasheet, "list"));
+      xml_setf (task, "process", xml_attrval (datasheet, "key"));
+   }
+
+   mark = xml_firstelem (def);
+   while (mark) {
+      if (xml_is (mark, "data")) {
+         if (!*xml_attrval (mark, "storage") &amp;&amp; 
+             !strchr (xml_attrval (mark, "id"), ':') &amp;&amp;
+             !wftk_value_find (session, datasheet, xml_attrval (mark, "id"))) { /* i.e. locally stored field which isn't there, */
+            newfield = wftk_value_make (session, datasheet, xml_attrval (mark, "id"));
+            xml_copyinto (newfield, mark);
+         }
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   /*log_xml_object (session, 6, 2, "wfcore", "NEW TASK", task);*/
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "tasknew", task);
+   wftk_free_adaptorlist (session, adlist);
+   xml_free (task);
+
+   keep = 1; /* This blocks the current item, so that the active task will be available for retrieval. */
+}
+</pre></td></tr></table>
+<br><br>
+<a name="action">
+<i>Handling action</i><br>
+Taking action requires decorating the action specifier with the current datasheet, procdef, and userid (from the session).
+Some attributes will also be interpreted at some point, but as that's not yet entirely clear, I'll just defer it for the
+time being.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>/* Notify task indices of the new active task. */
+mark = xml_loc (procdef, xml_attrval (item, "loc"));
+if (mark) {
+   holder = xml_copy (mark);
+   if (wftk_session_getuser (session)) {
+      xml_set (holder, "by", xml_attrval (wftk_session_getuser(session), "id"));
+   }
+   xml_set (holder, "dsrep", xml_attrval (datasheet, "dsrep"));
+   xml_set (holder, "process", xml_attrval (datasheet, "id"));
+   xml_set (holder, "pdrep", xml_attrval (procdef, "pdrep"));
+   xml_set (holder, "procdef", xml_attrval (procdef, "id"));
+
+   wftk_action (session, holder, datasheet);
+
+   if (!strcmp (xml_attrval (holder, "keep"), "yes")) { /* TODO: should not keeping be the default, or keeping? */
+      /* TODO: find enactment, stash copy. */
+      enactment = wftk_enactment (session, datasheet);
+      if (wftk_session_getuser(session)) {
+         xml_set (holder, "by", xml_attrval (wftk_session_getuser(session), "id"));
+      }
+      xml_set_nodup (holder, "at", _wftk_value_special (session, datasheet, "!now"));
+      xml_append_pretty (enactment, holder);
+      holder = NULL; /* Don't free holder now. */
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="data">
+<i>Handling data</i><br>
+The <code>data</code> element is really just an assignment, nothing more.  Along with decisions, I think that simple
+assignment will be enough.  I'll also write an eval data "source" which evaluates expressions, and that will give us
+plenty of power.  Scripts, of course, are actions.
+<p></p>
+<i>(May 13, 2002)</i>: a long standing bug, found at last -- if the data item here processed is a top-level data item,
+then it's already been handled during the wftk_process_define call.  Setting already-set values back to blanks or defaults
+is a bad thing.
+<p></p>
+<i>(June 29, 2003)</i>: almost correct.  If the data item is top-level <i>but is after some other workflow items</i> then
+it's not a startup value, and should be handled anyway.  Sooner or later I'm going to have a whole damned lot of details
+worked out about workflow.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>mark = xml_loc (procdef, xml_attrval (item, "loc"));
+if (!xml_parent (xml_parent (mark))) {
+   holder = xml_firstelem (xml_parent (mark)); /* Scan top level to check whether a workflow item precedes this data. */
+   while (holder) {
+      if (xml_is (holder, "task") ||
+          xml_is (holder, "sequence") ||
+          xml_is (holder, "parallel") ||
+          xml_is (holder, "action") ||
+          xml_is (holder, "decide") ||
+          xml_is (holder, "situation") ||
+          xml_is (holder, "alert"))            break; /* Found workflow: handle this data. */
+      if (holder == mark) break;
+      holder = xml_nextelem (holder);
+   }
+   if (holder == mark) mark = NULL;  /* Set to "ignore" if we found this data item before we found other workflow. */
+}
+
+if (mark) {
+   defn = xmlobj_get_direct (mark);
+   value = wftk_value_interpreta (session, datasheet, defn);
+   free (defn);
+   wftk_value_set (session, datasheet, xml_attrval (mark, "id"), value);
+   free (value);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="situation">
+<i>Handling situation</i><br>
+<i>(June 13, 2003)</i>: Well, somebody's actually paying me to finish up the situation part of the interpreter, meaning
+that the entire wftk procdef language, as envisioned in the year 2000, will be functional (and I can start extending it).
+My baby's growing up.
+<p></p>
+So.  Situations are a kind of catch-all mechanism to provide for complex control flow.  When a situation element is
+encountered, the interpreter searches for a "handle" element by name, by looking in the immediate parent of the
+situation element, the parent of that element, and so on up the workflow definition.  If the situation has no matching
+handler, then the state of the process is set to "error".  TODO: Ideally, states should be able to trigger procdef workflow
+by name; this would be a new global configuration mechanism which would be pretty convenient.
+<p></p>
+If there is a handler, then it may either be a resuming handler or a pre-emptive handler.  If the former, it is treated
+as a subroutine of the situation element; when the handler code finishes, the situation finishes, and execution resumes.
+If the latter, then when the handler code finishes, the situation is removed <i>along with anything blocking with it</i>
+up to the level of the handler.  Since this is new (existing blocked tasks may be canceled, for instance), it's the
+reason I procrastinated on implementation of situations up until now.  As it so happens, however, cancellation of tasks
+and other blocked workflow items is a pretty important pattern, so it's pleasant to think about increasing the overall
+expressiveness of the wftk engine.
+<p></p>
+To make this work, I'm pretty sure we're going to have to come up with an item-cancellation function and call it from
+here.  Cancelling tasks could be a pretty involved thing -- if a person is already working on a task, then there
+should be a notification of cancellation.  Since we don't really have a general notification preference function as such
+(although there is some old code covering this, I believe) we're probably going to have to make some up.
+<p></p>
+
+<br><br>
+<a name="decide">
+<i>Handling decide</i><br>
+Decisions use the <code>wftk_decide</code> function, documented rather completely <a href="wftk_decide.html">here</a>.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!strcmp ("", xml_attrval (item, "cur"))) {
+   mark = xml_loc (procdef, xml_attrval (item, "loc"));
+   if (mark) {
+      holder = wftk_decide (session, datasheet, mark);
+      if (*xml_attrval (holder, "loc")) {
+         next = xml_loc (procdef, xml_attrval (holder, "loc"));
+      }
+      xml_free (holder);
+   }
+}
+if (next) {
+   xml_set (queue_procdef (session, datasheet, next, xml_attrval (item, "where"), 0), "parent", xml_attrval (item, "parent"));
+   keep = 1;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="alert">
+<i>Handling alerts</i><br>
+Alerts use the function <code>wftk_notify</code>, which is basically a wrapper for notification adaptors.
+The nice thing about this is that it allows us to expose the function itself, which makes it a convenient little
+addition to the library.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>wftk_notify (session, datasheet, def);
+</pre></td></tr></table>
+<br><br>
+<a name="start">
+<i>start: Starting subprocesses</i><br>
+TODO: To be implemented later.  Basically it creates a new simple task, creates a new process, and calls wftk_process_attach
+to attach the subprocess.
+
+
+
+<center>
+[&nbsp;<a href="wftk_decide.html">Previous: Making decisions: wftk_decide</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Next: wftk core library</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

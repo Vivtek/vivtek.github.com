@@ -1,0 +1,53 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: Design and implementation</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>wftk: Design and implementation</h2>
+[ <a href="index.html">wftk documentation home</a> ]
+<hr>
+
+The wftk is implemented as a library in ANSI C.  Under Windows, it is (optionally) a DLL, but
+the Unix makefiles still just produce a static-link library.  Its internal data structures are
+based on XML and use a library called the XMLAPI.  The XMLAPI library uses James Clark's expat
+parser to read XML files and data; there's no reason you couldn't write a simple wrapper for
+any other parser, though.  (But why would you want to?  Expat works!)
+<p>
+Besides the core engine, the wftk also has (as of May 2001) a command-line wrapper, written largely for
+testing purposes but also convenient for shell scripting.  There are also a number of examples of
+adaptors, which are used to communicate with other systems which provide services to the core engine
+(the canonical example being the database used to index active tasks and processes.)
+<p>
+The code documentation is rooted in the <code>src</code> subdirectory of the distribution, and for
+further technical details I refer you to it.  The XMLAPI and core engine are in separate directories;
+the adaptor examples are all in subdirectories of the core engine directory.
+<p>
+There is now (July 28, 2001) the beginnings of a Python wrapper; to date, this consists of a
+prety good wrapper for XMLAPI, the main library to follow.  Full Python integration will require
+quite a bit of thought, as will integration with any scripting language.
+<p>
+The basic layout of the source code is as follows:
+<ul>
+<li><a href="../src/wftk/index.html">WFTK code (core engine and command-line wrapper)</a>
+  <ul>
+  <li><a href="../src/wftk/wftk_lib.html">Main library implementation (wftk_lib.xml)</a>
+  <li><a href="../src/wftk/wftk_adaptors.html">Adaptor interface (wftk_adaptors.xml)</a>
+  <li><a href="../src/wftk/wftk_config.html">Configuration interface (wftk_config.xml)</a>
+  <li><a href="../src/wftk/wftk_util.html">Command-line interface (wftk_util.xml)</a>
+  <li>(subdirectories): One subdirectory for each adaptor class.
+  </ul>
+<li><a href="../src/xmlapi/index.html">XMLAPI code</a>
+<li><a href="../src/python/index.html">Python wrapper</a>
+</ul>
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2000 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

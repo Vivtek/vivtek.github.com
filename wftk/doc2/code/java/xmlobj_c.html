@@ -1,0 +1,648 @@
+<html><head><title>JNI wrapper: XMLAPI and xmlobj</title></head>
+<body>
+<h2>JNI wrapper: XMLAPI and xmlobj</h2>
+<center>
+[<a href="index.html">wftk-j</a> ] [ <a href="xmlobj_c.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+Each portion of a JNI wrapper consists of two pieces: the first is the pure Java class definition, which contains native methods
+which refer to code developed in C; the second portion is the C-language (or C++ or whatever, but in our case it's C) which actually
+implement those native methods.  As the naming of said native methods is decorated with various type signature information, the
+wrapping class is run through javah in order to generate declarations for the functions; this include file can then also be included
+in the implementation in order to scream if type signatures get out of synch, etc.
+<p></p>
+The wrapping Java class for the following code is defined <a href="xmlobj.html">here</a>.
+<p></p>
+Note: javah assumes (and has no flag to change the assumption) that your include files will be named identically to the class they
+represent.  However, in the case of class xmlobj, this results in a name collision.  So xml.h and xmlobj.h are renamed by the
+patented wftk build process into xml_jni.h and xmlobj_jni.h respectively.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include "xml_jni.h"
+#include "xmlobj_jni.h"
+#include <xmlapi.h>
+#include <xmlobj.h>
+</pre></td></tr></table>
+
+In presenting wrapper implementations, I always find it logical to go chronologically, so that while reading along you get a look
+at the various things I've wrestled with in doing the implementation.  For the XMLAPI, it's convenient to start with just a few
+functions, build a testbed to make sure that the basic attack is working correctly (i.e. by demonstrating some simple calls) and
+then attack the rest of the API.
+<p></p>
+A convenient subset of the API for this purpose, since I don't really want to start with parsing, is xml_create, xml_string, xml_set,
+and xml_append, in that order.  This lets us look at how to pack and unpack strings for Java consumption, and also do the same for
+objects.
+
+<p></p>
+With that in mind, let's first attack xml_create and xml_string (the minimal amount of work that will give us something testable.)
+The individual bits of these functions will be heavily commented at first, then will very quickly revert to the normal level of "zero"
+once things start to get deadly dull (which, when writing wrappers, they do -- very quickly.)
+<p></p>
+<i>Aug 23, 2003</i>: The plan changed even before this function got written -- instead of implementing most functions directly in the
+native wrapper, I'm doing a lot of work in the Java object first.  This simplifies things a lot, and incidentally also makes sure that
+the native methods will only be called if native heap manipulation is required (i.e. we don't have to check first, just do our job and
+return.)
+<p></p>
+Native methods which are called by like-named Java methods have "xml_" prefixes.  So "create" is the Java method, which calls "xml_create"
+to deal with the C heap.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>/*
+ * Class:     xml
+ * Method:    xml_create
+ * Signature: (Ljava/lang/String;)Lxml;
+ */
+static XML * _get_native (JNIEnv *env, jobject this);
+static void _set_native (JNIEnv *env, jobject this, XML * xml);
+static jstring _to_jstring (JNIEnv *env, char * str);
+
+JNIEXPORT void JNICALL Java_org_wftk_xml_xml_1create (JNIEnv *env, jobject this, jstring name_j)
+{
+   const char *name;
+   XML * xml;
+
+   // 1. Unpack string into UTF-8-encoded buffer (the Java string is of course in Unicode).
+   name = (*env)->GetStringUTFChars (env, name_j, 0);
+
+   // 2. Create the XML, then release the string buffer.
+   xml = xml_create (name);
+   (*env)->ReleaseStringUTFChars(env, name_j, name);
+
+   // 3. Put new XML into object.
+   _set_native (env, this, xml);
+}
+
+/*
+ * Class:     xml
+ * Method:    xml_free
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_wftk_xml_xml_1free (JNIEnv *env, jobject this)
+{
+   xml_free (_get_native (env, this));
+}
+
+
+
+
+/*
+ * Class:     xml
+ * Method:    string
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_wftk_xml_string (JNIEnv *env, jobject this)
+{
+   return (_to_jstring (env, xml_string (_get_native (env, this))));
+}
+</pre></td></tr></table>
+
+So, OK.  That was easy, once I got to it.  Up until this point, I had implemented finding the native XML structure from the calling object
+separately in each function, but that's silly.  Let's write two helper functions to do that.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * _get_native (JNIEnv *env, jobject this)
+{
+   jclass xml_class;
+   jfieldID fid;
+   jint nx;
+
+   xml_class = (*env)->GetObjectClass (env, this);
+   fid = (*env)->GetFieldID (env, xml_class, "_native_xml", "I");
+   nx = (*env)->GetIntField (env, this, fid);
+
+   return ((XML *) nx);
+}
+static void _set_native (JNIEnv *env, jobject this, XML * xml)
+{
+   jclass xml_class;
+   jfieldID fid;
+
+   xml_class = (*env)->GetObjectClass (env, this);
+   fid = (*env)->GetFieldID (env, xml_class, "_native_xml", "I");
+   (*env)->SetIntField (env, this, fid, (long) xml);
+}
+static jstring _to_jstring (JNIEnv *env, char * str)
+{
+   jstring jstr = (*env)->NewStringUTF(env, str);
+   xml_strfree (str);   /* NOTE: using "free" here invokes the wrong heap's free, apparently.  Muy importante: use the right free! */
+   return jstr;
+}
+</pre></td></tr></table>
+
+That greatly simplifies the functions implemented above, to the point where xml_string is a one-liner.  And to think I thought
+this JNI wrapper was going to be hard.  (Well, OK, <i>starting</i> it has cost me several weeks.  <i>Writing</i> it is pretty simple, though.)
+Anyway, since xml_string is so easy, let's do its clones now to get them out of the way, then move on to attributes.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>JNIEXPORT jstring JNICALL Java_org_wftk_xml_stringhtml (JNIEnv *env, jobject this)
+{
+   return (_to_jstring (env, xml_stringhtml (_get_native (env, this))));
+}
+
+JNIEXPORT jstring JNICALL Java_org_wftk_xml_stringcontent (JNIEnv *env, jobject this)
+{
+   return (_to_jstring (env, xml_stringcontent (_get_native (env, this))));
+}
+
+JNIEXPORT jstring JNICALL Java_org_wftk_xml_stringcontenthtml (JNIEnv *env, jobject this)
+{
+   return (_to_jstring (env, xml_stringcontenthtml (_get_native (env, this))));
+}
+</pre></td></tr></table>
+
+
+Getting and setting attributes require unpacking of strings, so it's almost complicated.  Ha.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>/*
+ * Class:     xml
+ * Method:    attrval
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_wftk_xml_attrval (JNIEnv *env, jobject this, jstring key_j)
+{
+   const char *key;
+   jstring value;
+
+   key = (*env)->GetStringUTFChars (env, key_j, 0);
+   value = (*env)->NewStringUTF(env, xml_attrval (_get_native (env, this), key));
+   (*env)->ReleaseStringUTFChars(env, key_j, key);
+   return value;
+}
+
+/*
+ * Class:     xml
+ * Method:    set
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_org_wftk_xml_set (JNIEnv *env, jobject this, jstring key_j, jstring value_j)
+{
+   const char * key;
+   const char * value;
+
+   key = (*env)->GetStringUTFChars (env, key_j, 0);
+   value = (*env)->GetStringUTFChars (env, value_j, 0);
+   xml_set (_get_native (env, this), key, value);
+   (*env)->ReleaseStringUTFChars(env, key_j, key);
+   (*env)->ReleaseStringUTFChars(env, value_j, value);
+}
+
+</pre></td></tr></table>
+
+And since xml_unset is pretty identical to those, let's polish it off as well.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>JNIEXPORT void JNICALL Java_org_wftk_xml_unset (JNIEnv *env, jobject this, jstring key_j)
+{
+   const char *key;
+
+   key = (*env)->GetStringUTFChars (env, key_j, 0);
+   xml_unset (_get_native (env, this), key);
+   (*env)->ReleaseStringUTFChars(env, key_j, key);
+}
+</pre></td></tr></table>
+
+
+Next, we want xml_append and friends, and the ability to create text non-elements, so we can then finish a parser.
+Let's do the text functionality first.  And while we're at it, let's dispense with the javah-generated comment
+headers.  They're getting tiresome and don't seem to add that much value.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>JNIEXPORT void JNICALL Java_org_wftk_xml_createtext (JNIEnv *env, jobject this, jstring content_j)
+{
+   XML * xml;
+   const char * content = (*env)->GetStringUTFChars (env, content_j, 0);
+
+   xml = xml_createtext (content);
+   (*env)->ReleaseStringUTFChars(env, content_j, content);
+   _set_native (env, this, xml);
+}
+</pre></td></tr></table>
+
+And since xml_textcat is basically identical in signature to xml_unset, we might as well go ahead with it.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>
+JNIEXPORT void JNICALL Java_org_wftk_xml_textcat (JNIEnv *env, jobject this, jstring content_j)
+{
+   const char *content;
+
+   content = (*env)->GetStringUTFChars (env, content_j, 0);
+   xml_textcat (_get_native (env, this), content);
+   (*env)->ReleaseStringUTFChars(env, content_j, content);
+}
+
+</pre></td></tr></table>
+
+If this is boring you, don't let me keep you.  But here's where the wicket gets a little stickier: now we come to our first
+routines which involve more than one xml object at a time.  How do we handle this?  Do we create xml instances from the C code?
+I'm thinking no.  The way I feel comfortable doing this is to keep all such manipulation internal to Java, and simply call
+native code when actual C heap manipulation is required.  That makes the following functions much simpler.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>JNIEXPORT void JNICALL Java_org_wftk_xml_xml_1prepend (JNIEnv *env, jobject this, jobject other)
+{
+   xml_prepend (_get_native (env, this), _get_native (env, other));
+}
+
+JNIEXPORT void JNICALL Java_org_wftk_xml_xml_1prepend_1pretty (JNIEnv *env, jobject this, jobject other)
+{
+   xml_prepend_pretty (_get_native (env, this), _get_native (env, other));
+}
+
+JNIEXPORT void JNICALL Java_org_wftk_xml_xml_1append (JNIEnv *env, jobject this, jobject other)
+{
+   xml_append (_get_native (env, this), _get_native (env, other));
+}
+
+JNIEXPORT void JNICALL Java_org_wftk_xml_xml_1append_1pretty (JNIEnv *env, jobject this, jobject other)
+{
+   xml_append_pretty (_get_native (env, this), _get_native (env, other));
+}
+
+</pre></td></tr></table>
+
+Oops.  Need xml_parent for parsing, too -- otherwise we can't walk back up the tree when an element is closed.
+Sure, we could keep a stack in Java, but that would be stupid when the tree we're building is effectively also
+a stack.  Upwards, anyway.
+
+<p></p>
+Anyway, while figuring this out, I had a pretty decent insight about handles versus object roots, resulting in
+the entire notion of handle navigation.  An xml object, you see, if seen as a handle into a tree, is a good
+iteration thingy.  And "to_parent" moves a handle to the parent of the XML node it's looking at.  The rest of
+the tree navigation stuff can work exactly the same way.  This is just xml = xml_parent (xml), except it works
+on the _native_xml pointer contained within the xml object.  See?  I do, right now.  Tomorrow, I probably
+won't know what the heck I meant here.
+
+<p></p>
+The upshot is that some of the parent/to_parent is in Java, and all the wrapper needs to do is return the
+(jint-cast) pointer to the parent of the current XML node.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>JNIEXPORT jint JNICALL Java_org_wftk_xml_xml_1parent (JNIEnv *env, jobject this)
+{
+   return ((jint) xml_parent (_get_native (env, this)));
+}
+
+</pre></td></tr></table>
+
+Boy, a <i>lot</i> of this stuff is turning into one-liners.  Let's knock off some of the functions that we already know how to
+implement.  (I.e. those which match signatures of existing functions, and don't require any additional fancy Java stuff.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>JNIEXPORT void JNICALL Java_org_wftk_xml_attrcat (JNIEnv *env, jobject this, jstring key_j, jstring value_j)
+{
+   const char * key;
+   const char * value;
+
+   key = (*env)->GetStringUTFChars (env, key_j, 0);
+   value = (*env)->GetStringUTFChars (env, value_j, 0);
+   xml_attrcat (_get_native (env, this), key, value);
+   (*env)->ReleaseStringUTFChars(env, key_j, key);
+   (*env)->ReleaseStringUTFChars(env, value_j, value);
+}
+
+JNIEXPORT jstring JNICALL Java_org_wftk_xml_name (JNIEnv *env, jobject this)
+{
+   return (*env)->NewStringUTF(env, xml_name (_get_native (env, this)));
+}
+
+JNIEXPORT jboolean JNICALL Java_org_wftk_xml_is_1element (JNIEnv *env, jobject this)
+{
+   return ((jboolean) xml_is_element (_get_native (env, this)));
+}
+
+JNIEXPORT jboolean JNICALL Java_org_wftk_xml_is_1a (JNIEnv *env, jobject this, jstring name_j)
+{
+   const char *name;
+   jboolean value;
+
+   name = (*env)->GetStringUTFChars (env, name_j, 0);
+   value = (jboolean) xml_is (_get_native (env, this), name);
+   (*env)->ReleaseStringUTFChars(env, name_j, name);
+   return value;
+}
+
+</pre></td></tr></table>
+
+OK, now let's do the same as xml_parent with the first/next crowd.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>JNIEXPORT jint JNICALL Java_org_wftk_xml_xml_1first (JNIEnv *env, jobject this)     { return ((jint) xml_first (_get_native (env, this))); }
+JNIEXPORT jint JNICALL Java_org_wftk_xml_xml_1firstelem (JNIEnv *env, jobject this) { return ((jint) xml_firstelem (_get_native (env, this))); }
+JNIEXPORT jint JNICALL Java_org_wftk_xml_xml_1next (JNIEnv *env, jobject this)      { return ((jint) xml_next (_get_native (env, this))); }
+JNIEXPORT jint JNICALL Java_org_wftk_xml_xml_1nextelem (JNIEnv *env, jobject this)  { return ((jint) xml_nextelem (_get_native (env, this))); }
+JNIEXPORT jint JNICALL Java_org_wftk_xml_xml_1last (JNIEnv *env, jobject this)      { return ((jint) xml_last (_get_native (env, this))); }
+JNIEXPORT jint JNICALL Java_org_wftk_xml_xml_1lastelem (JNIEnv *env, jobject this)  { return ((jint) xml_lastelem (_get_native (env, this))); }
+JNIEXPORT jint JNICALL Java_org_wftk_xml_xml_1prev (JNIEnv *env, jobject this)      { return ((jint) xml_prev (_get_native (env, this))); }
+JNIEXPORT jint JNICALL Java_org_wftk_xml_xml_1prevelem (JNIEnv *env, jobject this)  { return ((jint) xml_prevelem (_get_native (env, this))); }
+</pre></td></tr></table>
+
+<i>Sep 7, 2003</i>: I've been shirking here while busy on higher-level stuff, but we desperately need
+xml_loc in order to be able to reconstruct complex structures once SOAP is done with them.  (SOAP breaks things up
+with href pointers; it's really a cool system, but I wasn't expecting it.  Live and learn.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>JNIEXPORT jint JNICALL Java_org_wftk_xml_xml_1loc (JNIEnv *env, jobject this, jstring str)
+{
+   const char *locator;
+   jint ret;
+
+   locator = (*env)->GetStringUTFChars (env, str, 0);
+   ret = (jint) xml_loc (_get_native (env, this), locator);
+   (*env)->ReleaseStringUTFChars (env, str, locator);
+   return ret;
+}
+</pre></td></tr></table>
+
+
+
+More stuff we need for SOAP result reconstruction.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>JNIEXPORT void JNICALL Java_org_wftk_xml_xml_1copy (JNIEnv *env, jobject this, jobject other)
+{
+   _set_native (env, this, xml_copy (_get_native (env, other)));
+}
+
+JNIEXPORT void JNICALL Java_org_wftk_xml_copyinto (JNIEnv *env, jobject this, jobject other)
+{
+    xml_copyinto (_get_native (env, this), _get_native (env, other));
+}
+
+JNIEXPORT void JNICALL Java_org_wftk_xml_copyattrs (JNIEnv *env, jobject this, jobject other)
+{
+    xml_copyattrs (_get_native (env, this), _get_native (env, other));
+}
+
+JNIEXPORT void JNICALL Java_org_wftk_xml_xml_1replace (JNIEnv *env, jobject this, jobject other)
+{
+    xml_replace (_get_native (env, this), _get_native (env, other));
+}
+
+JNIEXPORT void JNICALL Java_org_wftk_xml_xml_1replacecontent (JNIEnv *env, jobject this, jobject other)
+{
+    xml_replacecontent (_get_native (env, this), _get_native (env, other));
+}
+
+</pre></td></tr></table>
+
+<i>September 19, 2003</i>: Boy, good thing I assessed a week for this conversion.
+<p></p>
+I chickened out and wrote xml_assemble in C first.  We'll need it for the SOAP adaptor anyway.  Once we
+have more things working in pure Java, we can move this as well.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>JNIEXPORT void JNICALL Java_org_wftk_xml_xml_1assemble (JNIEnv *env, jobject this, jobject start, jobject src)
+{
+   _set_native (env, this, xml_assemble (_get_native (env, start), _get_native (env, src)));
+}
+</pre></td></tr></table>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>/*
+ * Class:     xml
+ * Method:    attrlist
+ * Signature: ()[Ljava/lang/String;
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_wftk_xml_attrlist (JNIEnv *env, jobject this)
+{
+
+}
+
+
+
+
+/*
+ * Class:     xml
+ * Method:    elements
+ * Signature: ()[Lxml;
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_wftk_xml_elements (JNIEnv *env, jobject this)
+{
+
+}
+
+
+
+
+/*
+ * Class:     xml
+ * Method:    delete
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_wftk_xml_delete (JNIEnv *env, jobject this)
+{
+
+}
+
+
+/*
+ * Class:     xml
+ * Method:    delete_pretty
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_wftk_xml_delete_1pretty (JNIEnv *env, jobject this)
+{
+
+}
+
+
+
+/*
+ * Class:     xml
+ * Method:    replacewithcontent
+ * Signature: (Lxml;)V
+ */
+JNIEXPORT void JNICALL Java_org_wftk_xml_replacewithcontent (JNIEnv *env, jobject this, jobject other)
+{
+
+}
+
+
+/*
+ * Class:     xml
+ * Method:    xml_insertafter
+ * Signature: (Lxml;)Lxml;
+ */
+JNIEXPORT jobject JNICALL Java_org_wftk_xml_xml_1insertafter (JNIEnv *env, jobject this, jobject other)
+{
+
+}
+
+
+/*
+ * Class:     xml
+ * Method:    xml_insertbefore
+ * Signature: (Lxml;)Lxml;
+ */
+JNIEXPORT jobject JNICALL Java_org_wftk_xml_xml_1insertbefore (JNIEnv *env, jobject this, jobject other)
+{
+
+}
+
+
+
+/*
+ * Class:     xml
+ * Method:    getloc
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_wftk_xml_getloc (JNIEnv *env, jobject this)
+{
+
+}
+
+
+/*
+ * Class:     xml
+ * Method:    search
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lxml;
+ */
+JNIEXPORT jobject JNICALL Java_org_wftk_xml_search (JNIEnv *env, jobject this, jstring elem, jstring attr, jstring val)
+{
+
+}
+
+
+/*
+ * Class:     xml
+ * Method:    search_all
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)[Lxml;
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_wftk_xml_search_1all (JNIEnv *env, jobject this, jstring elem, jstring attr, jstring val)
+{
+
+}
+
+
+
+/*
+ * Class:     xmlobj
+ * Method:    get
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_wftk_xmlobj_get (JNIEnv *env, jobject this, jstring key)
+{
+
+}
+
+
+/*
+ * Class:     xmlobj
+ * Method:    key
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_wftk_xmlobj_key (JNIEnv *env, jobject this)
+{
+
+}
+
+
+/*
+ * Class:     xmlobj
+ * Method:    format
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_wftk_xmlobj_format  (JNIEnv *env, jobject this, jstring format)
+{
+
+}
+
+
+/*
+ * Class:     xmlobj
+ * Method:    set
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_org_wftk_xmlobj_set (JNIEnv *env, jobject this, jstring key, jstring value)
+{
+
+}
+
+
+/*
+ * Class:     xmlobj
+ * Method:    set_elem
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_org_wftk_xmlobj_set_1elem (JNIEnv *env, jobject this, jstring key, jstring value)
+{
+
+}
+
+
+/*
+ * Class:     xmlobj
+ * Method:    diff
+ * Signature: (Lxmlobj;)Lxmlobj;
+ */
+JNIEXPORT jobject JNICALL Java_org_wftk_xmlobj_diff (JNIEnv *env, jobject this, jobject other)
+{
+
+}
+
+
+/*
+ * Class:     xmlobj
+ * Method:    undiff
+ * Signature: (Lxmlobj;)Lxmlobj;
+ */
+JNIEXPORT jobject JNICALL Java_org_wftk_xmlobj_undiff (JNIEnv *env, jobject this, jobject other)
+{
+
+}
+
+
+/*
+ * Class:     xmlobj
+ * Method:    patch
+ * Signature: (Lxmlobj;)Lxmlobj;
+ */
+JNIEXPORT jobject JNICALL Java_org_wftk_xmlobj_patch (JNIEnv *env, jobject this, jobject other)
+{
+
+}
+
+
+/*
+ * Class:     xmlobj
+ * Method:    list_sort
+ * Signature: ([Lxml;Lxml;Ljava/lang/String;)Lxml;
+ */
+JNIEXPORT jobject JNICALL Java_org_wftk_xmlobj_list_1sort (JNIEnv *env, jclass cl, jobjectArray list, jobject defn, jstring order)
+{
+
+}
+
+
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

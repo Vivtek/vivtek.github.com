@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+
+<h2>Edit process: request eqipment purchase</h2>
+<a href=process_open_chair.html>Top</a> | <a href=process_open_chair_roles.html>Roles</a> | <a href=process_open_chair_data.html>Data</a> | <b>Actions</b>
+<hr>
+
+<font size=+1>Actions</font> <a href=help.html>Help on this screen.</a>
+<br><a href=process_open_chair_actions_overview.html>Overview (no details)</a>
+<form action=action.html method=get>
+
+<b>Sequence</b>&nbsp;&nbsp;&nbsp;&nbsp;<font size=-1>[ <a href=action.html>make parallel</a> ]</font>
+<ul>
+<b><li>Approve</b>&nbsp;&nbsp;&nbsp;&nbsp;
+By <select size=1><option value=Supervisor selected>Supervisor<option value=Purchasing>Purchasing<option value=Accounting>Accounting<option value=Receiving>Receiving</select>
+<br><font size=-1>[ <a href=action.html>modify</a> ] [ <a href=action.html>delete</a> ] [ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+<br>Any descriptive note about the task would go here.
+<ul>
+<li><i>Data:</i> Approval code
+  <br><select size=1><option value=text selected>text<option value=integer>integer<option value=document>Document</select>
+  <font size=-1>[ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+  <br>
+  Any descriptive note about the data item would go here.
+<li><a href="action.html">(Add data item)</a>
+</ul>
+
+<br>
+
+<b><li>if</b> Approval code is 'no'<br>
+<font size=-1>[ <a href=action.html>modify</a> ] [ <a href=action.html>delete</a> ] [ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+<ul>
+<b><li>Situation:</b> Request rejected<br>
+<font size=-1>[ <a href=action.html>modify</a> ]</font>
+</ul>
+<a href="action.html">(Add else action)</a>
+
+<br><br>
+
+<b><li>Order item</b>&nbsp;&nbsp;&nbsp;&nbsp;
+By <select size=1><option value=Supervisor>Supervisor<option value=Purchasing selected>Purchasing<option value=Accounting>Accounting<option value=Receiving>Receiving</select>
+<br><font size=-1>[ <a href=action.html>modify</a> ] [ <a href=action.html>delete</a> ] [ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+<ul>
+<li><i>Data:</i> Purchasing record
+  <br><select size=1><option value=text selected>text<option value=integer>integer<option value=document>Document</select>
+  <font size=-1>[ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+<li><a href="action.html">(Add data item)</a>
+</ul>
+
+<br><br>
+
+<b><li>Alert:</b> To Requester's email
+<br><font size=-1>[ <a href=action.html>modify</a> ] [ <a href=action.html>delete</a> ] [ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+<br>
+Your request for the purchase of ${Product requested} has been approved and the
+order was placed.  The purchasing record is ${Purchasing record} if you need to
+contact Purchasing for inquiries.
+
+<br><br>
+
+<b><li>Alert:</b> To Accounting
+<br><font size=-1>[ <a href=action.html>modify</a> ] [ <a href=action.html>delete</a> ] [ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+<br>
+An order for ${Product requested} has been placed.
+<br><br>
+
+<b><li>Alert:</b> To Receiving
+<br><font size=-1>[ <a href=action.html>modify</a> ] [ <a href=action.html>delete</a> ] [ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+<br>
+An order for ${Product requested} has been placed.  Expect delivery.
+<br><br>
+
+<b><li>Parallel</b>&nbsp;&nbsp;&nbsp;&nbsp;<font size=-1>[ <a href=action.html>make sequence</a> ]</font>
+   <ul>
+   <b><li>Sequence</b>&nbsp;&nbsp;&nbsp;&nbsp;<font size=-1>[ <a href=action.html>make parallel</a> ]</font>
+      <ul>
+      <b><li>Receive ${Product requested}</b>
+         By <select size=1><option value=Supervisor>Supervisor<option value=Purchasing>Purchasing<option value=Accounting>Accounting<option value=Receiving selected>Receiving</select>
+         <br><font size=-1>[ <a href=action.html>modify</a> ] [ <a href=action.html>delete</a> ] [ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+      <b><li>Alert:</b> Email to Requester's email
+         <br><font size=-1>[ <a href=action.html>modify</a> ] [ <a href=action.html>delete</a> ] [ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+         <br>
+         Your ${Product received} has arrived.
+         <br><br>
+      <li><a href="action.html">(Add action)</a>
+      </ul>
+   <b><li>File invoice</b>
+      By <select size=1><option value=Supervisor>Supervisor<option value=Purchasing>Purchasing<option value=Accounting selected>Accounting<option value=Receiving>Receiving</select>
+      <br><font size=-1>[ <a href=action.html>modify</a> ] [ <a href=action.html>delete</a> ] [ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+      <br><br>
+   <li><a href="action.html">(Add action)</a>
+   </ul>
+
+<br>
+
+<b><li>Pay invoice</b>
+By <select size=1><option value=Supervisor>Supervisor<option value=Purchasing>Purchasing<option value=Accounting selected>Accounting<option value=Receiving>Receiving</select>
+<br><font size=-1>[ <a href=action.html>modify</a> ] [ <a href=action.html>delete</a> ] [ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+<br><br>
+
+<b><li>Alert:</b> To Purchasing
+<br><font size=-1>[ <a href=action.html>modify</a> ] [ <a href=action.html>delete</a> ] [ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+<br>
+The purchase has been paid.
+<br><br>
+
+<br><li><a href=action.html>(Add new action)</a>
+</ul>
+
+<b>Handle situation</b> Request rejected
+<ul>
+<b><li>Alert:</b> To Requester's email
+<br><font size=-1>[ <a href=action.html>modify</a> ] [ <a href=action.html>delete</a> ] [ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+<br>
+Your request for ${Product requested} has been rejected by your supervisor.
+</ul>
+
+</form>
+
+</body>
+</html>

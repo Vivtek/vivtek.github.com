@@ -1,0 +1,57 @@
+<html><head><title>Mail reader/mail parser</title></head>
+<body>
+<h2>Mail reader/mail parser</h2>
+<hr>
+The mail reader implemented in this file is really more accurately a mail parser.  As such, it
+should be useful for a number of different purposes, not least of which will be to parse entries
+in a mbox-format repository list.  (There is in fact already an <a href="../wftk/list/LIST_mbox.html">mbox
+list adaptor</a> under development.)  However, the primary motivator as of this writing (26 July 2002)
+is to enable a wftk installation (either wftk-bare or a repmgr-based installation) to accept email
+as input.  In this scenario, the email incoming is on stdin, and the handler is invoked to create
+a list entry or a workflow process which has the basic starting data included in the mail.
+<p></p>
+So basically what we want is a function which will accept a stream (or a string in memory) and
+return a convenient <a href="../xmlapi/xmlobj.html">xmlobj object</a> with values set appropriately.
+
+To make things really convenient, we'll set this up to accept a buffer at a time, and the XML
+object currently being built, and thus we can use the same function for stream access or for string
+parsing, without needing the double overhead of reading an entire (possibly large) mail into memory
+and the parsing in memory. 
+<p></p>
+The output will be of the form:<pre>
+&lt;mail&gt;
+  &lt;from&gt;bob@mymail.com&lt;/from&gt;
+  &lt;from-name&gt;Bob&lt;/from-name&gt;
+  &lt;to&gt;customerservice@mycompany.com&lt;/to&gt;
+  &lt;to-name/&gt;
+  &lt;subject&gt;I have a problem&lt;/subject&gt;
+  &lt;body-text&gt;...&lt;/body-text&gt;
+&lt;/mail&gt;
+</pre>
+Those are the minimum fields; we also want such functionality to handle multipart/alternative MIME
+formatting, and of course we want the ability handle attachments.
+<p></p>
+At first, I thought it would also be a good idea to include some sort of template parser to allow
+formatted data submission via mail, or maybe a command language parser a la majordomo.  But after
+a little thought, I realized that these should be handled by either repmgr or by the appropriate
+procdef after submission, as script or action invocations.  That allows an installation to be
+built as flexibly as possible, and it keeps the complexity of the front-end mail handler down.
+<p></p>
+Links to the pieces:
+<ul>
+<li> <a href="mail_reader.html">Mail reader</a>
+<li> <a href="reader.html">Mail parser</a>
+</ul>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

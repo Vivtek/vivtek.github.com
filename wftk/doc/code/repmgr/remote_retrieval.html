@@ -1,0 +1,117 @@
+<html><head><title>Repository manager: Data retrieval and display</title></head>
+<body>
+<h2>Data retrieval and display</h2>
+<center>
+[&nbsp;<a href="remote_reports.html">Previous: Working with individual objects as reports</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_users.html">Next: User authentication and group membership</a>&nbsp;]
+</center>
+
+<hr>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * FN_NAME(repos_get)     (XML * repository, const char * list_id, const char * key)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+   const char * line;
+   XML * list;
+   XML * ret;
+   char * end;
+
+   if (sock) { /* Remote. */
+      if (key) {
+         xml_setf (sock->parms, "outgoing", "get %s %s\n", list_id, key);
+      } else {
+         xml_setf (sock->parms, "outgoing", "get %s\n", list_id);
+      }
+      _repos_send (sock);
+      line = _repos_receive (sock); /* TODO: mem leak? */
+      if (*line == '-') return NULL;
+      line = strchr (line, '\n') + 1;
+      list = xml_create ("t");
+      xml_set (list, "r", "");
+      while (line[0] != '>' || line[1] != '>') {
+         end = strchr (line, '\n');
+         if (end) {
+            xml_attrncat (list, "r", line, end - line + 1);
+         } else {
+            xml_attrcat (list, "r", line);
+            break;
+         }
+         line = end + 1;
+      }
+      ret = xml_parse (xml_attrval (list, "r"));  /* TODO: parser dependency should be optional. */
+      xml_free (list);
+      xml_set (sock->parms, "buffer", "");
+      xml_set (ret, "list", list_id);
+      xml_set (ret, "key", key);
+      return ret;
+   }
+   return NULL;
+}
+WFTK_EXPORT char * FN_NAME(repos_getvalue) (XML * repository, const char * list, const char * key, const char * field)
+{
+   /* retrieve obj then call xmlobj_get */
+   return ("");
+}
+WFTK_EXPORT void FN_NAME(repos_setvalue) (XML * repository, const char * list, const char * key, const char * field, const char * value)
+{
+   /* This will be a while.  It fronts for the adaptor, of course. */
+}
+</pre></td></tr></table>
+
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void FN_NAME(repos_log) (XML * repository, int level, int type, XML * object, const char * subsystem, const char * message, ...)
+{
+   va_list arglist;
+   char * msg;
+   char * l;
+   struct tm * timeptr;
+   time_t julian;
+   FILE * log;
+   int loglevel = 2;
+
+   if (*xml_attrval (repository, "loglevel")) loglevel = xml_attrvalnum (repository, "loglevel");
+   if (level > loglevel) return;
+
+   va_start (arglist, message);
+   msg = xml_string_formatv (message, arglist);
+   l = (level == 0) ? "fatal" :
+       ((level == 1) ? "warning" :
+       ((level == 2) ? "notification" :
+         "debug"));
+   va_end (arglist);
+
+   time (&amp;julian);
+   timeptr = localtime (&amp;julian);
+
+   /*log = _repos_fopen (repository, "repository.log", "a");  * TODO: make this a general list adaptor call. *
+   if (log) {
+      fprintf (log, "[%04d-%02d-%02d %02d:%02d:%02d] %s %s %s\n", 
+                     timeptr->tm_year + 1900, timeptr->tm_mon + 1, timeptr->tm_mday,
+                     timeptr->tm_hour, timeptr->tm_min, timeptr->tm_sec,
+                     l, subsystem, msg);
+      fclose (log);
+   }*/
+   free (msg);
+
+}
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="remote_reports.html">Previous: Working with individual objects as reports</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_users.html">Next: User authentication and group membership</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

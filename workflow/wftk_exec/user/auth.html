@@ -1,0 +1,106 @@
+<html><head><title>User module: Authentication in a CGI environment</title></head>
+<body>
+<h2>Authentication in a CGI environment</h2>
+<center>
+[&nbsp;<a href="joinleave.html">Previous: Adding and removing users and things from groups</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="user_perm.html">Next: Actually using all this XML to figure out a user's permissions</a>&nbsp;]
+</center>
+
+<hr>
+User authentication in the CGI environment is fairly straightforward; we take the
+WWW-Authenticate header from the environment, decode it, load the named user, and check the
+password.  If there is no such header, if the user doesn't exist, or if the password doesn't
+match, then we emit a 403 response header, and return a NULL to the program.  If all goes well,
+then we simply return the user structure which we loaded.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="auth.html#base64decode">Decoding base 64 authorization strings</a></i>
+XML * user_authenticate(XML * cgi_env, const char * realm)
+{
+   XML * ret;
+   char username[512];
+   char * password;
+
+   _base64decode (username, xml_attrval (cgi_env, "HTTP_AUTHORIZATION") + 6);
+
+   password = strchr (username, ':');
+   if (password) *password++ = '\0';
+   else password = "";
+
+   ret = user_get (username);
+   if (ret) {
+      if (!strcmp (password, xml_attrval (ret, "password"))) return (ret);
+      xml_free (ret);
+   }
+
+   printf ("Status: 401 Authentication required\n");
+   printf ("WWW-Authenticate: BASIC realm=\"%s\"\n\n", realm);
+
+   return NULL;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="base64decode">
+<i>Decoding base 64 authorization strings</i><br>
+Base-64 encoding is pretty cool, when you look at it.  It uses 64 printable characters; note
+that 64 is 2^6; that is, you can encode six bits of data in one base-64 character.  Thus
+24 bits of data is four characters, meaning that three bytes of binary data correspond to
+four base-64 characters.  Decoding therefore naturally looks at four characters at a time;
+often the encoding will be padded with an '=' if there aren't three bytes of data, but that's
+not a particularly safe assumption to make while decoding.
+<p></p>
+Effectively what we're doing during this conversion is converting to base 2^24, then breaking
+things up into bytes.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _base64decode (char * buf, const char * encoded)
+{
+   int bytes = 0;
+   unsigned long chunk = 0;
+   unsigned long remainder = 0;
+
+repeat:
+   while (*encoded &amp;&amp; bytes < 4) {
+      if      (*encoded == '=') chunk = chunk * 64;
+      else if (*encoded  >  96) chunk = chunk * 64 + (*encoded - 71);
+      else if (*encoded  >  64) chunk = chunk * 64 + (*encoded - 65);
+      else if (*encoded  >  47) chunk = chunk * 64 + (*encoded + 4);
+      else if (*encoded ==  43) chunk = chunk * 64 + 62;
+      else if (*encoded ==  47) chunk = chunk * 64 + 63;
+      else                      chunk = chunk * 64;
+
+      bytes ++;
+      encoded ++;
+   }
+
+   bytes = 2;
+   while (chunk > 0 &amp;&amp; bytes > -1) {
+      remainder = chunk % (1 << (bytes * 8));
+      *buf++ = (chunk - remainder) / (1 << (bytes * 8));
+      chunk = remainder;
+      bytes--;
+   }
+   bytes = 0;
+
+   if (*encoded) goto repeat;
+
+   *buf = '\0';
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="joinleave.html">Previous: Adding and removing users and things from groups</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="user_perm.html">Next: Actually using all this XML to figure out a user's permissions</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

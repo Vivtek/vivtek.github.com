@@ -1,0 +1,393 @@
+<head>
+<title>wftk perl - Workflow::wftk::Data::file</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk perl - Workflow::wftk::Data::file</div>
+
+<p><a name="__index__"></a></p>
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<p>Workflow::wftk::Data::file - Provides storage tools for putting data into flat files, one line per record.</p>
+<p>
+</p>
+<hr />
+<!-- INDEX BEGIN -->
+
+
+	<ul>
+
+		<li><a href="#connect">connect</a></li>
+		<li><a href="#open__close_fh">open, close_fh</a></li>
+		<li><a href="#import_data">import_data</a></li>
+		<li><a href="#getline">getline</a></li>
+		<li><a href="#key_as_text">key_as_text</a></li>
+		<li><a href="#put">put</a></li>
+		<li><a href="#write">write</a></li>
+		<li><a href="#append">append</a></li>
+		<li><a href="#putline__appendline">putline, appendline</a></li>
+		<li><a href="#delete">delete</a></li>
+		<li><a href="#close">close</a></li>
+	</ul>
+
+	<li><a href="#copyright___license">COPYRIGHT &amp; LICENSE</a></li>
+<hr>
+<p>Version 0.01</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   our $VERSION = '0.01';
+</pre><p>
+</p>
+<hr />
+<p>The <code>Workflow::wftk::Data::file</code> module implements the Data class with storage of data in a flat file.
+Yes, I know it more or less duplicates DBD::AnyData.  Feel free to use the <code>Workflow::wftk::Data::dbi</code> adapter
+if you prefer.</p>
+<p>This is a pretty crude file interface.  It opens the file to start with, imports the data, and closes the file.
+If the file is opened in read-only mode, that's that.  Otherwise, data is written after every add/mod/del.  On add,
+it's just appended, while mod/del rewrite the entire file.  Between writes, the file is closed.</p>
+<p>Essentially, this is not meant to be high-performance.  If you want high performance for a large list, storing
+it in a single large text file is not the way to get it.  You'll want to consider DBM, SQLite, or a multiuser
+DBMS like MySQL.  The basic wftk data building blocks are really meant to provide unified access for heterogeneous data storage
+environments, not performance.</p>
+<p>That said, if you want a list with a simple open file for storage (to reduce memory overhead), you might want
+to look at <a href="/DBD/File.html">the DBD::File manpage</a> and its many subclasses.</p>
+<p>Note that this class can also be used as a virtual list within another datasource.  I'm not 100% sure that will
+work, but soon, my pretty, soon.  This was one of the features I bogged down on in the C version.</p>
+<p>
+</p>
+<hr />
+<hr>
+<p>
+</p>
+<h2><a name="connect">connect</a></h2>
+<p>The <code>connect</code> method opens a file and reads it, storing the values obtained into a hash, where the superclass can
+work with it just like a memory table.
+We use a regexp /([A-Za-z0-9_:./ ])/ to untaint the filename we're given.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub connect {
+      my ($self, $def) = @_;
+
+      $self-&gt;{fields} = [];
+      $self-&gt;{values} = {};
+      $self-&gt;{nextkey} = 1;
+      $self-&gt;{conf}-&gt;set_default ({ keys =&gt; 1, header =&gt; 0 });
+      $self-&gt;{file} = $self-&gt;{conf}-&gt;get('file');
+
+      if (-e $self-&gt;{file}) {
+         my $fh = $self-&gt;open();
+         $self-&gt;import_data($fh);
+         $self-&gt;close_fh($fh);
+      }
+   }
+   sub DESTROY { $_[0]-&gt;close() }
+</pre><p>
+</p>
+<h2><a name="open__close_fh">open, close_fh</a></h2>
+<p>The <code>open</code> method opens the list's storage file for reading or writing and returns the file handle.  I'm not sure
+this should necessarily be private.  The <code>close_fh</code> method, of course, closes that file handle again.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub open {
+      my $self = shift;
+      my $fh = gensym();
+      my $d = shift;
+      $d = '&lt;' unless $d;
+      $d = '&gt;' if $d eq 'w';
+      $d = '&gt;&gt;' if $d eq 'a';
+      open $fh, &quot;$d$self-&gt;{file}&quot;;
+      return $fh;
+   }
+   sub close_fh { close $_[1] if $_[1]; }
+</pre><p>
+</p>
+<h2><a name="import_data">import_data</a></h2>
+<p>The <code>import_data</code> method reads the file given to it, adding records to memory as it goes.  (Note: calling it 'import' had
+surprisingly bad side effects.)</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub import_data {
+      my ($self, $fh) = @_;
+
+      return unless $fh;
+      my @fields = ();
+      if ($self-&gt;{conf}-&gt;get('header')) {
+         @fields = split /\t/, $self-&gt;getline($fh);
+         shift @fields if $self-&gt;{conf}-&gt;get('keys');
+         $self-&gt;add_fields (@fields);
+      }
+      while ($_ = $self-&gt;getline($fh)) {
+         my @values = split /\t/;
+         my $key = undef;
+         $key = shift @values if $self-&gt;{conf}-&gt;get('keys');
+         if (not @fields) {
+            for (my $i = 0; $i &lt; @values; $i++) {
+                push @fields, &quot;field$i&quot;;
+            }
+         }
+         my $rec = $self-&gt;get_new();
+         foreach (@fields) { $rec-&gt;put($_, shift @values); }
+         $self-&gt;SUPER::put($key, $rec);  # This stores the record im memory, you see.
+      }
+   }
+</pre><p>
+</p>
+<h2><a name="getline">getline</a></h2>
+<p>The <code>getline</code> method gets a line from a file handle provided.  This might later not be a file handle, which is why
+it is abstracted in this way.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub getline {
+      my ($self, $fh) = @_;
+      my $line = scalar &lt;$fh&gt;;
+      chomp $line if defined $line;
+      $line;
+   }
+</pre><p>
+</p>
+<h2><a name="key_as_text">key_as_text</a></h2>
+<p>The <code>key_as_text</code> expresses a given record as text for this list's definition.  It will be used in both
+concrete and virtual modes.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub key_as_text {
+      my ($self, $key) = @_;
+
+      my @values = $self-&gt;get($key)-&gt;values();
+      unshift @values, $key if $self-&gt;{conf}-&gt;get('keys');
+      join (&quot;\t&quot;, @values);
+   }
+</pre><p>
+</p>
+<h2><a name="put">put</a></h2>
+<p>The <code>put</code> method takes a record object and writes it to the list.  It calls <code>write</code> and <code>append</code>, depending on whether
+the whole file needs to be written or not.  Note that we can thus subclass for virtual accesses.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub put {
+      my ($self, $key, $record) = @_;
+      my $origkey = $key;
+      $key = $self-&gt;SUPER::put($key,$record);
+      if ($origkey) {
+         $self-&gt;write();
+      } else {
+         $self-&gt;append($self-&gt;key_as_text($key));
+      }
+      return $key;
+   }
+</pre><p>
+</p>
+<h2><a name="write">write</a></h2>
+<p>The <code>write</code> method opens the list's storage file and writes the data to it.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub write {
+      my ($self) = @_;
+      my $fh = $self-&gt;open (&quot;w&quot;);
+      if ($self-&gt;{conf}-&gt;get('header')) {
+         my @fields = $self-&gt;fields();
+         unshift @fields, " if ($self-&gt;{conf}-&gt;get('keys'));
+         $self-&gt;putline($fh, join (&quot;\t&quot;, @fields));
+      }
+      for (my $key = $self-&gt;first_key(); $key; $key = $self-&gt;next_key()) {
+         $self-&gt;putline($fh, $self-&gt;key_as_text($key));
+      }
+      $self-&gt;close_fh($fh);
+   }
+</pre><p>
+</p>
+<h2><a name="append">append</a></h2>
+<p>The <code>append</code> method opens the list's storage file in append mode, and appends a given line to it.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub append {
+      my ($self, $line) = @_;
+      my $fh = $self-&gt;open (&quot;a&quot;);
+      $self-&gt;appendline($fh, $line);
+      $self-&gt;close_fh($fh);
+   }
+</pre><p>
+</p>
+<h2><a name="putline__appendline">putline, appendline</a></h2>
+<p>The <code>putline</code> and <code>appendline</code> methods just print a line to a file handle.  I can't remember why I
+separated them, but I'm sure that it will be obvious later.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub putline {
+      my ($self, $fh, $line) = @_;
+      print $fh &quot;$line\n&quot;;
+   }
+   sub appendline {
+      my ($self, $fh, $line) = @_;
+      print $fh &quot;$line\n&quot;;
+   }
+</pre><p>
+</p>
+<h2><a name="delete">delete</a></h2>
+<p>The <code>delete</code> method, given a key, deletes the record.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub delete {
+      my ($self, $key) = @_;
+      $self-&gt;SUPER::delete($key);
+      $self-&gt;write();
+   }
+</pre><p>
+</p>
+<h2><a name="close">close</a></h2>
+<p>The <code>close</code> method closes the file.  Hmm, except it's already closed, isn't it?  So ... never mind.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub close { }
+</pre><p>
+</p>
+<hr />
+<p>Michael Roberts, <code>&lt;michael at vivtek.com&gt;</code></p>
+<p>
+</p>
+<hr />
+<p>Please report any bugs or feature requests to <code>bug-workflow-wftk at rt.cpan.org</code>, or through
+the web interface at <a href="http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Workflow-wftk">http://rt.cpan.org/NoAuth/ReportBug.html</a>.  I will be notified, and then you'll
+automatically be notified of progress on your bug as I make changes.</p>
+<p>
+</p>
+<hr />
+<p>You can find documentation for this module with the perldoc command.</p>
+<pre class="code">
+    perldoc Workflow::wftk::Data
+</pre><p>
+</p>
+<hr />
+<p>Copyright 2008 Vivtek, all rights reserved.</p>
+<p>This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   1; # End of Workflow::wftk::Data
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

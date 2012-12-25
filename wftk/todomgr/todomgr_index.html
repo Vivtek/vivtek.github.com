@@ -1,0 +1,47 @@
+<html>
+<head><title>To-do manager, take 1</title></head>
+<body>
+<h2>To-do manager</h2><hr>
+This implementation of a to-do manager is heavily influenced by the
+<a href="http://www.vivtek.com/wftk.html">open-source workflow toolkit</a> project,
+and it's also growing out of my long-time need for a project task manager for dealing
+with my customers' support requests.  The database schema used will thus be the same
+required by the wftk engine, but the goal is an application that can stand alone without
+workflow.
+<p>
+The platform I'm developing this version against is <a href="/aolserver.html">AOLserver/Tcl</a>
+for a couple of reasons.  The most important of those reasons is simply that I'm pressed for
+time due to a couple of illnesses (gotta love these Indiana springs) and I'm pretty good at
+Tcl, so this is the quickest way to get this portion of the overall wftk system completed.
+However, the platform, while not particularly portable, has a lot to recommend it.  If you're
+not familiar with it, I encourage you to read up on it a little.
+<p>
+And just so I have all the related links out of the way right off the bat, I'm coding this
+in a <a href="/litprog.html">literate programming style</a> using my very raw tool 
+<a href="/lpml.html">LPML</a>.  Please feel free to give me any feedback you might have about
+the formatting of the code, therefore, because that is also under development.
+<p>
+For the wftk folks following along, the fact that this prototype is being implemented in
+AOLserver/Tcl in no way constrains your own implementation.  I want to hammer out the function
+points and database schema without wasting too much time on languages I'm less familiar with,
+but for the "release" version of the wftk (whatever that means), I'd like to have at least
+a Perl/CGI implementation (for broad support) and possibly something in ASP as well.  I'm
+sure most of you would like to see a Java servlet approach, but within the timeframe of this
+initial project, I don't consider that likely.  (Now if anybody wants to <i>help</i>, that'll
+be a different matter!)
+<p>
+Really, to fit into a wftk installation, the to-do manager must:
+<ul>
+<li>Work with the schema of the active process repository
+<li>Know when to call the wftk engine to get things done (primarily at task completion), and
+<li>Present the to-do list in any way necessary.
+</ul>
+And here's how I do it.
+(unresolved tag itemlist)
+
+This presentation defines two files:
+(unresolved tag objectlist)
+</body>
+</html>
+
+

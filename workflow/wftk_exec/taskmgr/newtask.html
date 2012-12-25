@@ -1,0 +1,25 @@
+<html><head><title>Request new task</title></head>
+
+<body bgcolor=FFFFFF>
+
+<h2>Request new task for "(unresolved tag title)"</h2><hr>
+<form action="create" method=post>
+<input type=hidden name=what value=task>
+<input type=hidden name=process value="(unresolved tag process)">
+<table border=0>
+<tr><td>Short description of the task:</td>
+    <td><input name=description size=60></td></tr>
+<tr><td>Person who should perform the task (default is you)</td>
+    <td><select name=userid>(unresolved tag userlist)</select></td></tr>
+<tr><td>Priority:</td>
+    <td><select name=priority size=1><option value="1">1<option value="2">2<option value="3">3</select></td></tr>
+<tr><td>Scheduled date:</td>
+    <td><input name=sched_date size=10></td></tr>
+<tr><td>Scheduled time:</td>
+    <td><input name=sched_time size=10></td></tr>
+</table>
+<input type=submit value="Create task">
+</form>
+
+</body>
+</html>

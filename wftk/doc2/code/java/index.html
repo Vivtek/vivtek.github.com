@@ -1,0 +1,63 @@
+<html><head><title>wftk-j</title></head>
+<body>
+<h2>wftk-j: wftk workflow in Java</h2>
+<hr>
+<b>11 August 2003</b>: A year or so after its inception, the wftk-j project is underway, with funding from the fine folks at startext GmbH,
+in whose offices I am sitting at this very moment.
+<p>
+The general plan for wftk-j used to be as follows:
+<ul>
+<li>Create a JNI wrapper for the ANSI C wftk libraries (XMLAPI, repository manager, core wftk API).
+This JNI wrapper will include the native Java implementations of the basic wftk class schema (this became the abstract Repository class).
+<li>Cobble together some kind of servlet front-end using the JNI wrapper.  (We started addressing this during my stay in Germany, and startext
+is contributing an initial Tomcat JSP front-end using the Java wftk client.)
+<li>At some point in the misty future, start porting code into a native Java implementation.  Since JNI wrappers already consist of full-fledged
+Java classes, some of whose methods happen to be implemented in other languages, it should be a simple matter to progressively switch out native
+methods with pure Java on a piecewise basis.  Do that long enough, and you end up with a Java implementation of the wftk.
+</ul>
+
+<p>
+<i>August 25, 2003</i>: The plot thickens.  Once I finished the <a href="../wftk/action/ACTION_soap.html">SOAP adaptor</a>, and we all saw how very
+simple indeed it is to set up a simple SOAP server under Python (which I used to test initial versions of the adaptor), a sort of phase change happened,
+and a new(ish) plan arose.  Now, this is how we're proceeding:
+
+<ul>
+<li>Create a simple SOAP object: this is actually <a href="simple_soap.html">done</a> already.
+<li>Continue work on the JNI wrapper for the wftk libraries, but not at such high priority, because:
+<li>Create an abstract repository class which will have two implementations: RemoteSOAPRepository and LocalJNIRepository (and of course in the future
+we can envision any number of implementations, which is the beauty of Java in the first place.)  LocalJNIRepository will simply be the JNI wrapper for
+the current C-language repmgr library, while RemoteSOAPRepository will wrap up all requests and ship them off to a SOAP server, initially written in
+Python, but subsequently of course implemented in any way we like.
+<li>Some pure-Java work will already be underway (the groundwork is already being laid) so that at some point, native C-heap XML objects will only be
+maintained if necessary for communicating with the local JNI-wrapped libraries, while a general client will have no native dependencies at all.  This
+means that <i>clients</i> may already be pure Java earlier than servers may be -- which is fine.  A wftk applet library would be a tremendous addition
+to the toolset without requiring any server functionality at all.
+</ul>
+So this is a pretty neat plan, I think.
+<p></p>
+
+The present implementation breaks down into several sections:
+
+<ul>
+<li><a href="xmlobj.html">xmlobj.java</a> wraps the XMLAPI with two classes, xmldata and xmlobj, and the native methods for these classes end up in <a href="xmlobj_c.html">xmlobj.c</a>.  The initial code structure for xmlobj.c was generated in the approved way, with javah.
+<li><a href="simple_soap.html">simple_soap.java</a> provides a <i>very</i> thin SOAP layer, which relies minimally on the xmlapi-j for parsing and navigation of the result XML.  This would motivate a pure-Java implementation of this minimal functionality in the near future.
+<li><a href="repository.html">repository.java</a> is the Java definition of the repmgr OO schema, essentially comprising the rest of the wftk.
+<li><a href="repos_soap.html">repository_soap.java</a> is the remote SOAP implementation of the repository class.
+<li><a href="repos_jni.html">repository_jni.java</a> is the local JNI implementation of the repository class, and its native methods will end up in <a href="repository_jni_c.html">repository_jni.c</a>.
+<li><a href="wrappertest.html">wrappertest.java</a> is a simple Java console app which runs tests of the whole shebang (initially, it <i>was</a> just a wrapper test, you see).  The point, of course, is that wrappertest neither knows nor cares that the methods of the classes it uses are native or Java, local or remote.  Which is cool.
+<li><a href="javadoc/index.html">The javadoc-generated usage docs</a> are the place to start if you simply want to run the Java client from within Java.
+</ul>
+
+<p>
+
+Onwards.
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

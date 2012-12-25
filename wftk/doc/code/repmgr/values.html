@@ -1,0 +1,36 @@
+<html><head><title>Repository manager: Working with object field values</title></head>
+<body>
+<h2>Working with object field values</h2>
+<center>
+[&nbsp;<a href="workflow.html">Previous: Workflow</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="repository.html">Next: Repository queries</a>&nbsp;]
+</center>
+
+<hr>
+<i>(Feb 16, 2002)</i>: Once I really started to get into working with objects, I realized a couple of motivations for list values,
+chief of which is the ability to maintain versions of values.  Not least, however, is the fact that LDAP fields are <i>all</i> lists,
+so it'll behoove us to be able to manage such records so that an LDAP storage adaptor won't have such a long row to hoe.
+<p></p>
+At any rate, I want to have a simple API which can deal with plain-vanilla fields as well as list-augmented ones, in the same manner.
+A plain-vanilla field is a "field" element which has an "id" attribute naming the value, and whose content, in string form, is the
+value of the field, or in a "value" attribute.  The new wrinkle on that is to posit a couple of extra attributes; the "curver" attribute
+signals that the field is versioned, meaning that each child element of the field element is a version value with a key, and that the
+curver attribute selects the currently valid value.  And the "defval" value does the same thing, except with the understanding that
+<i>all</i> the values are currently valid, but that one of them is a default value.  A logical combination of the two modes would be
+to posit version sets -- but I'm not going to mess with the idea of versioned lists, thank you very much.
+
+
+
+<center>
+[&nbsp;<a href="workflow.html">Previous: Workflow</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="repository.html">Next: Repository queries</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2005, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

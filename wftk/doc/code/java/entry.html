@@ -1,0 +1,150 @@
+<html><head><title>wftk-j: Modelling list entries</title></head>
+<body>
+<h2>wftk-j: Modelling list entries</h2>
+<center>
+[&nbsp;<a href="list.html">Previous: Modelling repmgr lists</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="task.html">Next: Modelling tasks</a>&nbsp;]
+</center>
+
+<hr>
+The entry is a record within a list.  We don't actually have to have a list object to retrieve an entry; a full entry is returned by the repository
+given a list ID and an entry key.  The entries returned in lists are typically truncated (usually to nothing more than their keys), so a typical
+sequence of calls is to build and retrieve a list of keys, then retrieve full objects in a second pass.
+
+<p></p>
+The entry object has functionality for building entries as well, because we need a way to construct entries to add them to lists.  And the
+"update" function tells an entry, once modified, to save itself back to its repository.
+
+<p></p>
+Note: each entry in a list is potentially a workflow process.  Thus any entry may have tasks registered against it, define roles (which may
+be assigned to users), and have users registered as involved.  We can query these lists of items, and can change them in some ways (assigning a user
+to a role, for instance, or adding an ad-hoc task.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>package org.wftk;
+import java.util.Map;
+import java.util.Collection;
+
+public class Entry {
+   public Repository rep = null; // Every entry knows its own repository.
+   public String key = null;
+   public String list_id = null;
+   public Map attributes = null;
+   Map values = null;
+   public String state = null;
+   private String html = null;
+   private String display_html = null;
+
+   public Entry () {
+   }
+   public Entry (Repository r) {
+      rep = r;
+   }
+   public Entry (Repository r, String list) {
+      rep = r;
+      list_id = list;
+   }
+   public Entry (Repository r, String list, String key_in) {
+      rep = r;
+      list_id = list;
+      key = key_in;
+   }
+
+   public Collection values () { return values.keySet (); }
+   public int value_count () { return values.size (); }
+
+   public String key () {
+      return key;
+   }
+   public String get (String field) {
+      return ((String) values.get ((Object) field));
+   }
+   public String label (String field) {
+      return field; // TODO: an actual field label
+   }
+   public void set (String field, String value) {
+      display_html = null;
+      html = null;
+      if (values == null) values = new java.util.HashMap();
+      values.put (field, value);
+   }
+   public void add (Repository r, String list) {
+      rep = r;
+      
+   }
+   public void add (String list) throws WftkException {
+      if (rep == null) throw new WftkException("No repository defined for entry");
+      rep.add (list, this);      
+   }
+   public void add () throws WftkException {
+      if (rep == null) throw new WftkException("No repository defined for entry");
+      if (list_id == null) throw new WftkException("Entry not attached to list");
+      rep.add (list_id, this);
+   }
+   public String html_edit () throws WftkException {
+      if (html == null) {
+         html = rep.format (list_id, key, "edit");
+      }
+      return html;
+   }
+   public boolean is_editable () { return true; } // TODO: Maybe make this check some logic.
+   public boolean is_task () { 
+      if (list_id == "_tasks") return true;
+      if (list_id == "_todo")  return true;
+      return false; // TODO: is this really the best logic?
+   }
+   public String html_display () throws WftkException {
+      if (display_html == null) {
+         System.out.println ("getting display");
+         display_html = rep.format (list_id, key, "display");
+      }
+      return display_html;
+   }
+
+   public void update () throws WftkException {
+      rep.mod (list_id, this, key);
+   }
+   public void refresh () throws WftkException {
+      rep._get (this);
+   }
+
+   public Entry get_task (String key) throws WftkException {
+      return (rep.get_task(this, key));
+   }
+
+   public List tasks () throws WftkException {
+      List t = new List(rep);
+      t.id = "_tasks";
+
+      rep._tasks (t, this);
+
+      return (t);
+   }
+   public List roles () throws WftkException {
+      return null;
+   }
+
+   /* ---- Task entries ------ */
+   public void complete() throws WftkException {
+      set ("state", "completed");
+      update ();
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="list.html">Previous: Modelling repmgr lists</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="task.html">Next: Modelling tasks</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,101 @@
+<html><head><title>wftk core library: Working with the enactment history</title></head>
+<body>
+<h2>Working with the enactment history</h2>
+<center>
+[&nbsp;<a href="wftk_user.html">Previous: Working with users</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_notify.html">Next: Sending notifications</a>&nbsp;]
+</center>
+
+<hr>
+Everything that happens to a process is stored in its enactment history.  At some point the level of enactment will be
+parametrized, but for the time being, we write an enactment entry on each task action, each data setting, and probably
+each request or alert.  We also provide a log function which can be called with an arbitrary string.
+<p></p>
+The userid in the session is used to mark who took each action; at this level, that's not authenticated at all, simply
+set using <code>wftk_session_setuser</code>.  Caveat callor.
+<p></p>
+Anyway, the enactment itself is just a child of the main datasheet element which is an "enactment" node.  If there isn't
+one, we create it, pretty much the same as the state.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * wftk_enactment (void * session, XML * datasheet)
+{
+   XML * en;
+
+   en = xml_loc (datasheet, "datasheet.enactment");
+   if (!en) {
+      en = xml_create ("enactment");
+      xml_append (datasheet, en);
+   }
+
+   return (en);
+}
+</pre></td></tr></table>
+
+To write an enactment entry, we take an arbitrary piece of XML, copy its head element, copy that element's attributes,
+add a by= which is taken from the session's assigned user and an at= which is the current time, and tack it onto the
+enactment.  Note that this isn't actually saving the datasheet.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int wftk_enactment_write (void * session, XML * datasheet, XML * xml, const char * attribute, const char * value)
+{
+   XML * copy;
+   ATTR * attr;
+   XML * en = wftk_enactment (session, datasheet);
+   if (!en) return 0;
+
+   if (!xml) return 0;
+
+   copy = xml_create (xml->name);
+   attr = xml->attrs;
+   while (attr) {
+      xml_set (copy, attr->name, attr->value);
+      attr = attr->next;
+   }
+   if (wftk_session_getuser(session)) {
+      xml_set (copy, "by", xml_attrval (wftk_session_getuser(session), "id"));
+   }
+   xml_set (copy, "at", _wftk_value_special (session, datasheet, "!now"));
+   if (attribute &amp;&amp; value) {
+      xml_set (copy, attribute, value);
+   }
+   xml_append (en, copy);
+
+   return 1;
+}
+</pre></td></tr></table>
+
+Our final little piece is a more convenient log-entry call which takes a string, wraps a log element around it, and
+calls the above function.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int wftk_log (void * session, XML * datasheet, char * log)
+{
+   int retval;
+   XML * logxml = xml_create ("log");
+
+   xml_set (logxml, "text", log);
+   retval = wftk_enactment_write (session, datasheet, logxml, NULL, NULL);
+   xml_free (logxml);
+   return (retval);
+}
+</pre></td></tr></table>
+
+That wasn't so hard, was it?
+
+
+
+<center>
+[&nbsp;<a href="wftk_user.html">Previous: Working with users</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_notify.html">Next: Sending notifications</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,130 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Process definition -- if</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Process definition: <code>&lt;if&gt;</code></h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/process_defn.html>process&nbsp;definition</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+The conditional is coded with an <code>&lt;if&gt;</code> tag.  When I first considered the
+idea of an XML-based <i>if</i>, I was really unhappy about what it should look like.  First,
+the entire thing should be enclosed in the <code>&lt;if&gt; ... &lt;/if&gt;</code> block.
+OK, fine -- but where do we put that <i>else</i>?  Should the enclosed blocks be considered
+a sequence or a parallel block?  Do we need a <i>then</i>?  Obviously not, but then why have
+an <i>else</i>?
+<p>
+So after mulling that over a while, I decided to use the LISP <i>cond</i> as a model.  But
+since the word "if" still means more to me than "cond", at least the tag is called "if".
+<p><i>(2/23/00)</i> Thomas Fricke suggested a slightly different setup than the <code>cond</code>
+model I was using, and I liked it better, so I'm using it.  We get the same advantage of not having
+heavily nested if/then/else structures as we did with my version, but it's more readable in both
+our opinions.
+<p>
+So the basic structure of the <code>if</code> tag is:<br>
+<code>
+&nbsp;&nbsp;&lt;if expr="..."&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;[block]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;elseif expr="..."/&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;[block]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;[else-block]<br>
+&nbsp;&nbsp;&lt;/if&gt;<br>
+</code>
+Like the iteration construction, this syntax covers basically any conditional without
+the need for multiple syntactic forms: you can write an <i>if</i> or a <i>case</i> equally
+well with it.  Nesting is of course not an issue with markup languages; you always have
+a close-tag.
+<p>
+The only really open question in my mind about this construct is how to evaluate those
+test expressions.  As noted in current email (2/12/00), the Tcl expression evaluator might
+be a convenient compact package to use for this purpose.  As with many other open questions,
+my answer right now is, "we'll see when we get into prototyping."  And of course, if you
+have any other ideas, I'd love to hear'em.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

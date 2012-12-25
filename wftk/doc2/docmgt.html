@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: Document Management Background</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>wftk: Document Management Background</h2>
+<center>
+[ <a href=index.html>documentation home</a> ]
+[ <a href=configure.html>configuration</a> ]
+[ <a href=code.html>design/implementation</a> ]
+</center>
+<hr>
+
+<h3>What is document management?</h3>
+
+<table border="1" cellpadding="5" cellspacing="0" align="center"><tr><td bgcolor="#eeeeee">
+<i>A document management system stores large pieces of unstructured data, usually containing text.</i>
+</td></tr></table>
+
+
+<p>
+Document management is another of those areas where people pay a lot of money for fairly obvious
+solutions to fairly obvious problems.  A document management system (or <i>EDMS</i>, Electronic Document Management System)
+is essentially a database in which
+some records are, or contain, or index, large files.  These large files are things like CAD drawings,
+Word documents, or other, well, <i>documents</i>.  Very often they're scanned images of paper documents.
+Each document has a unique key and is thus easy to retrieve given the key.
+<p>
+Besides the documents themselves, an EDMS usually stores data <i>about</i>
+those documents, which is the chief reason for using a document management system instead of just
+tossing everything into a shared directory.  The additional data is often called <i>metadata</i>,
+because it is data about the data (the first data being the documents.)
+This sounds really nice and it is in fact a fairly useful distinction at times.
+<p>
+In addition to simple storage and retrieval of documents,
+there are two features commonly seen in document management
+systems: <i>version control</i>, which allows the composition history of a document to be captured
+and tracked and allows the recovery of historical versions of the document; and <i>indexing</i>, which
+uses various tools to compile information about the location of keywords and phrases within documents
+to allow searches to be performed on their contents.
+<p>
+A less usual but extremely powerful feature of some document management systems is the notion of
+constructing documents from defined parts.  This is usually called something like <i>structured
+documents</i> and can range from the automatic insertion of version numbers, owner userid, or change
+dates into the text of documents, right up to the ability to build a document using any arbitrary
+combination of structured and unstructured data (such as reports from database tables, defined pieces
+of text, dictionary lookups, or whatever else may be necessary -- naturally, the sky is the limit with
+this if you're willing and able to do lots of analysis and coding.)
+<p>
+<h3>wftk repository manager</h3>
+
+<table border="1" cellpadding="5" cellspacing="0" align="center"><tr><td bgcolor="#eeeeee">
+<i>The wftk repository manager is a free, flexible, extendable document- and content-management toolkit.</i>
+</td></tr></table>
+
+<p>
+The wftk's <i>repository manager</i>, or "repmgr" (yes, I've already been told I'm less than poetic
+when naming my software, but I still do things my way) is a comprehensive framework for the organization
+of data.  One of its more refined features is the ability to attach documents to the objects it
+stores, and this document-attachment feature makes it a good basic document management system.
+A given list may store documents either as a versioned repository or a non-versioned repository, as
+required by the application.  And a given object may have standard attachments, or may contain any
+arbitrary number or type of attachments.  Field-level version management (meaning, in this case,
+version management for the attached documents) is included in the basic repository manager.  And indexing
+tools can easily be integrated into the framework; I'm looking at an open-source indexer at the moment
+in the hopes of integrating it into the standard package.
+
+<p>
+Setting up a document management repository thus consists of (1) defining your lists of documents (each
+list may have different standard data associated with it, but any data can be associated with any
+list if necessary), (2) choosing the interface environments you need to fulfill your requirements, such
+as a regular desktop client, a Web client, or what have you, and (3) choosing the data storage systems
+you want to utilize to store and index your documents.  Note that given the technology-agnostic nature
+of all the wftk software, you can always change your mind about basic infrastructure choices if your
+needs (or your understanding of them) changes -- migration from one database to another, for instance,
+or switching Web servers or from a primarily Web usage scheme to a primarily desktop-oriented
+usage scheme is nearly transparent.  You can even use a desktop environment in conjunction with a Web
+presentation, and change strategies as necessary.
+
+<p>
+Where the repository manager can truly shine, however, is in its ability to capture the dataflow of
+document creation.  The repmgr started out as a tool to manage database and websites, and also to
+manage the creation and maintenance of data-based sites, whereby the pages were built from current
+database contents.  Thus there is a lot of machinery available to construct text from diverse sources.
+So the repository manager can be persuaded to do structure document processing.  It's not trivial yet,
+but it's getting easier with every system I build.
+
+<h3>Where to go from here</h3>
+At this point, if you're a programmer, you probably want to read the documentation accompanying the
+repository manager, except for one little problem: there isn't much of it.  Instead, you should think
+about reading the code presentation and the comments strewn there, and study the implementation of the
+command-line interface of the repository manager.  At some point in the relatively near future, I really
+want to put together some example systems, but I'm still mired in some rather important basic
+functionality that I'd like to see working before building demo systems.  Bear with me in the meantime.
+<p>
+If you're not a programmer, and you're seriously considering putting together any system based on open-source software, I heartily
+recommend that you find a programmer.  I'm usually available, by the way.  Drop me a note at <a href="mailto:michael@vivtek.com">michael@vivtek.com</a>
+and I can help you get off the ground.
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2002 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

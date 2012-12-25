@@ -1,0 +1,50 @@
+<html><head><title>wftk core: task index adaptor</title></head>
+<body>
+<h2>wftk core: task index adaptor</h2>
+<center>
+[ <a href="../index.html">back to the core</a> ] [ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+A <i>task index adaptor</i> is responsible for interfacing with a database or other indexing system in order to
+provide indexing capabilities for active processes, tasks and requests.  Usually this will be a relational database, but it
+could well be anything at all, I suppose.  I'm sure I'll find creative ways of using it.  Eventually
+we might also want to do some kind of user or group cross-indexing in order to find particular users'
+tasks efficiently.
+<p>
+<i>(January 27, 2003)</i> -- of course, a lot of that kind of thing is covered handily by the repository manager,
+so if the TASKINDEX class is going to be useful at all in the future, it will be a bit of a suprise.
+<p>
+These are the functions exposed by a task index adaptor (it's a long list; I don't want to take the
+time right now -- read the code instead):
+<table>
+<tr><td><i><u>Function</i></u></td><td><i><u>Parameters</i></u></td><td><i><u>Purpose</i></u></td></tr>
+<tr bgcolor=eeeeee><td valign=top>0: init</td>
+    <td valign=top>&nbsp;</td>
+    <td>Initialize adaptor instance</td></tr>
+<tr bgcolor=ffffff><td valign=top>1: free</td>
+    <td valign=top>&nbsp;</td>
+    <td>Clean up instance before shutting down</td></tr>
+<tr bgcolor=ffffff><td valign=top>2: info</td>
+    <td valign=top>&nbsp;</td>
+    <td>Return XML describing the adaptor</td></tr>
+</table>
+
+<p>
+Implementations:<ul>
+<li><a href="TASKINDEX_stdout.html">TASKINDEX_stdout</a>: prints notifications to stdout.
+<li><a href="TASKINDEX_odbc.html">TASKINDEX_odbc</a>: interfaces to an ODBC datasource (Windows-specific).
+<li><a href="TASKINDEX_list.html">TASKINDEX_list</a>: uses the repository manager to do the dirty work.
+</ul>
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,101 @@
+<html><head><title>Repository manager: User authentication and group membership</title></head>
+<body>
+<h2>User authentication and group membership</h2>
+<center>
+[&nbsp;<a href="remote_retrieval.html">Previous: Data retrieval and display</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_context.html">Next: Context/user session handling</a>&nbsp;]
+</center>
+
+<hr>
+It's amazing how much easier all this is when you do the work somewhere else.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * FN_NAME(repos_user_auth) (XML * repository, const char * userid, const char * password)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+   XML * userbase;
+   XML * ret;
+   const char * line;
+   const char * end;
+
+   if (sock) { /* Remote. */
+      xml_setf (sock->parms, "outgoing", "auth %s %s\n", userid, password);
+      _repos_send (sock);
+
+      line = _repos_receive (sock);
+      if (*line == '-') return NULL;
+      line = strchr (line, '\n') + 1;
+      userbase = xml_create ("t");
+      xml_set (userbase, "r", "");
+      while (line[0] != '>' || line[1] != '>') {
+         end = strchr (line, '\n');
+         if (end) {
+            xml_attrncat (userbase, "r", line, end - line + 1);
+         } else {
+            xml_attrcat (userbase, "r", line);
+            break;
+         }
+         line = end + 1;
+      }
+      ret = xml_parse (xml_attrval (userbase, "r"));
+      xml_free (userbase);
+      xml_set (sock->parms, "buffer", "");
+      return ret;
+   }
+
+   return NULL;
+}
+
+WFTK_EXPORT XML * FN_NAME(repos_user_ingroup) (XML * repository, const char * userid, const char * groupid)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+   XML * userbase;
+   XML * ret;
+   const char * line;
+   const char * end;
+
+   if (sock) { /* Remote. */
+      xml_setf (sock->parms, "outgoing", "ingroup %s %s\n", userid, groupid);
+      _repos_send (sock);
+
+      line = _repos_receive (sock);
+      if (*line == '-') return NULL;
+      line = strchr (line, '\n') + 1;
+      userbase = xml_create ("t");
+      xml_set (userbase, "r", "");
+      while (line[0] != '>' || line[1] != '>') {
+         end = strchr (line, '\n');
+         if (end) {
+            xml_attrncat (userbase, "r", line, end - line + 1);
+         } else {
+            xml_attrcat (userbase, "r", line);
+            break;
+         }
+         line = end + 1;
+      }
+      ret = xml_parse (xml_attrval (userbase, "r"));
+      xml_free (userbase);
+      xml_set (sock->parms, "buffer", "");
+      return ret;
+   }
+
+   return NULL;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="remote_retrieval.html">Previous: Data retrieval and display</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_context.html">Next: Context/user session handling</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

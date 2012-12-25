@@ -1,0 +1,65 @@
+<html><head><title>wftk core library: Include file (and API definition)</title></head>
+<body>
+<h2>Include file (and API definition)</h2>
+<center>
+[&nbsp;<a href="wftk_lib.html">Previous: wftk core library</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_internals.html">Next: Internal definitions</a>&nbsp;]
+</center>
+
+<hr>
+The API presented by the wftk core library is really pretty simple.  It consists
+basically of workflow actions and HTML presentation functions (defaults, really).
+So here, with no further ado, is the include file in its entirety.
+<p></p>
+Note that it's not Windows-ized yet.  That'll come soon.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifndef WFTK_H
+#define WFTK_H
+#include <stdio.h>
+#include "../xmlapi.h"
+
+void wftk_htmlout_summary (FILE * out, XML * datasheet);
+void wftk_htmlout_active (FILE * out, XML * datasheet);
+void wftk_htmlout_task (FILE * out, XML * datasheet);
+void wftk_htmlout_progress (FILE * out, XML * datasheet);
+
+XML * wftk_list_users (XML * datasheet);
+XML * wftk_list_active (XML * datasheet);
+XML * wftk_list_enactment (XML * datasheet);
+
+XML * wftk_task_requirements (XML * datasheet, char * task_id);
+
+XML * wftk_action_create (char * dprep, char * datasheet_id);
+int   wftk_action_define (XML * datasheet, char * pdrep, char * procdef_id);
+void wftk_action_complete (XML * datasheet, XML * procdef, char * task_id);
+void wftk_action_abort (XML * datasheet, XML * procdef, char * task_id);
+void wftk_action_setvalue (XML * datasheet, char * name, char * value);
+
+void wftk_action (XML * datasheet, XML * procdef, XML * command);
+
+XML * wftk_datasheet_load (char * dprep, char * datasheet_id);
+void  wftk_datasheet_save (XML * datasheet);
+
+XML * wftk_procdef_load (XML * datasheet);
+
+void wftk_notify (const char * type, const char * to, const char * from, const char * subject, XML * message);
+#endif
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_lib.html">Previous: wftk core library</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_internals.html">Next: Internal definitions</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

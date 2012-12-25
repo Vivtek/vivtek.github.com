@@ -1,0 +1,256 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: Design and implementation</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>wftk: Design and implementation</h2>
+[ <a href="index.html">wftk documentation home</a> ]
+<hr>
+
+<h3>Overall code organization</h3>
+The wftk is a vast and complex system, and its arcane corners are known only to the initiate.  (And that
+would be ... me.)  It consists of two central modules, a number of adaptors in various classes, and
+several wrappers.  Most of it is compiled into libraries; these libraries
+are either statically or dynamically linkable.
+<p>
+It is implemented (mostly) in ANSI C.  The source code is actually contained in XML files which
+are sliced and diced by a Perl script to produce the C code which is compiled.  The reason for doing
+this is because the <i>same</i> files contain implementation documentation.  This technique is called
+<i>literate programming</i>, and it works for me.  Your mileage may vary.
+<p>
+The HTML documentation generated during the compilation ends up in the source directories; to make things
+easy for a documentation distribution, however, all these files are duplicated in the code subdirectory
+here.
+<p>
+This document is an overview and index; jump to various pieces of it as follows.  The list of interfacing
+systems is largely vaporware at present, but it gives you an idea of what goes where.
+<ul>
+<li><a href="#core">Main wftk implementation</a>
+<li><a href="#xml">Data handling in XML</a>
+<li><a href="#wrappers">How to call the wftk</a>: Python, Tcl, Perl, C, C++, .NET, VB, Zope, incoming email, etc.
+<li><a href="#adaptors">How to get the wftk to talk to other systems</a>: ODBC, Oracle, MySQL, Sybase, outgoing email (SMTP or MAPI), LDAP, etc.
+</ul>
+
+<h3>Build organization</h3>
+After long years, the build organization on both Unix and Windows is identical.  Of course, under
+Windows I'm using a 1999-vintage Mingw32 GNU make to call the Microsoft VC++ 5.0 compiler, but the
+principle is the same.
+<p/>
+There are a number of configuration values in the Makefile.conf file.  The version of Makefile.conf you
+retrieve from CVS or from a build will have one of several operating systems selected, depending on
+which one I was last testing on when I updated CVS.  So be sure you select the one you're actually
+using, first.  The same applies for whether various optional adaptors or front-ends are selected or
+not.  Upshot: before you try to build anything, look at Makefile.conf.
+<p/>
+Yes, I know about autoconf on Unix.  I don't like it, because I'm one of those poor souls who spends
+a lot of time trying to get Unix open-source stuff to work under Windows, and autoconf projects never
+do.  So it's kind of a personal thing.
+<p/>
+Anyway, once you have Makefile.conf properly configured, you're pretty much home free. Run make and things
+should work.
+
+<a name="core">
+<h3>Main modules</h3>
+Version 1.0 of the wftk consists of the <i>workflow core</i> (the older of the two central modules),
+a number of adaptors, and a thin command-line utility which is mainly useful for testing.  It is not
+yet terribly useful unless you're embedding it in your own application code, but despite this handicap,
+there are a few people here and there managing to make a go of using it.  This is pretty gratifying.
+<p>
+
+After core-v1.0 is released, I'll be polishing up the other central module, the repository manager,
+as a sorta-kinda separate product.  Weirdly, the repmgr is the module I'm using more heavily in
+production.  The repmgr handles data, and I handle a lot of data, so I guess that makes sense.  The
+repmgr will be released as repmgr-v1.0.  Once that's done, I'll integrate the two modules and release
+the whole thing as wftk-v1.5.  It will continue to be possible to run the wftk core engine without the
+repository manager; this may be useful for embedded systems, etc.
+<p>
+
+The relationship between the two central modules, adaptors, and application or wrapper code is
+explained and depicted in the <a href="overview.html">wftk overview</a>.
+<p>
+
+Both central modules rely on some shared code: the XMLAPI (described below) and the context handling
+functionality, which also includes handling of adaptors and configuration information.  Read the
+code for more information.
+<p>
+
+<u>Central modules, supporting code and command-line utilities:</u>
+<ul>
+<li><a href="code/wftk/wftk_lib.html">wftk core engine (library)</a>
+<li><a href="code/wftk/wftk_util.html">wftk command-line utility</a> (deprecated)
+<li><a href="code/repmgr/index.html">repository manager (repmgr)</a>
+<li><a href="code/wftk/wftk_session.html">Context, configuration, and adaptor handling</a>
+<li><a href="code/repmgr/wiki.html">Repository-aware Wiki(ish) code</a>
+</ul>
+
+<u>Alternative implementations (mileage may vary):</u>
+<ul>
+<li><a href="code/java/index.html">wftk-j: native Java port</a> (approaching initial usability)
+</ul>
+
+<a name="xml">
+<h3>XML-centric design</h3>
+The wftk uses XML-like internal structures for nearly all data.  The library I use to manage these
+structure is the XMLAPI.  The XMLAPI is kind of like libxml, except different.  The reason I chose to
+do things this way is not entirely because I'm an incorrigible nonconformist; much more importantly,
+I thought it would be easier to do a lightweight library than to understand libxml.  Predictably, from
+what I've taken the time to understand about libxml, I seem to have re-implemented it almost in its
+entirety.  But <i>I had fun doing it</i>.
+<p>
+The XMLAPI uses the expat parser for all parsing (whether from file or from string.)
+<p>
+There are three XMLAPI extension modules: <i>xmlobj</i> uses the XMLAPI to do record management for
+the repmgr and datasheet management for the wftk core; <i>xml_template</i> does a kind of simple XSLT
+for the repmgr; and <i>xmlcgi</i> takes the current CGI environment and builds an XML lookup structure
+for easy C/CGI programming.
+<p>
+<u>XML handling functionality:</u>
+<ul>
+<li><a href="code/xmlapi/index.html">XMLAPI proper</a>
+<li><a href="code/xmlapi/xmlobj.html">xmlobj record management</a>
+<li><a href="code/xmlapi/xml_template.html">xml_template template expression</a>
+<li><a href="code/xmlapi/xmlcgi.html">xmlcgi CGI environment management</a>
+</ul>
+
+<a name="wrappers">
+<h3>Wrappers</h3>
+I use the catchall term <i>wrapper</i> to mean either a complete program using the wftk, or just a
+further library for inclusion into a complete program.  The latter category is really what a wrapper
+is in common usage, so please don't be terribly confused by my sloppy language.
+<p>
+There are thus two types of wrapper, the UI wrapper (a complete program, a category with no members
+currently complete)
+and the scripting wrapper (an interface for a scripting language, currently represented by Python and Tcl.)
+Note that there is a lot of hope inherent in this list.
+<p>
+
+<u>UI wrappers:</u>
+ <ul>
+ <li><a href="code/popup/index.html">Popup framework (barely started, based on wxWindows)</a>
+ <li><a href="code/zope/index.html">Zope UI (started August 2002)</a>
+ <li><a href="code/aolserver/index.html">AOLserver UI (raw version started in 2001, nicer Tcl wrapper in 2003; in production)</a>
+ <li>Perl/CGI UI (waiting on Perl module)
+ <li><a href="code/repmgr/repmgr_cgi.html">C/CGI UI (started and coming along rather nicely)</a>
+ <li>Medusa (started June 2002)
+ <li>Mail handler (started 26 July 2002)
+ <li>PHP UI (started planning)
+ </ul>
+<u>Scripting wrappers:</u>
+ <ul>
+ <li><a href="code/java/index.html">Java JNI wrapper (started Sep 2002)</a>
+ <li><a href="code/python/index.html">Python wrapper (repmgr and XMLAPI only, production quality)</a>
+ <li><a href="code/aolserver/nswftk.html">Tcl under AOLserver (in production, repmgr and XMLAPI only)</a>
+ <li>Perl: use Workflow; (not started)
+ <li>PHP module (started 25 July 2002)
+ <li>C++ classes (scoped but not started)
+ <li>ColdFusion extension (not started, depends on C++ classes)
+ <li>C#/.NET wrapper (not started but should be YAW (Yet Another Wrapper))
+ <li>Visual Basic (started, just barely)
+ </ul>
+</ul>
+
+<a name="adaptors">
+<h3>Adaptors</h3>
+Of course, there are almost unlimited possibilities for talking to other systems, which is what the
+adaptors are for.  There are several adaptor classes; each adaptor class characterizes a set of
+methods for talking to other systems in a particular range of needs.  For each adaptor class, there is
+one or more implementations -- actual adaptors -- and could be any number of alternate implementations
+depending on your needs.  I find that adaptors tend to take me from one to four days to complete, even
+if I'm not terribly familiar with the system they talk to.  (The Oracle taskindex adaptor, for instance,
+took me four days even though I'd never used the OCI (Oracle Call Interface) before sitting down to
+write the adaptor.)
+<p>
+The wftk core engine uses most of the adaptor classes in this list; the repository manager makes due
+mostly with the "list" class, which represents generalized table-like entities with records in them.
+Click on each class to get an overview (many of these are out of date, so I apologize in advance) or
+on any implemented adaptor to see its code.
+<p>
+Read this <a href="code/wftk/local_adaptors.html">overview of how local adaptors are managed</a>.
+<p>
+The following classes of adaptors are defined (so far):<br>
+
+<a href="code/wftk/action/index.html">ACTION: invoking external APIs (wftk core)</a>
+<ul>
+<li><a href="code/wftk/action/ACTION_system.html">System calls</a>
+<li><a href="code/wftk/action/ACTION_wftk.html">wftk API</a>
+<li>Scripting language action adaptors (planned)
+</ul>
+
+<a href="code/wftk/datastore/index.html">DATASTORE: single value special handling (wftk core)</a>
+<ul>
+<li><a href="code/wftk/datastore/DATASTORE_currecord.html">currecord: Values from current record in database</a>
+<li><a href="code/wftk/datastore/DATASTORE_role.html">role: treating process roles as values</a>
+</ul>
+
+<a href="code/wftk/datatype/index.html">DATATYPE: formatting data values (wftk core, soon repmgr)</a>
+<ul>
+<li><a href="code/wftk/datatype/DATATYPE_option.html">Option lists</a>
+</ul>
+
+<a href="code/wftk/dsrep/index.html">DSREP: datasheet repository (wftk core)</a>
+<ul>
+<li><a href="code/wftk/dsrep/DSREP_localxml.html">Local filesystem (default for wftk-bare)</a>
+<li><a href="code/wftk/dsrep/DSREP_database.html">Database: storage directly in taskindex database (see below)</a>
+<li>Repository manager (planned for July 2002)
+</ul>
+
+<a href="code/wftk/list/index.html">LIST: lists and records (used by repmgr)</a>
+<ul>
+<li><a href="code/wftk/list/LIST_localdir.html">Filesystem adaptor (production)</a>
+<li><a href="code/wftk/list/LIST_delim.html">Tab-delimited file adaptor (production)</a>
+<li><a href="code/wftk/list/LIST_odbc.html">ODBC adaptor (production)</a>
+<li><a href="code/wftk/list/LIST_mysql.html">MySQL adaptor (production, Windows and Unix)</a>
+<li><a href="code/wftk/list/LIST_mbox.html">mbox-format mail spool reader (incomplete)</a>
+<li>Oracle (planned <i>soon</i>)
+<li>Sybase (not started)
+<li>OpenLDAP (potential)
+</ul>
+
+<a href="code/wftk/notify/index.html">NOTIFY: sending messages (wftk core)</a>
+<ul>
+<li><a href="code/wftk/notify/NOTIFY_smtp.html">Email via SMTP server</a>
+<li>Email via MAPI integration (not started)
+<li>Pager notification (not started, but in some cases covered via email anyway)
+<li>Syslog notification (not started)
+</ul>
+
+<a href="code/wftk/pdrep/index.html">PDREP: procdef repository (wftk core)</a>
+<ul>
+<li><a href="code/wftk/pdrep/PDREP_localxml.html">Local directory (default for wftk-bare)</a>
+<li>Repository manager (planned for July 2002)
+</ul>
+
+<a href="code/wftk/perms/index.html">PERMS: permission rulebase (wftk core)</a>
+<ul>
+<li><a href="code/wftk/perms/PERMS_localxml.html">Local directory (default for wftk-bare)</a>
+<li>Repository manager (planned for July 2002)
+<li>Maybe something else here; some kind of Prolog interface would be cool
+</ul>
+
+<a href="code/wftk/taskindex/index.html">TASKINDEX: index of active processes and tasks (wftk core)</a>
+<ul>
+<li><a href="code/wftk/taskindex/TASKINDEX_odbc.html">ODBC interface</a>
+<li><a href="code/wftk/taskindex/TASKINDEX_oracle.html">Oracle</a>
+<li><a href="code/wftk/taskindex/TASKINDEX_stdout.html">Stdout: can write all indexing changes to stdout for pickup from command line</a>
+<li>Repository manager (planned for July 2002)
+</ul>
+
+<a href="code/wftk/user/index.html">USER: user database (wftk core)</a>
+<ul>
+<li><a href="code/wftk/user/USER_localxml.html">Local directory (default for wftk-bare)</a>
+<li>Repository manager (planned for July 2002)
+<li>OpenLDAP (not started but desperately obvious)
+</ul>
+
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2002 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

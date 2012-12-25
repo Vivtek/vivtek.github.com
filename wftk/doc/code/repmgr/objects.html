@@ -1,0 +1,866 @@
+<html><head><title>Repository manager: Working with individual objects</title></head>
+<body>
+<h2>Working with individual objects</h2>
+<center>
+[&nbsp;<a href="iteration.html">Previous: Iterating across list contents</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="reports.html">Next: Working with individual objects as reports</a>&nbsp;]
+</center>
+
+<hr>
+Still more front for adaptors, except for the getkey function, which just wraps xmlobj_getkey with a convenient way not to have to
+free up its answer.
+<p></p>
+<i>March 15, 2002</i>: Added the ability to write through to indices defined on lists.  All operations on lists are thus indexed
+in real time.  The only thing we need to add is the ability to build an index from scratch.  The neat thing about RDBMS indexing,
+of course, is that the RDBMS can magically assign IDs for us; 'add' thus indexes <i>before</i> adding the object to the main storage.
+<p></p>
+<i>August 31, 2002</i>: The spectre of special handling begins to emerge, with a special handler for adding _publog publishing logging.
+<p></p>
+<i>December 27, 2002</i>: Added proper handling for special fields (add, mod, now, constant) here in the API instead of just trusting
+the adaptor, since only the MySQL adaptor did anything with them anyway.  (Except that the localxml adaptor now ensures key uniqueness
+if the special="key" flag is set.)
+<p></p>
+<i>May 26, 2003</i>: Roughly two years after I thought of doing things this way, workflow integration is actually happening.  Let's 
+all just pretend that 2002 didn't exist, all right?  I won't miss it much.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _repos_log (XML * repository, const char * action, const char * list_id, const char * key);
+void _repos_cleanup_object (XML * object);
+WFTK_EXPORT int   repos_add (XML * repository, const char * list_id, XML * object)
+{
+   WFTK_ADAPTOR * ad;
+   XML * list;
+   XML * index;
+   XML * key_index;
+   char * id;
+   FILE * log;
+   XML * mark;
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (sock) { /* Remote. */
+      xml_setf (sock->parms, "outgoing", "add %s -\n", list_id);
+      _repos_send (sock);
+      xml_set (sock->parms, "outgoing", xml_string (object));
+      _repos_send (sock);
+      xml_set (sock->parms, "outgoing", "\n>>\n");
+      _repos_send (sock);
+      if (*_repos_receive (sock) == '-') {
+         return 1;
+      } else {
+         return 0;
+      }
+   }
+
+   /* Find the list named. */
+   list = repos_defn (repository, list_id);
+   if (!list &amp;&amp; strcmp (list_id, "_publog")) return 1;
+   
+   if (strcmp (list_id, "_tasks") &amp;&amp; strcmp (list_id, "_todo") &amp;&amp; strcmp (list_id, "_tasks_really") &amp;&amp; strcmp (list_id, "_taskindex"))
+      xml_set (object, "list", list_id); /* Make sure this is properly marked, otherwise all kinds of code is going to get confused. */
+
+   /* Clean up special-meaning fields. */
+   _repos_cleanup_object (object);
+
+   /* If we added this object earlier with no-workflow, then we use only-workflow to skip the actual add and pick up the workflow portion. */
+   if (!*xml_attrval (object, "only-workflow")) {
+      /* Special field handling. */
+      repos_mark_time (repository, "now");
+      mark = xml_firstelem (list);
+      while (mark) {
+         if (xml_is (mark, "field")) {
+            if (!strcmp (xml_attrval (mark, "special"), "add") ||
+                !strcmp (xml_attrval (mark, "special"), "now")) {
+               xmlobj_set (object, list, xml_attrval (mark, "id"), xml_attrval (repository, "now"));
+            } else if (!strcmp (xml_attrval (mark, "special"), "constant")) {
+               xmlobj_set (object, list, xml_attrval (mark, "id"), xml_attrval (mark, "value"));
+            }
+         }
+      
+         mark = xml_nextelem (mark);
+      }
+
+      /* TODO: this is where xact functionality will check for approval workflow and such, and create a transaction if necessary. */
+
+      /* If the object is a _tasks object then we need to ensure that it has all the task fields it needs. */
+      if (!strcmp (list_id, "_tasks") || !strcmp (list_id, "_todo")) {
+         if (!xmlobj_is_field (object, NULL, "key"))   xmlobj_set (object, NULL, "key",   "");
+         if (!xmlobj_is_field (object, NULL, "list"))  xmlobj_set (object, NULL, "list",  xml_attrval (object, "list"));
+         if (!xmlobj_is_field (object, NULL, "obj"))   xmlobj_set (object, NULL, "obj",   xml_attrval (object, "process"));
+         if (!xmlobj_is_field (object, NULL, "id"))    xmlobj_set (object, NULL, "id",    xml_attrval (object, "id"));
+         if (!xmlobj_is_field (object, NULL, "state")) xmlobj_set (object, NULL, "state", "active");
+         if (!xmlobj_is_field (object, NULL, "label")) xmlobj_set (object, NULL, "label", xml_attrval (object, "label"));
+         if (!xmlobj_is_field (object, NULL, "role"))  xmlobj_set (object, NULL, "role",  xml_attrval (object, "role"));
+         if (!xmlobj_is_field (object, NULL, "user"))  xmlobj_set (object, NULL, "user",  xml_attrval (object, "user"));
+         if (!xmlobj_is_field (object, NULL, "sched_start")) xmlobj_set (object, NULL, "sched_start",  xml_attrval (object, "sched_start"));
+         if (!xmlobj_is_field (object, NULL, "sched_end"))   xmlobj_set (object, NULL, "sched_end",  xml_attrval (object, "sched_end"));
+         if (!xmlobj_is_field (object, NULL, "cost"))        xmlobj_set (object, NULL, "cost",  xml_attrval (object, "cost"));
+         if (!xmlobj_is_field (object, NULL, "priority"))    xmlobj_set (object, NULL, "priority",  xml_attrval (object, "priority"));
+         if (!xmlobj_is_field (object, NULL, "only_after"))  xmlobj_set (object, NULL, "only_after",  xml_attrval (object, "only_after"));
+
+         if (!strcmp (list_id, "_todo")) {
+            index = wftk_session_getuser (repository);
+            if (index) xmlobj_set (object, NULL, "user", xml_attrval (index, "id"));
+         }
+      }
+
+      /* If there is an index which is marked as having a special="key" field, then we let that index go first, to generate a key
+         (this allows DBMS indexing of complex objects while the DB can make us guaranteed unique keys.) */
+      /* TODO: this entire operation suffers from a lack of transaction atomicity. */
+      key_index = xml_firstelem (list);
+      while (key_index) {
+         if (xml_is (key_index, "index")) {
+            if (xml_search (key_index, "field", "special", "key")) { break; }
+         }
+         key_index = xml_nextelem (key_index);
+      }
+
+      if (key_index) { /* Whaddaya know, we found one. */
+         ad = wftk_get_adaptor (repository, LIST, xml_attrval (key_index, "storage"));
+         if (ad) {
+            xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+            wftk_call_adaptor (ad, "add", key_index, object);
+            /* TODO: Check error -- here's where transaction atomicity will be implemented. */
+            wftk_free_adaptor (repository, ad);
+         }
+      }
+
+      /* Now add the object to its main storage, possibly with a new key.  Take special objects into account. */
+      if (!list) {
+         if (!strcmp (list_id, "_publog")) { /* No defn to the contrary, we stash publish logs into a log file. */
+            log = _repos_fopen (repository, "_publog.log", "a");
+            fprintf (log, "%s ", xml_attrval (object, "start"));
+            mark = xmlobj_field (object, NULL, "content");
+            fprintf (log, "%s\n", xml_attrval (mark, "value"));
+            fprintf (log, "\n");
+            fclose (log);
+            xml_free (object);
+            return 0;
+         }
+      }
+
+      ad = wftk_get_adaptor (repository, LIST, *xml_attrval (list, "id") ? xml_attrval (list, "id") : xml_attrval (list, "storage"));
+      if (!ad) return 1;
+      xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+
+      repos_getkey (repository, list_id, object);
+      wftk_call_adaptor (ad, "add", list, object);
+      if (*xml_attrval (ad->parms, "error")) {
+         wftk_free_adaptor (repository, ad);
+         return 1;
+      }
+      if (!*xml_attrval (ad->parms, "error")) {
+         repos_log (repository, 3, 1, NULL, "repmgr", "repos_add on %s[%s]", list_id, repos_getkey (repository, list_id, object));
+         if (strcmp (xml_attrval (list, "logging"), "off")) /* TODO: check overall setting as well.  Need a setting checker which scans upward. */
+            _repos_log (repository, "add", list_id, repos_getkey (repository, list_id, object));
+         _repos_publish_obj (repository, list_id, object);
+      } else {
+         repos_log (repository, 1, 1, NULL, "repmgr", "error while adding %s[%]: %s",
+                                                      list_id,
+                                                      repos_getkey (repository, list_id, object),
+                                                      xml_attrval (ad->parms, "error"));
+      }
+
+      wftk_free_adaptor (repository, ad);
+
+      /* Now we allow any existing non-key indices to write their own records.  Whew. */
+      index = xml_firstelem (list);
+      while (index) {
+         if (xml_is (index, "index") &amp;&amp; index != key_index) {
+            ad = wftk_get_adaptor (repository, LIST, xml_attrval (index, "storage"));
+            if (ad) {
+               xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+               wftk_call_adaptor (ad, "add", index, object);
+               /* TODO: Check error -- here's where transaction atomicity will be implemented. */
+               wftk_free_adaptor (repository, ad);
+            }
+         }
+         index = xml_nextelem (index);
+      }
+
+      /* If this was a task object, then we explicitly write it through into the _taskindex list, as long as it doesn't have state="completed". */
+      if (!strcmp (list_id, "_tasks") || !strcmp (list_id, "_todo")) {
+         xml_set_nodup (object, "state", xmlobj_get (object, NULL, "state"));
+         if (strcmp (xml_attrval (object, "state"), "completed")) {
+            index = xml_create ("record");
+            id = xmlobj_format (object, NULL, "[list]~[obj]~[id]");
+            xmlobj_fixkey (id);
+            if (!strcmp (id, "~~")) {
+               xmlobj_set_nodup (index, NULL, "id", xmlobj_get (object, NULL, "key"));
+               free (id);
+            } else {
+               xmlobj_set_nodup (index, NULL, "id", id);
+            }
+            xmlobj_set_nodup (index, NULL, "key",         xmlobj_get (object, NULL, "key"));
+            xmlobj_set_nodup (index, NULL, "list",        xmlobj_get (object, NULL, "list"));
+            xmlobj_set_nodup (index, NULL, "obj",         xmlobj_get (object, NULL, "obj"));
+            xmlobj_set_nodup (index, NULL, "internal_id", xmlobj_get (object, NULL, "id"));
+            xmlobj_set_nodup (index, NULL, "state",       xmlobj_get (object, NULL, "state"));
+            xmlobj_set_nodup (index, NULL, "label",       xmlobj_get (object, NULL, "label"));
+            xmlobj_set_nodup (index, NULL, "role",        xmlobj_get (object, NULL, "role"));
+            xmlobj_set_nodup (index, NULL, "user",        xmlobj_get (object, NULL, "user"));
+            xmlobj_set_nodup (index, NULL, "sched_start", xmlobj_get (object, NULL, "sched_start"));
+            xmlobj_set_nodup (index, NULL, "sched_end",   xmlobj_get (object, NULL, "sched_end"));
+            xmlobj_set_nodup (index, NULL, "cost",        xmlobj_get (object, NULL, "cost"));
+            xmlobj_set_nodup (index, NULL, "priority",    xmlobj_get (object, NULL, "priority"));
+            xmlobj_set_nodup (index, NULL, "only_after",  xmlobj_get (object, NULL, "only_after"));
+            repos_add (ad->session, "_taskindex", index);
+            xml_free (index);
+         }
+      }
+   }
+
+   /* If we're adding an object via (e.g.) repos_submit, then workflow will run later. */
+   if (!*xml_attrval (object, "no-workflow")) {
+      /* To make sure that the object isn't saved multiple times by the workflow engine, we mark it as no-save. */
+      xml_set (object, "no-save", "yes");
+
+      /* WORKFLOW!  Now that the object is added and comfy in its new home, let's see if any workflow should be started as a result.
+         TODO: rollback using transactions in case workflow fails. */
+      /* If workflow was started, we have to store the (now changed) object -- but not via repos_mod, because this is still part of the add operation. */
+      if (repos_workflow_action_taken (repository, list, object, "add")) {
+         repos_log (repository, 4, 1, NULL, "repmgr", "repos_add: saving after workflow start");
+         xml_unset (object, "no-save");
+         xml_unset (object, "repository");
+
+         /* TODO: Since this is identical to the code in repos_mod, we oughta combine the two into a utility function. */
+         ad = wftk_get_adaptor (repository, LIST, *xml_attrval (list, "id") ? xml_attrval (list, "id") : xml_attrval (list, "storage"));
+         if (!ad) return 0;
+         xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+
+         wftk_call_adaptor (ad, "update", list, object);
+         wftk_free_adaptor (repository, ad);
+
+         /* TODO: this entire operation suffers from a lack of transaction atomicity. */
+         index = xml_firstelem (list);
+         while (index) {
+            if (xml_is (index, "index")) {
+               ad = wftk_get_adaptor (repository, LIST, *xml_attrval (list, "id") ? xml_attrval (list, "id") : xml_attrval (index, "storage"));
+               if (ad) {
+                  xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+                  wftk_call_adaptor (ad, "update", index, object);
+                  /* TODO: Check error -- here's where transaction atomicity will be implemented. */
+                  wftk_free_adaptor (repository, ad);
+               }
+            }
+            index = xml_nextelem (index);
+        }
+      }
+      xml_unset (object, "no-save");
+
+      repos_log (repository, 4, 1, NULL, "repmgr", "repos_add: done with %s[%s]", list_id, repos_getkey (repository, list_id, object));
+   } else {
+      repos_log (repository, 4, 1, NULL, "repmgr", "repos_add: done with %s[%s] (no workflow)", list_id, repos_getkey (repository, list_id, object));
+   }
+
+   return 0;
+}
+</pre></td></tr></table>
+
+<i>February 20, 2004</i>: Since we've got special fields like "_action.*" and "_control.*" coming in from the UI, let's make sure these
+fields don't actually get into the stored object.  (The UI may filter them out, but shouldn't have to.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _repos_cleanup_object (XML * object)
+{
+   XML * mark;
+   XML * mark2;
+
+   mark = xml_firstelem (object); mark2 = NULL;
+   while (mark) {
+      if (xml_is (mark, "field") &amp;&amp; (  !strcmp (xml_attrval (mark, "id"), "_action")
+                                        || !strcmp (xml_attrval (mark, "id"), "_control"))) {
+         xml_delete_pretty (mark);
+         if (mark2) mark = mark2;
+         else       mark = xml_firstelem (object);
+      } else {
+         mark2 = mark;
+         mark = xml_nextelem (mark);
+      }
+   }
+}
+
+
+WFTK_EXPORT int   repos_del (XML * repository, const char * list_id, const char * key)
+{
+   WFTK_ADAPTOR * ad;
+   XML * list;
+   XML * index;
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (sock) { /* Remote. */
+      xml_setf (sock->parms, "outgoing", "del %s %s\n", list_id, key);
+      _repos_send (sock);
+      if (*_repos_receive (sock) == '-') {
+         return 1;
+      } else {
+         return 0;
+      }
+   }
+
+   /* Find the list named. */
+   list = repos_defn (repository, list_id);
+   if (!list) return 0;
+
+   ad = wftk_get_adaptor (repository, LIST, *xml_attrval (list, "id") ? xml_attrval (list, "id") : xml_attrval (list, "storage"));
+   if (!ad) return 0;
+   xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+
+   wftk_call_adaptor (ad, "delete", list, key);
+   if (!*xml_attrval (ad->parms, "error")) {
+      repos_log (repository, 3, 1, NULL, "repmgr", "repos_del: %s[%s]", list_id, key);
+      if (strcmp (xml_attrval (list, "logging"), "off")) /* TODO: check overall setting as well.  Need a setting checker which scans upward. */
+         _repos_log (repository, "del", list_id, key);
+      _repos_publish_obj (repository, list_id, NULL); /* TODO: *not* the way to do this! */
+   } else {
+      repos_log (repository, 1, 1, NULL, "repmgr", "error deleting %s[%s]", list_id, key);
+   }
+
+
+   wftk_free_adaptor (repository, ad);
+
+   /* TODO: this entire operation suffers from a lack of transaction atomicity. */
+   index = xml_firstelem (list);
+   while (index) {
+      if (xml_is (index, "index")) {
+         ad = wftk_get_adaptor (repository, LIST, xml_attrval (index, "storage"));
+         if (ad) {
+            xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+            wftk_call_adaptor (ad, "delete", index, key);
+            /* TODO: Check error -- here's where transaction atomicity will be implemented. */
+            wftk_free_adaptor (repository, ad);
+         }
+      }
+      index = xml_nextelem (index);
+   }
+   return 0;
+}
+</pre></td></tr></table>
+
+<i>(28 July 2002)</i>: Modifying an object originally just took a new file and wrote that into the entry.  However, this is a little
+too heavy-handed; since different users (and different modes) will see different sets of fields, repos_mod has to be more careful.
+Instead, it needs to merge the two objects.  If the modification is to a remote list, this doesn't apply; we just send the new object
+over the wire.
+<p></p>
+Since, however, I want to retain the old functionality to preserve the ability of the repmgr to deal with arbitrary XML (and not just
+xmlobj-formatted objects), I've split this into a new function and a new command-line command. 
+
+<p></p>
+<i>(3 Jan 2003)</i>: Detecting state transitions now.  Initially I'm not going to do anything with state transitions except to notice
+archive-to directives and deal with them.  TODO: reconcile this with the wftk-core state handling code.
+
+<p></p>
+<i>(May 29, 2003)</i>: Added the "no-save" flag so that if repos_mod is called on an object during the course of adding it (as a result
+of workflow) we don't treat it as a real modification.  Instead, we just refuse to work with it.
+
+<p></p>
+<i>(June 2, 2003)</i>: And now down to actual writing of task objects, which is tricky.  If the write is just to _tasks or _todo, then
+we have to check for workflow task completion etc.  But we don't want to miss out on all the goodies like indexing, so we introduce a
+new pseudolist: _tasks_really -- that's our cue that we're really going to write to the task object list.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static int _repos_write_task (XML * repository, XML * object, const char * key);
+WFTK_EXPORT int   repos_mod (XML * repository, const char * list_id, XML * object, const char * key)
+{
+   WFTK_ADAPTOR * ad;
+   XML * list;
+   XML * index;
+   XML * mark;
+   XML * field;
+   XML * state;
+   char * id;
+   char * newstate;
+   int error = 0;
+   int object_local = 0;
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (!object &amp;&amp; !key) return 1; /* This combination can occur in error situations but has no semantics. */
+
+   if (*xml_attrval (object, "no-save")) return 0;
+
+   _repos_cleanup_object (object);
+
+   if (sock) { /* Remote. */
+      if (key) {
+         if (object) {
+            xml_setf (sock->parms, "outgoing", "mod %s - %s\n", list_id, key);
+         } else {
+            xml_setf (sock->parms, "outgoing", "changed %s %s\n", list_id, key);
+         }
+      } else {
+         xml_setf (sock->parms, "outgoing", "mod %s -\n", list_id);
+      }
+      _repos_send (sock);
+      if (object) {
+         xml_set (sock->parms, "outgoing", xml_string (object));
+         _repos_send (sock);
+         xml_set (sock->parms, "outgoing", "\n>>\n");
+         _repos_send (sock);
+      }
+      if (*_repos_receive (sock) == '-') {
+         return 1;
+      } else {
+         return 0;
+      }
+   }
+
+   /* If this is a _tasks object, use the special function. */
+   if (!strcmp (list_id, "_tasks") || !strcmp (list_id, "_todo")) {
+      return (_repos_write_task (repository, object, key));
+   }
+   if (!strcmp (list_id, "_tasks_really")) list_id = "_tasks";
+
+   /* Find the list named. */
+   list = repos_defn (repository, list_id);
+   if (!list) return 0;
+
+   /* WORKFLOW!  Workflow is handled using the memory-based object before it's stored.  TODO: make sure this isn't stupid.
+      TODO: rollback using transactions in case workflow fails? */
+   if (object) { /* 2005-11-12 - should this not work if there is no object? */
+      xml_set (object, "no-save", "yes");
+      repos_workflow_action_taken (repository, list, object, "mod");
+      xml_unset (object, "no-save");
+   }
+
+   /* TODO: is there a safe way to detect state transitions in the non-object "changed" context?  Probably not. */
+   /* But we *can* detect transition to an archive-to state, because no actual object should be in that state. */
+
+   if (object) {
+      repos_mark_time (repository, "now");
+      mark = xml_firstelem (list);
+      while (mark) {
+         if (xml_is (mark, "field")) {
+            if (!strcmp (xml_attrval (mark, "special"), "mod") ||
+                !strcmp (xml_attrval (mark, "special"), "now")) {
+               xmlobj_set (object, list, xml_attrval (mark, "id"), xml_attrval (repository, "now"));
+            } else if (!strcmp (xml_attrval (mark, "special"), "constant")) {
+               xmlobj_set (object, list, xml_attrval (mark, "id"), xml_attrval (mark, "value"));
+            }
+         }
+         mark = xml_nextelem (mark);
+      }
+
+      /* State transition? */
+      field = xml_search (list, "field", "type", "state");
+      if (!field) field = xml_search (object, "field", "id", "_state");
+      if (field) {
+         xml_set_nodup (object, "newstate", xmlobj_get (object, list, xml_attrval (field, "id")));
+         if (strcmp (xml_attrval (object, "state"), xml_attrval (object, "newstate"))) { /* Transition! */
+            state = xml_search (list, "state", "id", xml_attrval (object, "newstate"));
+            if (!state) {
+               xmlobj_set (object, list, xml_attrval (field, "id"), xml_attrval (object, "state"));
+            } else {
+               if (*xml_attrval (state, "archive-to")) { /* The current object will be checking out today. */
+                  /* TODO: As with most of this code, we need to handle error conditions competently. */
+                  repos_del (repository, list_id, key);
+                  if (strcmp (xml_attrval (state, "archive-to"), "trash"))
+                     repos_add (repository, xml_attrval (state, "archive-to"), object);
+                  return 0;
+               } else {
+                  /* TODO: this is where transition handling will happen. */
+               }
+            }
+         }
+         xml_unset (object, "newstate");
+      }
+
+      ad = wftk_get_adaptor (repository, LIST, *xml_attrval (list, "id") ? xml_attrval (list, "id") : xml_attrval (list, "storage"));
+      if (!ad) return 0;
+      xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+
+      if (key) xml_set (object, "key", key);
+
+      wftk_call_adaptor (ad, "update", list, object);
+      if (*xml_attrval (ad->parms, "error")) {
+         error = 1;
+      }
+      wftk_free_adaptor (repository, ad);
+
+      /* TODO: this entire operation suffers from a lack of transaction atomicity. */
+      index = xml_firstelem (list);
+      while (index) {
+         if (xml_is (index, "index")) {
+            ad = wftk_get_adaptor (repository, LIST, xml_attrval (index, "storage"));
+            if (ad) {
+               xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+               wftk_call_adaptor (ad, "update", index, object);
+               /* TODO: Check error -- here's where transaction atomicity will be implemented. */
+               wftk_free_adaptor (repository, ad);
+            }
+         }
+         index = xml_nextelem (index);
+      }
+
+      /* If this is a task object update, then we write the change through to _taskindex as well. */
+      if (!strcmp (list_id, "_tasks")) {
+         id = xmlobj_format (object, NULL, "[list]~[obj]~[id]");
+         xmlobj_fixkey (id);
+         if (!strcmp (id, "~~")) {
+            free (id);
+            id = xmlobj_get (object, NULL, "key");
+         }
+         xml_set_nodup (object, "state", xmlobj_get (object, NULL, "state"));
+         if (!strcmp (xml_attrval (object, "state"), "completed")) {
+            repos_del (repository, "_taskindex", id);
+            free (id);
+         } else {
+            mark = xml_copy (object);
+            xml_set_nodup (mark, "key", id);
+            xmlobj_set_nodup (mark, NULL, "internal_id", xmlobj_get (mark, NULL, "id"));
+            xmlobj_set (mark, NULL, "id", xml_attrval (mark, "key"));
+            repos_mod (repository, "_taskindex", mark, NULL);
+            xml_free (mark);
+         }
+      }
+   } else {
+      /* Check for archive-to transition. */
+      object_local = 1;
+      object = repos_get (repository, list_id, key);
+
+      field = xml_search (list, "field", "type", "state");
+      if (field) {
+         object = repos_get (repository, list_id, key);
+         xml_set_nodup (object, "state", xmlobj_get (object, list, xml_attrval (field, "id")));
+         state = xml_search (list, "state", "id", xml_attrval (object, "state"));
+         if (*xml_attrval (state, "archive-to")) {
+            repos_del (repository, list_id, key);
+            repos_add (repository, list_id, object);
+            xml_free (object);
+            return 0;
+         }
+         xml_free (object);
+      }
+
+      /* TODO: this entire operation suffers from a lack of transaction atomicity. */
+      index = xml_firstelem (list);
+      while (index) {
+         if (xml_is (index, "index")) {
+            ad = wftk_get_adaptor (repository, LIST, xml_attrval (index, "storage"));
+            if (ad) {
+               xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+               wftk_call_adaptor (ad, "update", index, object);
+               /* TODO: Check error -- here's where transaction atomicity will be implemented. */
+               wftk_free_adaptor (repository, ad);
+            }
+         }
+         index = xml_nextelem (index);
+      }
+   }
+
+
+   if (!error) {
+      repos_log (repository, 3, 1, NULL, "repmgr", "repos_mod on %s[%s]", list_id, repos_getkey (repository, list_id, object));
+      if (strcmp (xml_attrval (list, "logging"), "off")) { /* TODO: check overall setting as well.  Need a setting checker which scans upward. */
+         _repos_log (repository, "mod", list_id, object ? repos_getkey (repository, list_id, object) : key);
+      }
+      _repos_publish_obj (repository, list_id, object); /* TODO: What if the key changed? */
+   } else {
+      repos_log (repository, 1, 1, NULL, "repmgr", "error in repos_mod on %s[%s]: %d", list_id, repos_getkey (repository, list_id, object), error);
+   }
+
+   if (object_local) xml_free (object);
+   return error;
+}
+WFTK_EXPORT int   repos_merge (XML * repository, const char * list_id, XML * object, const char * key)
+{
+   WFTK_ADAPTOR * ad;
+   XML * list;
+   XML * obj;
+   XML * diff;
+   XML * patch;
+   XML * mark;
+   int retval;
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   repos_log (repository, 3, 1, NULL, "repmgr", "repos_merge on %s[%s]", list_id, key);
+
+   if (!object) return 1;  /* Unlike mod, merge makes no sense in a key-only situation. */
+
+   if (sock) { /* Remote. */
+      if (key) {
+         xml_setf (sock->parms, "outgoing", "merge %s - %s\n", list_id, key);
+      } else {
+         xml_setf (sock->parms, "outgoing", "merge %s -\n", list_id);
+      }
+      _repos_send (sock);
+      if (object) {
+         xml_set (sock->parms, "outgoing", xml_string (object));
+         _repos_send (sock);
+         xml_set (sock->parms, "outgoing", "\n>>\n");
+         _repos_send (sock);
+      }
+      if (*_repos_receive (sock) == '-') {
+         return 1;
+      } else {
+         return 0;
+      }
+   }
+
+   /* If this is a _tasks object, use the special function. */
+   if (!strcmp (list_id, "_tasks") || !strcmp (list_id, "_todo")) {
+      return (_repos_write_task (repository, object, key));
+   }
+
+   /* Find the list named. */
+   list = repos_defn (repository, list_id);
+   if (!list) return 0;
+
+   repos_mark_time (repository, "now");
+   mark = xml_firstelem (list);
+   while (mark) {
+      if (xml_is (mark, "field")) {
+         if (!strcmp (xml_attrval (mark, "special"), "mod") ||
+             !strcmp (xml_attrval (mark, "special"), "now")) {
+            xmlobj_set (object, list, xml_attrval (mark, "id"), xml_attrval (repository, "now"));
+         } else if (!strcmp (xml_attrval (mark, "special"), "constant")) {
+            xmlobj_set (object, list, xml_attrval (mark, "id"), xml_attrval (mark, "value"));
+         }
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   ad = wftk_get_adaptor (repository, LIST, *xml_attrval (list, "id") ? xml_attrval (list, "id") : xml_attrval (list, "storage"));
+   if (!ad) return 0;
+   xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+
+   /* Make sure we have a key and that the object correctly reflects it. */
+   if (!key) {
+      key = (const char *) xmlobj_getkey (object, list);
+      if (!key) return 0;
+      xml_set_nodup (object, "key", (char *) key);
+      key = xml_attrval (object, "key");
+   } else {
+      xml_set (object, "key", key);
+   }
+
+   /* Retrieve the object's current value. */
+   obj = wftk_call_adaptor (ad, "get", list, key);
+   wftk_free_adaptor (repository, ad);
+
+   if (obj) {
+      /* Perform a diff, then a patch, to do the merge. */
+      diff = xmlobj_diff (obj, list, object);
+      patch = xmlobj_patch (obj, list, diff);
+
+      xml_free (diff);
+      xml_free (patch);
+
+      /* Call repos_mod to do the honors of actually storing the object. */
+      /* TODO: consider how this interfaces with the whole transaction concept -- we probably don't want to throw out the diff. */
+      retval = repos_mod (repository, list_id, obj, key);
+
+      /* Free things up. */
+      xml_free (obj);
+   } else {
+      repos_log (repository, 3, 1, NULL, "repmgr", "repos_merge: can't find %s[%s]; writing directly", list_id, key);
+      retval = repos_mod (repository, list_id, object, key); /* Default to "mod" behavior if we can't find our object. */
+   }
+
+   return (retval);
+}
+</pre></td></tr></table>
+
+<i>June 3, 2003</i>: So all right, how do we update tasks, then?  The data in a task can come from any of three different places, after all,
+so changes to those fields have to get separated out and written to the right place.  To do that, we read in information from all said places.
+
+<p></p>
+<i>October 17, 2003</i>: We need to be more paranoid about some of the values coming in for tasks.  Any changes to the list, obj, or key, for
+instance, quite handily break the workflow system.  So since we're retrieving the original repmgr task object anyway, we'll just grab its
+values for list, obj, and key and write them into the incoming changed object.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static int _repos_write_task (XML * repository, XML * object, const char * key)
+{
+   XML * tasks_list;
+   XML * repmgr_obj;
+   XML * mark;
+   XML * field;
+   WFTK_ADAPTOR * ad;
+   XML * wftk_obj;
+   XML * ret;
+   int repmgr_obj_changed = 0;
+   int wftk_obj_changed = 0;
+   int status_changed = 0;
+   XML * diff;
+   XML * patch;
+
+   repos_log (repository, 4, 1, NULL, "repmgr", "_repos_write_task on _tasks[%s]", key);
+
+   /* 1. Get repmgr task object for values in first and third categories. */
+   tasks_list = repos_defn (repository, "_tasks");
+   ad = wftk_get_adaptor (repository, LIST, "_tasks");
+   if (!ad) return 0;
+
+   xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+
+   repmgr_obj = wftk_call_adaptor (ad, "get", tasks_list, key);
+   wftk_free_adaptor (repository, ad);
+
+   if (!repmgr_obj) return (repos_add (repository, "_tasks", object));
+
+   xml_set_nodup (repmgr_obj, "state", xmlobj_get (repmgr_obj, NULL, "state"));
+
+   /* 1a. Make sure important system values aren't going to change or get dropped. */
+   xmlobj_set_nodup (object, NULL, "id",   xmlobj_get (repmgr_obj, NULL, "id"));
+   xmlobj_set_nodup (object, NULL, "list", xmlobj_get (repmgr_obj, NULL, "list"));
+   xmlobj_set_nodup (object, NULL, "obj",  xmlobj_get (repmgr_obj, NULL, "obj"));
+   xmlobj_set_nodup (object, NULL, "key",  xmlobj_get (repmgr_obj, NULL, "key"));
+
+   /* 2. Ask wftk core for workflow-specific task information (values in the second category.) */
+   wftk_obj = xml_create ("task");
+
+   xml_set_nodup (repmgr_obj, "parent-list", xmlobj_get (repmgr_obj, NULL, "list"));
+   xml_set_nodup (repmgr_obj, "parent-key",  xmlobj_get (repmgr_obj, NULL, "obj"));
+   xml_set_nodup (repmgr_obj, "id",          xmlobj_get (repmgr_obj, NULL, "id"));
+   if (*xml_attrval (repmgr_obj, "parent-key")) {
+      xml_setf (wftk_obj, "dsrep",   "list:%s", xml_attrval (repmgr_obj, "parent-list"));
+      xml_set  (wftk_obj, "process",            xml_attrval (repmgr_obj, "parent-key"));
+      xml_set  (wftk_obj, "id",                 xml_attrval (repmgr_obj, "id"));
+
+      wftk_task_retrieve (repository, wftk_obj);
+   }
+
+   /* 3. Has the status changed? */
+   field = xmlobj_is_field (object, NULL, "state");
+   if (field) {
+      xml_set_nodup (object, "state", xmlobj_get_direct (field));
+      if (strcmp (xml_attrval (repmgr_obj, "state"), xml_attrval (object, "state"))) {
+         status_changed = 1;
+      }
+      xml_delete_pretty (field);
+   }
+
+   /* 4. Find out whether changes are being made to the fields in the wftk task (i.e. fields pulled from the parent object).
+    *    Whether they are or not, these fields must also be removed from the incoming change object before we write the repmgr task object. 
+    *    If a task-required field isn't given and the change is trying to set the task to complete, then we ignore the
+    *    state change at this juncture.  ("Juncture" is a nice word, isn't it?)
+    *    TODO: perhaps other format specs than non-blank would be convenient here.
+    */
+   mark = xml_firstelem (wftk_obj);
+   while (mark) {
+      if (xml_is (mark, "field")) {
+         field = xmlobj_is_field (object, NULL, xml_attrval (mark, "id"));
+         if (!field) {
+            if (!strcmp (xml_attrval (mark, "required"), "yes")) status_changed = 0;
+         } else {
+            xml_set_nodup (object, "val1", xmlobj_get_direct (field));
+            if (!*xml_attrval (object, "val1") &amp;&amp; !strcmp (xml_attrval (mark, "required"), "yes")) status_changed = 0;
+            xml_set_nodup (object, "val2", xmlobj_get_direct (mark));
+            if (strcmp (xml_attrval (object, "val1"), xml_attrval (object, "val2"))) {
+               xmlobj_set_direct (mark, xml_attrval (object, "val1"));
+               wftk_obj_changed = 1;
+            }
+            xml_delete_pretty (field);
+         }
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   /* 5. The remaining fields and non-field XML in the change object are a diff (or replacement, we don't really care)
+    *    for the repmgr raw task object.  Since we already have retrieved the repmgr obj, we don't want to call repos_merge, as
+    *    that would simply retrieve it again.  Instead, we do the merge here, and call repos_mod on _tasks_really in order to
+    *    save and index it, and do any state-determined archival.  (We need to reinsert the state field, of course.)
+    */
+   if (status_changed) xmlobj_set (object, NULL, "state", xml_attrval (object, "state"));
+   diff = xmlobj_diff (repmgr_obj, tasks_list, object);
+
+   xml_unset (diff, "state"); /* TODO: maybe remove other attributes as well? */
+   patch = xmlobj_patch (repmgr_obj, tasks_list, diff);
+
+   mark = xml_firstelem (patch);
+   if (mark) repmgr_obj_changed = 1;
+
+   xml_free (diff);
+   xml_free (patch);
+
+   if (repmgr_obj_changed) {
+      repos_mod (repository, "_tasks_really", repmgr_obj, NULL);
+   }
+
+   /* TODO: same musing as in repos_merge as to whether we want to throw away the diff we just made. */
+
+   /* 6. If the state changed, and the new state is "completed", then we call wftk_task_complete, which will also update any data
+    *    appropriate from the parent object.  Otherwise, we simply call wftk_task_update.
+    */
+   if (status_changed &amp;&amp; !strcmp (xml_attrval (object, "state"), "completed")) {
+      wftk_task_complete (repository, wftk_obj);
+   } else if (wftk_obj_changed) {
+      wftk_task_update (repository, wftk_obj);
+   }
+
+   return (0);
+}
+</pre></td></tr></table>
+
+The getkey function ... gets a key.  It also caches the value in the object itself, to save work later and to allow a bufferless
+return of a pointer to the key value (which may not correspond to the value of a single field, after all).
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT const char * repos_getkey (XML * repository, const char * list_id, XML * object)
+{
+   const char * key;
+   XML * defn;
+
+   /* See if we've cached a key value. */
+   key = xml_attrval (object, "key");
+   if (*key) return (key);
+
+   /* Else create a new key. */
+   defn = repos_defn (repository, list_id);
+   key = (const char *) xmlobj_getkey (object, defn);
+   if (key) xml_set_nodup (object, "key", (char *) key);
+   return xml_attrval (object, "key");
+}
+</pre></td></tr></table>
+
+Each of the action functions calls the logger to note what happened when.  Eventually I'll have to figure out how
+we know <i>who</i> took each action (presumably this will be in the repository object, which thus takes on session-like
+characteristics), but for now we're just going to ignore that.  Each list has one log file; each
+log entry consists of the action taken, the time, the userid, and the key affected.  The initial dumb logger will
+simply append a tab-delimited line to the log file for the list; later, of course, this will be specifiable as a
+general data source.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _repos_log (XML * repository, const char * action, const char * list_id, const char * key)
+{
+   FILE * log;
+   XML * scratch = xml_create ("s");
+   struct tm * timeptr;
+   time_t julian;
+
+   xml_setf (scratch, "f", "_log/%s.txt", list_id);
+   log = _repos_fopen (repository, xml_attrval (scratch, "f"), "a");
+   if (log) {
+      time (&amp;julian);
+      timeptr = localtime (&amp;julian);
+      fprintf (log, "%s\t%04d-%02d-%02d %02d:%02d:%02d\t\t%s\n",   /* TODO: include user information! */
+                    action,
+                    timeptr->tm_year + 1900, timeptr->tm_mon + 1, timeptr->tm_mday,
+                    timeptr->tm_hour, timeptr->tm_min, timeptr->tm_sec,
+                    key);
+      fclose (log);
+   }
+   xml_free (scratch);
+
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="iteration.html">Previous: Iterating across list contents</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="reports.html">Next: Working with individual objects as reports</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2005, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

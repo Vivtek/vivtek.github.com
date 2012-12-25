@@ -1,0 +1,132 @@
+<html><head><title>QDMT: Test program</title></head>
+<body>
+<h2>Test program</h2>
+<center>
+[&nbsp;<a href=qdmt.html>Previous: QDMT main</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: QDMT</a>&nbsp;]
+[&nbsp;<a href=index.html>Next: index</a>&nbsp;]
+</center>
+
+<hr>
+So what exactly is this whole thing supposed to get us?  Well, by repeatedly calling the
+qdmt function, we retrieve successive tokens of ML from the input file or buffer.  The
+operation of our test program should make this completely clear.  When given a markup
+language input file, the test program will simply do a token dump of the file, and write
+each token out to output in a diagnostic kind of format.
+<br><br>
+<a name="xml">
+<i>Test input XML</i><br>
+As an example, let's use the following test XML.  It's got a little bit of everything.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>&lt;?xml version="1.0"?>
+&lt;litprog>
+&lt;!-- Hey! This is an lpml program! -->
+&lt;object name="test.txt" item="firstitem"/>
+
+&lt;!bogus>
+&lt;!-- The preceding was a bogus directive. -->
+
+&lt;![CDATA[ And this is some CDATA...]]>
+
+&lt;item name="firstitem" label="First item">
+This is an example of some plain text that isn't whitespace.  (Yes, qdmt considers whitespace
+quite significant.)
+&lt;/item>
+&lt;/litprog>
+
+</pre></td></tr></table>
+
+<br><br>
+<a name="output">
+<i>Expected test result</i><br>
+So what do we expect to get back from that?  Here's some output that would demonstrate
+successful tokenization.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>pi xml attrlist=version
+  version = 1.0
+
+open litprog attrlist=
+
+comment
+  Hey! This is an lpml program!
+
+empty object attrlist=name, item
+  name = test.txt
+  item = firstitem
+
+plain
+
+EOF
+
+directive bogus attrlist=
+
+comment
+  The preceding was a bogus directive.
+
+plain
+
+EOF
+
+cdata
+And this is some CDATA... 
+EOF
+
+plain
+
+EOF
+
+open item attrlist=name, label
+  name = firstitem
+  label = First item
+
+plain
+This is an example of some plain text that isn't whitespace.  (Yes, qdmt considers whitespace
+quite significant.)
+EOF
+
+close item
+
+close litprog
+
+</pre></td></tr></table>
+
+Note that this effectively takes some perfectly good XML and writes an ad-hoc text file with
+the same information.  It's a lovely retro look at line-oriented data storage.
+<br><br>
+<a name="program">
+<i>Test program code</i><br>
+So how do we want to implement this?  Pretty straightforward, really.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#!/usr/local/bin/perl
+# This is a test program for the Perl implementation of qdmt.
+#
+
+require "qdmt.pl";
+
+while (1) {
+  ($tag, $attrs) = qdmt(<>);
+  last if $$tag{eof};
+
+}
+
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href=qdmt.html>Previous: QDMT main</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: QDMT</a>&nbsp;]
+[&nbsp;<a href=index.html>Next: index</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

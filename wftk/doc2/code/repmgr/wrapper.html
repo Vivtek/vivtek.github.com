@@ -1,0 +1,1757 @@
+<html><head><title>Repository manager: Command-line interface</title></head>
+<body>
+<h2>Command-line interface</h2>
+<center>
+[&nbsp;<a href="index.html">Previous: Repository manager</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="include.html">Next: #include file for interface (links to code sections, so it's a good place to start understanding the API)</a>&nbsp;]
+</center>
+
+<hr>
+The command-line interface, of course, is based on the wftk command-line interface.  This alone
+makes me want to take a week and write a command-line interface generator -- but to do that, I need
+a repository manager, so I guess I'll wait until this subproject is up and running, anyway.
+<p></p>
+
+The program, of course, is essentially a big select list.  It defines (at least) the following
+commands:
+
+<table border="1">
+<tr><td>repos</td><td>repos [dir] or [file]</td><td>Selects a new repository for interactive session</td></tr>
+<tr><td rowspan="3">publish</td><td>publish</td><td>Activates all (non-notifier) publishers in the repository, both push and pull</td></tr>
+<tr>                            <td>publish [list]</td><td>Activates all (non-notifier) publishers with the given source, push only</td></tr>
+<tr>                         <td>publish [list] [key]</td><td>Activates all (non-notifier) publishers with the given source, for the single object named.</td></tr>
+<tr><td rowspan="2">make</td><td>make</td><td>Publishes all pages, pulling data as necessary</td></tr>
+<tr>                         <td>make [page]</td><td>Publishes a single page.</td></tr>
+<tr><td>add</td><td>add [list] [file]</td><td>Adds an object to a list from the given file, and publishes.  A '-' as filename indicates that the object's XML follows on stdin.</td></tr>
+<tr><td>del</td><td>del [list] [key]</td><td>Deletes the named object and publishes. (Note there's no need for an in-place version of this.)</td></tr>
+<tr><td>mod</td><td>mod [list] [key] [file]</td><td>Writes the given file to the key; the newly written object may have a new key.  Publishes.  A '-' as filename indicates that the object's XML follows on stdin.</td></tr>
+<tr><td>changed</td><td>changed [list] [key]</td><td>Signals a change in place to the given object.  Publishes.</td></tr>
+<tr><td>diff</td><td>diff [list] [key] [file]</td><td>Checks the record-based difference between an object and a (presumably edited) file.  As usual, '-' indicates stdin.</td></tr>
+<tr><td rowspan="2">changes</td><td>changes [date]</td><td>Lists those lists changed since the given date (timestamp, really, in ISO format).</td></tr>
+<tr>                            <td>changes [date] [list]</td><td>Lists changes made to the specified list since the given date.</td></tr>
+<tr><td>snapshot</td><td>snapshot [list]</td><td>Asks the list adaptor for a snapshot list and compares the result to the last snapshot; if changes are detected, the appropriate changelog notations are made.</td></tr>
+<tr><td>get</td><td>get [list] [key]</td><td>Retrieves the given object as XML (written to stdout).</td></tr>
+<tr><td>edit</td><td>edit [list] [key]</td><td>Retrieves the given object as an HTML edit form.</td></tr>
+<tr><td>display</td><td>display [list] [key]</td><td>Retrieves the default display HTML for the object.</td></tr>
+<tr><td>form</td><td>form [list]</td><td>Retrieves an empty (or defaulted) edit form for the list.</td></tr>
+<tr><td>defn</td><td>defn [list]</td><td>Retrieves a list's XML definition (for whatever structure it imposes on its members).</td></tr>
+<tr><td>define</td><td>define [list] [file]</td><td>Writes a new XML definition to a list from a file.  Adaptors should know what to do to make this happen; some won't, though, and this will have no effect on lists stored with those adaptors.</td></tr>
+<tr><td>push</td><td>push [list1] [list2]</td><td>Pushes modified data from list1 to list2 (list2 may be omitted if it's included in the mirror attribute.</td></tr>
+<tr><td>push_all</td><td>push_all [list1] [list2]</td><td>Pushes all data from list1 to list2.</td></tr>
+<tr><td>pull</td><td>pull [list1] [list2]</td><td>Pulls modified data to list1 from list2.</td></tr>
+<tr><td>pull_all</td><td>pull_all [list1] [list2]</td><td>Pulls all data to list1 from list2.</td></tr>
+<tr><td>synch</td><td>synch [list1] [list2]</td><td>Pull, followed by a push.</td></tr>
+<tr><td>time</td><td>time</td><td>Gets server's notion of current time.</td></tr>
+<tr><td>echo</td><td>echo [arg]</td><td>Echoes a string back (makes scripting convenient).</td></tr>
+<tr><td>check</td><td>check [list] [key]</td><td>Tests existence of a given key.</td></tr>
+<tr><td>test</td><td>test [file]</td><td>Tests XML-readability of a file.</td></tr>
+<tr><td>submit</td><td>submit [list] [file]</td><td>Creates an object with the given file as its primary attachment.  (- for stdin.)</td></tr>
+<tr><td>store</td><td>store [list] [filename] ([file])</td><td>Same as submit, but specifies filename in controlled directory.</td></tr>
+<tr><td>attach</td><td>attach [list] [key] [field] [file]</td><td>Attaches a file to a named field in an existing object.</td></tr>
+<tr><td>retrieve</td><td>retrieve [list] [key] ([field])</td><td>Retrieves attachment content (from primary attachment if field unnamed.)</td></tr>
+<tr><td>checkout</td><td>checkout [list] [key] ([field])</td><td>Retrieves attachment and marks for update.</td></tr>
+<tr><td>getver</td><td>getver [list] [key] ([field])</td><td>Gets current version of field (not just for attachments, but for any list value.)</td></tr>
+</table>
+
+There will be more -- for instance, I don't have any commands for getting or setting attachments, for
+retrieving lists of things, etc.  Those will come with time.
+
+<p></p>
+Note the definition of strlwr up front there.  It's standard on Windows and I keep forgetting it's not on Unix.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;string.h>
+#include "xmlapi.h"
+#include "xmlobj.h"
+#include "xml_template.h"
+#include "repmgr.h"
+#include "time.h"
+#ifdef WINDOWS
+#include "process.h"
+#include "direct.h"
+#else
+#include "unistd.h"
+#endif
+#ifndef WINDOWS
+void strlwr (char * str) {
+   if (!str) return;
+   while (*str) {
+      if (*str >= 'A' &amp;&amp; *str &lt;= 'Z') {
+         *str += 'a' - 'A';
+      }
+      str++;
+   }
+}
+#endif
+main (int argc, char * argv[])
+{
+   char config_path[512];
+   char commandline[1024];
+   char * chmark;
+   FILE * config_file;
+   FILE * file;
+   XML * repository = NULL;
+   XML * list = NULL;
+   XML * scratch = NULL;
+   int loopmode = 0;
+   int args;
+   char * contextid = NULL;
+   char * command;
+   char * arg1;
+   char * arg2;
+   char * arg3;
+   char * arg4;
+   int i;
+
+   int len;
+   int no_initial_repository = 0;
+   int argp = 1; /* We'll use this to skip flags like -r for location of the config file. */
+   #define argsleft (argc - argp)
+   XML * mark;
+   XML * mark2;
+   XML * holder;
+   XML * defn;
+   struct tm * timeptr;
+   time_t julian;
+
+   if (argc &lt; 2) {
+      command = "loop";
+      argp = argc;
+   }
+
+   arg1 = "site.opm";
+   while (argsleft &amp;&amp; *argv[argp] == '-') {
+      if (!strcmp (argv[argp], "-r")) {
+         argp++;
+         arg1 = argv[argp];  argp++;
+      } else if (!strcmp (argv[argp], "-c")) {
+         argp++;
+         contextid = argv[argp]; argp++;
+      }
+   }
+   *config_path = '\0';
+   if (-1 == chdir(arg1)) {
+      strcpy (commandline, arg1);
+      chmark = strrchr (commandline, '/');
+      if (!chmark) chmark = strrchr (commandline, '\\');
+      if (!chmark) {
+         strcpy (config_path, commandline);
+      } else {
+         strcpy (config_path, chmark + 1);
+         *chmark = '\0';
+         if (-1 == chdir (commandline)) {
+            printf ("-100: Can't find directory %s\n", commandline);
+            no_initial_repository = 1;
+         }
+      }
+   }
+
+   if (!no_initial_repository) {
+      if (!*config_path) strcpy (config_path, "site.opm");
+      config_file = fopen (config_path, "r");
+      if (!config_file) { /*  &amp;&amp; complain_if_no_file) {*/
+         printf ("-101: Can't find repository file '%s'\n", config_path);
+         no_initial_repository = 1;
+      }
+   }
+
+   if (!no_initial_repository) {
+      repository = xml_read_error (config_file);
+      if (xml_is (repository, "xml-error")) {
+         printf ("-200: Error reading repository definition '%s'; '%s' in line %s\n", config_path, xml_attrval (repository, "message"), xml_attrval (repository, "line"));
+         xml_free (repository);
+         repository = NULL;
+      } else {
+         repos_open (repository, NULL, "cmdline");
+         if (*xml_attrval (repository, "error-state")) {
+            printf ("-201: Error opening repository -- %s\n", xml_attrval (repository, "error-state"));
+            xml_free (repository);
+            repository = NULL;
+         } else {
+            printf ("+000: Repository open.\n");
+         }
+      }
+      fclose (config_file);
+   }
+
+   if (contextid &amp;&amp; repository) {
+      if (repos_context_switch (repository, contextid)) {
+         printf ("Context %s loaded\n", contextid);
+      }
+   }
+
+   command = "loop";
+   if (argsleft) command = argv[argp++];
+   if (!command) command = "loop";
+   args = argsleft;
+   arg1 = arg2 = arg3 = arg4 = NULL;
+   if (argsleft) arg1 = argv[argp++];
+   if (argsleft) arg2 = argv[argp++];
+   if (argsleft) arg3 = argv[argp++];
+   if (argsleft) arg4 = argv[argp++];
+
+   do {
+      if (loopmode) {
+         /* printf ("\nReady!%s\n", repository ? "" : " (no repository open)"); */
+         fflush (stdout);
+         if (!fgets(commandline, 1024, stdin)) {
+            command = "bye";
+         } else {
+            command = strtok (commandline, " \r\n\t");
+            if (!command) command = "null";
+            args = 0;
+            arg1 = strtok (NULL, " \r\n\t"); if (arg1) args++;
+            arg2 = strtok (NULL, " \r\n\t"); if (arg2) args++;
+            arg3 = strtok (NULL, " \r\n\t"); if (arg3) args++;
+            arg4 = strtok (NULL, " \r\n\t"); if (arg4) args++;
+         }
+      }
+
+      strlwr (command);
+
+
+      if (!strcmp (command, "help")) {
+         <i>See <a href="wrapper.html#helplist">Displaying a list of commands</a></i>
+      } else if (!strcmp (command, "repos")) {
+         <i>See <a href="wrapper.html#repos">Opening repositories</a></i>
+      } else if (!strcmp (command, "publish")) {
+         <i>See <a href="wrapper.html#publish">Publishing objects (pushing data)</a></i>
+      } else if (!strcmp (command, "make")) {
+         <i>See <a href="wrapper.html#make">Publishing pages (pulling data)</a></i>
+      } else if (!strcmp (command, "add")) {
+         <i>See <a href="wrapper.html#add">Adding objects to lists</a></i>
+      } else if (!strcmp (command, "del")) {
+         <i>See <a href="wrapper.html#del">Deleting objects from lists</a></i>
+      } else if (!strcmp (command, "mod")) {
+         <i>See <a href="wrapper.html#mod">Modifying objects</a></i>
+      } else if (!strcmp (command, "merge")) {
+         <i>See <a href="wrapper.html#merge">Merging objects</a></i>
+      } else if (!strcmp (command, "changed")) {
+         <i>See <a href="wrapper.html#changed">Modifying objects in place</a></i>
+      } else if (!strcmp (command, "diff")) {
+         <i>See <a href="wrapper.html#diff">Checking differences</a></i>
+      } else if (!strcmp (command, "list")) {
+         <i>See <a href="wrapper.html#list">Listing objects</a></i>
+      } else if (!strcmp (command, "changes")) {
+         <i>See <a href="wrapper.html#changes">Listing changes</a></i>
+      } else if (!strcmp (command, "snapshot")) {
+         <i>See <a href="wrapper.html#snapshot">Taking a snapshot</a></i>
+      } else if (!strcmp (command, "get")) {
+         <i>See <a href="wrapper.html#get">Retrieving objects</a></i>
+      } else if (!strcmp (command, "check")) {
+         <i>See <a href=""></a></i>
+      } else if (!strcmp (command, "test")) {
+         <i>See <a href="wrapper.html#test">Checking XML well-formedness</a></i>
+      } else if (!strcmp (command, "edit")) {
+         <i>See <a href="wrapper.html#edit">Retrieving editor HTML</a></i>
+      } else if (!strcmp (command, "display")) {
+         <i>See <a href="wrapper.html#display">Display objects as HTML</a></i>
+      } else if (!strcmp (command, "form")) {
+         <i>See <a href="wrapper.html#form">Building an empty form for object creation</a></i>
+      } else if (!strcmp (command, "defn")) {
+         <i>See <a href="wrapper.html#defn">Retrieving list structure definitions</a></i>
+      } else if (!strcmp (command, "define")) {
+         <i>See <a href="wrapper.html#define">Imposing or changing list structure</a></i>
+      } else if (!strcmp (command, "push")) {
+         <i>See <a href="wrapper.html#push">Pushing data to a remote list</a></i>
+      } else if (!strcmp (command, "push_all")) {
+         <i>See <a href="wrapper.html#push_all">Pushing all data to a remote list</a></i>
+      } else if (!strcmp (command, "pull")) {
+         <i>See <a href="wrapper.html#pull">Pulling data from a remote list</a></i>
+      } else if (!strcmp (command, "pull_all")) {
+         <i>See <a href="wrapper.html#pull_all">Pulling all data from a remote list</a></i>
+      } else if (!strcmp (command, "synch")) {
+         <i>See <a href="wrapper.html#synch">Synching data with a remote list</a></i>
+      } else if (!strcmp (command, "submit")) {
+         <i>See <a href="wrapper.html#submit">Submitting a document</a></i>
+      } else if (!strcmp (command, "store")) {
+         <i>See <a href="wrapper.html#store">Storing a document</a></i>
+      } else if (!strcmp (command, "attach")) {
+         <i>See <a href="wrapper.html#attach">Attaching a document</a></i>
+      } else if (!strcmp (command, "retrieve")) {
+         <i>See <a href="wrapper.html#retrieve">Retrieving a document</a></i>
+      } else if (!strcmp (command, "checkout")) {
+         <i>See <a href="wrapper.html#checkout">Checking a document out for update</a></i>
+      } else if (!strcmp (command, "getver")) {
+         <i>See <a href="wrapper.html#getver">Getting the version of a field or attachment</a></i>
+      } else if (!strcmp (command, "time")) {
+         <i>See <a href="wrapper.html#time">Marking time</a></i>
+      } else if (!strcmp (command, "echo")) {
+         printf ("+000: %s ++done++\n", arg1);
+      } else if (!strcmp (command, "auth")) {
+         <i>See <a href="wrapper.html#auth">Authenticating and retrieving users</a></i>
+      } else if (!strcmp (command, "ingroup")) {
+         <i>See <a href="wrapper.html#ingroup">Testing group membership</a></i>
+      } else if (!strcmp (command, "context")) {
+         <i>See <a href="wrapper.html#context">Storing and switching contexts</a></i>
+      } else if (!strcmp (command, "tasks")) {
+         <i>See <a href="wrapper.html#tasks">Listing active tasks</a></i>
+      } else if (!strcmp (command, "todo")) {
+         <i>See <a href="wrapper.html#todo">List active tasks for current user</a></i>
+      } else if (!strcmp (command, "xact")) {
+         <i>See <a href="wrapper.html#xact">Creating or loading a transaction</a></i>
+      } else if (!strcmp (command, "commit")) {
+         <i>See <a href="wrapper.html#commit">Committing a transaction</a></i>
+      } else if (!strcmp (command, "process")) {
+         <i>See <a href="wrapper.html#process">Performing asynchronous processing</a></i>
+      } else if (!strcmp (command, "set")) {
+         <i>See <a href="wrapper.html#set">Storing session values</a></i>
+      } else if (!strcmp (command, "read")) {
+         <i>See <a href="wrapper.html#read">Retrieving session values</a></i>
+      } else if (!strcmp (command, "loop")) {
+         printf ("repmgr v1.0 listening: type 'help' for help.\n++done++\n");
+         loopmode = 1;
+      } else if (!strcmp (command, "bye")) {
+         if (loopmode) {
+            loopmode = 0;
+            printf ("+000: Ciao ragazzo. ++done++\n");
+         }
+      } else if (!strcmp (command, "serve")) {
+         /* Reserved for later: set up a socket listener. */
+      } else if (!strcmp (command, "null")) {
+         /* Does nothing. */
+      } else {
+         printf ("-010: Unknown command %s. ++done++\n", command);
+      }
+
+      if (list) xml_free (list);
+      list = NULL;
+      if (scratch) xml_free (scratch);
+      scratch = NULL;
+   } while (loopmode);
+
+   if (repository) xml_free (repository);
+}
+</pre></td></tr></table>
+
+<i>March 26, 2002:</i> Now that I've rationalized the adaptor/session/config functionality in <a href="../wftk/wftk_session.html">the
+wftk_session module</a>, we need a function which can return information about statically linked adaptors.  (Dynamically linked ones,
+of course, are maintained dynamically within wftk_session.)  So here's that.
+
+<p></p>
+<i>April 8, 2002:</i> Finally got around to designing a system for managing optional adaptors; this #ifdef for MySQL static linking
+is part of that.
+
+<p></p>
+<i>February 16, 2004:</i> Removed this version of the lookup function, since it's duplicated as the default looker upper in the library
+itself (which is after all the logical place to do things, as it's a question of what's linked statically or not.)
+
+<br><br>
+<a name="helplist">
+<i>Displaying a list of commands</i><br>
+No command-line interface should be without <i>some</i> internal documentation....
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>printf ("repmgr (c) 2001, Vivtek, under GPL.\n");
+printf ("-----------------------------------\n");
+printf ("Repository definition: %s%s\n", config_path, repository ? "" : " (not open)");
+printf ("Compiled: " __DATE__ " " __TIME__ "\n");
+printf ("See http://www.vivtek.com/wftk/repmgr/ for more information.\n");
+printf ("\n");
+if (!loopmode) printf ("Usage: repmgr [command] [args]\n");
+printf ("repos [list] or [file]      : Open new repository\n");
+printf ("publish                     : Activate all non-notification publishers and pages\n");
+printf ("publish [list]              : Activate all non-notification publishers for list\n");
+printf ("publish [list] [key]        : Publish single object\n");
+printf ("make                        : Publish all *pages* (pulls data)\n");
+printf ("make    [page]              : Publish a single page (pulls data)\n");
+printf ("add     [list] [file]       : Add object from file (use '-' to indicate stdin)\n");
+printf ("del     [list] [key]        : Delete named object\n");
+printf ("mod     [list] [file]       : Modify object from file (may duplicate key) (use '-' to indicate stdin)\n");
+printf ("mod     [list] [file] [key] : Modify if key known (safer) (use '-' to indicate stdin)\n");
+printf ("merge   [list] [file] [key] : Merge objects (key optional) (use '-' to indicate stdin)\n");
+printf ("changed [list] [key]        : Log and publish object added or changed behind the scenes\n");
+printf ("diff    [list] [key] [file] : Check difference between object and file\n");
+printf ("test    [file]              : Test XML well-formedness of a file\n");
+printf ("list    [list]              : List keys for objects\n");
+printf ("changes [date]              : List changed lists since date (date in ISO format, e.g. 2001-12-13T11:12:52\n");
+printf ("changes [date] [list]       : List changes to a list since date\n");
+printf ("get     [list] [key]        : Retrieve XML object\n");
+printf ("edit    [list] [key]        : Retrieve XML object as HTML form\n");
+printf ("display [list] [key]        : Retrieve XML object as HTML display\n");
+printf ("auth    [user] [password]   : Authenticate/retrieve user\n");
+printf ("ingroup [user] [group]      : Test group membership/retrieve group\n");
+printf ("tasks                       : List entire task index\n");
+printf ("tasks   [list]              : List tasks for a list\n");
+printf ("tasks   [list] [key]        : List tasks for a specific object\n");
+printf ("todo                        : List all tasks assigned to current user\n");
+printf ("xact                        : Start a transaction attached to the current session\n");
+printf ("xact    [key]               : Attach an existing transaction to the current session\n");
+printf ("commit                      : Commit the current transaction\n");
+printf ("process                     : Perform all outstanding asynchronous processing\n");
+printf ("process [list]              : Perform asynchronous processing for the named list\n");
+printf ("process [list] [key]        : Perform asynchronous processing for the specified object\n");
+printf ("form    [list]              : Build empty form for list\n");
+printf ("defn    [list]              : Retrieve XML structure definition\n");
+printf ("define  [list]              : Write new XML structure definition\n");
+printf ("push    [list] [remote]     : Push modifications to remote list\n");
+printf ("push_all[list] [remote]     : Push all data to remote list\n");
+printf ("pull    [list] [remote]     : Pull modifications from remote list\n");
+printf ("pull_all[list] [remote]     : Pull all data from remote list\n");
+printf ("synch   [list] [remote]     : Pull modificiations, then push\n");
+printf ("submit  [list] [file]       : Create object using file contents for primary attachment ('-' for stdin)\n");
+printf ("store   [list] [fname] [file]: Same, but specifying a local storage filename\n");
+printf ("attach  [list] [key] [fld] [file]: Writes attachment to a given field of an existing object\n");
+printf ("retrieve[list] [key] [fld] [file]: Retrieves an attachment's content\n");
+printf ("checkout[list] [key] [fld]  : Same, but marks the version for update\n");
+printf ("getver  [list] [key] [fld]  : Retrieves version level of a field\n");
+printf ("auth    [user] [password]   : Authorize user\n");
+printf ("ingroup [user] [groupid]    : Check group membership\n");
+printf ("context ([id])              : save or switch session context\n");
+printf ("set     [name] [value]      : save context value\n");
+printf ("get     [name]              : retrieve context value\n");
+printf ("time                        : Show server's local time\n");
+printf ("++done++\n\n");
+</pre></td></tr></table>
+<br><br>
+<a name="repos">
+<i>Opening repositories</i><br>
+The "repos" command is used in interactive mode (i.e. on the command line or in a remote connection) to specify
+the repository to be used in the session; subsequent invocations will close the active repository and open a new
+fone.  A repository is always a directory; the repository description is assumed to be in "site.opm" in that directory
+but may be specified in the command.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (args &lt; 1) {
+   printf ("repmgr: No directory or file supplied.\n");
+   continue;
+}
+
+if (repository) xml_free (repository);
+repository = NULL;
+
+*config_path = '\0';
+if (-1 == chdir(arg1)) {
+   chmark = strrchr (arg1, '/');
+   if (!chmark) chmark = strrchr (arg1, '\\');
+   if (!chmark) {
+      strcpy (config_path, arg1);
+   } else {
+      strcpy (config_path, chmark + 1);
+      *chmark = '\0';
+      if (-1 == chdir (arg1)) {
+         printf ("-100: Can't find directory %s ++done++\n", arg1);
+         continue;
+      }
+   }
+}
+
+if (!*config_path) strcpy (config_path, "site.opm");
+config_file = fopen (config_path, "r");
+if (!config_file) { /*  &amp;&amp; complain_if_no_file) {*/
+   printf ("-101: Can't find repository file '%s' ++done++\n", config_path);
+   continue;
+}
+
+repository = xml_read_error (config_file);
+if (xml_is (repository, "xml-error")) {
+   printf ("-200: Error reading repository definition '%s'; '%s' in line %s ++done++\n", config_path, xml_attrval (repository, "message"), xml_attrval (repository, "line"));
+   xml_free (repository);
+   repository = NULL;
+} else {
+   repos_open (repository, NULL, "cmdline");
+   if (*xml_attrval (repository, "error-state")) {
+      printf ("-201: Error opening repository -- %s ++done++\n", xml_attrval (repository, "error-state"));
+      xml_free (repository);
+      repository = NULL;
+   } else {
+      printf ("+000: Repository open. ++done++\n");
+   }
+}
+fclose (config_file);
+</pre></td></tr></table>
+<br><br>
+<a name="publish">
+<i>Publishing objects (pushing data)</i><br>
+Publishing can be done in three scopes: all, list, or object.  If we are publishing "all" then we're also publishing the
+pseudo-list "_pages", meaning that the individual pages will pull data from datasources as needed.  Publishing in "list"
+mode means that we are pushing data from a single list to the pages or files specified (because a publisher may give a
+fully formal page, or simply specify a file or file list in quick and dirty mode -- either way, pushing data means we
+have to manage those.)  Finally, publishing in "object" mode means that we publish a list for a single object.  List pages
+will be republished entirely to make sure that all indices and such are correct, but individual object pages will be largely
+untouched (just those pertaining to the single object will be rewritten.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   repos_publish_all (repository);
+   printf ("+000: OK ++done++\n");
+   continue;
+}
+
+if (args &lt; 2) {
+   repos_publish_list (repository, arg1);
+   printf ("+000: OK ++done++\n");
+   continue;
+}
+
+repos_publish_obj (repository, arg1, arg2);
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+
+As you can see, this command line interpreter is a much thinner wrapper around the repository library than the wftk command line
+is around the wftk library.
+<br><br>
+<a name="make">
+<i>Publishing pages (pulling data)</i><br>
+The "make" action is similar to publishing, of course, except that it ignores the publishers entirely, and simply publishes
+pages, either all of them or just one.  Since this pulls data from whatever datasources are required, it can be thought of as,
+well, pretty much what the Unix program "make" does, except that for the time being it will be rather stupid as far as detecting
+changes is concerned.  Eventually that'll be rectified, although the responsibility for change detection lies with the datasources,
+not the pages.  (That is, it is an adaptor function.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   repos_publish_pages (repository);
+   printf ("+000: OK ++done++\n");
+   continue;
+}
+
+repos_publish_page (repository, arg1);
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+<br><br>
+<a name="add">
+<i>Adding objects to lists</i><br>
+Adding an object is a tad trickier, as we actually have to (gasp) read and parse the file.  It does set the tone for most of the
+rest of this program, though.  <i>December 6, 2001</i>: if the "filename" is a dash, we read stdin and use that.  To terminate, we wait
+for a line with two or more initial &gt;'s, which are illegal in XML.  Tricky, eh?  Like sendmail, see?
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 2) {
+   printf ("-001: Usage: add [list] [file] ++done++\n");
+   continue;
+}
+
+if (*arg2 == '?' || *arg2 == '!') { /* Add using Notepad, or just add a blank record and trust the default values to do something sane. */
+   mark = repos_get (repository, arg1, NULL); /* Get blank record. */
+   if (*arg2 == '?') { /* Edit the blank record */
+      xml_save (mark, "__edit.xml");
+      xml_free (mark);
+#ifdef WINDOWS
+      _spawnl (_P_WAIT, "c:\\windows\\notepad.exe", "notepad", "__edit.xml", NULL);
+#else
+      system ("vi __edit.xml");
+#endif
+      mark = xml_load ("__edit.xml");
+      if (xml_is (mark, "xml-error")) {
+         printf ("-200: Bad XML: '%s' in line %s ++done++\n", xml_attrval (mark, "message"), xml_attrval (mark, "line"));
+         xml_free (mark);
+         continue;
+      }
+   }
+} else
+if (*arg2 == '-') { /* Get the new record from stdin. */
+   scratch = xml_create ("s");
+   xml_set (scratch, "s", "");
+   xml_set (scratch, "list", arg1); /* Stash list name for later; we'll be clobbering the commandline. */
+   arg1 = (char *) xml_attrval (scratch, "list");
+   while (fgets(commandline, 1024, stdin)) {
+      if (commandline[0] == '>' &amp;&amp; commandline[1] == '>') {
+         mark = xml_parse (xml_attrval (scratch, "s"));
+         if (xml_is (mark, "xml-error")) {
+            printf ("-200: Error reading input; '%s' in line %s ++done++\n", xml_attrval (mark, "message"), xml_attrval (mark, "line"));
+            xml_free (mark);
+            mark = NULL;
+         }
+         break;
+      }
+      xml_attrcat (scratch, "s", commandline);
+   }
+   if (!mark) continue;
+} else {
+   file = fopen (arg2, "r");
+   if (!file) {
+      printf ("-201: Unable to open file %s ++done++\n", arg2);
+      continue;
+   }
+
+   mark = xml_read_error (file);
+   fclose (file);
+   if (xml_is (mark, "xml-error")) {
+      printf ("-200: Error reading file '%s'; '%s' in line %s ++done++\n", arg2, xml_attrval (mark, "message"), xml_attrval (mark, "line"));
+      xml_free (mark);
+      continue;
+   }
+}
+
+repos_add (repository, arg1, mark);
+printf ("+000: OK - %s ++done++\n", repos_getkey (repository, arg1, mark));
+xml_free (mark);
+</pre></td></tr></table>
+<br><br>
+<a name="del">
+<i>Deleting objects from lists</i><br>
+Deletion, of course, acts on a key, not a file.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 2) {
+   printf ("-001: Usage: del [list] [key] ++done++\n");
+   continue;
+}
+
+if (repos_del (repository, arg1, arg2)) {
+   printf ("-400: Unable to delete ++done++\n");
+} else {
+   printf ("+000: OK ++done++\n");
+}
+</pre></td></tr></table>
+<br><br>
+<a name="mod">
+<i>Modifying objects</i><br>
+And with modification, we've gotten tricky again, with our little multiple-arity thing there.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 2) {
+   printf ("-001: Usage: mod [list] [file] ++done++\n");
+   continue;
+}
+
+if (*arg2 == '?') { /* Modify with Notepad. */
+   mark = repos_get (repository, arg1, arg3);
+   if (mark) {
+      xml_save (mark, "__edit.xml");
+      xml_free (mark);
+#ifdef WINDOWS
+      _spawnl (_P_WAIT, "c:\\windows\\notepad.exe", "notepad", "__edit.xml", NULL);
+#else
+      system ("vi __edit.xml");
+#endif
+      mark = xml_load ("__edit.xml");
+      if (xml_is (mark, "xml-error")) {
+         printf ("-200: Bad XML: '%s' in line %s ++done++\n", xml_attrval (mark, "message"), xml_attrval (mark, "line"));
+         xml_free (mark);
+         continue;
+      }
+   }
+} else
+if (*arg2 == '-') { /* Special handling. */
+   scratch = xml_create ("s");
+   xml_set (scratch, "s", "");
+   xml_set (scratch, "list", arg1); /* Stash list name for later; we'll be clobbering the commandline. */
+   arg1 = (char *) xml_attrval (scratch, "list");
+   if (args >= 3) {
+      xml_set (scratch, "oldkey", arg3);
+      arg3 = (char *) xml_attrval (scratch, "list");
+   }
+   while (fgets(commandline, 1024, stdin)) {
+      if (commandline[0] == '>' &amp;&amp; commandline[1] == '>') {
+         mark = xml_parse (xml_attrval (scratch, "s"));
+         if (xml_is (mark, "xml-error")) {
+            printf ("Error reading input; '%s' in line %s\n", xml_attrval (mark, "message"), xml_attrval (mark, "line"));
+            xml_free (mark);
+            mark = NULL;
+         }
+         break;
+      }
+      xml_attrcat (scratch, "s", commandline);
+   }
+   if (args >= 3) {
+      arg3 = (char *) xml_attrval (scratch, "oldkey");
+   }
+   if (!mark) continue;
+} else {
+   file = fopen (arg2, "r");
+   if (!file) {
+      printf ("-301: Unable to open file %s\n", arg2);
+      continue;
+   }
+
+   mark = xml_read_error (file);
+   fclose (file);
+   if (xml_is (mark, "xml-error")) {
+      printf ("-200: Error reading file '%s'; '%s' in line %s\n", arg2, xml_attrval (mark, "message"), xml_attrval (mark, "line"));
+      continue;
+   }
+}
+
+if (args &lt; 3) {
+   if (repos_mod (repository, arg1, mark, NULL)) {
+      printf ("+400: Unable to modify ++done++\n");
+   } else {
+      printf ("+000: OK ++done++\n");
+   }
+} else {
+   if (repos_mod (repository, arg1, mark, arg3)) {
+      printf ("+400: Unable to modify ++done++\n");
+   } else {
+      printf ("+000: OK ++done++\n");
+   }
+}
+xml_free (mark);
+</pre></td></tr></table>
+
+<br><br>
+<a name="merge">
+<i>Merging objects</i><br>
+Merging is basically exactly like modification as far as the command line is concerned.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 2) {
+   printf ("-001: Usage: merge [list] [file] ++done++\n");
+   continue;
+}
+
+if (*arg2 == '-') { /* Special handling. */
+   scratch = xml_create ("s");
+   xml_set (scratch, "s", "");
+   xml_set (scratch, "list", arg1); /* Stash list name for later; we'll be clobbering the commandline. */
+   arg1 = (char *) xml_attrval (scratch, "list");
+   if (args >= 3) {
+      xml_set (scratch, "oldkey", arg3);
+      arg3 = (char *) xml_attrval (scratch, "list");
+   }
+   while (fgets(commandline, 1024, stdin)) {
+      if (commandline[0] == '>' &amp;&amp; commandline[1] == '>') {
+         mark = xml_parse (xml_attrval (scratch, "s"));
+         if (xml_is (mark, "xml-error")) {
+            printf ("-200: Error reading input; '%s' in line %s\n", xml_attrval (mark, "message"), xml_attrval (mark, "line"));
+            xml_free (mark);
+            mark = NULL;
+         }
+         break;
+      }
+      xml_attrcat (scratch, "s", commandline);
+   }
+   if (args >= 3) {
+      arg3 = (char *) xml_attrval (scratch, "oldkey");
+   }
+   if (!mark) continue;
+} else {
+   file = fopen (arg2, "r");
+   if (!file) {
+      printf ("-301: Unable to open file %s\n", arg2);
+      continue;
+   }
+
+   mark = xml_read_error (file);
+   fclose (file);
+   if (xml_is (mark, "xml-error")) {
+      printf ("-200: Error reading file '%s'; '%s' in line %s\n", arg2, xml_attrval (mark, "message"), xml_attrval (mark, "line"));
+      continue;
+   }
+}
+
+if (args &lt; 3) {
+   if (repos_mod (repository, arg1, mark, NULL)) {
+      printf ("+400: Unable to modify ++done++\n");
+   } else {
+      printf ("+000: OK ++done++\n");
+   }
+} else {
+   if (repos_mod (repository, arg1, mark, arg3)) {
+      printf ("+400: Unable to modify ++done++\n");
+   } else {
+      printf ("+000: OK ++done++\n");
+   }
+}
+xml_free (mark);
+</pre></td></tr></table>
+
+<br><br>
+<a name="changed">
+<i>Modifying objects in place</i><br>
+For easy integration with external scripts and such, we want to be able to tell the system about it when we've modified an object
+directly (perhaps by editing its file, or making a change to a database directly -- whatever.)  We can't put it into the "mod"
+command because there's no good way to indicate that.  So we have a new command for it.
+<p></p>
+The commands "changed" and "snapshot" are pretty much mutually exclusive.  Since "changed" does nothing to update the current
+snapshot, you'll end up noting (and logging, and publishing) each modification twice, which won't do anybody much good.  If you're
+going to use "snapshot", stick with it.  However, since some data sources may not be able to do snapshots, there are still situations
+where "changed" and "del" should be used together to do things individually.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 2) {
+   printf ("-001: Usage: changed [list] [key] ++done++\n");
+   continue;
+}
+
+if (args &lt; 3) {
+   repos_mod (repository, arg1, NULL, arg2);
+}
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+
+<br><br>
+<a name="test">
+<i>Checking XML well-formedness</i><br>
+This is a simple diagnostic -- it just loads an arbitrary file and tells you whether it worked or not.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (args &lt; 1) {
+   printf ("-001: Usage: test [file] ++done++\n");
+   continue;
+}
+
+file = fopen (arg1, "r");
+if (!file) {
+   printf ("-201: Unable to open file %s ++done++\n", arg1);
+   continue;
+}
+
+mark = xml_read_error (file);
+fclose (file);
+if (xml_is (mark, "xml-error")) {
+   printf ("-200: Error reading file '%s'; '%s' in line %s ++done++\n", arg1, xml_attrval (mark, "message"), xml_attrval (mark, "line"));
+   continue;
+}
+
+printf ("+000: File OK.\n");
+</pre></td></tr></table>
+
+<br><br>
+<a name="diff">
+<i>Checking differences</i><br>
+This is something kinda neat -- it compares two XML records and gives a field-by-field diff.  In this variety of diff, the textual
+aspect of the XML is largely ignored; whitespace doesn't count and even the order of fields in the record doesn't count as a change.
+Only attributes and values count.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 3) {
+   printf ("-001: Usage: diff [list] [key] [file] ++done++\n");
+   continue;
+}
+
+mark2 = repos_get (repository, arg1, arg2);
+if (!mark2) {
+   printf ("-300: Unknown list/key combination %s/%s ++done++\n", arg1, arg2);
+   continue;
+}
+defn = repos_defn (repository, arg1);
+
+if (*arg3 == '-') { /* Special handling. */
+   scratch = xml_create ("s");
+   xml_set (scratch, "s", "");
+   xml_set (scratch, "list", arg1); /* Stash list name for later; we'll be clobbering the commandline. */
+   arg1 = (char *) xml_attrval (scratch, "list");
+   while (fgets(commandline, 1024, stdin)) {
+      if (commandline[0] == '>' &amp;&amp; commandline[1] == '>') {
+         mark = xml_parse (xml_attrval (scratch, "s"));
+         if (xml_is (mark, "xml-error")) {
+            printf ("-200: Error reading input; '%s' in line %s ++done++\n", xml_attrval (mark, "message"), xml_attrval (mark, "line"));
+            xml_free (mark);
+            mark = NULL;
+         }
+         break;
+      }
+      xml_attrcat (scratch, "s", commandline);
+   }
+   if (!mark) continue;
+} else {
+   file = fopen (arg3, "r");
+   if (!file) {
+      printf ("-201: Unable to open file %s ++done++\n", arg3);
+      continue;
+   }
+
+   mark = xml_read_error (file);
+   fclose (file);
+   if (xml_is (mark, "xml-error")) {
+      printf ("-200: Error reading file '%s'; '%s' in line %s ++done++\n", arg3, xml_attrval (mark, "message"), xml_attrval (mark, "line"));
+      continue;
+   }
+}
+
+printf ("+200: OK, data follows.\n");
+holder = xmlobj_diff (mark2, defn, mark);
+xml_write (stdout, holder);
+printf ("\n>>\n");
+printf ("+000: OK ++done++\n");
+xml_free (mark);
+xml_free (mark2);
+xml_free (holder);
+</pre></td></tr></table>
+
+<br><br>
+<a name="list">
+<i>Listing objects</i><br>
+To list objects, we just get a list using the library, then show the keys for the returned list.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+list = xml_create ("list");
+if (args) {
+   xml_set (list, "id", arg1);
+} else {
+   xml_set (list, "id", "_lists");
+}
+
+repos_list (repository, list);
+if (*xml_attrval (list, "error-state")) {
+   printf ("-302: %s ++done++\n", xml_attrval (list, "error-state"));
+} else {
+   printf ("+100: OK, data follows.  %s key(s) found:\n", xml_attrval (list, "count"));
+   mark = xml_firstelem (list);
+   while (mark) {
+      if (!xml_is (mark, "field") &amp;&amp; !xml_is (mark, "link")) {
+         printf (" %s\n", xml_attrval (mark, "id"));
+      }
+      mark = xml_nextelem (mark);
+   }
+   printf ("+000: OK ++done++\n");
+}
+</pre></td></tr></table>
+This method of doing queries is ubiquitous in wftk -- you first prepare an XML object which defines what you want to know, then you
+pass it to the library.  The library fills it out for you, and then you proceed to do whatever it was you were doing.
+<br><br>
+<a name="snapshot">
+<i>Taking a snapshot</i><br>
+The idea behind a snapshot is simple: we record the current state of a list in simplified form, then if its contents are changed outside
+the framework, we are able to compare the current state with a past state and note that items have been added, deleted, or (in some cases)
+modified.  Modification is easy to detect on the basis of the file timestamps in a directory, for instance, or a database table may impose
+a last-edited restriction, or we may use some sort of checksum scheme.  The storage adaptor makes the decision as to what (if anything)
+can be used to detect modification.  However, by keeping a snapshot list, we are at least absolutely certain of detecting additions and
+deletions, because those affect the list of keys present.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+if (args < 1) {
+   printf ("-001: No list given. ++done++\n");
+   continue;
+}
+
+repos_snapshot (repository, arg1);
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+<br><br>
+<a name="changes">
+<i>Listing changes</i><br>
+To list changes, we have a special command.  It comes in two forms: one lists the lists which have been changed, the other lists the
+actual changes to a particular list.  Each returns a series of <i>text</i> lines from the command line, even though the API returns
+(of course) an XML structure.
+<p></p>
+The date is given in ISO format -- but since I use a separating space in my dates in the log (for readability) I realized that such
+a date can't actually be given in a space-delimited command line!  So if the date is longer than 10 characters, we set the 11th character
+to a space so it'll match our expectations.  This allows the command-line date to be separated with a 'T' (the ISO's recommendation)
+or whatever other non-space character the user might choose to use.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+if (args < 1) {
+   printf ("-001: No date given. ++done++\n");
+   continue;
+}
+
+if (strlen (arg1) > 10) arg1[10] = ' ';
+
+list = xml_create ("list");
+
+if (args > 1) {
+   repos_changes (repository, list, arg1, arg2);
+   printf ("+100: OK, data follows.\n");
+   mark = xml_firstelem (list);
+   while (mark) {
+      printf (" %s\t%s\t%s\t%s\n", xml_attrval (mark, "action"), xml_attrval (mark, "time"),
+                                   xml_attrval (mark, "user"),   xml_attrval (mark, "id"));
+      mark = xml_nextelem (mark);
+   }
+} else {
+   repos_changes (repository, list, arg1, NULL);
+   mark = xml_firstelem (list);
+   while (mark) {
+      printf (" %s\t%s\n", xml_attrval (mark, "id"), xml_attrval (mark, "time"));
+      mark = xml_nextelem (mark);
+   }
+}
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+Pretty straightforward, eh?
+<br><br>
+<a name="get">
+<i>Retrieving objects</i><br>
+To retrieve an object, we simply retrieve it using the library, then write its XML to stdout.  This isn't meant to be brain surgery.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   printf ("-001: Usage: get [list] [key] ++done++\n");
+   continue;
+}
+
+mark = repos_get (repository, arg1, args &lt; 2 ? NULL : arg2);
+if (!mark) {
+   printf ("-301: Unable to retrieve object '%s'. ++done++\n", arg2);
+   continue;
+}
+
+printf ("+200: OK, XML follows.\n");
+xml_write (stdout, mark);
+xml_free (mark);
+printf ("\n>>\n");
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+Note that repos_get returns a <i>copy</i> of the object (or at least, freeing responsibility passes to the caller.)  The same goes
+for the next two.
+<br><br>
+<a name="auth">
+<i>Authenticating and retrieving users</i><br>
+User authentication works with plaintext passwords.  TODO: fix same.  Authentication also returns a description of the user (name, etc.)
+as an xmlobj object.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 2) {
+   printf ("-001: Usage: auth [userid] [password] ++done++\n");
+   continue;
+}
+
+mark = repos_user_auth (repository, arg1, arg2);
+if (!mark) {
+   printf ("-301: Unable to authenticate user '%s'. ++done++\n", arg1);
+   continue;
+}
+
+printf ("+200: OK, XML follows.\n");
+xml_write (stdout, mark);
+xml_free (mark);
+printf ("\n>>\n");
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+<br><br>
+<a name="ingroup">
+<i>Testing group membership</i><br>
+Not much to say about this one, except that the return (if the user is in the group) is the group object.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 2) {
+   printf ("-001: Usage: ingroup [userid] [groupid] ++done++\n");
+   continue;
+}
+
+mark = repos_user_ingroup (repository, arg1, arg2);
+if (!mark) {
+   printf ("-301: user '%s' not found in group '%s'. ++done++\n", arg1, arg2);
+   continue;
+}
+
+printf ("+200: OK, XML follows.\n");
+xml_write (stdout, mark);
+xml_free (mark);
+printf ("\n>>\n");
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+<br><br>
+<a name="context">
+<i>Storing and switching contexts</i><br>
+The session or context can be stored as a means of saving named values accumulated during a session.  At some point, the context
+will also maintain contextual values such as the id of the last list referred to, etc.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   contextid = repos_context_save (repository);
+   printf ("+000: OK - %s ++done++\n", contextid);
+   free (contextid);
+   contextid = NULL;
+} else {
+   mark = repos_context_switch (repository, arg1);
+   if (!mark) {
+      printf ("-301: context '%s' not found. ++done++\n", arg1);
+   } else {
+      printf ("+100: OK ++done++\n");
+      xml_free (mark);
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="set">
+<i>Storing session values</i><br>
+This primitive command line can't deal with values with spaces, which is less than perfectly useful, but it's a start.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 2) {
+   printf ("-001: Usage: set [name] [value] ++done++\n");
+   continue;
+}
+
+repos_context_set (repository, arg1, arg2);
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+<br><br>
+<a name="read">
+<i>Retrieving session values</i><br>
+Again: the command line interface as currently constituted can't deal with spaces well.  TODO: Really have to write a command-line parser....
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   printf ("-001: Usage: read [name] ++done++\n");
+   continue;
+}
+
+if (contextid = repos_context_get (repository, arg1)) {
+   printf ("+000: OK - %s ++done++\n", contextid);
+   free (contextid);
+   contextid = NULL;
+} else {
+   printf ("-100: no such value ++done++\n");
+}
+</pre></td></tr></table>
+<br><br>
+<a name="tasks">
+<i>Listing active tasks</i><br>
+The "tasks" command is equivalent in execution to "list _tasks" -- except that where the latter displays only keys, this command also displays task labels,
+assignments, and maybe other information as we later find appropriate.  It is formatted for human consumption rather than for machine readability.
+<i>Really</i>, I suppose, it exemplifies a modality of list retrieval which would be of great benefit if generalized: the ability to specify a formatting
+string of some sort for list returns.  Anyway, the formatting of this list is straight out of the wftk_util command-line utility for the wftk core.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+list = xml_create ("list");
+xml_set (list, "id", "_tasks");
+
+/*TODO: tasks for specific list or object.*/
+
+repos_list (repository, list);
+if (*xml_attrval (list, "error-state")) {
+   printf ("-302: %s ++done++\n", xml_attrval (list, "error-state"));
+} else {
+   printf ("+100: OK, data follows.  %s key(s) found:\n", xml_attrval (list, "count"));
+   mark = xml_firstelem (list);
+   while (mark) {
+      printf (" %s: %s", xml_attrval (mark, "id"), xml_attrval (mark, "label"));
+      if (*xml_attrval (mark, "user")) printf (" (%s)", xml_attrval (mark, "user"));
+      if (*xml_attrval (mark, "role")) printf (" [%s]", xml_attrval (mark, "role"));
+      printf ("\n");
+
+      mark = xml_nextelem (mark);
+   }
+   printf ("+000: OK ++done++\n");
+}
+</pre></td></tr></table>
+<br><br>
+<a name="todo">
+<i>List active tasks for current user</i><br>
+The "todo" command is just like the "tasks" command, except it uses the _todo list, which filters for the current authuser before returning results.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+list = xml_create ("list");
+xml_set (list, "id", "_todo");
+
+repos_list (repository, list);
+if (*xml_attrval (list, "error-state")) {
+   printf ("-302: %s ++done++\n", xml_attrval (list, "error-state"));
+} else {
+   printf ("+100: OK, data follows.  %s key(s) found:\n", xml_attrval (list, "count"));
+   mark = xml_firstelem (list);
+   while (mark) {
+      printf (" %s: %s", xml_attrval (mark, "id"), xml_attrval (mark, "label"));
+      if (*xml_attrval (mark, "user")) printf (" (%s)", xml_attrval (mark, "user"));
+      if (*xml_attrval (mark, "role")) printf (" [%s]", xml_attrval (mark, "role"));
+      printf ("\n");
+
+      mark = xml_nextelem (mark);
+   }
+   printf ("+000: OK ++done++\n");
+}
+</pre></td></tr></table>
+<br><br>
+<a name="xact">
+<i>Creating or loading a transaction</i><br>
+Starts a transaction attached to the current session, or attaches an existing transaction to the current session.
+
+TODO: implement.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   contextid = repos_context_save (repository);
+   printf ("+000: OK - %s ++done++\n", contextid);
+   free (contextid);
+   contextid = NULL;
+} else {
+   mark = repos_context_switch (repository, arg1);
+   if (!mark) {
+      printf ("-301: context '%s' not found. ++done++\n", arg1);
+   } else {
+      printf ("+100: OK ++done++\n");
+      xml_free (mark);
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="commit">
+<i>Committing a transaction</i><br>
+Commits the current transaction.
+
+TODO: implement.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   contextid = repos_context_save (repository);
+   printf ("+000: OK - %s ++done++\n", contextid);
+   free (contextid);
+   contextid = NULL;
+} else {
+   mark = repos_context_switch (repository, arg1);
+   if (!mark) {
+      printf ("-301: context '%s' not found. ++done++\n", arg1);
+   } else {
+      printf ("+100: OK ++done++\n");
+      xml_free (mark);
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="process">
+<i>Performing asynchronous processing</i><br>
+Fronts for repos_process to enable easy kickoff of asynchronous processing from the command line as e.g. a cronjob.
+
+TODO: implement.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 2) {
+   printf ("-001: Usage: check [list] [key] ++done++\n");
+   continue;
+}
+
+mark = repos_get (repository, arg1, arg2);
+if (!mark) {
+   printf ("-301: Unable to retrieve object '%s'. ++done++\n", arg2);
+   continue;
+}
+
+xml_free (mark);
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+<br><br>
+<a name="edit">
+<i>Retrieving editor HTML</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   printf ("-001: Usage: edit [list] [key] ++done++\n");
+   continue;
+}
+
+mark = repos_form (repository, arg1, args &lt; 2 ? NULL : arg2, "edit");
+printf ("+200: OK, XML follows.\n");
+xml_writehtml (stdout, mark);
+xml_free (mark);
+printf ("\n>>\n");
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+<br><br>
+<a name="display">
+<i>Display objects as HTML</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   printf ("-001: Usage: display [list] [key] ++done++\n");
+   continue;
+}
+
+mark = repos_form (repository, arg1, args &lt; 2 ? NULL : arg2, "display");
+printf ("+200: OK, XML follows.\n");
+xml_writehtml (stdout, mark);
+xml_free (mark);
+printf ("\n>>\n");
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+<br><br>
+<a name="form">
+<i>Building an empty form for object creation</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   printf ("-001: Usage: form [list] ++done++\n");
+   continue;
+}
+
+mark = repos_form (repository, arg1, NULL, NULL);
+printf ("+200: OK, XML follows.\n");
+xml_writehtml (stdout, mark);
+xml_free (mark);
+printf ("\n>>\n");
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+<br><br>
+<a name="defn">
+<i>Retrieving list structure definitions</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   printf ("-001: Usage: defn [list] ++done++\n");
+   continue;
+}
+
+mark = repos_defn (repository, arg1);
+printf ("+200: OK, XML follows.\n");
+xml_write (stdout, mark);
+xml_free (mark);
+printf ("\n>>\n");
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+<br><br>
+<a name="define">
+<i>Imposing or changing list structure</i><br>
+And here we have to read and parse a file again.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 2) {
+   printf ("-001: Usage: define [list] [file] ++done++\n");
+   continue;
+}
+
+file = fopen (arg2, "r");
+if (!file) {
+   printf ("-201: Unable to open file %s ++done++\n", arg2);
+   continue;
+}
+
+mark = xml_read_error (file);
+fclose (file);
+if (xml_is (mark, "xml-error")) {
+   printf ("-200: Error reading file '%s'; '%s' in line %s ++done++\n", arg2, xml_attrval (mark, "message"), xml_attrval (mark, "line"));
+   continue;
+}
+
+repos_define (repository, arg1, mark);
+printf ("+000: OK ++done++\n");
+xml_free (mark);
+</pre></td></tr></table>
+<br><br>
+<a name="push">
+<i>Pushing data to a remote list</i><br>
+This is almost too easy.  And the other synch commands are identical to it.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   printf ("-001: Usage: push [list] ([remote]) ++done++\n");
+   continue;
+}
+
+i = repos_push (repository, arg1, args > 1 ? arg2 : NULL);
+printf ("+000: OK (%d objects transferred) ++done++\n", i);
+</pre></td></tr></table>
+<br><br>
+<a name="push_all">
+<i>Pushing all data to a remote list</i><br>
+This is almost too easy.  And the other synch commands are identical to it.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   printf ("-001: Usage: push_all [list] ([remote]) ++done++\n");
+   continue;
+}
+
+i = repos_push_all (repository, arg1, args > 1 ? arg2 : NULL);
+printf ("+000: OK (%d objects transferred) ++done++\n", i);
+</pre></td></tr></table>
+<br><br>
+<a name="pull">
+<i>Pulling data from a remote list</i><br>
+This is almost too easy.  And the other synch commands are identical to it.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   printf ("-001: Usage: pull [list] ([remote]) ++done++\n");
+   continue;
+}
+
+i = repos_pull (repository, arg1, args > 1 ? arg2 : NULL, NULL);
+printf ("+000: OK (%d objects transferred) ++done++\n", i);
+</pre></td></tr></table>
+<br><br>
+<a name="pull_all">
+<i>Pulling all data from a remote list</i><br>
+This is almost too easy.  And the other synch commands are identical to it.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   printf ("-001: Usage: pull_all [list] ([remote]) ++done++\n");
+   continue;
+}
+
+i = repos_pull_all (repository, arg1, args > 1 ? arg2 : NULL, NULL);
+printf ("+000: OK (%d objects transferred) ++done++\n", i);
+</pre></td></tr></table>
+<br><br>
+<a name="synch">
+<i>Synching data with a remote list</i><br>
+This is almost too easy.  And the other synch commands are ... wait.  I have this really strong feeling of deja vu.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 1) {
+   printf ("-001: Usage: synch [list] ([remote]) ++done++\n");
+   continue;
+}
+
+i = repos_synch (repository, arg1, args > 1 ? arg2 : NULL, NULL);
+printf ("+000: OK (%d objects transferred) ++done++\n", i);
+</pre></td></tr></table>
+<br><br>
+<a name="submit">
+<i>Submitting a document</i><br>
+Submitting a document first creates an object of the named list, then attaches the incoming document to it.  If the content
+is specified on the command line, the protocol allows for headers which can set arbitrary field values in the new object.
+
+TODO: implement.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 2) {
+   printf ("-001: Usage: submit [list] [file] ++done++\n");
+   continue;
+}
+
+i = repos_pull_all (repository, arg1, args > 1 ? arg2 : NULL, NULL);
+printf ("+000: OK (%d objects transferred) ++done++\n", i);
+</pre></td></tr></table>
+<br><br>
+<a name="store">
+<i>Storing a document</i><br>
+Storing a document is identical to submitting (in that it creates an object) but includes a filename for the incoming document.
+This makes it easy for the localdir storage adaptor to manage a local directory of files (such as images) by treating them as
+attachments.
+
+TODO: implement.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 3) {
+   printf ("-001: Usage: store [list] [fname] [file] ++done++\n");
+   continue;
+}
+
+i = repos_pull_all (repository, arg1, args > 1 ? arg2 : NULL, NULL);
+printf ("+000: OK (%d objects transferred) ++done++\n", i);
+</pre></td></tr></table>
+<br><br>
+<a name="attach">
+<i>Attaching a document</i><br>
+This is the plain-vanilla attachment command, which attaches a document to an already existing object.  This may entail the
+disposal of pre-existing attachments (perhaps with version control) or it may not.  This logic is all handled in the repmgr
+library, unless the content to be attached is supplied on the command line; in that case, the content handling is done here.
+Note that if the command-line option is used, the protocol allows for headers which can specify values for arbitrary fields.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 4) {
+   printf ("-001: Usage: attach [list] [key] [field] [file] ++done++\n");
+   continue;
+}
+
+file = fopen (arg4, "r");
+if (!file) {
+   printf ("-201: Unable to open file %s ++done++\n", arg4);
+   continue;
+}
+
+repos_attach (repository, arg1, arg2, arg3, NULL, file);
+fclose (file);
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+<br><br>
+<a name="retrieve">
+<i>Retrieving a document</i><br>
+Document retrieval is exactly what you'd think it is: it reads the content of an attachment.  If aimed at a normal field, it'll
+just retrieve its value.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   printf ("-000: No repository open. ++done++\n");
+   continue;
+}
+
+if (args &lt; 2) {
+   printf ("-001: Usage: retrieve [list] [key] [field] ([file]) ++done++\n");
+   continue;
+}
+
+mark = repos_get (repository, arg1, arg2);
+if (!mark) {
+   printf ("-300: No such object (%s) ++done++\n", arg2);
+   continue;
+}
+
+if (args > 2 &amp;&amp; strcmp (arg3, "-")) {
+   holder = xml_search (mark, "field", "id", arg3);
+   if (!holder) {
+      printf ("-300: Object has no attachment %s ++done++\n", arg3);
+      xml_free (mark);
+      continue;
+   }
+} else {
+   holder = xml_search (mark, "field", "type", "document");
+   if (!holder) {
+      printf ("-300: Object has no attachment ++done++\n");
+      xml_free (mark);
+      continue;
+   }
+}
+
+if (args &lt; 4 || !strcmp (arg4, "-")) {
+   file = stdout;
+   printf ("+300: OK, binary data follows.\n");
+   if (xml_attrvalnum (holder, "ver")) {
+      mark = xml_locf (holder, ".ver[%s]", xml_attrval (holder, "ver"));
+      if (mark) {
+         printf ("Content-length: %s\n", xml_attrval (mark, "size"));
+         printf ("Content-type: %s\n", xml_attrval (mark, "mimetype"));
+      } else {
+         printf ("Content-length: %s\n", xml_attrval (holder, "size"));
+         printf ("Content-type: %s\n", xml_attrval (holder, "mimetype"));
+      }
+      printf ("Content-version: %s\n", xml_attrval (holder, "ver"));
+   } else {
+      printf ("Content-length: %s\n", xml_attrval (holder, "size"));
+      printf ("Content-type: %s\n", xml_attrval (holder, "mimetype"));
+   }
+   printf ("\n");
+} else {
+   file = fopen (arg4, "w");
+   if (!file) {
+      printf ("-201: Unable to open file %s for writing ++done++\n", arg4);
+      continue;
+   }
+}
+
+repos_retrieve (repository, arg1, arg2, xml_attrval (holder, "id"), NULL, file);
+if (file == stdout) {
+   printf ("\n");
+} else {
+   fclose (file);
+}
+xml_free (mark);
+
+printf ("+000: OK ++done++\n");
+</pre></td></tr></table>
+<br><br>
+<a name="checkout">
+<i>Checking a document out for update</i><br>
+Checking a document out puts your user name on it.  Since I haven't yet implemented user authentication, this is just retrieval
+at the moment.
+
+TODO: implement.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   time (&amp;julian);
+   timeptr = localtime (&amp;julian);
+   printf ("+000: %04d-%02d-%02d %02d:%02d:%02d ++done++\n",
+           timeptr->tm_year + 1900, timeptr->tm_mon + 1, timeptr->tm_mday,
+           timeptr->tm_hour, timeptr->tm_min, timeptr->tm_sec);
+   continue;
+}
+
+repos_mark_time (repository, "now");
+printf ("+000: %s ++done++\n", xml_attrval (repository, "now"));
+</pre></td></tr></table>
+<br><br>
+<a name="getver">
+<i>Getting the version of a field or attachment</i><br>
+This is effectively a NOOP for now, as I don't have list values implemented (and thus no versions).
+
+TODO: implement.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>printf ("+000: NOOP ++done++\n");
+</pre></td></tr></table>
+<br><br>
+<a name="time">
+<i>Marking time</i><br>
+The 'time' command is used to get the server time of a repository -- that is, the local time of the server where the
+repository is located.  Note that since this command should be functional even when no repository is open (so that a
+server can be opened without a local repository and still return its local time), there is code to format a time
+even in the absence of an open repository.  However, if possible, the repos_mark_time function is called to retrieve
+the time.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!repository) {
+   time (&amp;julian);
+   timeptr = localtime (&amp;julian);
+   printf ("+000: %04d-%02d-%02d %02d:%02d:%02d ++done++\n",
+           timeptr->tm_year + 1900, timeptr->tm_mon + 1, timeptr->tm_mday,
+           timeptr->tm_hour, timeptr->tm_min, timeptr->tm_sec);
+   continue;
+}
+
+repos_mark_time (repository, "now");
+printf ("+000: %s ++done++\n", xml_attrval (repository, "now"));
+</pre></td></tr></table>
+
+And that concludes our command-line interpreter... for now!
+
+
+
+<center>
+[&nbsp;<a href="index.html">Previous: Repository manager</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="include.html">Next: #include file for interface (links to code sections, so it's a good place to start understanding the API)</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

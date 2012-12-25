@@ -1,0 +1,555 @@
+<html><head><title>XML templates: XML template library</title></head>
+<body>
+<h2>XML template library</h2>
+<center>
+[&nbsp;<a href="xml_template_h.html">Previous: XML template include file</a>&nbsp;]
+[&nbsp;<a href="xml_template_index.html">Top: XML template library</a>&nbsp;]
+[&nbsp;<a href="xml_template_index.html">Next: XML template library</a>&nbsp;]
+</center>
+
+<hr>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;string.h>
+#include &lt;time.h>
+#include &lt;math.h>
+#include "xmlapi.h"
+#include "xmlobj.h"
+</pre></td></tr></table>
+
+The XML template library works in two basic types of situation: "plain old" template application, which expresses
+a data record (i.e. XML element) using a template, and "list" templates, which expresses an entire list of records
+(i.e. the children of an XML element) using a list template.  The basic operation in a template application is the
+value lookup, which is given a value name and returns a value based on the record and its context.  In addition,
+there is conditional evaluation, and some specialized machinery for building and setting attributes in created
+elements.
+<p></p>
+A template is any arbitrary XML.  The resulting expression will be an XML element of the same type; by interpersing
+template elements in the template, you cause the record or list to be checked for values.  A very basic template
+will thus express a simple record:
+<blockquote><pre>
+&lt;html&gt;
+  &lt;table&gt;
+    &lt;tr&gt;&lt;td&gt;Value:&lt;/td&gt;&lt;td&gt;&lt;template:value name="myvalue"/&gt;&lt;/td&gt;&lt;/tr&gt;
+  &lt;/table&gt;
+&lt;/html&gt;
+</pre></blockquote>
+
+This template will create a little HTML snippet containing the value "myvalue" gotten from the record passed in.  Thus it
+expresses that record.  Value lookup is configurable; configuration is done using the config XML passed in.  This XML is
+of course pretty arbitrary (like all the rest of my XML) so it can be used for other things, notably the overall configuration
+of a managed site.  At any rate, values can be gotten from the record's attributes, from files in the file system, or from
+the record's children (in which case they should have "id" attributes to provide names).  This order isn't entirely random;
+it's the order I use for weaving a site from managed pieces and it makes sense right now.  The order, however, should at some
+point be considered configurable.
+<p></p>
+Lookups will later be much more interesting; they'll have the power to create composite values using multiple fields.  But right
+now I'm under some time pressure, so I'm going to put that off.  I've done versions of this under Perl, though, so I know how to
+use them and I've got a model to work from.  It'll happen pretty soon.
+<p></p>
+Conditionally expressed pieces are done using &lt;template:if&gt; and &lt;template:else&gt;.  After all the trouble I went through
+to redefine conditionals for the wftk, you'd think I'd avoid simple "if" and "else" but they were easy to code and they're natural
+to understand, so there ya go.
+<p></p>
+To build an element, you often need to set its attributes.  There's no way to do that with the template:value statement alone, so
+I've defined &lt;template:elem&gt; and &lt;template:attr&gt; to take care of it.
+<p></p>
+<i>(October 20, 2001)</i> Sometimes we want to embed template pieces into other XML structures (such as, say, nav bars) -- in this
+case, template_apply has to be able to cope with the situation that it's being called directly on a template component (template:value,
+template:if, or template:elem).  In this case, it passes control straight to the responsible handler instead of trying to step along
+its children.
+<p></p>
+Anyway, on with the show.  First we define our main callable routines: 
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * xml_template_apply_value (XML * context, XML * template, XML * record, char * valuecallback());
+static void  xml_template_apply_if    (XML * context, XML * into, XML * template, XML * record, char * valuecallback());
+static XML * xml_template_apply_elem  (XML * context, XML * template, XML * record, char * valuecallback());
+XMLAPI XML * xml_template_apply (XML * context, XML * template, XML * record, char * valuecallback()) {
+   XML * ret;
+   XML * piece;
+
+   if (!xml_is_element (template)) return (xml_copy (template));
+
+   if (xml_is (template, "template:value")) {
+      return xml_template_apply_value (context, template, record, valuecallback);
+   }
+
+   ret = xml_create (xml_name (template));
+
+   if (xml_is (template, "template:elem")) {
+      xml_append (ret, xml_template_apply_elem (context, template, record, valuecallback));
+      return ret;
+   }
+
+   if (xml_is (template, "template:if")) {
+      xml_template_apply_if (context, ret, template, record, valuecallback);
+      return ret;
+   }
+
+   xml_copyattrs (ret, template);
+
+   piece = xml_first (template);
+   while (piece) {
+      if (xml_is (piece, "template:value")) {
+         xml_append (ret, xml_template_apply_value (context, piece, record, valuecallback));
+      } else if (xml_is (piece, "template:if")) {
+         xml_template_apply_if (context, ret, piece, record, valuecallback);
+      } else if (xml_is (piece, "template:elem")) {
+         xml_append (ret, xml_template_apply_elem (context, piece, record, valuecallback));
+      } else {
+         xml_append (ret, xml_template_apply (context, piece, record, valuecallback));
+      }
+      piece = xml_next (piece);
+   }
+
+   return (ret);
+}
+XMLAPI XML * xml_template_apply_list (XML * context, XML * template, XML * list, XML * filter, char * valuecallback()) {
+   XML * cur = NULL;
+   XML * ret;
+   XML * piece;
+   XML * subpiece;
+   XML * between;
+   XML * entry;
+   int skip;
+
+   if (!xml_is_element (template)) return (xml_copy (template));
+
+   if (*xml_attrval (list, "cur")) {
+      cur = xml_loc (list, xml_attrval (list, "cur"));
+   }
+   if (!cur) cur = xml_firstelem (list);
+
+   ret = xml_create (xml_name (template));
+   xml_copyattrs (ret, template);
+   piece = xml_first (template);
+   while (piece) {
+      if (xml_is (piece, "template:list")) {
+         entry = xml_firstelem (list);
+         between = NULL;
+         while (entry) {
+            skip = 0;
+            if (*xml_attrval (list, "record") &amp;&amp; !xml_is (entry, xml_attrval (list, "record"))) skip = 1;
+            if (!skip) {
+               if (between) {
+                  subpiece = xml_first (between);
+                  while (subpiece) {
+                     xml_append (ret, xml_template_apply (context, subpiece, entry, valuecallback));
+                     subpiece = xml_next (subpiece);
+                  }
+               }
+
+               subpiece = xml_first (piece);
+               while (subpiece) {
+                  if (xml_is (subpiece, "template:between")) {
+                     between = subpiece;
+                  } else {
+                     xml_append (ret, xml_template_apply (context, subpiece, entry, valuecallback));
+                  }
+                  subpiece = xml_next (subpiece);
+               }
+            }
+
+            entry = xml_nextelem (entry);
+         }
+      } else if (xml_is (piece, "template:value")) {
+         xml_append (ret, xml_template_apply_value (context, piece, cur, valuecallback));
+      } else if (xml_is (piece, "template:if")) {
+         xml_template_apply_if (context, ret, piece, cur, valuecallback);
+      } else if (xml_is (piece, "template:elem")) {
+         xml_append (ret, xml_template_apply_elem (context, piece, cur, valuecallback));
+      } else {
+         xml_append (ret, xml_template_apply_list (context, piece, list, filter, valuecallback));
+      }
+      piece = xml_next (piece);
+   }
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+Next, let's look at conditionals.  This is template:if -- I spent a whole lot of time worrying about
+conditionals in wftk permissions, and for the time being I'm ignoring all that completely.  The
+template:if looks at its argument, and if it's blank, it scans for a template:else and template-applies
+that; otherwise it applies its non-template:else children.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static void xml_template_apply_lookup (XML * context, XML * template, const char * name, const char * value, XML * record, char * valuecallback());
+void xml_template_apply_if (XML * context, XML * into, XML * template, XML * record, char * valuecallback())
+{
+   XML * piece;
+   XML * subpiece;
+
+   xml_template_apply_lookup (context, template, xml_attrval (template, "name"), "value", record, valuecallback);
+
+   if (*xml_attrval (template, "value")) {
+      piece = xml_first (template);
+      while (piece) {
+         if (xml_is (piece, "template:else")) {
+            /* Skip */
+         } else if (xml_is (piece, "template:if")) {
+            xml_template_apply_if (context, into, piece, record, valuecallback);
+         } else if (xml_is (piece, "template:value")) {
+            xml_append (into, xml_template_apply_value (context, piece, record, valuecallback));
+         } else if (xml_is (piece, "template:elem")) {
+            xml_append (into, xml_template_apply_elem (context, piece, record, valuecallback));
+         } else {
+            xml_append (into, xml_template_apply (context, piece, record, valuecallback));
+         }
+         piece = xml_next (piece);
+      }
+   } else {
+      piece = xml_firstelem (template);
+      while (piece) {
+         if (xml_is (piece, "template:else")) {
+            piece = xml_first (piece);
+            while (piece) {
+               if (xml_is (piece, "template:if")) {
+                  xml_template_apply_if (context, into, piece, record, valuecallback);
+               } else if (xml_is (piece, "template:value")) {
+                  xml_append (into, xml_template_apply_value (context, piece, record, valuecallback));
+               } else if (xml_is (piece, "template:elem")) {
+                  xml_append (into, xml_template_apply_elem (context, piece, record, valuecallback));
+               } else {
+                  xml_append (into, xml_template_apply (context, piece, record, valuecallback));
+               }
+               piece = xml_next (piece);
+            }
+            break;
+         }
+         piece = xml_nextelem (piece);
+      }
+   }
+}
+</pre></td></tr></table>
+
+Let's put off the question of how to calculate values for a moment, and instead move on to value
+expression.  For value expression, we use the same calculator as above, but we also have some formatting
+tricks built in.  The resulting value replaces the template:value element; it is returned as a
+content element (which can be built rather handily now.)
+<p></p>
+<i>(Sep 4, 2002)</i>: OK, I'm getting halfway serious about using this now (finally!) and so I want
+more formatting possibilities.  Most important for me right now: link formatting and timestamp formatting.
+Each of these may take parameters, delimited by a colon.  Also I want the ability to stack up formats
+using semicolons.  (Which means that format parameters may <i>not</i> contain semicolons.)
+<p></p>
+<i>(Dec 23, 2002)</i>: Added html-quoted and date formats.
+<p></p>
+<i>(Dec 27, 2002)</i>: It occurred to me that it'd be convenient, if the value has no "name" attribute, to
+use the content of the value element instead.  This makes it very simple to build links to things, for instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * xml_template_apply_value (XML * context, XML * template, XML * record, char * valuecallback())
+{
+   const char * format;
+   XML * scratch = xml_create ("s");
+   const char * mark;
+   const char * mark2;
+   time_t t;
+   struct tm * tm;
+   int span;
+   int d, y, m, z, f, jd;
+   char buf[100];
+
+   if (*xml_attrval (template, "name")) {
+      xml_template_apply_lookup (context, template, xml_attrval (template, "name"), "value", record, valuecallback);
+   } else {
+      xml_set (template, "value", xml_stringcontenthtml (template));
+   }
+
+   format = xml_attrval (template, "format");
+   while (format &amp;&amp; *format) {
+      if (strchr ("; \t\r\n", *format)) { format++; continue; }
+      if (!strncmp (format, "notnull", 7)) {
+         if (!*xml_attrval (template, "value")) {
+            xml_free (scratch);
+            return (xml_createtext (""));
+         }
+      } else
+      if (!strncmp (format, "nonbreaking", 11)) {
+         xml_set (scratch, "s", "");
+         mark = xml_attrval (template, "value");
+         while (mark2 = strchr (mark, ' ')) {
+            xml_attrncat (scratch, "s", mark, mark2 - mark);
+            xml_attrcat (scratch, "s", "&amp;nbsp;");
+            mark = mark2; while (*mark == ' ') mark++;
+         }
+         xml_attrcat (scratch, "s", mark);
+         xml_set (template, "value", xml_attrval (scratch, "s"));
+      } else
+      if (!strncmp (format, "html-quoted", 11)) {
+         xml_set (scratch, "s", "");
+         mark = xml_attrval (template, "value");
+         while (strlen (mark) &amp;&amp; (span = strcspn (mark, "&lt;>&amp;")) < strlen(mark)) {
+            if (span) xml_attrncat (scratch, "s", mark, span);
+            mark += span;
+            switch (*mark) {
+              case '&lt;': xml_attrcat (scratch, "s", "&amp;lt;"); break;
+              case '>': xml_attrcat (scratch, "s", "&amp;gt;"); break;
+              case '&amp;': xml_attrcat (scratch, "s", "&amp;amp;"); break;
+            }
+            mark++;
+         }
+         if (strlen (mark)) xml_attrcat (scratch, "s", mark);
+         xml_set (template, "value", xml_attrval (scratch, "s"));
+      } else
+      if (!strncmp (format, "link", 4)) {
+         format += 4;
+         if (*format == ':') {
+            format++;
+            mark = strchr (format, ';');
+            if (mark) {
+               xml_attrncat (scratch, "f", format, mark - format);
+            }
+            xml_set_nodup (scratch, "f", xmlobj_format (record, NULL, mark ? xml_attrval (scratch, "f") : format));
+            xml_setf (template, "value", "&lt;a href=\"%s\">%s&lt;/a>", xml_attrval (scratch, "f"), xml_attrval (template, "value"));
+         }
+      } else
+      if (!strncmp (format, "timestamp", 9)) {
+         format += 9;
+         if (*format == ':') {
+            format++;
+            mark = format;
+         } else {
+            mark = "%c";
+         }
+         t = (time_t) atol (xml_attrval (template, "value"));
+         tm = localtime (&amp;t);
+         strftime (buf, sizeof(buf), mark, tm);
+         xml_set (template, "value", buf);
+      } else
+      if (!strncmp (format, "date", 4)) {
+         format += 4;
+         if (*format == ':') {
+            format++;
+            mark = format;
+         } else {
+            mark = "%m/%c/%Y";
+         }
+
+         strcpy (buf, xml_attrval (template, "value"));
+         /* The date may be in numeric yyyymmdd format or in ISO format yyyy-mm-dd*hh:mm:ss */
+         span = strspn (buf, "0123456789");
+         if (span > 4) { /* Numeric-only */
+            d = atoi (buf + 6);
+            buf[6] = '\0';
+            m = atoi (buf + 4);
+            buf[4] = '\0';
+            y = atoi (buf);
+         } else { /* Something like ISO format. */
+            y = atoi (buf);
+            mark = buf + span + 1;
+            m = atoi (mark);
+            mark = buf + strspn (mark, "0123456789");
+            d = atoi (mark);
+         }
+
+         while (m > 12) { m-=12; y++; }
+         while (m < 1)  { m+=12; y--; }
+
+         xml_set (scratch, "s", "");
+         while (mark2 = strchr (mark, '%')) {
+            xml_attrncat (scratch, "s", mark, mark2 - mark);
+            mark = mark2 + 1;
+            switch (*mark) {
+               case '%': xml_attrcat (scratch, "s", "%"); break;
+               case 'b': 
+                 switch (m) {
+                    case 1:  xml_attrcat (scratch, "s", "Jan"); break;
+                    case 2:  xml_attrcat (scratch, "s", "Feb"); break;
+                    case 3:  xml_attrcat (scratch, "s", "Mar"); break;
+                    case 4:  xml_attrcat (scratch, "s", "Apr"); break;
+                    case 5:  xml_attrcat (scratch, "s", "May"); break;
+                    case 6:  xml_attrcat (scratch, "s", "Jun"); break;
+                    case 7:  xml_attrcat (scratch, "s", "Jul"); break;
+                    case 8:  xml_attrcat (scratch, "s", "Aug"); break;
+                    case 9:  xml_attrcat (scratch, "s", "Sep"); break;
+                    case 10: xml_attrcat (scratch, "s", "Oct"); break;
+                    case 11: xml_attrcat (scratch, "s", "Nov"); break;
+                    case 12: xml_attrcat (scratch, "s", "Dec"); break;
+                 }
+                 break;
+               case 'B': 
+                 switch (m) {
+                    case 1:  xml_attrcat (scratch, "s", "January"); break;
+                    case 2:  xml_attrcat (scratch, "s", "February"); break;
+                    case 3:  xml_attrcat (scratch, "s", "March"); break;
+                    case 4:  xml_attrcat (scratch, "s", "April"); break;
+                    case 5:  xml_attrcat (scratch, "s", "May"); break;
+                    case 6:  xml_attrcat (scratch, "s", "June"); break;
+                    case 7:  xml_attrcat (scratch, "s", "July"); break;
+                    case 8:  xml_attrcat (scratch, "s", "August"); break;
+                    case 9:  xml_attrcat (scratch, "s", "September"); break;
+                    case 10: xml_attrcat (scratch, "s", "October"); break;
+                    case 11: xml_attrcat (scratch, "s", "November"); break;
+                    case 12: xml_attrcat (scratch, "s", "December"); break;
+                 }
+                 break;
+               case 'd':
+                 sprintf (buf, "%d", d);
+                 xml_attrcat (scratch, "s", buf);
+                 break;
+               case 'm':
+                 sprintf (buf, "%d", m);
+                 xml_attrcat (scratch, "s", buf);
+                 break;
+               case 'y':
+               case 'Y':
+                 sprintf (buf, "%d", y);
+                 xml_attrcat (scratch, "s", buf);
+                 break;
+            }
+            mark++;
+         }
+         xml_attrcat (scratch, "s", mark);
+         xml_set (template, "value", xml_attrval (scratch, "s"));
+      }
+      format = strchr (format, ';');
+   }
+
+   xml_free (scratch);
+   return (xml_createtext (xml_attrval (template, "value")));
+}
+</pre></td></tr></table>
+
+Now let's wrap up the insertion of elements whole cloth.  This is an improvement over the Perl code
+I've been hacking around on for the last couple of years (most of the rest of this is a simplification
+of that code instead.)  Note that embedded template:attr elements may be used to set the attributes
+of the inserted element, while all other elements are used as content.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * xml_template_apply_elem (XML * context, XML * template, XML * record, char * valuecallback())
+{
+   XML * ret;
+   XML * attrval;
+   XML * piece;
+   int whitespace;
+
+   ret = xml_create (*xml_attrval (template, "elem") ? xml_attrval (template, "elem") : "elem");
+
+   whitespace = strcmp (xml_attrval (template, "mode"), "nowhitespace");
+   piece = whitespace ? xml_first (template) : xml_firstelem (template);
+   while (piece) {
+      if (xml_is (piece, "template:attr")) {
+         attrval = xml_template_apply (context, piece, record, valuecallback);
+         if (attrval) {
+            xml_set_nodup (ret, *xml_attrval (piece, "attr") ? xml_attrval (piece, "attr") : "id",
+                                xml_stringcontenthtml (attrval));
+            xml_free (attrval);
+         }
+      } else if (xml_is (piece, "template:value")) {
+         xml_append (ret, xml_template_apply_value (context, piece, record, valuecallback));
+      } else if (xml_is (piece, "template:if")) {
+         xml_template_apply_if (context, ret, piece, record, valuecallback);
+      } else if (xml_is (piece, "template:elem")) {
+         xml_append (ret, xml_template_apply_elem (context, piece, record, valuecallback));
+      } else {
+         xml_append (ret, xml_template_apply (context, piece, record, valuecallback));
+      }
+      piece = whitespace ? xml_next (piece) : xml_nextelem (piece);
+   }
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+Okay!  Let's polish off our value lookup, and we're ready to go!  The function takes the record
+(context) it's working with, a name or pseudoname of a field, and a template and attribute name the
+result should be written to.
+<p></p>
+Special values are prefixed with '!', and include !content (the content of the record), !record (the
+entire XML value of the record), and !now (the local time).  There will be more.
+<p></p>
+Besides special values, we can also specify a series of fields to look at until one of them is non-blank;
+to do this, separate them with '|' pipe symbols.  So "selectedimage|image" looks first at the field
+"selectedimage" and uses its value if it's there.  Otherwise, it uses the "image" field.
+<p></p>
+Fields are filled by checking attributes of the record first; if they're not there, then the content
+elements of the record are checked for "id" or "name" attributes matching the name sought.
+<p></p>
+Eventually we're going to want to do more with this, by providing (for instance) contextual information
+in an object hierarchy, allowing the use of fields from the next and previous objects in a list, fields
+from the parent object, and so forth.  That will all come later, though.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void xml_template_apply_lookup (XML * context, XML * template, const char * name, const char * value, XML * record, char * valuecallback())
+{
+   XML * elem;
+   char namebuf[256];
+   int len;
+   char filename[256];
+   char * mark;
+   char t[64];
+   time_t tm;
+   FILE * file;
+
+   if (!template) return;
+
+   xml_set (template, value, "");
+
+   while (strchr (name, '|')) {
+      len = strchr (name, '|') - name;
+      len = len > sizeof (namebuf) - 1 ? sizeof (namebuf) - 1 : len;
+      memset (namebuf, '\0', sizeof (namebuf));
+      strncpy (namebuf, name, len);
+      xml_template_apply_lookup (context, template, namebuf, value, record, valuecallback);
+      if (*xml_attrval (template, value)) return;
+      name = strchr (name, '|') + 1;
+   }
+
+   if (*name == '!') {
+      /* Special values. */
+             if (!strcmp (name + 1, "content")) {
+         xml_set_nodup (template, value, xml_stringcontenthtml (record));
+      } else if (!strcmp (name + 1, "record")) {
+         xml_set_nodup (template, value, xml_stringhtml (record));
+      } else if (!strcmp (name + 1, "now")) {
+         /* Julian second dating is herewith standard.  It can be formatted with the "timestamp" format. */
+         sprintf (t, "%ld", time(&amp;tm));
+         xml_set (template, value, t);
+      }
+   } else {
+      /* Check record attribute. */
+      if (*xml_attrval (record, name)) {
+         xml_set (template, value, xml_attrval (record, name));
+         return;
+      }
+
+      /* And here we call our value callback. */
+      if (valuecallback) {
+         xml_set_nodup (template, value, (valuecallback) (context, record, name));
+      } else {
+         if (strchr (name, '[')) {
+            xml_set_nodup (template, value, xmlobj_format (record, NULL, name));
+         } else {
+            xml_set_nodup (template, value, xmlobj_get (record, NULL, name));
+         }
+      }
+   }
+}
+</pre></td></tr></table>
+
+And that's pretty much it.  Not much to it, is there?  And yet it's one of the most powerful applications of XML I can imagine.
+
+
+
+
+<center>
+[&nbsp;<a href="xml_template_h.html">Previous: XML template include file</a>&nbsp;]
+[&nbsp;<a href="xml_template_index.html">Top: XML template library</a>&nbsp;]
+[&nbsp;<a href="xml_template_index.html">Next: XML template library</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,52 @@
+<html><head><title>AOLserver/wftk e-commerce app: Load contents of a file with optional merchant override</title></head>
+<body>
+<h2>Load contents of a file with optional merchant override</h2>
+<center>
+[&nbsp;<a href="wftk_ecomm_format.html">Previous: wftk_ecomm_format: format text from ns_set inputs</a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm_submit.html">Next: wftk_ecomm_submit: processing an order</a>&nbsp;]
+</center>
+
+<hr>
+There are several stock pages used by the e-commerce system, any of which can be overridden in the
+merchant's repository definition directory.  This function loads such files.
+
+<p></p>
+A better way to see this from a purely wftk point of view would be to define a format list which
+would check the current repository for a particular format (=attachment in a list) and then, if
+it weren't found, to default to some other storage location.  This would be a rather useful
+overall mechanism, so TODO: implement it.  A "fallback storage list" or something, at the repmgr level
+(not the adaptor level).
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc wftk_ecomm_loadfile {file merchant} {
+   if [file exists [nsv_get wftk_ecomm basedir]/$merchant/$file.html] {
+      set file [nsv_get wftk_ecomm basedir]/$merchant/$file.html
+   } else {
+      set file [nsv_get wftk_ecomm basedir]/$file.html
+   }
+   if ![file exists $file] { return "" }
+
+   set in [open $file r]
+   set content [read $in]
+   close $in
+
+   return $content
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_ecomm_format.html">Previous: wftk_ecomm_format: format text from ns_set inputs</a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm_submit.html">Next: wftk_ecomm_submit: processing an order</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,276 @@
+<html><head><title>xmlapi: xml_read: Using expat to parse XML files into memory</title></head>
+<body>
+<h2>xml_read: Using expat to parse XML files into memory</h2>
+<center>
+[&nbsp;<a href="xml_is.html">Previous: xml_is: Checking an object's name</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="index.html">Next: index</a>&nbsp;]
+</center>
+
+<hr>
+The basic structure of the parser is identical to any expat application.  We create the
+parser and pass in a pointer to the XML we're building up as the user data.  We register
+the handlers for elements and for plain text, and we're not interested in anything else.
+<p></p>
+Then we simply throw pieces of the input stream at the parser until we're through with it.
+The handlers do all the work of creating and inserting XML pieces into the growing structure.
+If we encounter an error, we free all the stuff we've already done; otherwise we return the
+structure at the conclusion of the parse.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="xml_read.html#startElement">Handling elements: startElement</a></i>
+<i>See <a href="xml_read.html#endElement">Handling elements: endElement</a></i>
+<i>See <a href="xml_read.html#charData">Handling non-element data: charData</a></i>
+
+XMLAPI XML * xml_read (FILE * file)
+{
+   XML_Parser parser;
+   char buf[BUFSIZ];
+   int done;
+   XML * ret;
+   size_t len;
+
+   ret = NULL;
+   parser = XML_ParserCreate(NULL);
+
+   XML_SetUserData (parser, (void *) &amp;ret);
+
+   XML_SetElementHandler(parser, startElement, endElement);
+   XML_SetCharacterDataHandler(parser, charData);
+
+   done = 0;
+
+   do {
+      len = fread(buf, 1, sizeof(buf), file);
+      done = len &lt; sizeof(buf);
+      if (!XML_Parse(parser, buf, len, done)) {
+         xml_free (ret);
+         XML_ParserFree(parser);
+         return NULL;
+      }
+   } while (!done);
+   XML_ParserFree(parser);
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+The plain-vanilla <code>xml_read</code> function was my first expat application, so I wasn't too sure how to
+handle error cases.  Originally it wrote an error function to <code>stderr</code>, but that's worse than useless
+in most situations.  So now the original <code>xml_read</code> function simply throws up its hands and returns a
+NULL pointer, but if you need error feedback, use <code>xml_read_error</code>, which in case of error returns something
+of the form:
+<pre>
+&lt;xml-error message="This is the message" code="400" line="19"/&gt;
+</pre>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xml_read_error (FILE * file)
+{
+   XML_Parser parser;
+   char buf[BUFSIZ];
+   int done;
+   XML * ret;
+   size_t len;
+
+   ret = NULL;
+   parser = XML_ParserCreate(NULL);
+
+   XML_SetUserData (parser, (void *) &amp;ret);
+
+   XML_SetElementHandler(parser, startElement, endElement);
+   XML_SetCharacterDataHandler(parser, charData);
+
+   done = 0;
+
+   do {
+      len = fread(buf, 1, sizeof(buf), file);
+      done = len &lt; sizeof(buf);
+      if (!XML_Parse(parser, buf, len, done)) {
+         xml_free (ret);
+         ret = xml_create ("xml-error");
+         xml_setnum (ret, "code", XML_GetErrorCode(parser));
+         xml_set    (ret, "message", XML_ErrorString(XML_GetErrorCode(parser)));
+         xml_setnum (ret, "line", XML_GetCurrentLineNumber(parser));
+         done = 1;
+      }
+   } while (!done);
+   XML_ParserFree(parser);
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+Finally, to complete the reading portion of the API, we define <code>xml_parse</code>, which reads an XML structure from a string
+instead of from a file stream.  It does the same error handling as <code>xml_read_error</code>, because that's really probably the
+way to handle errors.  I suppose if you might or might not be reading actual string encodings of <code>xml-error</code> elements,
+you might find this inconvenient.  Try looking at the string before you parse it, I suppose.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xml_parse (const char * buf)
+{
+   XML_Parser parser;
+   int done;
+   XML * ret;
+   size_t len;
+
+   ret = NULL;
+   parser = XML_ParserCreate(NULL);
+
+   XML_SetUserData (parser, (void *) &amp;ret);
+
+   XML_SetElementHandler(parser, startElement, endElement);
+   XML_SetCharacterDataHandler(parser, charData);
+
+   done = 0;
+
+   len = strlen (buf);
+   if (!XML_Parse(parser, buf, len, done)) {
+      xml_free (ret);
+      ret = xml_create ("xml-error");
+      xml_setnum (ret, "code", XML_GetErrorCode(parser));
+      xml_set    (ret, "message", XML_ErrorString(XML_GetErrorCode(parser)));
+      xml_setnum (ret, "line", XML_GetCurrentLineNumber(parser));
+   }
+   XML_ParserFree(parser);
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+<i>July 18, 2001</i>: OK, <i>this</i> completes the reading portion (I hope).  I'm writing this
+portion in order to support things like reading XML from database large objects, where we may
+have a perfectly good function to retrieve a buffer's worth of data, without it necessarily
+being represented as a stream.  It takes, therefore, a function of the same type profile as
+<code>fread</code> does, except that the function takes a void * as its data.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xml_parse_general (void * data, size_t (*get_buf) (char * buf, size_t chunk, size_t num, void *data))
+{
+   XML_Parser parser;
+   char buf[BUFSIZ];
+   int done;
+   XML * ret;
+   size_t len;
+
+   ret = NULL;
+   parser = XML_ParserCreate(NULL);
+
+   XML_SetUserData (parser, (void *) &amp;ret);
+
+   XML_SetElementHandler(parser, startElement, endElement);
+   XML_SetCharacterDataHandler(parser, charData);
+
+   done = 0;
+
+   do {
+      len = (*get_buf)(buf, 1, sizeof(buf), data);
+      done = len &lt; sizeof(buf)-1; /* Worst that can happen: we call get_buf for an empty buffer. */
+      if (len > strlen (buf)) len = strlen (buf);
+      if (len == 0) break;
+      if (!XML_Parse(parser, buf, len, done)) {
+         if (ret) xml_free (ret);
+         ret = xml_create ("xml-error");
+         xml_setnum (ret, "code", XML_GetErrorCode(parser));
+         xml_set    (ret, "message", XML_ErrorString(XML_GetErrorCode(parser)));
+         xml_setnum (ret, "line", XML_GetCurrentLineNumber(parser));
+         done = 1;
+      }
+   } while (!done);
+   XML_ParserFree(parser);
+
+   if (!ret) {
+      ret = xml_create ("xml-error");
+      xml_setnum (ret, "code", 3);
+      xml_set    (ret, "message", "no data received");
+      xml_setnum (ret, "line", 0);
+   }
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+<br><br>
+<a name="startElement">
+<i>Handling elements: startElement</i><br>
+The <code>startElement</code> handler, then, does a great deal of the work of creating
+XML data structures.  The <code>userData</code> parameter points to the immediate parent
+of the node being encountered.  When we open a new node, we allocate the data structure
+and copy attributes, append the new node to its parent, then we set userData to point to the
+new node -- when the element closes, we move userData up the chain back to the parent.
+<p></p>
+In the case of an empty element, expat fortunately calls first the open handler, then the
+close handler, so whether we have an explicitly empty element or not doesn't matter.
+<p></p>
+It's astounding how much simpler this <code>startElement</code> is than the corresponding
+<a href="http://www.vivtek.com/xmltools/startElement.html">handler in xmltools</a>!
+<p></p>
+An interesting note: originally I had the call to <code>xml_set</code> below incrementing
+the <code>atts</code> pointer twice, like <code>**atts++, *atts++</code>.  This worked fine on
+Solaris with gcc, but oddly, when I took it to Windows with MSVC, it appeared not to increment
+until after the call.  Must be a slightly overzealous "optimization"...  At any rate, the new code
+works fine.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void startElement(void *userData, const char *name, const char **atts)
+{
+   XML ** parent;
+   XML * element;
+
+   element = xml_create (name);
+   while (*atts) {
+      xml_set(element, atts[0], atts[1]);
+      atts += 2;
+   }
+
+   parent = (XML **) userData;
+   if (*parent != NULL) xml_append (*parent, element);
+   *parent = element;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="endElement">
+<i>Handling elements: endElement</i><br>
+At the close of the element, we just jump up the tree to the parent.  If there is no
+parent, then we stay put.  Thus if there are for some reason two root elements in the input,
+the structure won't reflect the input, but the first root element won't get stranded, either.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void endElement(void *userData, const char *name)
+{
+   XML ** element;
+
+   element = (XML **) userData;
+   if ((*element)->parent != NULL) *element = (*element)->parent;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="charData">
+<i>Handling non-element data: charData</i><br>
+Character data is even easier.  We just create a new text structure and append it onto the
+parent.  End of story.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void charData (void *userData, const XML_Char *s, int len) {
+   XML ** parent;
+
+   parent = (XML **) userData;
+   xml_append (*parent, xml_createtextlen ((char *) s, len));
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_is.html">Previous: xml_is: Checking an object's name</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="index.html">Next: index</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

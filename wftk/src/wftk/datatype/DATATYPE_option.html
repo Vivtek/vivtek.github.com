@@ -1,0 +1,189 @@
+<html><head><title>DATATYPE adaptor: option</title></head>
+<body>
+<h2>DATATYPE adaptor: option</h2>
+<hr>
+<p></p>
+This is the DATATYPE adaptor to format option lists.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include &lt;string.h>
+#include "../wftk.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "html",
+   "htmlblank"
+};
+
+XML * DATATYPE_option_init     (WFTK_ADAPTOR * ad, va_list args);
+XML * DATATYPE_option_free     (WFTK_ADAPTOR * ad, va_list args);
+XML * DATATYPE_option_info     (WFTK_ADAPTOR * ad, va_list args);
+XML * DATATYPE_option_html     (WFTK_ADAPTOR * ad, va_list args);
+XML * DATATYPE_option_htmlblank(WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   DATATYPE_option_init,
+   DATATYPE_option_free,
+   DATATYPE_option_info,
+   DATATYPE_option_html,
+   DATATYPE_option_htmlblank
+};
+
+static struct adaptor_info _DATATYPE_option_info =
+{
+   5,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct adaptor_info * DATATYPE_option_get_info ()
+{
+   return &amp; _DATATYPE_option_info;
+}
+</pre></td></tr></table>
+
+Thus concludes the communication with the config module.  In most modules, we'd do
+some kind of initialization, but the option datatype doesn't need any.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * DATATYPE_option_init (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * DATATYPE_option_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * DATATYPE_option_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "datatype");
+   xml_set (info, "name", "option");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+<p></p>
+So.  At least for now, all a datatype adaptor does is format input fields.  Later we might end up with
+some other stuff, but this is enough for now.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * DATATYPE_option_html (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * datasheet = (XML *) 0;
+   XML * data = (XML *) 0;
+   XML * field;
+   XML * option;
+   XML * mark;
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No datasheet supplied.");
+      return (XML *) 0;
+   }
+   data = va_arg (args, XML *);
+   if (!data) {
+      xml_set (ad->parms, "error", "No value supplied.");
+      return (XML *) 0;
+   }
+
+   field = xml_create ("select");
+   xml_set (field, "name", xml_attrval (data, "id"));
+   if (*xml_attrval (data, "size")) {
+      xml_set (field, "size", xml_attrval (data, "size"));
+   }
+   mark = xml_firstelem (data);
+   while (mark) {
+      option = xml_copy (mark);
+      xml_append (field, option);
+      if (!strcmp (xml_attrval (option, "value"), xml_attrval (data, "value"))) {
+         xml_set (option, "selected", "yes");
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   return (field);
+}
+</pre></td></tr></table>
+
+OK.  Blank HTML is very similar but with no value.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * DATATYPE_option_htmlblank  (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * datasheet = (XML *) 0;
+   XML * data = (XML *) 0;
+   XML * field;
+   XML * option;
+   XML * mark;
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No datasheet supplied.");
+      return (XML *) 0;
+   }
+   data = va_arg (args, XML *);
+   if (!data) {
+      xml_set (ad->parms, "error", "No value supplied.");
+      return (XML *) 0;
+   }
+
+   field = xml_create ("select");
+   xml_set (field, "name", xml_attrval (data, "id"));
+   if (*xml_attrval (data, "size")) {
+      xml_set (field, "size", xml_attrval (data, "size"));
+   }
+   mark = xml_firstelem (data);
+   while (mark) {
+      option = xml_copy (mark);
+      xml_append (field, option);
+      mark = xml_nextelem (mark);
+   }
+
+   return (field);
+}
+</pre></td></tr></table>
+
+Easy!
+<p></p>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Usage scenarios -- E-commerce purchase</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Usage scenarios: E-commerce purchase</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/usage_scenarios.html>usage&nbsp;scenarios</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+As I see it, this workflow engine will be an excellent platform on which to build any kind
+of organizationally oriented system.  A case in point is a typical retail online commerce
+scenario, which runs like this:<ol>
+<li>Customer submits order (the process of building the order, i.e. the shopping cart, is 
+    separate from the order process itself.)
+<li>Merchant processes payment.  Notifies customer when payment clears, and places order(s)
+    with supplier or suppliers of the items in the customer's order.
+<li>Suppliers fulfill line items from orders.  Each shipment causes notification of the
+    customer with tracking information.
+<li>Upon order completion, the merchant is notified and the customer is notified that the
+    order is complete.
+</ul>
+<i>(2/21/00) <a href=../process_defn/ecomm_defn.html>XML process definition here.</a></i>
+<p>
+
+This is a pretty straightforward workflow, but it differs from previous scenarios in that
+there are multiple line items for the suppliers to fill.  For instance, consider a merchant
+who sells T-shirts made by one supplier and mugs made by a different supplier.  A customer
+comes along to the storefront and orders three T-shirts and a mug.  Notifications go out
+to both suppliers.  When the goods are ready to ship, each supplier goes to a shipping
+update screen and submits tracking information.  The T-shirt supplier could even ship the
+T-shirts separately, if two are in stock and the third one on backorder, resulting in three
+notifications.  (The online bookstores do the same thing, if you've ever placed a large
+book order combining items in stock and on order.)
+<p>
+My point with this scenario is that iteration is necessary, in other words, the notion that
+a particular phase of the process isn't complete until all line items are accounted for.
+This may require multiple passes through some tasks.  Another way of looking at this is that
+the (partial) fulfillment of a task (supply three T-shirts, and I've only shipped two) may
+result in the creation of a new task to represent the completion of the original (supply that
+last shirt and you're off the hook).  A <i>decision</i> is made when the shirt supplier
+submits the first time as to whether the recorded action fulfills the task or not.
+<p>
+As I was writing this one up, I was reading about Petri nets and their application to workflow
+systems.  The author maintained that representation of workflow in terms of Petri nets
+allowed a great deal of analysis to be performed automatically, and so I drew up a Petri
+net to represent this process.  It really didn't convey any more information than the
+RAD, though.  I think that if we want to get into analysis at some later date, then whatever
+description we use can just as well be transformed into a Petri net and then analyzed.
+<p>
+<i>Summary:</i><br>
+<ul>
+<li>Iteration is necessary.
+<li>Partial fulfillment of tasks seems a reasonable option.
+</ul>
+Note that partial fulfillment of tasks will result in a list of enactments which reflects
+exactly what happened: two shirts supplied on 12/12, one more on 12/15.  This part was one
+which I had a great deal of trouble with in my own ecomm implementation, and this is one
+of the reasons I will probably rewrite the whole system on top of the wftk.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

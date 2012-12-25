@@ -1,0 +1,123 @@
+<html><head><title>wftk::Repository: OO holder for wftk repositories</title></head>
+<body>
+<h2>wftk::Repository: OO holder for wftk repositories</h2>
+<center>
+[ <a href="index.html">main wftk module</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+The wftk::Repository module fronts for repository implementations.  To do this, it
+figures out from its instantiation routine which implementation is actually being
+requested, then it imports the correct module.  Note: I sure hope this will work.
+<p></p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#######################################################################################################
+#
+# The "use wftk" module is a Perl wrapper for the wftk, at theaters near you under:
+# http://www.vivtek.com/wftk/doc/code/perl
+#
+# Copyright (c) 2003, Vivtek, and released under the GPL, as follows:
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#######################################################################################################
+
+<i>See <a href="repository.html#code">Actual code</a></i>
+
+=head1 NAME
+
+Workflow::wftk::Repository - The Perl front for a workflow repository.
+
+=head1 SYNOPSIS
+
+  use Workflow::wftk::Repository;
+
+Each repository is in reality implemented by a submodule; the
+default implementation is "Local", which wraps the wftk C code and
+runs in a local directory (although data may, of course, be stored
+anywhere -- the local directory merely contains the definitions
+used by the repository.)
+
+=head1 DESCRIPTION
+
+This will probably usually be called as
+
+  use Workflow::wftk;
+
+  $repos = wftk->Repository();  # Creates a default local repository
+                                    # with definitions in the cwd.
+  $repos = wftk->Repository('/other/dir');
+                                    # Creates a local repository in another
+                                    # directory.
+  $repos = wftk->Repository(SOAP->'server.name.com');
+                                    # Creates a repository which forwards
+                                    # all requests to a remote SOAP server.
+
+
+=head1 AUTHOR
+
+Michael Roberts, wftk@vivtek.com
+
+=cut
+</pre></td></tr></table>
+
+<br><br>
+<a name="code">
+<i>Actual code</i><br>
+
+OK, the boilerplate first:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>package Workflow::wftk::Repository;
+
+require 5.6.0;
+use strict;
+use warnings;
+
+our @ISA = qw();
+
+our $VERSION = '0.01';
+</pre></td></tr></table>
+
+Next, we define ... whatever we want, actually.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub test {
+   print "Whaddaya know...\n";
+}
+</pre></td></tr></table>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>1;
+__END__
+</pre></td></tr></table>
+
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

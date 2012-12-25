@@ -1,0 +1,45 @@
+<html><head><title>Incoming mail handler for repmgr</title></head>
+<body>
+<h2>Incoming mail handler for repmgr</h2>
+<hr>
+One of the basic building blocks of most halfway interesting data-management systems is the ability to process email.  This can
+take one of two forms: either the mail should simply be regarded as data, or it may actually contain instructions.  Either way,
+we require a system component which can accept mail and do something with it.  That component is the <i>mail handler</i>.  It
+is important to note that the mail handler is concerned with <i>incoming</i> mail.  Outgoing mail is created by a notification
+adaptor.  Quite a different beast, as a mail handler is actually a client application and thus calls the wftk instead of being
+called by it.
+<p></p>
+Ideally, there would be two different mail handlers, one for the repository manager and one for the bare wftk core.  However,
+as I'm not actually <i>using</i> wftk-bare, I'm not terribly motivated to work with it.  So I'm concentrating on the repmgr first.
+<p></p>
+Actually handling mail is really not a terribly onerous task.  Most of the work consists of parsing the MIME format and
+deciding which bits of it are useful text.  That's done in the <a href="mail_reader.html">mail reader</a>, which is called
+by the handler application.
+<p></p>
+Once the mail is parsed, we simply add it as an object.  The add operation may well involve indexing into a database, or the
+execution of arbitrary workflow code.  From this vantage, we neither know nor care.  Note that this may mean a scaling
+vulnerability -- if considerable work is done to add the object, the mail handler may not be the place to do that work, as a mail
+handler process is created for each and every mail received.  If you experience scaling difficulties with incoming mail, one tuning
+suggestion might be to drop mail into a standard mbox and use the LIST_mbox adaptor to read it in a periodic batch.
+<p></p>
+Here are the command-line flags the mail handler will look at:
+<table>
+<tr><td><code>-r</code></td><td>Specifies location of repository definition.</td></tr>
+<tr><td><code>-l</code></td><td>Names the list into which this mail should be added.</td></tr>
+</table>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre></pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,80 @@
+<html><head><title>xmltools</title></head>
+<body>
+<h2>xmltools: command-line tools for XML</h2>
+<center>
+[ <a href="xmltools.zip">download</a> ] [ <a href="xmltools_xml.txt">xml source</a> ]
+[ <a href="http://www.vivtek.com/xmltools/discuss.pl">discussion</a> ]
+</center>
+<hr>
+This is a set of command-line tools for handling XML.  Each of the tools performs a particular
+function to edit XML files, and they all work with locators, which are effectively URLs which
+identify specific pieces of an XML file.  A locator consists of a series of element specifications
+separated by periods; each element specification either has a round-parenthetical numeric
+location or a square-bracketed ID location.  So, for instance, if we have some XML of the form:
+<p></p>
+&lt;thingy><br>
+&nbsp;&nbsp;&nbsp;&lt;item id="first"/><br>
+&nbsp;&nbsp;&nbsp;&lt;item id="second"/><br>
+&lt;/thingy><br>
+<p></p>
+Then the locators <code>thingy.item(1)</code> and <code>thingy.item[second]</code> would each
+refer to the second item.  If the items hadn't been empty, we could build a locator such as
+<code>thingy.item(1).stuff</code>, which would refer to the first "stuff" elements in the
+second item.  (The default location is <code>(0)</code>.)
+
+<p></p>
+So the following program embodies four actions: snip, replace, set, and insert.  "Snip" simply
+returns the contents of the location named.  "Replace" replaces the location with whatever's
+on stdin (no guarantee of well-formedness!)  "Set" is used to set an attribute on the named
+elements, and "insert" inserts the content of stdin either before or after the named element,
+or before or after the named element's content.
+
+<p></p>
+A word of apology: although the four actions end up in four different executables, I have all
+four being generated from the same source code, with <code>#define</code>s to determine which
+of the four actions is to be taken.  This makes for somewhat confusing code, but I hope that
+the literate programming presentation will make up for it.
+
+<p></p>
+The program uses James Clark's <a href="/expat.html">expat XML parser</a>, which I highly
+recommend.  It is documented in these pages in a <a href="/litprog.html">literate style</a>,
+which I highly recommend.  The actual tool I'm using to generate the documentation pages is
+my tool <a href="/lpml/index.html">LPML</a>, which I can only recommend if you're really brave.
+It's working for me, but then I'm writing it myself.
+
+<p></p>
+The <i>motivation</i> for the development is the <a href="/wftk.html">open-source workflow
+toolkit</a>, which relies heavily on XML and expat.  These tools will be used in the
+datasheet manipulation portion of the whole system.
+
+<p></p>
+Here's how we do all this stuff:
+<ul>
+<li> <a href="main.html">Overview of the program and main()</a>
+<ul>
+<li> <a href="main.html#print_usage">Print usage description</a>
+</ul>
+<li> <a href="data_structures.html">Data structures: frames and tags</a>
+<ul>
+<li> <a href="data_structures.html#freeing">Freeing frames and the stack</a>
+</ul>
+<li> <a href="globals.html">Global variables (state)</a>
+<ul>
+<li> <a href="globals.html#init">Reading the command line</a>
+</ul>
+<li> <a href="print_stack.html">Printing the current stack as a locator</a>
+<li> <a href="startElement.html">Handling elements: startElement</a>
+<li> <a href="endElement.html">Handling elements: endElement</a>
+<li> <a href="charData.html">Handling non-element data: charData</a>
+</ul>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

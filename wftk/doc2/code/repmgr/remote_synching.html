@@ -1,0 +1,91 @@
+<html><head><title>Repository manager: Synching data with remote data sources</title></head>
+<body>
+<h2>Synching data with remote data sources</h2>
+<center>
+[&nbsp;<a href="remote_repository.html">Previous: Repository queries</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_attachments.html">Next: Working with attachments</a>&nbsp;]
+</center>
+
+<hr>
+I'm not 100% sure that remote synching really makes sense, but the idea is to provide the whole API, so here goes.  (Well, except that
+it's not implemented, but you knew what I meant anyway.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   FN_NAME(repos_pull)     (XML * repository, const char *list_id, const char *remote_id, XML * changelist)
+{
+   return 0;
+}
+WFTK_EXPORT int   FN_NAME(repos_pull_all)     (XML * repository, const char *list_id, const char *remote_id, XML * changelist)
+{
+   return 0;
+}
+WFTK_EXPORT int   FN_NAME(repos_push)     (XML * repository, const char *list_id, const char *remote_id)
+{
+   return 0;
+}
+WFTK_EXPORT int   FN_NAME(repos_push_all)     (XML * repository, const char *list_id, const char *remote_id)
+{
+   return 0;
+}
+WFTK_EXPORT int   FN_NAME(repos_synch)    (XML * repository, const char *list_id, const char *remote_id, XML * changelist)
+{
+   return 0;
+}
+</pre></td></tr></table>
+
+Finally, the repos_mark_time function is used to mark the local time of a repository.  It acts upon the repository XML structure
+itself, for convenience.  Note that it's clever enough to deal with remote repositories.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   FN_NAME(repos_mark_time) (XML * repository, const char *attr)
+{
+   struct tm * timeptr;
+   time_t julian;
+   char now[32];
+   const char * recv;
+   char * mark;
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (sock) { /* Remote. */
+      xml_set (sock->parms, "outgoing", "time\n");
+      _repos_send (sock);
+      xml_set (repository, attr, "");
+      recv = _repos_receive (sock);
+      if (*recv == '-') return 1;
+
+      mark = strchr (recv + 6, '+');
+      if (!mark) return 1;
+
+      xml_attrncat (repository, attr, recv + 6, mark - recv - 7);
+      return 0;
+   }
+
+   time (&amp;julian);
+   timeptr = localtime (&amp;julian);
+   sprintf (now, "%04d-%02d-%02d %02d:%02d:%02d",
+                    timeptr->tm_year + 1900, timeptr->tm_mon + 1, timeptr->tm_mday,
+                    timeptr->tm_hour, timeptr->tm_min, timeptr->tm_sec);
+   xml_set (repository, attr, now);
+}
+</pre></td></tr></table>
+
+Even though it's not technically a data synch function, it's certainly going to be used most often in the context of data synchronization,
+so it might as well be defined here.
+
+
+
+<center>
+[&nbsp;<a href="remote_repository.html">Previous: Repository queries</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_attachments.html">Next: Working with attachments</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

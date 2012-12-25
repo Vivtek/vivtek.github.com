@@ -1,0 +1,199 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Usage scenarios</TITLE>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Usage scenarios</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+I've been working through some usage scenarios to get a handle on what wftk should really do, what it should be good for.
+As I started each one, I realized that it opened up yet another can of worms, bringing me to this conclusion:
+<center><table border=1><tr><td bgcolor=#eeeeee><font face=arial>WORKFLOW IS HARD</font></td></tr></table></center>
+Undaunted, I slogged further.  What follows is an annotated list of my usage scenarios.  Each links to a full presentation
+of the scenario with lots of musings and thoughts on workflow.
+<p>
+If you're reading this page in the first place, then you're interested in workflow.  At the moment (1/18/00), this project is wide
+open.  I need all the help I can get -- please give me whatever feedback on these you think might make sense.  My email?
+Heck, use <code><a href=mailto:wftk@vivtek.com>wftk@vivtek.com</a></code>.
+<p>
+Here they are:<ul>
+<li><b><a href=/wftk/usage/chair.html>Chair purchase</a></b><br>
+This and the next scenario were the original scenarios in the <a href=/linkout/http://www.sourcexchange.com/RfpBrowse?Button=Details&rfpID=8>original RFP</a>.
+And strangely, it was the most straightforward.  Just go look at it.  No deep thoughts on this one.
+<li><b><a href=/wftk/usage/tradeshow.html>Trade show organization</a></b><br>
+Things started to get a little fuzzy on this one.  Rather than really write down a full list of the things to do to organize
+a trade show, I truncated it.  But whereas the initiation of the chair purchase lies with the employee who wanted the chair,
+after which that employee is pretty much a spectator, this one includes a <i>case worker</i> who initiates and then
+coordinates the rest of the project.  The question arose: is the assignment of roles properly formalized in the process
+class?  The trade show case was also interesting in that I realized the need for <i>deliverables</i> expected from each
+task, and maybe from the process as a whole.
+<li><b><a href=/wftk/usage/openproj.html>Open-source software project management</a></b><br>
+This description is a little misleading, maybe.  In my mind, open-source projects are typified by their small granularity.
+A bug or enhancement is proposed, a change request made, analysis done, change made, change released.  That's the whole
+"project" -- or at least, that's the process I choose to model with this scenario.  But oops.  What happens if two requests
+describe the same work?  Processes must merge?  What happens when one request embodies two changes?  (Maybe the requester
+is naive and describes two literal changes in one form submission, for instance.  But maybe it's just more convenient
+to represent a complex change request as two changes.)  Should the process fork?  I think both questions get a <i>yes</i>
+answer.  What do you think?
+<li><b><a href=/wftk/usage/closedproj.html>Closed-source software project management</a></b><br>
+To me, a closed-source release consists of many changes rolled into one project.  The project management aspect is quite
+complex because now we have an analyst, a manager, multiple developers...  Wait!  A <i>project plan</i>?!?  Yes, this 
+scenario includes the generation of a project plan which is then executed as a subprocess.  At design time we have no
+idea what that process is.
+<li><b><a href=/wftk/usage/ecomm.html>E-commerce purchase</a></b><br>
+One of the things I do is host e-commerce services using software I developed myself.  This software, of course, implements
+a workflow system -- but in a very hardcoded manner.  I will probably redevelop the whole thing using this "real" workflow as
+soon as it works.  So I modelled my retail purchase workflow as well.  The surprise in this one was that some parts of the
+workflow are iterative.  A single order contains multiple line items, each of which may be fulfilled individually.  So some
+parts of the workflow are repeated until there are no line items left.  Seems every scenario introduces some more things that
+a reasonable system should be able to handle, right?  Maybe I should write more than seven.
+<li><b><a href=/wftk/usage/sxc.html>SourceXchange project</a></b><br>
+If you missed this part, this project originated in a <a href=/linkout/www.sourcexchange.com>SourceXchange</a> RFP.  As the
+sXc business model is rather interesting and somewhat complicated, it seemed an interesting thing to model, and sure
+enough, it brought yet another insight -- in the case where an arbitrary subprocess is included in a process, then the
+actions taken when a subtask is completed may themselves be complex.  Ooh.  My head's hurting!  What do I mean by that
+mumbo-jumbo?  To be specific, when a milestone is completed in a SourceXchange project, (and note that each project is 
+different, each has its own unique set of milestones), then an approval process is initiated, culminating in either rework
+or acceptance.  If accepted, payment is due for the milestone.  Thus each task node in the project is itself an abstraction
+of a complete parametrized process!  Goodness, meta levels flying right and left.
+<li><b><a href=/wftk/usage/todo.html>One for the road: simple to-do list</a></b><br>
+Just so you see that workflow doesn't <i>have</i> to be difficult, I wrote up a little to-do list manager.
+</ul>
+<p>
+<i>[Some deep thoughts may be inserted at this point later.]</i>
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

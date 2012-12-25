@@ -1,0 +1,1079 @@
+<html><head><title>LIST adaptor: MySQL</title></head>
+<body>
+<h2>LIST adaptor: MySQL</h2>
+<hr>
+<p></p>
+This is list adaptor number three -- it implements object storage using the MySQL native interface.
+Use the general taskindex here, and wftk will chug along happily on MySQL.  And we'll be cookin with
+gas.
+<p></p>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include &lt;string.h>
+#include &lt;time.h>
+#include &lt;stdlib.h>
+#ifdef WINDOWS
+#include &lt;windows.h>
+#endif
+#include &lt;mysql.h>
+#include "xmlapi.h"
+#include "xmlobj.h"
+#include "../wftk.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+If we're on Unix, we need to define strlwr, a quick little lower-case converter which is standard on
+Windows, but which isn't on Unix.  Really this is one thing which should end up in the wftk standard
+helper function list, as soon as I get that organized.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifdef WINDOWS
+#define _LIST_mysql_strlwr(x) strlwr(x)
+#else
+void _LIST_mysql_strlwr (char * str) {
+   if (!str) return;
+   while (*str) {
+      if (*str >= 'A' &amp;&amp; *str &lt;= 'Z') {
+         *str += 'a' - 'A';
+      }
+      str++;
+   }
+}
+#endif
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "create",
+   "destroy",
+   "add",
+   "update",
+   "delete",
+   "get",
+   "query",
+   "first",
+   "next",
+   "rewind",
+   "prev",
+   "last",
+   "attach_open",
+   "attach_write",
+   "attach_close",
+   "attach_cancel",
+   "retrieve_open",
+   "retrieve_read",
+   "retrieve_close"
+};
+
+XML * LIST_mysql_init (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_free (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_info (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_create (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_destroy (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_add (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_update (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_delete (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_get (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_query (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_first (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_next (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_rewind (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_prev (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_last (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_attach_open (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_attach_write (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_attach_close (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_attach_cancel (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_retrieve_open (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_retrieve_read (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mysql_retrieve_close (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   LIST_mysql_init,
+   LIST_mysql_free,
+   LIST_mysql_info,
+   LIST_mysql_create,
+   LIST_mysql_destroy,
+   LIST_mysql_add,
+   LIST_mysql_update,
+   LIST_mysql_delete,
+   LIST_mysql_get,
+   LIST_mysql_query,
+   LIST_mysql_first,
+   LIST_mysql_next,
+   LIST_mysql_rewind,
+   LIST_mysql_prev,
+   LIST_mysql_last,
+   LIST_mysql_attach_open,
+   LIST_mysql_attach_write,
+   LIST_mysql_attach_close,
+   LIST_mysql_attach_cancel,
+   LIST_mysql_retrieve_open,
+   LIST_mysql_retrieve_read,
+   LIST_mysql_retrieve_close
+};
+
+static struct wftk_adaptor_info _LIST_mysql_info =
+{
+   22,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct wftk_adaptor_info * LIST_mysql_get_info ()
+{
+   return &amp; _LIST_mysql_info;
+}
+</pre></td></tr></table>
+
+The adaptor can reuse an existing database connection, which is stashed in the binary handle of a "connection" element in the repository.
+This is getting a tad baroque, perhaps...  At any rate, if such a connection element is present, and it matches the parameter, then we'll
+use it, otherwise we'll create one.  Database connections are thus (probably) not going to close until the repository is closed.  Which
+makes sense to me.
+
+<p></p>
+The connection element looks like this:<br>
+&lt;connection storage="mysql:wftk" conn="DSN=wftk"/&gt;<br>
+Then we can reference it like this:<br>
+&lt;list id="..." storage="mysql:wftk"/&gt;<br>
+Thus the connection starts to look a lot like a predefined alias, see?  This makes a lot more sense than the wftk config file, I think.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _LIST_mysql_handles {
+   MYSQL * mysql;
+   int ok;
+};
+
+void LIST_mysql_cleanup (struct _LIST_mysql_handles *handles)
+{
+   if (handles) {
+      mysql_close (handles->mysql);
+      free (handles);
+   }
+}
+
+XML * LIST_mysql_init (WFTK_ADAPTOR * ad, va_list args)
+{
+   const char * parms;
+   char * mark;
+   XML * repository = (XML *) ad->session;
+   XML * conn;
+   struct _LIST_mysql_handles *handles;
+   int rslt;
+   char buf[1024];
+
+   parms = xml_attrval (ad->parms, "parm");
+   if (!*parms) {
+      xml_set (ad->parms, "error", "No MySQL datasource specified");
+      return NULL;
+   }
+
+   /* Find or create connection. */
+   xml_setf (repository, "scratch", "mysql:%s", parms);
+   conn = xml_search (repository, "connection", "storage", xml_attrval (repository, "scratch"));
+   if (!conn) {
+      conn = xml_create ("connection");
+      xml_set (conn, "storage", xml_attrval (repository, "scratch"));
+      xml_set (conn, "database", parms);  /* Default, if no predefined connection: parms name local database. */
+      xml_append (repository, conn);
+   }
+
+   /* Is connection already made?  If not, connect. */
+   handles = (struct _LIST_mysql_handles *) xml_getbin (conn);
+   if (!handles) {
+      handles = (struct _LIST_mysql_handles *) malloc (sizeof (struct _LIST_mysql_handles));
+      if (!handles) {
+        xml_set (ad->parms, "error", "Unable to allocate binary stash.");
+        return NULL;
+      }
+      handles->mysql = NULL;
+      handles->ok = 0;
+   }
+   ad->bindata = (void *) handles;
+   if (!handles->ok) {
+      handles->mysql = mysql_init (NULL);
+      if (!(handles->mysql)) {
+         xml_set (ad->parms, "error", "Unable to allocate MySQL environment handle.");
+         free ((void *) handles);
+         xml_setbin (conn, NULL, NULL);
+         ad->bindata = 0;
+         return (XML *) 0;
+      }
+
+      handles->mysql = mysql_real_connect (handles->mysql,
+                                 *xml_attrval (conn, "host")     ? xml_attrval (conn, "host")       : "localhost",
+                                 *xml_attrval (conn, "user")     ? xml_attrval (conn, "user")       : NULL,
+                                 *xml_attrval (conn, "password") ? xml_attrval (conn, "password")   : NULL,
+                                 *xml_attrval (conn, "database") ? xml_attrval (conn, "database")   : NULL,
+                                 *xml_attrval (conn, "port")     ? atoi (xml_attrval (conn, "port")): MYSQL_PORT,
+                                 NULL, 0);
+      if (rslt == 0) {
+         xml_set (ad->parms, "error", "Unable to connect to database specified.");
+         mysql_close (handles->mysql);
+         free ((void *) handles);
+         xml_setbin (conn, NULL, NULL);
+         ad->bindata = 0;
+         return (XML *) 0;
+      }
+
+      handles->ok = 1;
+      xml_setbin (conn, handles, (XML_SETBIN_FREE_FN *)LIST_mysql_cleanup);
+   }
+
+   return (XML *) 0;
+}
+XML * LIST_mysql_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mysql_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "list");
+   xml_set (info, "name", "mysql");
+   xml_set (info, "ver", "1.0.0");
+   xml_setnum (info, "mysql_ver", MYSQL_VERSION_ID);
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+<p></p>
+So.  Down to business.  I'm most interested in indexing at the moment, so I'm going to start with the add/mod/del functions, then do the
+create/destroy functions (the latter easy under SQL), and only then do querying and retrieval.  So.  Let's do it.  First off let's
+define a couple of helper functions.
+<p></p>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static void _LIST_mysql_builderrmsg (XML * ap, MYSQL * mysql)
+{
+   xml_setf (ap, "_error", "%s[%d] %s", xml_attrval (ap, "error"), mysql_errno (mysql), mysql_error (mysql));
+   xml_set (ap, "error", xml_attrval (ap, "_error"));
+   xml_set (ap, "_error", "");
+}
+
+static void sql_escaped_append (XML * s, const char * q, const char * v)
+{
+   char * mark;
+   if (!v) return;
+   while (mark = strchr (v, '\'')) {
+      xml_attrncat (s, q, v, mark - v);
+      xml_attrcat (s, q, "'");
+      v = mark + 1;
+   }
+   xml_attrcat (s, q, v);
+}
+
+</pre></td></tr></table>
+<p></p>
+So.  Down to business.  Adding is first up.  I initially wanted to say it pretty straightforward, but really -- it isn't.  Too much
+going on, what with checking whether we need to return a generated key, testing for the various data types we know about, and such.
+For the moment, we're ignoring links, but pretty soon we'll have to start working with them.  Their entire point, after all, is for
+relational databases.
+<p></p>
+For some education, compare the querying code of this adaptor with that from the <a href="LIST_odbc.html">ODBC</a> adaptor.  Or Oracle,
+once I've written it.  The MySQL API is so much simpler.  <i>Building</i> the query, of course, is the same code.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>
+static XML * _LIST_mysql_add (WFTK_ADAPTOR * ad, XML * list, XML * object)
+{
+   struct _LIST_mysql_handles *handles = (struct _LIST_mysql_handles *) ad->bindata;
+   const char * key;
+   const char * value;
+   XML * mark;
+   XML * field;
+   XML * scratch;
+
+   int keygen = 0; /* Set if we need to generate a unique field. */
+
+   if (!handles) {
+      xml_set (ad->parms, "error", "Database connection not initialized.");
+      return 0;
+   }
+   if (!handles->ok) {
+      xml_set (ad->parms, "error", "Database connection not initialized.");
+      return 0;
+   }
+
+   scratch = xml_create ("s");
+
+   if (!*xml_attrval (list, "table")) xml_set (list, "table", xml_attrval (list, "id"));
+   xml_set (scratch, "fields", "");
+   xml_set (scratch, "values", "");
+
+   keygen = 0;
+
+   mark = xml_firstelem (list);
+   while (mark) {
+      if (xml_is (mark, "field")) {
+         if (!keygen &amp;&amp; !strcmp (xml_attrval (mark, "special"), "key")) {
+            keygen = 1;
+            xml_set (scratch, "keygen", xml_attrval (mark, "id"));
+            field = xml_search (object, "field", "id", xml_attrval (mark, "id"));
+            if (!field) {
+               field = xml_create ("field");
+               xml_set (field, "id", xml_attrval (mark, "id"));
+               if (*xml_attrval (mark, "type")) xml_set (field, "type", xml_attrval (mark, "type"));
+               xml_append_pretty (object, field);
+            }
+            xml_set_nodup (scratch, "keygeninit", xmlobj_get (object, list, xml_attrval (mark, "id")));
+         } else {
+            xml_attrcat (scratch, "fields", ", ");
+            xml_attrcat (scratch, "fields", xml_attrval (mark, "id"));
+
+            xml_attrcat (scratch, "values", ", ");
+            if (strcmp (xml_attrval (mark, "special"), "constant")) {
+               value = xmlobj_get (object, list, xml_attrval (mark, "id"));
+            } else {
+               value = xml_stringcontenthtml (mark);
+               field = xml_search (object, "field", "id", xml_attrval (mark, "id"));
+               if (!field) {
+                  field = xml_create ("field");
+                  xml_set (field, "id", xml_attrval (mark, "id"));
+                  if (*xml_attrval (mark, "type")) xml_set (field, "type", xml_attrval (mark, "type"));
+                  xml_append_pretty (object, field);
+               }
+               xml_replacecontent (field, xml_createtext (value));
+            }
+
+            if (!strcmp (xml_attrval (mark, "special"), "now") || !strcmp (xml_attrval (mark, "special"), "add")) {
+               xml_attrcat (scratch, "values", "NOW()");
+            } else if (!strncmp (xml_attrval (mark, "type"), "numeric", 7)) {
+               if (!value) {
+                  xml_attrcat (scratch, "values", "0");
+               } else if (!*value) {
+                  xml_attrcat (scratch, "values", "0");
+               } else {
+                  xml_attrcat (scratch, "values", value);
+               }
+            } else {
+               xml_attrcat (scratch, "values", "'");
+               sql_escaped_append (scratch, "values", value);
+               xml_attrcat (scratch, "values", "'");
+            }
+            if (value) free ((void *)value);
+         }
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   /* Build the query. */
+   xml_setf (scratch, "query", "insert into %s (%s) values (%s)", xml_attrval (list, "table"), xml_attrval (scratch, "fields") + 2, xml_attrval (scratch, "values") + 2);
+
+   /* Now execute the query we just built. */
+   if (mysql_query (handles->mysql, xml_attrval (scratch, "query"))) {
+      xml_setf (ad->parms, "error", "SQL error from [%s] ", xml_attrval (scratch, "query"));
+      _LIST_mysql_builderrmsg (ad->parms, handles->mysql);
+   } else {
+      if (keygen) {
+         xml_setnum (scratch, "newkey", mysql_insert_id(handles->mysql));
+         xmlobj_set (object, NULL, xml_attrval (scratch, "keygen"), xml_attrval (scratch, "newkey"));
+      }
+   }
+
+   /* TODO: handle links. */
+
+   xml_free (scratch);
+   return NULL;
+}
+
+XML * LIST_mysql_add (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = NULL;
+   XML * obj = NULL;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   obj = va_arg (args, XML *);
+   if (!obj) {
+      xml_set (ad->parms, "error", "No object given.");
+      return (XML *) 0;
+   }
+
+   return _LIST_mysql_add (ad, list, obj);
+}
+</pre></td></tr></table>
+
+<p></p>
+Updating is a little easier.  We do have to worry about the key field; at the moment, we assume it's set as an attribute of the list
+definition, which is probably a facile assumption.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * _LIST_mysql_update (WFTK_ADAPTOR * ad, XML * list, XML * object)
+{
+   struct _LIST_mysql_handles *handles = (struct _LIST_mysql_handles *) ad->bindata;
+   const char * key;
+   const char * value;
+   XML * mark;
+   XML * field;
+   XML * scratch;
+
+   if (!handles) {
+      xml_set (ad->parms, "error", "Database connection not initialized.");
+      return 0;
+   }
+   if (!handles->ok) {
+      xml_set (ad->parms, "error", "Database connection not initialized.");
+      return 0;
+   }
+
+   scratch = xml_create ("s");
+
+   if (!*xml_attrval (list, "table")) xml_set (list, "table", xml_attrval (list, "id"));
+   xml_set (scratch, "key", xml_attrval (object, "id"));
+   if (!*xml_attrval (scratch, "key")) {
+      xml_set_nodup (scratch, "key", xmlobj_getkey (object, list));
+   }
+   if (!*xml_attrval (list, "key")) {
+      xml_free (scratch);
+      xml_set (ad->parms, "error", "List definition does not specify key column.");
+      return (XML *) 0;
+   }
+   if (!*xml_attrval (scratch, "key")) {
+      xml_free (scratch);
+      xml_set (ad->parms, "error", "Unable to determine key for update.");
+      return (XML *) 0;
+   }
+   xml_set (scratch, "sets", "");
+
+   mark = xml_firstelem (object);
+   while (mark) {
+      if (xml_is (mark, "field")) {
+         xml_attrcat (scratch, "sets", ", ");
+         xml_attrcat (scratch, "sets", xml_attrval (mark, "id"));
+         xml_attrcat (scratch, "sets", "=");
+
+         value = xmlobj_get (object, list, xml_attrval (mark, "id"));
+         if (!strncmp (xml_attrval (mark, "type"), "numeric", 7)) {
+            if (!*value) {
+               xml_attrcat (scratch, "sets", "0");
+            } else {
+               xml_attrcat (scratch, "sets", value);
+            }
+         } else {
+            xml_attrcat (scratch, "sets", "'");
+            sql_escaped_append (scratch, "sets", value);
+            xml_attrcat (scratch, "sets", "'");
+         }
+         free ((void *)value);
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   xml_setf (scratch, "query", "update %s set %s where %s='%s'", xml_attrval (list, "table"), xml_attrval (scratch, "sets") + 2, xml_attrval (list, "key"), xml_attrval (scratch, "key"));
+
+   /* Now execute the query we just built. */
+   if (mysql_query (handles->mysql, xml_attrval (scratch, "query"))) {
+      xml_setf (ad->parms, "error", "SQL error from [%s] ", xml_attrval (scratch, "query"));
+      _LIST_mysql_builderrmsg (ad->parms, handles->mysql);
+   } else {
+      if (!xml_is (object, "diff")) { /* Note: we only allow an insertion for a complete record, not a diff. */
+         if (mysql_affected_rows (handles->mysql) == 0) {
+            xml_free (scratch);
+            return _LIST_mysql_add (ad, list, object);
+         }
+      }
+   }
+   xml_free (scratch);
+   return 0;
+}
+
+
+XML * LIST_mysql_update (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * obj;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   obj = va_arg (args, XML *);
+   if (!obj) {
+      xml_set (ad->parms, "error", "No object given.");
+      return (XML *) 0;
+   }
+
+   return _LIST_mysql_update (ad, list, obj);
+}
+
+static XML * _LIST_mysql_delete (WFTK_ADAPTOR * ad, XML * list, char * key)
+{
+   struct _LIST_mysql_handles *handles = (struct _LIST_mysql_handles *) ad->bindata;
+   const char * value;
+   XML * mark;
+   XML * field;
+   XML * scratch;
+
+   if (!handles) {
+      xml_set (ad->parms, "error", "Database connection not initialized.");
+      return 0;
+   }
+   if (!handles->ok) {
+      xml_set (ad->parms, "error", "Database connection not initialized.");
+      return 0;
+   }
+
+   scratch = xml_create ("s");
+
+   if (!*xml_attrval (list, "table")) xml_set (list, "table", xml_attrval (list, "id"));
+   if (!*xml_attrval (list, "key")) {
+      xml_free (scratch);
+      xml_set (ad->parms, "error", "List definition does not specify key column.");
+      return (XML *) 0;
+   }
+
+   xml_setf (scratch, "query", "delete from %s where %s='%s'", xml_attrval (list, "table"), xml_attrval (list, "key"), key);
+
+   /* Now execute the query we just built. */
+   if (mysql_query (handles->mysql, xml_attrval (scratch, "query"))) {
+      xml_setf (ad->parms, "error", "SQL error from [%s] ", xml_attrval (scratch, "query"));
+      _LIST_mysql_builderrmsg (ad->parms, handles->mysql);
+   }
+   xml_free (scratch);
+   return 0;
+}
+
+
+
+XML * LIST_mysql_delete (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   char * key;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+   if (!key) {
+      xml_set (ad->parms, "error", "No key given.");
+      return (XML *) 0;
+   }
+
+   return _LIST_mysql_delete (ad, list, key);
+}
+</pre></td></tr></table>
+
+Next stop: queries.  Naturally, queries are where RDBMS-type list adaptors will excel.  For now, I'm 
+going to omit any support for reverse scanning of query results; iteration will simply have to work
+in the forward direction only.  Frankly, I'm not even sure if there's any reason to care.
+<p></p>
+The query in this adaptor returns all known fields, as they're just as cheap to retrieve as not to
+retrieve (or close).  A full get will also retrieve links, at least it will later.  For now, that's
+not terribly important either.
+A common configuration for a repository is going to be a relatively restricted index which keys
+content stored in a local directory.  Thus a query will ask the RDBMS index, but a get will retrieve
+the file directly.
+
+<p></p>
+Like the directory adaptor, we define a separate scanner function which is used by both query and
+iteration calls.  If the latter, the context of the iteration must be stored.  The scanner in this
+case is called "select" -- what it does is to define the query and execute it.  The query function
+will read all results and return the resulting list; the iterator functions on the other hand will
+<i>not</i> do that, but rather will simply retrieve rows when asked.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static void _LIST_mysql_select (WFTK_ADAPTOR * ad, XML * list, char * key) {
+   struct _LIST_mysql_handles *handles = (struct _LIST_mysql_handles *) ad->bindata;
+   XML * scratch;
+   XML * field;
+   char * value;
+   MYSQL_RES * result;
+
+   if (!handles) return;
+   if (!handles->ok) return;
+
+   scratch = xml_create ("s");
+
+   if (!*xml_attrval (list, "table")) xml_set (list, "table", xml_attrval (list, "id"));
+
+   /* Build the where clause for the query. */
+   xml_set (scratch, "where", xml_attrval (list, "where"));
+   field = xml_firstelem (list);
+   while (field) {
+      if (xml_is (field, "field")) {
+         if (!strcmp (xml_attrval (field, "special"), "constant")) {
+            value = xml_stringcontenthtml (field);
+            if (*xml_attrval (scratch, "where")) { xml_attrcat (scratch, "where", " and "); }
+            xml_attrcat (scratch, "where", xml_attrval (field, "id"));
+            xml_attrcat (scratch, "where", "='");
+            sql_escaped_append (scratch, "where", value);
+            xml_attrcat (scratch, "where", "'");
+            free ((void *) value);
+         }
+      }
+      field = xml_nextelem (field);
+   }
+   if (key) {
+      if (!*xml_attrval (list, "key")) {
+         xml_free (scratch);
+         xml_set (ad->parms, "error", "List definition does not specify key column.");
+         return;
+      }
+      if (*xml_attrval (scratch, "where")) { xml_attrcat (scratch, "where", " and "); }
+      xml_attrcat (scratch, "where", xml_attrval (list, "key"));
+      xml_attrcat (scratch, "where", "='");
+      sql_escaped_append (scratch, "where", key);
+      xml_attrcat (scratch, "where", "'");
+   }
+
+   /* Build the query itself. */
+   xml_setf (list, "_query", "select * from %s", xml_attrval (list, "table"));
+   if (*xml_attrval (scratch, "where")) {
+      xml_attrcat (list, "_query", " where ");
+      xml_attrcat (list, "_query", xml_attrval (scratch, "where"));
+   }
+   if (*xml_attrval (list, "order")) {
+      xml_attrcat (list, "_query", " order by ");
+      xml_attrcat (list, "_query", xml_attrval (list, "order"));
+   }
+   xml_free (scratch);
+
+   /* Execute the query. */
+   if (mysql_query (handles->mysql, xml_attrval (list, "_query"))) {
+      xml_set (ad->parms, "error", "SQL error selecting data ");
+      xml_set (list, "_status", "error");
+      _LIST_mysql_builderrmsg (ad->parms, handles->mysql);
+   } else {
+      result = mysql_store_result (handles->mysql);
+      xml_set (list, "_status", "ok");
+      xml_setnum (list, "_numcols", mysql_field_count (handles->mysql));
+      xml_setbin (list, result, (XML_SETBIN_FREE_FN *)mysql_free_result);
+   }
+}
+</pre></td></tr></table>
+
+Selection is only half the battle, though; we also need retrieval.  Retrieval takes a currently active statement handle and attempts
+to retrieve a row from it; if there is no row, it fails (and sets a flag in the list.)  Retrieval will be used for the "get" function
+as well.
+<p></p>
+Retrieval takes a flag "save_row" by which the caller indicates whether the retrieved row should be appended to the list or not.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * _LIST_mysql_retrieve (WFTK_ADAPTOR * ad, XML * list, int save_row) {
+   struct _LIST_mysql_handles *handles = (struct _LIST_mysql_handles *) ad->bindata;
+   int numcols;
+   int col;
+   long value_len;
+   MYSQL_RES * result;
+   MYSQL_ROW row;
+   MYSQL_FIELD * fields;
+   XML * ret;
+   char column[256];
+   char value[1024];
+   XML * field;
+
+   if (!handles) return (XML *) 0;
+   if (!handles->ok) return (XML *) 0;
+
+   result = xml_getbin (list);
+   if (!result) return (XML *) 0;
+
+   /* Retrieve a row; if none, free the statement and return NULL. */
+   row = mysql_fetch_row (result);
+   if (!row) {
+      xml_set (list, "_status", "complete");
+      mysql_free_result (result);
+      xml_setbin (list, NULL, NULL);
+      return (XML *) 0;
+   }
+
+   fields = mysql_fetch_fields (result);
+   numcols = xml_attrvalnum (list, "_numcols");
+
+   ret = xml_create (*xml_attrval (list, "element") ? xml_attrval (list, "element") : "record");
+   if (save_row) xml_append (list, ret);
+
+   for (col=0; col &lt; numcols; col++) {
+       strcpy (column, fields[col].name);
+       _LIST_mysql_strlwr (column);
+       field = xml_search (list, "field", "id", column);
+
+       if (field) {
+          xmlobj_set (ret, list, xml_attrval (field, "id"), row[col]);
+       }
+   }
+   xml_set_nodup (ret, "id", xmlobj_getkey (ret, list));
+
+   return ret;
+}
+</pre></td></tr></table>
+
+Now that we know how to select and retrieve, we have all the building blocks we need to define the adaptor functionality (query, iteration,
+and get.)  For this sort of usage, the list is assumed to be a <i>copy</i> of the repository's list definition, because it will be used
+to store cursor information.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mysql_query (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * list;
+   int count = 0;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   _LIST_mysql_select (ad, list, NULL); /* NULL = no specific key. */
+
+   /* Retrieve all results. */
+   while (_LIST_mysql_retrieve (ad, list, 1)) { /* 1 = save row in list. */
+      count ++;
+   }
+
+   xml_setnum (list, "count", count);
+   return list;
+}
+</pre></td></tr></table>
+
+Iteration is the same thing, really, except that we don't save anything while iterating.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mysql_first (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   _LIST_mysql_select (ad, list, NULL);
+
+   return _LIST_mysql_retrieve (ad, list, 0);
+}
+XML * LIST_mysql_next (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   return _LIST_mysql_retrieve (ad, list, 0);
+}
+XML * LIST_mysql_rewind (WFTK_ADAPTOR * ad, va_list args) {
+   xml_set (ad->parms, "error", "'rewind' command not supported under mysql");
+}
+XML * LIST_mysql_prev (WFTK_ADAPTOR * ad, va_list args)
+{
+   xml_set (ad->parms, "error", "'prev' command not supported under mysql");
+}
+XML * LIST_mysql_last (WFTK_ADAPTOR * ad, va_list args)
+{
+   xml_set (ad->parms, "error", "'last' command not supported under mysql");
+}
+</pre></td></tr></table>
+
+Retrieval of a single keyed record is pretty easy -- we just make a copy of the list spec as cursor,
+perform the retrieval query with the key attached, save the result, free the list copy, and return
+the result.  The result may be NULL, if the key doesn't exist, which is exactly what we want.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mysql_get (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * list;
+   char * key;
+   XML * copy;
+   XML * ret;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+   copy = xml_copy (list);
+
+   _LIST_mysql_select (ad, copy, key);
+   ret = _LIST_mysql_retrieve (ad, copy, 0);
+   xml_free (copy);
+
+   return ret;
+}
+</pre></td></tr></table>
+
+Creation and destruction of lists (i.e. tables) will be fairly straightforward DML -- but I'm unsure whether I should be checking for
+table existence or not.  There are a lot of potential traps as far as consistency is concerned, as a constant field may be used to allow
+lists to share a table -- but that means if one list drops/creates the table, the others are disrupted.  Likewise, there needs to be some
+sort of logic allowing lists of different structure either to share the table or at least to note that they can't.  So (since I don't
+really need this yet) I'm going to leave it for later.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mysql_create (WFTK_ADAPTOR * ad, va_list args)
+{
+   return NULL;
+}
+XML * LIST_mysql_destroy (WFTK_ADAPTOR * ad, va_list args)
+{
+   return NULL;
+}
+</pre></td></tr></table>
+
+
+So (<i>January 12, 2002</i>) the next thing to address is attachments.  I think it's likely that handling
+attachments will be the last new thing that the list storage adaptor will have to handle itself.  At any
+rate, an attachment is a regular field value, except it is generally stored separately from the object.
+As far as storage is concerned, attachments are pretty straightforward: they're files, or something
+like files.  You open them, set their MIME types, read and write to streams, close them.
+
+<p></p>
+It's important to realize that actually telling the object where its attachment is stored is up to the repository
+manager library, <i>not</i> the adaptor.  I waffled about this a lot, but essentially the list adaptor shouldn't
+be dependent on the repmgr, so that precludes any knowledge of the structure of record objects, and so (for instance)
+to open an attachment for retrieval, the repmgr will simply give the adaptor back whatever the adaptor told it earlier
+was the "location" of the attachment.  In our case here, this is a filename local to the adaptor's controlled directory,
+but in a database it may be a unique key into a BLOB table or something.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mysql_attach_open (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   char * key;
+   char * field;
+   char * filename;
+   XML * mark;
+   XML * ret;
+   FILE * file;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+   field = va_arg (args, char *);
+   filename = va_arg (args, char *);
+
+   /* If we're not given a fieldname, then we'll just scan the list definition to find the first "document"-type field. */
+   if (!field) {
+      mark = xml_search (list, "field", "type", "document");
+      if (!mark) {
+         xml_set (ad->parms, "error", "No attachment field given and no default exists.");
+         return NULL;
+      }
+      field = (char *) xml_attrval (mark, "id");
+   }
+
+   ret = xml_create ("attachment-handle");
+
+   xml_set (ret, "dir", xml_attrval (ad->parms, "basedir"));
+   if (!*xml_attrval (ad->parms, "subdir")) xml_set (ad->parms, "subdir", xml_attrval (list, "id"));
+   if (strcmp (xml_attrval (ad->parms, "subdir"), ".")) {
+      xml_attrcat (ret, "dir", xml_attrval (ad->parms, "subdir"));
+      xml_attrcat (ret, "dir", "/");
+   }
+   xml_setf (ret, "adaptor", "mysql:%s", xml_attrval (ret, "dir"));
+
+   /* If we're supplied with a filename, then that file can't already exist in our controlled
+      directory. */
+   if (filename &amp;&amp; *filename) {
+      xml_setf (ret, "location", filename);
+      xml_setf (ret, "file", "%s%s", xml_attrval (ret, "dir"), filename);
+      xml_set (ret, "tempfile", xml_attrval (ret, "file"));
+   } else {
+      xml_setf (ret, "location", "_att_%s_%s.dat", key, field);
+      xml_setf (ret, "file", "%s%s", xml_attrval (ret, "dir"), xml_attrval (ret, "location"));
+      xml_setf (ret, "tempfile", "%s_newatt_%s_%s.dat", xml_attrval (ret, "dir"), key, field);
+   }
+
+   file = fopen (xml_attrval (ret, "file"), "w");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Unable to open file %s for writing.", xml_attrval (ret, "file"));
+      xml_free (ret);
+      return NULL;
+   }
+
+   xml_setbin (ret, file, (XML_SETBIN_FREE_FN *)fclose);
+   xml_set (ret, "content-type", "text/plain");
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+Writing and closing are easy -- note that when closing the attachment, we do nothing else; the repository manager wrapped around this
+adaptor will take care of writing any location information into the object for the attachment, any version-control work, or whatever
+else.  Otherwise we'd be duplicating that logic in every adaptor, which doesn't make a lot of sense.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mysql_attach_write (WFTK_ADAPTOR * ad, va_list args) {
+   void * buffer;
+   int size, number;
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   buffer = va_arg (args, void *);
+   size = va_arg (args, int);
+   number = va_arg (args, int);
+   handle = va_arg (args, XML *);
+
+   xml_setnum (handle, "last-write", fwrite (buffer, size, number, xml_getbin(handle)));
+   return NULL;
+}
+XML * LIST_mysql_attach_cancel (WFTK_ADAPTOR * ad, va_list args) {
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   handle = va_arg (args, XML *);
+
+   fclose (xml_getbin (handle));
+   unlink (xml_attrval (handle, "tempfile"));
+   return NULL;
+}
+XML * LIST_mysql_attach_close (WFTK_ADAPTOR * ad, va_list args) {
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   handle = va_arg (args, XML *);
+
+   fclose (xml_getbin (handle));
+   rename (xml_attrval (handle, "tempfile"), xml_attrval (handle, "file"));
+   return NULL;
+}
+</pre></td></tr></table>
+
+Retrieval is easier than attachment, because we already have a filename.  The filename is stored in the object, using the attribute
+"filename" -- this reserves the content of the field element for version control or whatever else may be appropriate.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mysql_retrieve_open (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = NULL;
+   XML * fld;
+   char * key;
+   char * field;
+   XML * mark;
+   XML * ret;
+   FILE * file;
+   WFTK_ADAPTOR * ad2;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+   fld = va_arg (args, XML *);
+
+   ret = xml_create ("attachment-handle");
+
+   xml_set (ret, "dir", xml_attrval (ad->parms, "basedir"));
+   if (!*xml_attrval (ad->parms, "subdir")) xml_set (ad->parms, "subdir", xml_attrval (list, "id"));
+   if (strcmp (xml_attrval (ad->parms, "subdir"), ".")) {
+      xml_attrcat (ret, "dir", xml_attrval (ad->parms, "subdir"));
+      xml_attrcat (ret, "dir", "/");
+   }
+   xml_setf (ret, "adaptor", "mysql:%s", xml_attrval (ret, "dir"));
+
+   if (fld) {
+      xml_set (ret, "location", xml_attrval (fld, "location"));
+   }
+   if (!*xml_attrval (ret, "location")) xml_setf (ret, "location", "_att_%s_%s.dat", key, xml_attrval (fld, "id"));
+   xml_setf (ret, "file", "%s%s", xml_attrval (ret, "dir"), xml_attrval (ret, "location"));
+
+   file = fopen (xml_attrval (ret, "file"), "r");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Unable to open file %s for reading.", xml_attrval (ret, "location"));
+      xml_free (ret);
+      return NULL;
+   }
+
+   xml_setbin (ret, file, (XML_SETBIN_FREE_FN *)fclose);
+   xml_set (ret, "content-type", "text/plain");
+
+   return (ret);
+}
+XML * LIST_mysql_retrieve_read (WFTK_ADAPTOR * ad, va_list args) {
+   void * buffer;
+   int size, number;
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   buffer = va_arg (args, void *);
+   size = va_arg (args, int);
+   number = va_arg (args, int);
+   handle = va_arg (args, XML *);
+
+   xml_setnum (handle, "last-read", fread (buffer, size, number, xml_getbin(handle)));
+   return NULL;
+}
+XML * LIST_mysql_retrieve_close (WFTK_ADAPTOR * ad, va_list args) {
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   handle = va_arg (args, XML *);
+
+   fclose (xml_getbin (handle));
+   return NULL;
+}
+
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

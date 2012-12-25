@@ -1,0 +1,392 @@
+<html><head><title>Repository manager: xml: XMLAPI data structure</title></head>
+<body>
+<h2>xml: XMLAPI data structure</h2>
+<center>
+[&nbsp;<a href="wftk_oo.html">Previous: wftk Python OO wrapper</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="class_xmlobj.html">Next: xmlobj: XML-based record object</a>&nbsp;]
+</center>
+
+<hr>
+The XMLAPI datastructure is the internal storage data structure used throughout the wftk.  The original
+idea was simply to store data in XML -- but once I started working with the XMLAPI library, it came
+to pervade my coding so very much that I simply started using it for everything I do.  Thus all data
+moving in or out of the wftk is made up of XMLAPI structures.  The practical upshot of this is that
+any non-C wrapper of the wftk must always begin by wrapping the XMLAPI so that it can build data
+structures the wftk can work with.
+<p></p>
+Object orientation makes this ever so palatable.  The xml object treats the attributes of an element
+as a dictionary, so that I can start with an XML element like this:
+<pre>
+&lt;xml something="or other"/&gt;
+</pre>
+and then simply say:
+<pre>
+&gt;&gt;&gt; x['something'] = 'else'
+&gt;&gt;&gt; x['other'] = 'thing'
+</pre>
+and end up with the following XML:
+<pre>
+&lt;xml something="else" other="thing"/&gt;
+</pre>
+That is so extremely cool I still can't get over it (but wait until you see the xmlobj record.)
+<p></p>
+Every class in the wftk should eventually have a docstring.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class xml:
+   """Implements a convenient class on top of the XMLAPI library.
+   """
+</pre></td></tr></table>
+
+In the initialization routine, we see two things.  First, the xml object may at times not actually
+contain any XML.  The XML CObject that the low-level wrapper uses is stored in an <code>_xml</code>
+attribute, and if this attribute is <code>None</code>, then we don't actually have any XML on hand.
+This makes things inconvenient in a way, as we have to test for None-ness all through the class, but
+I don't like the necessity of hanging onto a bunch of CObjects I'm not using, either.
+<p></p>
+The <code>_iterparent</code> attribute is used for the iteration functions below.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def __init__ (self, str=None):
+      """Create XML object from optional string input"""
+      self._xml = None
+      self._iterparent = None
+      if str:
+         try:
+            self.parse (str)
+         except ParseError, message:
+            raise ParseError, message
+
+</pre></td></tr></table>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   # --------------------------------------------------------------
+   # Formatting XML strings.
+   # --------------------------------------------------------------
+   def __str__ (self):
+      if self._xml == None: return ""
+      return xmlapi.xml_string (self._xml)
+   def __repr__ (self):
+      if self._xml == None: return ""
+      return xmlapi.xml_string (self._xml)
+   def string (self):
+      if self._xml == None: return ""
+      return xmlapi.xml_string (self._xml)
+   def stringhtml (self):
+      if self._xml == None: return ""
+      return xmlapi.xml_stringhtml (self._xml)
+   def stringcontent (self):
+      if self._xml == None: return ""
+      return xmlapi.xml_stringcontent (self._xml)
+   def stringcontenthtml (self):
+      if self._xml == None: return ""
+      return xmlapi.xml_stringcontenthtml (self._xml)
+
+   # --------------------------------------------------------------
+   # File I/O: Writing to files.
+   # --------------------------------------------------------------
+   def write (self, file):
+      if self._xml == None: return ""
+      return xmlapi.xml_write (file, self._xml)
+   def writehtml (self, file):
+      if self._xml == None: return ""
+      return xmlapi.xml_stringhtml (file, self._xml)
+   def writecontent (self, file):
+      if self._xml == None: return ""
+      return xmlapi.xml_stringcontent (file, self._xml)
+   def writecontenthtml (self, file):
+      if self._xml == None: return ""
+      return xmlapi.xml_stringcontenthtml (file, self._xml)
+   # xml_output: probably not necessary in Python
+   # xml_save: also not terribly necessary
+
+   # --------------------------------------------------------------
+   # Reading XML from strings and files.
+   # --------------------------------------------------------------
+   def parse (self, str):
+      try:
+         self._xml = xmlapi.xml_parse (str)
+      except IOError, message:
+         self._xml = None
+         raise ParseError, message
+   def read (self, file):
+      try:
+         self._xml = xmlapi.xml_read (file)
+      except IOError, message:
+         self._xml = None
+         raise ParseError, message
+
+   # --------------------------------------------------------------
+   # Attribute access (including treating the attributes as a dictionary).
+   # --------------------------------------------------------------
+   def __getitem__ (self, key):
+      if self._xml == None: return ""
+      return xmlapi.xml_attrval (self._xml, key)
+   def attrval (self, key):
+      if self._xml == None: return ""
+      return xmlapi.xml_attrval (self._xml, key)
+   def __setitem__ (self, key, value):
+      if self._xml == None: return
+      xmlapi.xml_set (self._xml, key, `value`)
+   def set (self, key, value):
+      if self._xml == None: return
+      xmlapi.xml_set (self._xml, key, `value`)
+   def attrlist (self):
+      if self._xml == None: return
+      return xmlapi.xml_attrlist (self._xml)
+   def attrs (self):
+      if self._xml == None: return
+      return xmlapi.xml_attrs (self._xml)
+
+   # --------------------------------------------------------------
+   # Subelement identification and iteration.
+   # --------------------------------------------------------------
+   def elements (self):   # Returns list of subelements.
+      if self._xml == None: return []
+      ret = []
+      for e in xmlapi.xml_elements (self._xml):
+         x = xml()
+         x._xml = e
+         ret.append (x)
+      return ret
+   def name (self):
+      if self._xml == None: return None
+      return xmlapi.xml_name (self._xml)
+   def parent (self):
+      if self._xml == None: return None
+      ret = xmlapi.xml_parent (self._xml)
+      if ret:
+         x = xml()
+         x._xml = ret
+         return x
+      return None
+   def is_element (self):
+      if self._xml == None: return None
+      return xmlapi.xml_is_element (self._xml)
+   def is_a (self, name):
+      if self._xml == None: return None
+      return xmlapi.xml_is (self._xml, name)
+   def first (self):       # Regular C-style iteration functions.
+      if self._xml == None: return None
+      ret = xmlapi.xml_first (self._xml)
+      if ret:
+         x = xml()
+         x._xml = ret
+         return x
+      return None
+   def firstelem (self):
+      if self._xml == None: return None
+      ret = xmlapi.xml_firstelem (self._xml)
+      if ret:
+         x = xml()
+         x._xml = ret
+         return x
+      return None
+   def next (self):
+      if self._xml == None: return None
+      ret = xmlapi.xml_next (self._xml)
+      if ret:
+         x = xml()
+         x._xml = ret
+         return x
+      return None
+   def nextelem (self):
+      if self._xml == None: return None
+      ret = xmlapi.xml_nextelem (self._xml)
+      if ret:
+         x = xml()
+         x._xml = ret
+         return x
+      return None
+   def prev (self):
+      if self._xml == None: return None
+      ret = xmlapi.xml_prev (self._xml)
+      if ret:
+         x = xml()
+         x._xml = ret
+         return x
+      return None
+   def prevelem (self):
+      if self._xml == None: return None
+      ret = xmlapi.xml_prevelem (self._xml)
+      if ret:
+         x = xml()
+         x._xml = ret
+         return x
+      return None
+   def last (self):
+      if self._xml == None: return None
+      ret = xmlapi.xml_last (self._xml)
+      if ret:
+         x = xml()
+         x._xml = ret
+         return x
+      return None
+   def lastelem (self):
+      if self._xml == None: return None
+      ret = xmlapi.xml_lastelem (self._xml)
+      if ret:
+         x = xml()
+         x._xml = ret
+         return x
+      return None
+
+   def iterate (self, parent, type='elem', dir='f'):  # A nice OO kind of iteration paradigm.
+      self._iterparent = parent
+      self._itertype = type
+      self._iterdir = dir
+      self._iteration = None
+   def iterator (self, type='elem', dir='f'):
+      i = xml()
+      i.iterate (self, type, dir)
+      return i
+   def rewind (self):
+      self._iteration = None
+   def advance (self):
+      if not self._iteration:
+         self._iteration = 1
+         if self._iterdir == 'f':
+            if self._itertype == 'elem':
+               self._xml = xmlapi.xml_firstelem (self._iterparent._xml)
+            else:
+               self._xml = xmlapi.xml_first (self._iterparent._xml)
+         else:
+            if self._itertype == 'elem':
+               self._xml = xmlapi.xml_lastelem (self._iterparent._xml)
+            else:
+               self._xml = xmlapi.xml_last (self._iterparent._xml)
+         if self._xml:
+            return 1
+         return None
+      else:
+         if not self._xml: return None
+         if self._iterdir == 'f':
+            if self._itertype == 'elem':
+               self._xml = xmlapi.xml_nextelem (self._xml)
+            else:
+               self._xml = xmlapi.xml_next (self._xml)
+         else:
+            if self._itertype == 'elem':
+               self._xml = xmlapi.xml_prevelem (self._xml)
+            else:
+               self._xml = xmlapi.xml_prev (self._xml)
+         if self._xml:
+            return 1
+         return None
+
+   # --------------------------------------------------------------
+   # Element manipulation.
+   # --------------------------------------------------------------
+   def create (self, str):
+      self._xml = xmlapi.xml_create (str)
+   # createtext: TODO: implement
+   # createtextf, len, _nodup: not necessary in Python
+   # textcat: TODO: implement
+   def delete (self):
+      if self._xml:
+         xmlapi.xml_delete (self._xml)
+         self._xml = None
+   # delete_pretty: TODO: implement
+   # free: not applicable to Py env
+   def new_copy (self):
+      ret = xml()
+      if not self._xml: return ret
+      ret._xml = xmlapi.xml_copy (self._xml)
+      return ret
+   def copy (self, other):
+      try:
+         if not other._xml:
+            self._xml = None
+         else:
+            self._xml = xmlapi.xml_copy (other._xml)
+      except:
+         raise TypeError, "object not XML object"
+   def copyinto (self, other):
+      try:
+         if not other._xml:
+            pass
+         else:
+            xmlapi.xml_copyinto (self._xml, other._xml)
+      except:
+         raise TypeError, "object not XML object"
+   def replace (self, other):
+      try:
+         other._xml = self._xml
+         self._xml = None
+      except:
+         raise TypeError, "object not XML object"
+   def replacecontent (self, other):
+      try:
+         other._xml = self._xml
+         self._xml = None
+      except:
+         raise TypeError, "object not XML object"
+
+   # prepend, prepend_pretty : TODO: implement
+   # append, append_pretty: TODO: implement
+   # insertafter, insertbefore: TODO: implement
+
+   # --------------------------------------------------------------
+   # Finding pieces of XML.
+   # --------------------------------------------------------------
+   def loc (self, location):
+      if not self._xml: return None
+      l = xmlapi.xml_loc (self._xml, location)
+      if not l: return None
+      ret = xml()
+      ret._xml = l
+      return ret
+   # locf: not necessary in Python
+   def getloc (self):
+      if not self._xml: return None
+      return xmlapi.xml_getloc (self._xml)
+   # getloc is actually getlocbuf, and getloc is unnecessary (and in fact impossible) in Python
+   def search (self, elem, attr, val):
+      if not self._xml: return None
+      l = xmlapi.xml_search (self._xml, elem, attr, val)
+      if not l: return None
+      ret = xml()
+      ret._xml = l
+      return ret
+   # search_next: TODO: implement?
+   def search_all (self, elem, attr, val):
+      if not self._xml: return []
+      ret = []
+      for result in xmlapi.xml_search_all (self._xml, elem, attr, val):
+         r = xml()
+         r._xml = result
+         ret.append (r)
+      return ret
+
+   # -------------------------------------------
+   # Binary pointer access
+   # -------------------------------------------
+   # setbin, getbin: TODO: implement
+
+   # -------------------------------------------
+   # UTF8 stuff
+   # -------------------------------------------
+   # toutf8_attr, toutf8_text, toraw_str: necessary in Py?
+
+   # -------------------------------------------
+   # Sorting
+   # -------------------------------------------
+   # sort: TODO: implement
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_oo.html">Previous: wftk Python OO wrapper</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="class_xmlobj.html">Next: xmlobj: XML-based record object</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

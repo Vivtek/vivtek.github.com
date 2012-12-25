@@ -1,0 +1,599 @@
+<html><head><title>Toon-o-Matic! 2!</title><style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style></head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">toonbots</p>
+<p>[ <a href=/toonbots/index.html>today</a> ]</p>
+<p>[ <a href=/toonbots/archive.html>archive!</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/toonbots/discuss.pl>forum</a> ]</p>
+<p>[ <a href=/toonbots/board_archive.html>forum archive</a> ]</p>
+<p>[ <a href=/toonbots/paftwj.html>jihad</a> ]</p>
+<p>[ <a href=/toonbots/spare_parts.html>misc</a> ]</p>
+<p>[ <a href=/toonbots/allyourbase.html>all your base</a> ]</p>
+<p>[ <a href=/toonbots/reviews.html>are belong to us</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">The amazing Toon-o-Matic, take 2</div>
+<hr>
+<i>Nov 17, 2000</i><br>
+This is yet another prototype workaround for some functionality that has the potential to be really, really, I mean
+<i>really</i> cool.  A visible character has some specific state; when we actually instantiate the visible character in
+a specific panel, we use that state information to select drawing commands from the character definition.  Of course, right
+now we'll completely ignore that whole issue and simply copy drawing commands from the character definition into the visible
+character -- but things are going to get a lot more complicated later.
+<p></p>
+<i>Dec 15, 2000</i><br>
+And now they're starting to get complicated.  What we want here is the ability to select one aspect from a set of variants.
+The aspect triggers on the current <code>%character_aspect</code> hash value for the character.  The aspect (for now) will
+just be a list of strings; when we hit a variant, we scan aspects until something matches.  If no aspect is active, the
+first variant is selected.
+<p></p>
+<i>Dec 17, 2000</i><br>
+The bounding box of a region is going to determine element size as well.  As regions become specified, they'll carry along
+in $visible.  I have the feeling that this commentary is going to make no sense whatsoever tomorrow.
+<p></p>
+<i>Dec 31, 2000</i><br>
+I'm gonna have drawing primitives this year, by golly!  (OK, it's 10 PM, so maybe not.)  The <code>drawing_instantiate</code>
+function is taking on new meaning.  Its basic function is to take pieces of the character definition and transfer them to
+the visible character.  Along the way it's now being asked to set the parameters of the drawing primitives, too.  And of
+course that also means that it copies the draw, line, point, and region tags, and decides among the aspects in a variant
+tag.  So that's what it does.
+<i>January 3, 2001</i><br>
+I'm stashing the <code>modify_character</code> function on this page as well.  Hoo boy, drawing cartoons is harder than it
+looks!
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub drawing_instantiate {
+   my ($character, $visible, $state) = @_;
+
+   my $child;
+   my $new;
+   foreach $child (xml_elements ($character)) {
+      if ($$child{name} eq 'draw') {
+         $new = xml_create ('draw');
+         foreach (@{$$child{attrs}}) {
+            xml_set ($new, $_, xml_attrval ($child, $_));
+         }
+         xml_set ($new, 'rel-h', '100') if xml_attrval ($child, 'rel-h') eq '';
+         xml_set ($new, 'rel-w', '100') if xml_attrval ($child, 'rel-w') eq '';
+
+         # Use bounding box as dimensions of this drawing element.
+         xml_set ($new, 'height', xml_attrval ($visible, 'height') * xml_attrval ($new, 'rel-h') / 100);
+         xml_set ($new, 'width', xml_attrval ($visible, 'width') * xml_attrval ($new, 'rel-w') / 100);
+
+         # Determine parameters of the new object.
+         drawing_parameterize ($new, $visible, $state);
+
+         xml_append ($visible, $new);
+
+         drawing_instantiate ($child, $new, $state);
+      } elsif ($$child{name} eq 'point') {
+         $new = xml_create ('point');
+         foreach (@{$$child{attrs}}) { xml_set ($new, $_, xml_attrval ($child, $_)); }
+         drawing_parameterize ($new, $visible, $state);
+         xml_append ($visible, $new);
+      } elsif ($$child{name} eq 'line') {
+         $new = xml_create ('line');
+         foreach (@{$$child{attrs}}) { xml_set ($new, $_, xml_attrval ($child, $_)); }
+         drawing_parameterize ($new, $visible, $state);
+         xml_append ($visible, $new);
+      } elsif ($$child{name} eq 'region') {
+         $new = xml_create ('region');
+         foreach (@{$$child{attrs}}) { xml_set ($new, $_, xml_attrval ($child, $_)); }
+         drawing_parameterize ($new, $visible, $state);
+         xml_append ($visible, $new);
+         drawing_instantiate ($child, $new, $state);  # Regions, unlike points and lines, contain things.
+      } elsif ($$child{name} eq 'variant') {
+         # Here's where we select an aspect.
+         #print "Instantiating variant ($state).\n";
+         $choice = '';
+         foreach $variant (xml_elements ($child)) {
+            next if $$variant{name} ne 'aspect';
+            $choice = $variant unless $choice ne '';
+            if (match_aspect ($state, $variant)) {
+               $choice = $variant;
+               last;
+            }
+         }
+         if ($choice ne '') {
+            #print "Instantiating as "; xml_write (STDOUT, $choice); print "\n";
+            drawing_instantiate ($choice, $visible, $state);
+         }
+      }
+   }
+}
+</pre></td></tr></table>
+
+To make that work, of course, we need an aspect matcher.  This could also get arbitrarily complex.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub match_aspect {
+   my ($aspect, $variant) = @_;
+   my @alist = split /\s+/, $aspect;
+   return (grep { $_ eq xml_attrval ($variant, 'name'); } @alist);
+}
+sub match_aspect_string {
+   my ($aspect, $string) = @_;
+   my @alist = split /\s+/, $aspect;
+   return (grep { $_ eq $string; } @alist);
+}
+</pre></td></tr></table>
+
+Obviously, at this point it has yet to become arbitrarily complex.
+<br>(<i>February 14, 2001</i>): added the ability to specify a list of aspect components, anyway.  A little more complex
+than what it was, which was simply checking for equality.
+<p></p>
+
+<i>December 31, 2000</i><br>
+And we also need the handy-dandy drawing parameterizer.  Again, this could get arbitrarily complex, because it will work
+with the spatial relationships of points and regions and stuff.  This initial implementation will be pretty non-complex,
+but later this will probably end up containing most of the interesting code of the Toon-o-Matic.
+<p></p>
+<i>January 10, 2001</i><br>
+Oooh.  Added lines.  Now I have ellipses <i>and</i> lines.  Wow!
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub drawing_parameterize {
+   my ($piece, $context, $aspect) = @_;
+   if ($$piece{name} eq 'draw') {
+      if (xml_attrval ($piece, 'type') eq 'image') {
+         xml_set ($piece, 'rel-x', '0') if xml_attrval ($piece, 'rel-x') eq '';
+         xml_set ($piece, 'rel-y', '0') if xml_attrval ($piece, 'rel-y') eq '';
+         if (xml_attrval ($piece, 'face') eq 'left' &amp;&amp; match_aspect_string ($aspect, 'faceright')) {
+            xml_set ($piece, 'invert', 'yes');
+         }
+         if (xml_attrval ($piece, 'face') eq 'right' &amp;&amp; match_aspect_string ($aspect, 'faceleft')) {
+            xml_set ($piece, 'invert', 'yes');
+         }
+      } elsif (xml_attrval ($piece, 'type') eq 'ellipse') {
+         # Ellipse needs a center, height and width, start and end angles.  Height and width are already known.
+         if (xml_attrval ($piece, 'height') eq '') {
+            xml_set ($piece, 'height', xml_attrval ($context, 'height') * xml_attrval ($piece, 'rel-h') / 100);
+         }
+         if (xml_attrval ($piece, 'width') eq '') {
+            xml_set ($piece, 'width', xml_attrval ($context, 'width') * xml_attrval ($piece, 'rel-w') / 100);
+         }
+         if (xml_attrval ($piece, 'center') eq '' || $aspect eq 'recalc') { xml_set ($piece, 'center', 'middle'); }
+         ($x, $y) = find_point (xml_attrval ($piece, 'center'), $context, $state);  # The context is the local region.
+         xml_set ($piece, 'rel-x', $x);
+         xml_set ($piece, 'rel-y', $y);
+
+         xml_set ($piece, 'start', '0') unless xml_attrval ($piece, 'start') ne '';
+         xml_set ($piece, 'end', '360') unless xml_attrval ($piece, 'end') ne '';
+      } elsif (xml_attrval ($piece, 'type') eq 'line') {
+         # Line needs start and end points.
+         ($x, $y) = find_point (xml_attrval ($piece, 'start'), $context, $state);
+         xml_set ($piece, 'start-x', $x);
+         xml_set ($piece, 'start-y', $y);
+         ($x, $y) = find_point (xml_attrval ($piece, 'end'), $context, $state);
+         xml_set ($piece, 'end-x', $x);
+         xml_set ($piece, 'end-y', $y);
+      } elsif (xml_attrval ($piece, 'type') eq 'circle') {
+      } elsif (xml_attrval ($piece, 'type') eq 'rectangle') {
+      }
+   } elsif ($$piece{name} eq 'point') {
+      ($x, $y) = find_point (xml_attrval ($piece, 'loc'), $context, $state);
+      xml_set ($piece, 'rel-x', $x);
+      xml_set ($piece, 'rel-y', $y);
+   } elsif ($$piece{name} eq 'line') {
+   } elsif ($$piece{name} eq 'region') {
+   }
+}
+</pre></td></tr></table>
+
+<i>January 1, 2001</i><br>
+Well, so much for getting this working in 2000, eh?  No matter, it's starting to make sense.  The <code>find_point</code>
+function returns an x and a y relative to the local region, given a point description.  The point description is going
+to be really baroque and chaotic.  This will be fun.  Later, the aspect will parameterize point locations, allowing us
+to specify what happens to, say, the sizes of eyes when a certain emotive aspect is desired.  I love it when a plan comes
+together.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub find_point {
+   my ($loc, $context, $state) = @_;
+   my @loc = split /\s+/, $loc;  # Break into words.
+   my $basepoint;
+
+   my $word;  # Great Scott!
+   my $x=0;   # The location we're fixing.
+   my $y=0;
+
+   # The points middle, center, top, bottom, left, right, and combinations of these are the basic points in a region.
+   $word = shift @loc;
+   if ($word eq 'middle' || $word eq 'center') {
+      $basepoint = 'center';
+      $word = shift @loc;
+   } elsif ($word eq 'top') {
+       $basepoint = 'top';
+       $word = shift @loc;
+       if ($word eq 'left') {
+          $basepoint = 'topleft';
+          $word = shift @loc;
+       } elsif ($word eq 'right') {
+          $basepoint = 'topright';
+          $word = shift @loc;
+       } elsif ($word eq 'middle') {
+          $word = shift @loc;
+       }
+   } elsif ($word eq 'bottom') {
+       $basepoint = 'bottom';
+       $word = shift @loc;
+       if ($word eq 'left') {
+          $basepoint = 'bottomleft';
+          $word = shift @loc;
+       } elsif ($word eq 'right') {
+          $basepoint = 'bottomright';
+          $word = shift @loc;
+       } elsif ($word eq 'middle') {
+          $word = shift @loc;
+       }
+   } elsif ($word eq 'left') {
+       $basepoint = 'left';
+       $word = shift @loc;
+       if ($word eq 'side') {
+          $word = shift @loc;
+       }
+   } elsif ($word eq 'right') {
+       $basepoint = 'right';
+       $word = shift @loc;
+       if ($word eq 'side') {
+          $word = shift @loc;
+       }
+   } elsif ($word eq 'between') { # Between *will* take two points and use the midpoint.  Later.  This whole function is wrong for that.
+   } else {
+       $basepoint = $word;
+       $word = shift @loc;
+   }
+
+   my $region = $context;  # Default region is local region, i.e. local context.
+   my $x_translate = 0;    # This will be modified if another region is being used.
+   my $y_translate = 0;
+   if ($word eq 'of') { # We're referring to another region with our basic point, not this one.  Handle it later.
+      $word = shift @loc;
+      # $region = find the region;
+      # $x_translate = whatever difference between regions, same for y_translate;
+      $word = shift @loc;
+   }
+
+   # So we have the region and the base point within it.  Let's go fer it.
+   if ($basepoint eq 'center') {
+      $x = $x_translate + xml_attrval ($region, 'width') / 2;
+      $y = $y_translate + xml_attrval ($region, 'height') / 2;
+   } elsif ($basepoint eq 'top') {
+      $x = $x_translate + xml_attrval ($region, 'width') / 2;
+      $y = $y_translate;
+   } elsif ($basepoint eq 'topleft') {
+      $x = $x_translate;
+      $y = $y_translate;
+   } elsif ($basepoint eq 'topright') {
+      $x = $x_translate + xml_attrval ($region, 'width');
+      $y = $y_translate;
+   } elsif ($basepoint eq 'left') {
+      $x = $x_translate;
+      $y = $y_translate + xml_attrval ($region, 'height') / 2;
+   } elsif ($basepoint eq 'right') {
+      $x = $x_translate + xml_attrval ($region, 'width');
+      $y = $y_translate + xml_attrval ($region, 'height') / 2;
+   } elsif ($basepoint eq 'bottomleft') {
+      $x = $x_translate;
+      $y = $y_translate + xml_attrval ($region, 'height');
+   } elsif ($basepoint eq 'bottom') {
+      $x = $x_translate + xml_attrval ($region, 'width') / 2;
+      $y = $y_translate + xml_attrval ($region, 'height');
+   } elsif ($basepoint eq 'bottomright') {
+      $x = $x_translate + xml_attrval ($region, 'width');
+      $y = $y_translate + xml_attrval ($region, 'height');
+   } else {
+      # Look up the point in the given region.  If not found, go up to the region's parent, and so on.
+      ($x, $y) = lookup_point ($basepoint, $region);
+   }
+
+   # Now we can *modify* the point we've found, using up, down, left, right, and maybe other stuff later.
+   if ($word ne '') {
+      ($x, $y) = move_point ($x, $y, $region, join (' ', $word, @loc));
+   }
+
+   return ($x, $y);
+}
+</pre></td></tr></table>
+
+Now the <code>lookup_point</code> routine to find a named point in the region.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub lookup_point {
+   my ($point, $region, $x_translate, $y_translate) = @_;
+   $x_translate = 0 if !$x_translate;
+   $y_translate = 0 if !$y_translate;
+
+   my $x = xml_attrval ($region, 'width') / 2;
+   my $y = xml_attrval ($region, 'height') / 2;
+
+   my $elem;
+   foreach $elem (xml_elements ($region)) {
+      next if $$elem{name} ne 'point';
+      if (xml_attrval ($elem, 'name') eq $point) {
+         $x = $x_translate + xml_attrval ($elem, 'rel-x');
+         $y = $y_translate + xml_attrval ($elem, 'rel-y');
+         return ($x, $y);
+      }
+   }
+
+   my $parent = $$elem{parent};
+   if ($$parent{name} eq 'cartoon') { return ($x, $y); }
+   return lookup_point ($point, $parent, 0 - xml_attrval ($region, 'rel-x'), 0 - xml_attrval ($region, 'rel-y'));
+}
+</pre></td></tr></table>
+Yeah.  That should work.
+<p></p>
+<i>January 3, 2001</i><br>
+So I mentioned above that the <code>modify_character</code> function is also going in here -- that's because it
+resembles all the foregoing so much.  Basically, what it does it allow the metacartoonist to specify pieces of a visible
+character by name, and override various aspects of the pieces after the fact.  Note that this might be foolhardy -- what if
+modification of a large entity's size means that locations of its subentities need to change?  Right now I can't think of
+a good way to find out what subentities have been determined at runtime (and are thus subject to modification propagation)
+and which ones were specified explicitly (and thus probably shouldn't be modified unless explicitly.)  Ah well.  I suppose
+the time will come when I'll make sense of that.
+<p></p>
+On second thought, the way I'm doing this doesn't make any sense, because if I move a named point, for instance, things
+which depend on it won't be affected, and that doesn't work.  Later maybe I'll think of a better way of doing things; for
+now, I guess I'll just stick with very explicitly and rigidly specified modifications.  Sigh.
+<p></p>
+So here goes:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub modify_character {
+   my ($character, $mod) = @_;
+
+   my $piece;
+   my $target;
+   foreach $piece (xml_elements ($mod)) {
+      my $mode = xml_attrval ($piece, 'mode');
+      $mode = 'add' if $mode eq '';
+
+      $target = xml_search_first ($character, $$piece{name}, 'name', xml_attrval ($piece, 'name'));
+
+      if (!$target &amp;&amp; ($mode eq 'add')) {
+         $target = xml_create ($$piece{name});
+         foreach $attr (@{$$piece{attrs}}) {
+            xml_set ($target, $attr, xml_attrval ($piece, $attr));
+         }
+         xml_append ($character, $target);
+         drawing_parameterize ($target, $character, '');
+         next;
+      }
+      if ($target &amp;&amp; $mode eq 'suppress') {
+         $$target{name} = 'suppressed-' . $$target{name};
+         next;
+      }
+
+      next unless $target;
+
+      @consumed = ('name', 'type', 'mode');
+
+      if (xml_attrval ($target, 'type') eq 'ellipse') {
+         if (xml_attrval ($piece, 'center') ne '') {
+            push @consumed, 'center';
+            $x = xml_attrval ($target, 'rel-x');
+            $y = xml_attrval ($target, 'rel-y');
+            ($x, $y) = move_point ($x, $y, $character, xml_attrval ($piece, 'center'));
+            xml_set ($target, 'rel-x', $x);
+            xml_set ($target, 'rel-y', $y);
+         }
+         if (xml_attrval ($piece, 'size') ne '') {
+            push @consumed, 'size';
+            xml_set ($target, 'height', modify_scalar (xml_attrval ($target, 'height'), xml_attrval ($piece, 'size')));
+            xml_set ($target, 'width',  modify_scalar (xml_attrval ($target, 'width'),  xml_attrval ($piece, 'size')));
+         }
+         if (xml_attrval ($piece, 'width') ne '') {
+            push @consumed, 'width';
+            xml_set ($target, 'width',  modify_scalar (xml_attrval ($target, 'width'),  xml_attrval ($piece, 'width')));
+         }
+         if (xml_attrval ($piece, 'height') ne '') {
+            push @consumed, 'height';
+            xml_set ($target, 'height', modify_scalar (xml_attrval ($target, 'height'), xml_attrval ($piece, 'height')));
+         }
+      }
+      elsif (xml_attrval ($target, 'type') eq 'line') {
+         if (xml_attrval ($piece, 'start') ne '') {
+            push @consumed, 'start';
+            $x = xml_attrval ($target, 'start-x');
+            $y = xml_attrval ($target, 'start-y');
+            ($x, $y) = move_point ($x, $y, $character, xml_attrval ($piece, 'start'));
+            xml_set ($target, 'start-x', $x);
+            xml_set ($target, 'start-y', $y);
+         }
+         if (xml_attrval ($piece, 'end') ne '') {
+            push @consumed, 'end';
+            $x = xml_attrval ($target, 'end-x');
+            $y = xml_attrval ($target, 'end-y');
+            ($x, $y) = move_point ($x, $y, $character, xml_attrval ($piece, 'end'));
+            xml_set ($target, 'end-x', $x);
+            xml_set ($target, 'end-y', $y);
+         }
+      }
+
+      # Now mop up any other attributes that the modifying entry has.  (Jan. 7, 2001)
+      foreach $attr (@{$$piece{attrs}}) {
+         next if grep { $_ eq $attr } @consumed;
+         xml_set ($target, $attr, xml_attrval ($piece, $attr));
+      }
+
+      if ($mode eq 'recalc') {
+         drawing_parameterize ($target, $$target{parent}, 'recalc');
+      }
+   }
+}
+</pre></td></tr></table>
+
+So to make that work, we need <code>move_point</code> and <code>modify_scalar</code>.  Note that <code>move_point</code>
+will be useful for rewriting our initial point finder, as it will be able to consume point modifiers like "down 10".
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub move_point {
+   my ($x, $y, $context, $modifier) = @_;
+   my @mod = split /\s+/, $modifier;
+
+   my $width = xml_attrval ($context, 'width');
+   $width = 100 if !$width;
+   my $height = xml_attrval ($context, 'height');
+   $height = 100 if !$height;
+
+   my $word = shift @mod;
+   if ($word eq 'down') {
+      $word = shift @mod;
+      $y += $word * $height / 100;
+   } elsif ($word eq 'up') {
+      $word = shift @mod;
+      $y -= $word * $height / 100;
+   } elsif ($word eq 'left') {
+      $word = shift @mod;
+      $x -= $word * $width / 100;
+   } elsif ($word eq 'right') {
+      $word = shift @mod;
+      $x += $word * $width / 100;
+   }
+
+   if (@mod) {
+      return move_point ($x, $y, $context, join (' ', @mod));
+   }
+   return ($x, $y);
+}
+</pre></td></tr></table>
+
+And scalar modification is easy, too.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub modify_scalar {
+   my ($val, $modifier) = @_;
+
+   if ($modifier =~ /%$/) {
+      $modifier =~ s/%$//;
+      $val = $val * $modifier / 100;
+   }
+
+   return $val;
+}
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001-2007, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation prepared using <a href="http://www.vivtek.com/lpml.html">LPML</a>.
+Try literate programming.  You'll like it.
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</font></td></tr></table>
+</center>
+</body></html>

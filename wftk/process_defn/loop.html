@@ -1,0 +1,207 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Process definition -- iteration</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Process definition: iteration</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/process_defn.html>process&nbsp;definition</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+The iteration construct is based on a presentation by Charles T. Zahn
+in 1974, which Donald Knuth described in a paper in the same year and republished in
+his book <i>Literate Programming</i> in 1992.  It's a very general loop structure which
+covers "plain old" loops as well, so that we get a lot of freedom in building loops without
+having to write much code to interpret them.
+<p>
+The whole thing is based on the <i>situation</i>.  The situation is basically a named
+break, and after the loop you write handlers which process the situations generated.  This
+avoids the common problem of, say, a for loop with a break -- when you exit the loop, you
+commonly test the loop index to see whether it's within the bounds; if it is, you know the
+loop exited via the break, and not by simply running through the whole range of the index.
+This results in code that's hard to understand, sometimes.  But it gets worse when you have
+two or more breaks.  Then you have you declare and set a flag to determine which break was
+actually hit.
+<p>
+Well, this iteration construct pretty much does that for you.  Here's how it
+works:<br>
+<code>
+&nbsp;&nbsp;&lt;sequence repeat&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;...<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;situation name="sit1"&gt;&lt;/situation&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;...<br>
+&nbsp;&nbsp;&lt;/sequence&gt;<br>
+&nbsp;&nbsp;&lt;handle situation="sit1"&gt;...&lt;/handle&gt;<br>
+</code>
+First, notice that there is no special loop tag -- we don't need one.  We simply tack a
+"repeat" qualifier onto a sequence or parallel tag, and that makes the block repeat until
+a situation occurs.  The situation breaks out of the sequence, and is handled afterwards.
+We know exactly what the situation is, by the name used.  We can have multiple
+breaks and we know which one was invoked.  We don't need a declaration anywhere, and we're
+not cluttering our value sheet up with values that are used only internally.
+<p>
+So all we need are the situation and handle tags:<br><code>
+&nbsp;&nbsp;&lt;situation name="name"&gt;...&lt;/situation&gt;<br></code>
+The contents of a situation tag are parameters to be used by the handler.<br><code>
+&nbsp;&nbsp;&lt;handle situation="name"&gt;...&lt;/handle&gt;<br></code>
+And the contents of the handle tag are of course the code blocks to be executed when that
+situation applies.
+<p>
+The situation tag can be placed in a sequence or a parallel block.  If it's in a sequence,
+it breaks immediately and no further sequential actions will be taken.  If in a parallel,
+since all the actions are started simultaneously, we obviously can't stop processing things
+that are already started; so all the
+actions will run to completion, synchronize at the end of the block, and the block will
+then terminate and the handler will be invoked.  Note that a non-repeating sequence can be
+terminated with a situation perfectly naturally, but a non-repeating parallel block with a
+situation will run in exactly the same way as one without a situation.  The only difference
+is that you can use the situation as a flag, so that the appropriate handler will run.
+<p>
+If no handler is provided immediately following the block in which a situation occurs, then
+the parent block is terminated with that situation, and so on until the situation does have
+a handler.  This provides a neat solution to the problem of how to break nested loops.
+<p>
+Something else we'll need for loops is an index variable.  The index variable simply counts
+the number of times we've been around the loop, and we can name it whatever we like.  The 
+syntax for this is <code>&lt;sequence repeat index="i"&gt;</code>, which makes an index
+variable named <i>i</i>.  This is a pretty lightweight substitute for a <i>for</i> loop,
+but it should be enough.
+<p>
+Finally, I'm toying with the idea of providing nonbreaking situations.  These would be analogous
+to flags and would provide a dandy way to flag completion of particular segments of a block.
+Since parallelism will make it possible for multiple situations to be activated at once
+anyway (thus making it necessary to maintain a list of situations active) I might as well
+exploit that mechanism.  So <code>&lt;situation break=no&gt;</code> would signify that.
+Handlers should then be logically invoked in reverse order of situation creation.  Thus the
+creation of a situation pushes the situation onto a stack.
+<p>
+The objection will probably be raised that this design is too complicated.  However, it's
+really easier than having separate for and while loops, for instance, because there is
+less to parse and to keep track of.  And we really do need iteration to do nearly anything
+outside of toy problems.  The inclusion of parameters with the situation is more complicated
+than absolutely necessary, so the prototype probably won't have parameters on situations.
+It may turn out to be more than we need anyway.  We'll see.
+<p>
+<i>Bibliography and extraneous note</i><br>
+Knuth, Donald.  <i>Literate Programming</i>.  CLSI, Stanford, 1992.<br>
+Knuth, Donald.  <u>Structured Programming with <b>go to</b> statements</u>.  In <i>Literate
+Programming</i> but originally published in <i>Computing Surveys</i> <b>6</b> (December 1974),
+pp. 261-301.<br>
+Zahn, Charles T.  <u>A control structure for natural top-down structured programming</u>
+presented at Symposium for Programming Languages, Paris, 1974.<p>
+It's interesting that work like this, done in the early 70's, was completely ignored by
+subsequent language development.  The problem was that Algol and Pascal had already been
+developed.  C was based on those, leaving no particular motivation to look at new structures.
+And then of course in the 80's, coming a little out of left field, object-oriented programming
+was the leading movement, and the programming structures available to the programmer
+actually <i>writing</i> the object methods was based on C, and again new constructs were
+uninteresting.
+<p>
+Read Knuth's article for an interesting exploration of different ways of handling the goto
+problem, especially in regards to loops.
+<p>
+<i>Addendum (2/23/00)</i><br>
+As I was working on the <a href=ecomm_defn.html>e-commerce scenario</a> it became obvious that
+this iteration construct was a little <i>too<i> simple, so I augmented it with two additional
+modifiers: <code>foreach</code> denotes a pseudovariable which takes on all the values in
+<code>values</code>, where <code>values</code> is a list construct.  This allows, for
+instance, parallel iteration across rows of a query, which was what I needed for the e-commerce
+scenario.  A simple numeric iteration was of no use to me there, and in fact I found that
+<i>none</i> of my scenarios needed numeric iteration.  Go figure.
+<p>
+So the <code>values</code> modifier pretty much implies <code>repeat</code>, with the
+consequence that when the iteration runs out of values, it stops without any condition
+holding.  However, open-ended iteration (repeat without values) will come in handy, so the
+<code>repeat</code> modifier will stay.
+<p>
+A <code>values</code> modifier without a <code>foreach</code> still makes sense, but there
+is no way to refer to the current value.  You can also include both <code>foreach</code>
+and <code>index</code> modifiers; the index will simply maintain a count of the values
+used up so far.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

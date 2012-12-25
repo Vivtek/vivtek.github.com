@@ -1,0 +1,40 @@
+<html><head><title>use wftk: Perl wrapper for wftk</title></head>
+<body>
+<h2>use wftk: Perl wrapper for wftk</h2>
+<center>
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+Testing stuff here.
+<br><br>
+<a name="xml1">
+<i>Testing basic XML api port</i><br>
+First test.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>print "1..1\n";
+
+use wftk::XML;
+$s = wftk::XML::xml_create ("test");
+$back = wftk::XML::xml_string ($s);
+if ($back eq "&lt;test/>") {
+  print ("ok 1\n");
+} else {
+  print ("fail 1\n");
+}
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,49 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk: list XML</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk: list XML</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="index.html">wftk programmer's guide home</a> ]
+<hr>
+
+<h3>Lists</h3>
+
+Lists, and by extension queries, are represented rather simply in the wftk: they consist of an 
+XML element of type "list" which contains any number of arbitrary elements as contents.  A query
+is performed by creating a list structure (using <a href="xmlapi/index.html#create">xml_create</a>),
+possibly setting some attributes to restrict the search, and passing it to the appropriate wftk
+function.  The library will perform your query (for example, for the tasks active in a given process)
+and will add elements to the list which represent the result set.
+<p>
+
+The list structure is thus very much like a RecordSet in the Microsoft world.
+<p>
+
+To read the contents of a list structure, iterate along it using <a href="xmlapi/index.html#iter">xml_firstelem
+and xml_nextelem</a>.
+
+<h3>Example</h3>
+A typical list is a list of tasks returned by <a href="task.html#wftk_task_list">wftk_task_list</a>.  It
+might look like this (except that I've indented it conveniently, which the wftk won't do):
+<pre>
+&lt;list process="proc104"&gt;
+  &lt;task id="4" user="bob" label="Process application" role="Tech Support"/&gt;
+  &lt;task id="6" user="sue" label="Check consistency" role="Purchasing"/&gt;
+&lt;/list&gt;
+</pre>
+
+Simple.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

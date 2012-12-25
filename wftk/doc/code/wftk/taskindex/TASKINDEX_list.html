@@ -1,0 +1,543 @@
+<html><head><title>TASKINDEX adaptor: list</title></head>
+<body>
+<h2>TASKINDEX adaptor: list</h2>
+<hr>
+<p></p>
+The list TASKINDEX adaptor, of course, is the long-awaited integration of task indexing into the repository manager.
+To be perfectly honest, since the repository manager was developed to replace the dsrep, pdrep, and taskindex
+adaptor classes with coherent data management code, it's not at all certain there will be any real reason to
+build taskindex adaptors any more.  Hopefully not.  The whole class is an inelegant kludge I ended up regretting.
+But hey -- if you find something useful here, tell me.  It'll be good for a laugh.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include &lt;string.h>
+#include "repmgr.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+
+   "insert",
+   "select",
+   "update",
+   "delete",
+   "colget",
+   "colput",
+   "xmlget",
+   "xmlput",
+
+   "procnew",
+   "procdel",
+   "procget",
+   "procput",
+   "proclist",
+   "proccomplete",
+   "procerror",
+
+   "tasknew",
+   "taskdel",
+   "taskget",
+   "taskput",
+   "tasklist",
+   "taskcomplete",
+   "taskreject",
+
+   "reqnew",
+   "reqdel",
+   "reqget",
+   "reqput",
+   "reqlist",
+   "reqaccept",
+   "reqdecline"
+};
+
+XML * TASKINDEX_list_init (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_free (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_info (WFTK_ADAPTOR * ad, va_list args);
+
+XML * TASKINDEX_list_insert (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_select (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_update (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_delete (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_colget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_colput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_xmlget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_xmlput (WFTK_ADAPTOR * ad, va_list args);
+
+XML * TASKINDEX_list_procnew (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_procdel (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_procget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_procput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_proclist (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_proccomplete (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_procerror (WFTK_ADAPTOR * ad, va_list args);
+
+XML * TASKINDEX_list_tasknew (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_taskdel (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_taskget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_taskput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_tasklist (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_taskcomplete (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_taskreject (WFTK_ADAPTOR * ad, va_list args);
+
+XML * TASKINDEX_list_reqnew (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_reqdel (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_reqget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_reqput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_reqlist (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_reqaccept (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_list_reqdecline (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   TASKINDEX_list_init,
+   TASKINDEX_list_free,
+   TASKINDEX_list_info,
+
+   TASKINDEX_list_insert,
+   TASKINDEX_list_select,
+   TASKINDEX_list_update,
+   TASKINDEX_list_delete,
+   TASKINDEX_list_colget,
+   TASKINDEX_list_colput,
+   TASKINDEX_list_xmlget,
+   TASKINDEX_list_xmlput,
+
+   TASKINDEX_list_procnew,
+   TASKINDEX_list_procdel,
+   TASKINDEX_list_procget,
+   TASKINDEX_list_procput,
+   TASKINDEX_list_proclist,
+   TASKINDEX_list_proccomplete,
+   TASKINDEX_list_procerror,
+
+   TASKINDEX_list_tasknew,
+   TASKINDEX_list_taskdel,
+   TASKINDEX_list_taskget,
+   TASKINDEX_list_taskput,
+   TASKINDEX_list_tasklist,
+   TASKINDEX_list_taskcomplete,
+   TASKINDEX_list_taskreject,
+
+   TASKINDEX_list_reqnew,
+   TASKINDEX_list_reqdel,
+   TASKINDEX_list_reqget,
+   TASKINDEX_list_reqput,
+   TASKINDEX_list_reqlist,
+   TASKINDEX_list_reqaccept,
+   TASKINDEX_list_reqdecline
+};
+
+static struct wftk_adaptor_info _TASKINDEX_list_info =
+{
+   32,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct wftk_adaptor_info * TASKINDEX_list_get_info ()
+{
+   return &amp; _TASKINDEX_list_info;
+}
+</pre></td></tr></table>
+
+As with most of the _list adaptors, initialization is pretty straightforward.  In fact, it's pretty much identical to
+the others.  The repository manager does all the work of talking to the data source, so there's not much left for us
+to do except make sure that the datasource is actually there.
+<p></p>
+The default task index for the repository manager is _tasks.  Other lists might be used as well, but it's by no means
+certain that would be a good idea, as the repository manager will force the _tasks list to be configured to support workflow,
+whereas other lists aren't guaranteed to be correct.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_list_init (WFTK_ADAPTOR * ad, va_list args) {
+   const char * parms;
+   XML * mark;
+
+   parms = xml_attrval (ad->parms, "parm");
+   if (!*parms) parms = "";
+
+   if (*parms) {
+      mark = repos_defn (ad->session, parms);
+      if (!mark) xml_setf (ad->parms, "error", "List '%s' is not defined in the repository.", parms);
+      xml_setf (ad->parms, "spec", "list:%s", parms);
+      return NULL;
+   }
+
+   xml_set (ad->parms, "list", "_tasks");
+   xml_set (ad->parms, "spec", "list:_tasks");
+
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+Freeing the adaptor is nothing in particular.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_list_free (WFTK_ADAPTOR * ad, va_list args) { return NULL; }
+</pre></td></tr></table>
+
+Info is also straightforward, as always.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_list_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "taskindex");
+   xml_set (info, "name", "list");
+   xml_set (info, "ver", "1.1.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+
+One of the noticeable kludges of the the erstwhile TASKINDEX adaptor class is that instead of just sticking to indexing
+tasks, it also exposes database functionality for use by DSREP_database.  This was not a good decision, in retrospect,
+and it was one of the irritants that motivated me to produce the repmgr in the first place.  Which is all a long way
+of saying that all the database functionality exposure functions in the TASKINDEX_list adaptor are dummies.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_list_insert (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * TASKINDEX_list_delete (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * TASKINDEX_list_update (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * TASKINDEX_list_select (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * TASKINDEX_list_xmlput (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * TASKINDEX_list_xmlget (WFTK_ADAPTOR * ad, va_list args) { return NULL;      }
+XML * TASKINDEX_list_colput (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * TASKINDEX_list_colget (WFTK_ADAPTOR * ad, va_list args) { return NULL;      }
+</pre></td></tr></table>
+
+More dummies follow.  The repository manager has no need to use the taskindex to index processes, as processes
+are lists and the repository manager will index them perfectly well itself.  No need to complicate things.
+So everything to do with processes is also a dummy.  (This adaptor is turning out to be simpler than I thought.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_list_procnew (WFTK_ADAPTOR * ad, va_list args) { return NULL; }
+XML * TASKINDEX_list_procdel (WFTK_ADAPTOR * ad, va_list args) { return NULL; }
+XML * TASKINDEX_list_procget (WFTK_ADAPTOR * ad, va_list args) { return NULL; }
+XML * TASKINDEX_list_procput (WFTK_ADAPTOR * ad, va_list args) { return NULL; }
+XML * TASKINDEX_list_proclist (WFTK_ADAPTOR * ad, va_list args) { return NULL; /* TODO: is this really the right thing to do? */ }
+XML * TASKINDEX_list_proccomplete (WFTK_ADAPTOR * ad, va_list args) { return NULL; }
+XML * TASKINDEX_list_procerror (WFTK_ADAPTOR * ad, va_list args) { return NULL; }
+</pre></td></tr></table>
+
+
+OK, now for tasks.  Oops.  These aren't dummies -- I really have to code something!
+
+<p></p>
+In this initial repmgr task-storage adaptor, tasks are stored in two separate lists: _tasks stores a full object for each task, allowing
+the attachment of subtasks, state workflow, and so forth, i.e. the treatment of tasks as fully capable general objects.  The _tasks list
+has a global ID.  Since, however, workflow needs to look up tasks by process and proc-internal ID a lot, we also run a separate task index
+in _taskindex.  The repository manager will take care of writing to _taskindex when _tasks is modified, but at the moment it's not very good
+at using indices to retrieve information, so we're going to read from it explicitly in this adaptor.  That might change later (but then, there's
+probably not much reason to change it.)
+<p></p>
+So tasks are just entries in a list that gets some special treatment.  This list has (at least) the following fields:
+<ul>
+<li>key: unique key of the task
+<li>list: list of object to which the task pertains
+<li>obj: key of object to which the task pertains
+<li>id: task ID within the object
+<li>state: state of the task (active, complete, or request, along with arbitrary ones defined by the list defn)
+<li>label: label of the task
+<li>role: role the task belongs to
+<li>user: user the task is assigned to
+</ul>
+Additional fields would be defined for must-precede kinds of relationships, scheduling,
+and so forth, but those would be the province of additional code.  As far as workflow is concerned, the above are all we look at.
+All of these are also mirrored in _taskindex.  Any additional fields aren't (by default).
+
+<p></p>
+Originally, I had intended to allow tasks to be stored in multiple lists.  But it doesn't make much sense.  So (barring further genius-level
+insight on my part) each repository will simply <i>always</i> have a single task list called "_tasks".
+
+<p></p>
+So let's get down to business.  When we create a new task entry, we have to index it as well.  <i>June 3</i>: actually, the repository
+manager does this for us.  This adaptor is getting thinner as I think task handling through better.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * _TASKINDEX_list_tasknew_w_status (WFTK_ADAPTOR * ad, va_list args, char * status);
+XML * TASKINDEX_list_tasknew (WFTK_ADAPTOR * ad, va_list args) { return _TASKINDEX_list_tasknew_w_status (ad, args, "active"); }
+XML * _TASKINDEX_list_tasknew_w_status (WFTK_ADAPTOR * ad, va_list args, char * status)
+{
+   XML * task = (XML *) 0;
+
+   if (args) task = va_arg (args, XML *);
+   if (!task) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   xmlobj_set (task, NULL, "state", status);
+   repos_add (ad->session, "_tasks", task);
+
+   return (NULL);  /* Was returning task, which caused the task to be freed.  That seems wrong.  Cost me three days hard debugging, anyway. */
+}
+</pre></td></tr></table>
+
+Deletion is next in the canonical list, and so let's look at it.  Deletion of a task must also clean up its taskindex entry.  Note that if
+the task is not process-bound we use its global ID for its index entry as well (this still guarantees uniqueness).
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_list_taskdel (WFTK_ADAPTOR * ad, va_list args) {
+   char *process;
+   char *id;
+   XML * s;
+   XML * index;
+
+   if (args) process = va_arg (args, char *);
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   if (process) { /* Here we need to look up using _taskindex. */
+      s = xml_create ("s");
+      xml_setf (s, "key", "%s~%s", process, id);
+      index = repos_get (ad->session, "_taskindex", xml_attrval (s, "key"));
+      if (index) {
+         id = xmlobj_get (index, NULL, "key");
+         repos_del (ad->session, "_tasks", id);
+         free (id);
+         repos_del (ad->session, "_taskindex", xml_attrval (s, "key"));
+      }
+      xml_free (s);
+   } else {
+      repos_del (ad->session, "_tasks",     id);
+      repos_del (ad->session, "_taskindex", id);
+   }
+
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+Retrieval of a task is quite simple: we just retrieve the <i>indexed version</i> of the task.
+(At the moment, this isn't even used anywhere.  But this is a reasonable expectation regardless.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_list_taskget (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+   XML * index;
+   XML * s;
+   char * indexid;
+   char * id;
+
+   if (args) task = va_arg (args, XML *);
+   if (!task) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   indexid = xmlobj_format (task, NULL, "[list]~[obj]~[id]");
+   xmlobj_fixkey (indexid);
+   if (!strcmp (indexid, "~~")) {
+      free (indexid);
+      indexid = xmlobj_get (task, NULL, "key");
+   }
+
+   index = repos_get (ad->session, "_taskindex", indexid);
+   xml_copyinto (task, index);
+   free (indexid);
+   xml_free (index);
+   return task;
+}
+</pre></td></tr></table>
+
+Putting a task is also just a matter of modifying the task object (via merge, not replacement)
+and then the taskindex object as well.  All the fancy write-through of fields into the parent
+object is handled by the wftk core.  <i>June 3</i>: on second thought, repos_mod needs to mirror
+writes to the _taskindex; otherwise, we can't modify a task object directly and have the change
+indexed, which is obviously wrong.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_list_taskput (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+   XML * parm;
+   XML * index;
+   char * indexid;
+   char * id;
+
+   if (args) task = va_arg (args, XML *);
+   if (!task) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   indexid = xmlobj_format (task, NULL, "[list]~[obj]~[id]");
+   xmlobj_fixkey (indexid);
+   if (!strcmp (indexid, "~~")) {
+      free (indexid);
+      indexid = xmlobj_get (task, NULL, "key");
+   }
+
+   index = repos_get (ad->session, "_taskindex", indexid);
+
+   if (index) {
+      id = xmlobj_get (index, NULL, "key");
+      repos_merge (ad->session, "_tasks_really", task, id);
+      free (id);
+   } else {
+      repos_merge (ad->session, "_tasks_really", task, NULL);
+   }
+
+   free (indexid);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+Listing works from the _taskindex list.  That adaptor will either handle things, or it won't.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_list_tasklist (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = (XML *) 0;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list specified.");
+      return (XML *) 0;
+   }
+
+   xml_set (list, "id", "_taskindex");
+   repos_list (ad->session, list);
+   
+   return list;
+}
+</pre></td></tr></table>
+
+Task completion and rejection are just status changes.  So they're relatively easy (we treat them as merges.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * _TASKINDEX_list_taskupdate (WFTK_ADAPTOR * ad, va_list args, XML * merge);
+XML * TASKINDEX_list_taskcomplete (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * merge = xml_create ("record");
+   XML * ret;
+
+   xmlobj_set (merge, NULL, "state", "complete");
+   xmlobj_set (merge, NULL, "completed", "!now");
+
+   ret = _TASKINDEX_list_taskupdate (ad, args, merge);
+   xml_free (merge);
+   return (ret);
+}
+
+XML * _TASKINDEX_list_taskupdate (WFTK_ADAPTOR * ad, va_list args, XML * merge)
+{
+   char * process = NULL;
+   char * id = NULL;
+   XML * s;
+   XML * index;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) process = "";
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+
+   if (process) {
+      s = xml_create ("s");
+      xml_setf (s, "key", "%s~%s", process, id);
+      index = repos_get (ad->session, "_taskindex", xml_attrval (s, "key"));
+      if (index) {
+         id = xmlobj_get (index, NULL, "key");
+         repos_merge (ad->session, "_tasks_really", merge, id);
+         free (id);
+      }
+      xml_free (s);
+   } else {
+      repos_merge (ad->session, "_tasks_really", merge, id);
+   }
+
+   return (XML *) 0;
+}
+XML * TASKINDEX_list_taskreject (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * merge = xml_create ("record");
+   XML * ret;
+
+   xmlobj_set (merge, NULL, "state", "rejected");
+
+   ret = _TASKINDEX_list_taskupdate (ad, args, merge);
+   xml_free (merge);
+   return (ret);
+}
+</pre></td></tr></table>
+
+
+
+
+
+
+
+
+
+And then requests.  Requests, as far as the task index is concerned, are just funny tasks with state=request.  If a non-process-bound
+request is accepted, it turns into an active task.  If a datasheet request is accepted, or any request is declined, it's just deleted.
+Pretty simple, actually.  In fact, most of the request functionality <i>is</i> the task functionality.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_list_reqnew (WFTK_ADAPTOR * ad, va_list args) { return _TASKINDEX_list_tasknew_w_status (ad, args, "request"); }
+XML * TASKINDEX_list_reqdel (WFTK_ADAPTOR * ad, va_list args) { return TASKINDEX_list_taskdel (ad, args); }
+XML * TASKINDEX_list_reqget (WFTK_ADAPTOR * ad, va_list args) { return TASKINDEX_list_taskget (ad, args); }
+XML * TASKINDEX_list_reqput (WFTK_ADAPTOR * ad, va_list args) { return TASKINDEX_list_taskput (ad, args); }
+XML * TASKINDEX_list_reqlist (WFTK_ADAPTOR * ad, va_list args) { return TASKINDEX_list_tasklist (ad, args); } /* TODO: this needs state=request to work */
+XML * TASKINDEX_list_reqaccept (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * merge = xml_create ("record");
+   XML * ret;
+
+   xmlobj_set (merge, NULL, "state", "active");
+
+   ret = _TASKINDEX_list_taskupdate (ad, args, merge);
+   xml_free (merge);
+   return (ret);
+}
+XML * TASKINDEX_list_reqdecline (WFTK_ADAPTOR * ad, va_list args) { return TASKINDEX_list_taskdel (ad, args); }
+</pre></td></tr></table>
+
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

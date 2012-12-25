@@ -1,0 +1,201 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>xqmf: Metrics framework with no pronounceable acronym</TITLE>
+   <META NAME="description" CONTENT="XQMF is an open-source software metrics framework.  It is useful for keeping track of maintainability and complexity of projects.">
+   <META NAME="Keywords" CONTENT="software measurement, software metrics, quality, open source, CVS">
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td colspan=2>
+<center><h2><u>xqmf</u>: Extensible quality metrics framework</h2>
+[&nbsp;<a href=#news>what's&nbsp;new</a>&nbsp;]
+[&nbsp;<a href=#project>project</a>&nbsp;]
+[&nbsp;<a href=http://www.vivtek.com/xqmf/discuss.pl>discuss</a>&nbsp;]
+[&nbsp;<a href=http://www.vivtek.com/xqmf/xqmf.zip>download</a>&nbsp;]
+<br>
+</center></td></tr>
+
+<tr><td colspan=2>
+<center><table width=60%><tr><td><font face=arial>
+Software maintainability (or lack thereof) has paradoxically been one
+of the criticisms levelled against open-source projects.  As no-one is
+responsible for patrolling code quality, it can get rather opaque.  So
+maintainability is impaired (never mind that closed-source isn't
+maintainable by definition, we don't want logic here, it's a holy war.)
+<br><br>
+At any rate, that's gonna change.  The metrics framework you see
+a-birthing will make it easy to set up an ongoing code quality monitoring
+process, which is integrated with CVS if you use it, and which is
+integrated with an optional database, so that reporting will be easy.
+You saw it here first.
+</font>
+</td></tr></table>
+</center>
+</td></tr>
+
+<tr><td valign=top>
+<center>
+<a name=news>
+<font face=arial><b>STATUS / NEWS</b></font>
+</td><td>
+<table cellpadding=0 cellspacing=0>
+ <tr>
+  <td valign=top>
+   <i>9 June 2000</i>
+  </td><td>
+   Created this page and thereby officially started development.
+  </td>
+ </tr>
+ <tr>
+  <td valign=top>
+   <i>30 July 2000</i>
+  </td><td>
+   OK, so now maybe things are really underway.  I have the first milestone complete: a framework implementation which
+   writes to XML files and to an optional database.  Of course, the initial metric is simply lines of code...
+   Anyway, <a href=xqmf.zip>here's where you can download what I've got so far</a>.  Give it a shot and tell me what
+   you think.
+  </td>
+ </tr>
+ 
+ <tr><td colspan=2>&nbsp;</td></tr>
+</table>
+</td></tr>
+
+<tr><td valign=top>
+<center>
+<a name=project>
+<font face=arial><p><b>PROJECT</b></font><br>
+<a href=/linkout/www.sourcexchange.com><img src=/images/sXc.jpg border=0></a>
+</td><td>
+  This is the second project I've done with sXc.  As you might be able
+  to tell from that, I think the sXc model is a good one.  This project
+  is sponsored by Collab.net itself (the people who run sXc).
+  <p>&nbsp;
+</td></tr>
+
+<tr><td valign=top>
+<center>
+<a name=overview>
+<font face=arial><p><b><a href=overview.html>OVERVIEW DOCUMENTATION</a></b></font>
+</td><td>
+  (7/30/00) This page outlines:<ul>
+   <li> The basic concepts I'm using in this project.
+   <li> How I'm implementing them.
+   <li> How to write an analyzer.
+   <li> (Eventually) how to submit an analyzer to our metric repository.
+  </ul>
+  Actually, this had been written for quite some time but I'm just now updating it with information pertaining
+  to actual development, and uploading it.
+</td></tr>
+
+<tr><td valign=top>
+<center>
+<a name=framework>
+<font face=arial><p><b><a href=framework.html>FRAMEWORK CODE</a></b></font>
+</td><td>
+  (6/9/00) The code for the basic framework should be forthcoming
+  very soon (like today or tomorrow), along with the first metric:
+  lines of code by file.  (Not like that's hard to write.)  The
+  framework itself will be a Perl script.
+  <br>
+  (7/30/00) OK, I should learn never to actually say things like "tomorrow" -- it
+  just jinxes me.  But now I <i>do</i> have framework code.  It's not literate
+  yet, just plain old Perl.  But it's not very long, so you should be able to cope.
+  Later I'll pretty it up.
+</td></tr>
+
+<tr><td valign=top>
+<center>
+<a name=framework>
+<font face=arial><p><b><a href=nextstep.html>THE NEXT STEPS</a></b></font>
+</td><td>
+  (7/30/00) An overview of what lies ahead for the project.
+</td></tr>
+
+
+</table>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

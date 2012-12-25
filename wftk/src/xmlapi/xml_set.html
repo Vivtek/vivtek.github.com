@@ -1,0 +1,224 @@
+<html><head><title>xmlapi: Working with attributes: xml_set and xml_attrval</title></head>
+<body>
+<h2>Working with attributes: xml_set and xml_attrval</h2>
+<center>
+[&nbsp;<a href="xml_loc.html">Previous: Bookmarking things: xml_loc and xml_getloc</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_create.html">Next: xml_create: Creating an empty element</a>&nbsp;]
+</center>
+
+<hr>
+Setting an attribute is a little complicated.  If the attribute is already represented in the
+element's attribute list, then we free the old value, allocate space for a copy of the new
+value, and copy it.  Otherwise we allocate a new attribute holder and copy both name and
+value into it.
+<p></p>
+This function comes in three varieties for your viewing pleasure: <code>xml_set</code> just uses <code>strdup</code>
+to make a copy of the value you give it, <code>xml_setf</code> treats its second parameter as a <code>printf</code>-style
+format and builds the value, and <code>xml_setnum</code> takes an integer and formats it into a string.  As you can imagine,
+I did <code>xml_setnum</code> before I even thought of <code>xml_setf</code>.
+<p></p>
+Oh -- another variant.  The <code>xml_set_nodup</code> function can be used to take over management of a malloc'd string buffer.
+It works exactly the same as <code>xml_set</code> except that the string is not duplicated.  Useful for when you save locations
+obtained from <code>xml_getlocbuf</code>, for instance.
+<p></p>
+<i>July 18, 2001</i>: Yet another variant: xml_attrcat tacks strings onto the
+end of already-set attribute values.  It uses valsize to grow the allocated buffer accordingly.
+This is support for a better version of wftk_value_interpret, by the way.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void xml_set (XML * xml, const char * name, const char * value)
+{
+   ATTR * attr;
+
+   attr = xml->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) break;
+      attr = attr->next;
+   }
+
+   if (attr) {
+      FREE ((void *) (attr->value));
+      attr->value = strdup (value);
+      attr->valsize = strlen (value) + 1;
+      return;
+   }
+
+   if (xml->attrs == NULL) {
+      attr = (ATTR *) MALLOC (sizeof (struct _attr));
+      xml->attrs = attr;
+   } else {
+      attr = xml->attrs;
+      while (attr->next) attr = attr->next;
+      attr->next = (ATTR *) MALLOC (sizeof (struct _attr));
+      attr = attr->next;
+   }
+
+   attr->next = NULL;
+   attr->name = strdup (name);
+   attr->value = strdup (value);
+   attr->valsize = strlen (value + 1);
+}
+XMLAPI void xml_setf (XML * xml, const char *name, const char *format, ...)
+{
+   ATTR * attr;
+   va_list args;
+   char * value;
+
+   va_start (args, format);
+   value = _xml_string_format (format, args);
+   va_end (args);
+
+   attr = xml->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) break;
+      attr = attr->next;
+   }
+
+   if (attr) {
+      FREE ((void *) (attr->value));
+      attr->value = value;
+      attr->valsize = 0;
+      return;
+   }
+
+   if (xml->attrs == NULL) {
+      attr = (ATTR *) MALLOC (sizeof (struct _attr));
+      xml->attrs = attr;
+   } else {
+      attr = xml->attrs;
+      while (attr->next) attr = attr->next;
+      attr->next = (ATTR *) MALLOC (sizeof (struct _attr));
+      attr = attr->next;
+   }
+
+   attr->next = NULL;
+   attr->name = strdup (name);
+   attr->value = value;
+   attr->valsize = 0;
+}
+XMLAPI void xml_setnum (XML * xml, const char *attr, int number)
+{
+   char buf[sizeof(number) * 3 + 1];
+   sprintf (buf, "%d", number);
+   xml_set (xml, attr, buf);
+}
+XMLAPI void xml_set_nodup (XML * xml, const char * name, char * value)
+{
+   ATTR * attr;
+
+   attr = xml->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) break;
+      attr = attr->next;
+   }
+
+   if (attr) {
+      FREE ((void *) (attr->value));
+      attr->value = value;
+      attr->valsize = 0;
+      return;
+   }
+
+   if (xml->attrs == NULL) {
+      attr = (ATTR *) MALLOC (sizeof (struct _attr));
+      xml->attrs = attr;
+   } else {
+      attr = xml->attrs;
+      while (attr->next) attr = attr->next;
+      attr->next = (ATTR *) MALLOC (sizeof (struct _attr));
+      attr = attr->next;
+   }
+
+   attr->next = NULL;
+   attr->name = strdup (name);
+   attr->value = value;
+   attr->valsize = 0;
+}
+XMLAPI void xml_attrcat (XML * xml, const char * name, const char * value)
+{
+   ATTR * attr;
+   int len;
+
+   attr = xml->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) break;
+      attr = attr->next;
+   }
+
+   if (!attr) xml_set (xml, name, value);
+   else {
+      len = strlen (attr->value) + strlen (value) + 1;
+      if (len > attr->valsize) {
+         while (attr->valsize < len) attr->valsize += 256;
+         attr->value = (char *) REALLOC (attr->value, attr->valsize);
+      }
+      strcat (attr->value, value);
+   }
+}
+XMLAPI void xml_attrncat (XML * xml, const char * name, const char * value, int length)
+{
+   ATTR * attr;
+   int len;
+
+   attr = xml->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) break;
+      attr = attr->next;
+   }
+
+   if (!attr) {
+      xml_set (xml, name, "");
+      attr = xml->attrs;
+      while (attr) {
+         if (!strcmp (attr->name, name)) break;
+         attr = attr->next;
+      }
+   }
+   if (!attr) return; /* This is probably a dumb way to handle low-mem situations, but... */
+
+   len = strlen (attr->value) + length + 1;
+   if (len > attr->valsize) {
+      while (attr->valsize < len) attr->valsize += 256;
+      attr->value = (char *) REALLOC (attr->value, attr->valsize);
+   }
+   strncat (attr->value, value, length);
+}
+</pre></td></tr></table>
+
+Retrieving a value, on the other hand, is rather simple.  So simple, in fact, that we only have
+two different ways to do it (instead of six or more).
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI const char * xml_attrval (XML * element,const char * name)
+{
+   ATTR * attr;
+
+   attr = element->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) return (attr->value);
+      attr = attr->next;
+   }
+   return ("");
+}
+XMLAPI int xml_attrvalnum (XML * element, const char * name)
+{
+   return (atoi (xml_attrval (element, name)));
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_loc.html">Previous: Bookmarking things: xml_loc and xml_getloc</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_create.html">Next: xml_create: Creating an empty element</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

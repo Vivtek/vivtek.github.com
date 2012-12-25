@@ -1,0 +1,52 @@
+<html><head><title>xmlapi: xml_append: Inserting elements</title></head>
+<body>
+<h2>xml_append: Inserting elements</h2>
+<center>
+[&nbsp;<a href="xml_prepend.html">Previous: xml_prepend: Inserting elements</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_replace.html">Next: xml_replace and xml_replacecontent: Replacing an element with another.</a>&nbsp;]
+</center>
+
+<hr>
+It's <i>ap</i>pending where we run into problems.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void xml_append (XML * parent, XML * child)
+{
+   ELEMENTLIST * list;
+   ELEMENTLIST * ch;
+
+   child->parent = parent;
+
+   list = (ELEMENTLIST *) malloc (sizeof(struct _list));
+   list->element = child;
+   list->prev = NULL;
+   list->next = NULL;
+
+   if (parent->children == NULL) {
+      parent->children = list;
+      return;
+   }
+
+   ch = parent->children;
+   while (ch->next != NULL) ch = ch->next;
+   list->prev = ch;
+   ch->next = list;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_prepend.html">Previous: xml_prepend: Inserting elements</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_replace.html">Next: xml_replace and xml_replacecontent: Replacing an element with another.</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

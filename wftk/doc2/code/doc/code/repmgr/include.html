@@ -1,0 +1,123 @@
+<html><head><title>Repository manager: #include file for interface</title></head>
+<body>
+<h2>#include file for interface</h2>
+<center>
+[&nbsp;<a href="wrapper.html">Previous: Command-line interface</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="library.html">Next: Repository management library</a>&nbsp;]
+</center>
+
+<hr>
+The interface will become more and more ramified as I get more comfortable with the library, of course;
+for now it's pretty simple, though.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifndef REPMGR_H
+#define REPMGR_H
+#include <stdio.h>
+#include <string.h>
+#ifndef XMLAPI_H
+#include "xmlobj.h"
+#endif
+#include "wftk_session.h"
+
+#ifndef WFTK_EXPORT
+#define WFTK_EXPORT
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+WFTK_EXPORT XML * repos_open (XML * repository, WFTK_MODULE_LOOKUP_FN * lookup_function);
+WFTK_EXPORT XML * repos_open_file (const char * repfile, WFTK_MODULE_LOOKUP_FN * lookup_function);
+WFTK_EXPORT void  repos_close     (XML * repository);
+
+WFTK_EXPORT int   repos_publish_all   (XML * repository);
+WFTK_EXPORT int   repos_publish_list  (XML * repository, const char * list);
+WFTK_EXPORT int   repos_publish_obj   (XML * repository, const char * list, const char * key);
+WFTK_EXPORT int   repos_publish_pages (XML * repository);
+WFTK_EXPORT int   repos_publish_page  (XML * repository, const char * page);
+
+WFTK_EXPORT int   repos_create  (XML * repository, const char * list);
+WFTK_EXPORT int   repos_drop    (XML * repository, const char * list);
+WFTK_EXPORT XML * repos_defn    (XML * repository, const char * list);
+WFTK_EXPORT XML * repos_form    (XML * repository, const char * list, const char * key, const char * mode);
+WFTK_EXPORT XML * repos_form_direct (XML * repository, XML * list, const char * key, const char * mode);
+WFTK_EXPORT int   repos_define  (XML * repository, const char * list, XML * defn);
+
+WFTK_EXPORT int   repos_add   (XML * repository, const char * list, XML * object);
+WFTK_EXPORT int   repos_del   (XML * repository, const char * list, const char * key);
+WFTK_EXPORT int   repos_mod   (XML * repository, const char * list, XML * object, const char * key);
+WFTK_EXPORT int   repos_merge (XML * repository, const char * list, XML * object, const char * key);
+
+WFTK_EXPORT int   repos_report_start  (XML * repository, const char * list, const char * name);
+WFTK_EXPORT int   repos_report_close  (XML * repository, const char * report);
+WFTK_EXPORT int   repos_report_cancel (XML * repository, const char * report);
+WFTK_EXPORT int   repos_report_log    (XML * repository, const char * report, const char * format, ...);
+WFTK_EXPORT XML * repos_report_getobj (XML * repository, const char * report);
+
+WFTK_EXPORT XML * repos_list       (XML * repository, XML * list);
+WFTK_EXPORT XML * repos_list_first (XML * repository, XML * list);
+WFTK_EXPORT XML * repos_list_next  (XML * repository, XML * list);
+WFTK_EXPORT XML * repos_changes    (XML * repository, XML * list, const char *date, const char * list_id);
+WFTK_EXPORT XML * repos_snapshot   (XML * repository, const char * list_id);
+
+WFTK_EXPORT XML * repos_user_auth    (XML * repository, const char * user_id, const char * passwd);
+WFTK_EXPORT XML * repos_user_ingroup (XML * repository, const char * user_id, const char * group_id);
+
+WFTK_EXPORT char * repos_context_save (XML * repository);
+WFTK_EXPORT XML  * repos_context_switch (XML * repository, const char * context_id);
+WFTK_EXPORT char * repos_context_get  (XML * repository, const char * name);
+WFTK_EXPORT void   repos_context_set  (XML * repository, const char * name, const char * value);
+
+WFTK_EXPORT const char * repos_getkey (XML * repository, const char * list, XML * object);
+
+WFTK_EXPORT XML * repos_get     (XML * repository, const char * list, const char * key);
+
+WFTK_EXPORT char * repos_getvalue (XML * repository, const char * list, const char * key, const char * field);
+WFTK_EXPORT void   repos_setvalue (XML * repository, const char * list, const char * key, const char * field, const char * value);
+
+WFTK_EXPORT XML * repos_get_layout (XML * repository, const char * layout_id);
+WFTK_EXPORT void  repos_xml_free (XML * xml); /* Used to reduce DLL dependencies. */
+
+WFTK_EXPORT int   repos_push     (XML * repository, const char *list_id, const char *remote_id);
+WFTK_EXPORT int   repos_push_all (XML * repository, const char *list_id, const char *remote_id);
+WFTK_EXPORT int   repos_pull     (XML * repository, const char *list_id, const char *remote_id, XML * changelist);
+WFTK_EXPORT int   repos_pull_all (XML * repository, const char *list_id, const char *remote_id, XML * changelist);
+WFTK_EXPORT int   repos_synch    (XML * repository, const char *list_id, const char *remote_id, XML * changelist);
+WFTK_EXPORT int   repos_mark_time (XML * repository, const char *attr);
+
+WFTK_EXPORT XML * repos_attach_open (XML * repository, const char *list_id, const char * key, const char * field, const char * filename);
+WFTK_EXPORT int   repos_attach_write (void * buf, size_t size, size_t number, XML * handle);
+WFTK_EXPORT int   repos_attach_cancel (XML * handle);
+WFTK_EXPORT int   repos_attach_close (XML * repository, XML * handle);
+WFTK_EXPORT int   repos_attach (XML * repository, const char * list_id, const char * key, const char * field, const char * filename, FILE * incoming);
+
+WFTK_EXPORT XML * repos_retrieve_open (XML * repository, const char * list_id, const char * key, const char * field);
+WFTK_EXPORT int   repos_retrieve_read (void * buf, size_t size, size_t number, XML * handle);
+WFTK_EXPORT int   repos_retrieve_close (XML * handle);
+WFTK_EXPORT int   repos_retrieve (XML * repository, const char * list_id, const char * key, const char * field, FILE * outgoing);
+WFTK_EXPORT XML * repos_retrieve_load (XML * repository, const char * list_id, const char * key, const char * field);
+
+#ifdef __cplusplus
+}
+#endif
+#endif
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wrapper.html">Previous: Command-line interface</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="library.html">Next: Repository management library</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,221 @@
+<html><head><title>AOLserver/wftk e-commerce app: wftk_ecomm_addorder: adding line items to a shopping cart order</title></head>
+<body>
+<h2>wftk_ecomm_addorder: adding line items to a shopping cart order</h2>
+<center>
+[&nbsp;<a href="wftk_ecomm.html">Previous: AOLserver/wftk e-commerce application</a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm_calculate.html">Next: wftk_ecomm_calculate: calculating total values, taxes, etc.</a>&nbsp;]
+</center>
+
+<hr>
+
+To add an order line, we go through a lot of detailed work.  Roughly, we do the following:
+<ul>
+<li>Find customer from incoming customer-id field, if present.
+<li>Get cookie info if present. (Our cookies allow better tracking of open orders.)
+<li>Get one-off information about the order, IP, and so on.
+<li>If there is no order id given, then:<ul>
+  <li>Look for the current customer's open order (perhaps indexed by cookie) if there is one.
+  <li>Create a new order if necessary</ul>
+
+<li>Read line information (part, qty, etc.) and create or augment the appropriate line.
+<li>Read and set up payment information
+<li>Gather any "left-over" fields for registration-type items.
+</ul>
+Once all that's done, we save the order, then hand off to the display, in the general case.  However,
+for maximum flexibility we also have a response-type we can choose, which include forwarding to another
+page, back to the catalog page (perhaps with a Javascript open-cart box somewhere on the page), or
+a dumbed-down debugging presentation to ensure that incoming information is correct.
+
+<p></p>
+Let's get down to business, then.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc wftk_ecomm_addorder {conn merchant} {
+   set form [ns_conn form]
+   if {$form == ""} { return [wftk_ecomm_error $conn NO_FORM $merchant] }
+
+   # Open merchant's repository.
+   set repos [wftk repository [nsv_get wftk_ecomm basedir]/$merchant/merchant.defn]
+
+   # Collect general order information.
+   set customer [string tolower [ns_set get $form customer-id]]
+   set newcustomer [string tolower [ns_set get $form newcustomer]]
+   set cookie-info [wftk_ecomm_cookie $conn $repos $customer $merchant]
+   set response [ns_set get $form response-type]
+   set catalog [ns_set get $form catalog]
+
+   if {$catalog == ""} {
+      # TODO: choose a default catalog among multiple catalogs
+      set catalog items
+   }
+   if {$catalog == ""} {
+      return [wftk_ecomm_error $conn NO_CAT_SPECIFIED $merchant]
+   }
+
+   set ip [ns_conn peeraddr]
+   set order_key [ns_set get $form order-id]
+   #set cookie [lindex $cookie_info 0]
+   #set last_customer [lindex $cookie_info 1]
+   set url [ns_set get [ns_conn headers] Referer]
+   set remark [ns_set get $form remark]
+
+   # Retrieve existing open order or create a new one.
+   # TODO: retrieve existing open order via cookie info.
+   set order [wftk gethandle]
+   xml create $order record
+   xmlobj set $order "" customer ""
+   xmlobj set $order "" cookie ""
+   xmlobj set $order "" ip [ns_conn peeraddr]
+
+   set lines_list [wftk gethandle]
+   xml create $lines_list list
+   xml set $lines_list id lines
+   xml append_pretty $order $lines_list
+
+   set line_item [wftk gethandle]
+
+   if {[ns_set get $form payment.type] != ""} {
+      xmlobj set $order "" payment.type [ns_set get $form payment.type]
+   }
+
+   # Retrieve customer info, or create temporary customer.
+   # TODO: customer recognition (via cookie/open cart, or login, in which latter case we'll want to stash order info somewhere.)
+
+   # Collect information about item to be added to order line(s), consisting of
+   # - "directly meaningful" fields about quantity, etc.
+   # - "everything else" -- useful for registration-type things or options.
+   set d "$"
+   set size [ns_set size $form]
+   set fields 0
+   set regitem ""
+   set regdetails [ns_set create]
+   for {set i 0} {$i < $size} {incr i} {
+      set key [ns_set key $form $i]
+      set val [ns_set value $form $i]
+      if {[string match quantity.* $key] ||
+          [string match quantity$d* $key] ||
+          ![string compare quantity $key]} {
+         if [string compare quantity $key] {
+            set item [string range $key 9 end]
+            set quantity $val
+         } else {
+            set item $val
+            set quantity 1
+         }
+
+         # Scan for any options or explicit amounts to attach to the current item.
+         set fullitem $item
+         set amount ""
+         set itemremark ""
+         for {set j 0} {$j < $size} {incr j} {
+            set subkey [ns_set key $form $j]
+
+            if {$subkey == "option.$item" || $subkey == "option$d$item"} {
+               append fullpart [ns_set value $form $j]
+            }
+            if {$subkey == "amount.$item" || $subkey == "amount$d$item"} {
+               set amount [ns_set value $form $j]
+            }
+            if {$subkey == "remark.$item" || $subkey == "remark$d$item"} {
+               set itemremark [ns_set value $form $j]
+            }
+         }
+
+         # Add line item to order.
+         xml create $line_item item
+         xmlobj set $line_item "" part $fullitem
+         xmlobj set $line_item "" catalog $catalog
+         xmlobj set $line_item "" status active
+         xmlobj set $line_item "" url $url
+         xmlobj set $line_item "" qty $quantity
+         xmlobj set $line_item "" customer_remarks $itemremark
+         xmlobj set $line_item "" amount $amount
+         xml append_pretty $lines_list $line_item
+         incr fields
+
+         # The first item in the form gets all "extra registration" fields.
+         if {$regitem == "" &amp;&amp; $quantity > 0} { set regitem $fullitem }
+      } else {
+         # Not a quantity field, so let's see if it's an extra field.
+         switch -glob -- [ns_set key $form $i] {
+            password* -
+            newcustomer -
+            customer-id -
+            order-id -
+            remark -
+            catalog -
+            payment.* -
+            response-type -
+            option.* -
+            remark.* -
+            amount$* -
+            amount.* { }
+            default {
+               ns_set put $regdetails $key $val
+            }
+         }
+      }
+   }
+
+   # If any registration info, add it to the appropriate item.
+   # TODO: a lot of this logic should really be handled by xmlobj,
+   # with the proposed fancy list-addressing mechanics.
+   set size [ns_set size $regdetails]
+   if {$size > 0} {
+      xml firstelem $line_item $lines_list
+      while {[xml is_element $line_item]} {
+         if {[xmlobj get $line_item "" part] == $regitem} { break }
+         xml nextelem $line_item $line_item
+      }
+      if [xml is_element $line_item] {
+         for {set i 0} {$i < $size} {incr i} {
+            xmlobj set $line_item "" [ns_set key $regdetails $i] [ns_set value $regdetails $i]
+         }
+      }
+   }
+
+   # (Re)calculate order totals.
+   wftk_ecomm_calculate $repos $order
+
+   # Add/update order in order list.
+   if {$order_key == ""} {
+      set order_key [wftk addxml $repos orders $order]
+   } else {
+      wftk modxml $repos orders $order $order_key
+   }
+
+   # Finally, free handles and build the response requested.
+   if {$response == "debug"} { set order_xml [xml string $order] }
+   wftk release $line_item
+   wftk release $lines_list
+   wftk release $order
+
+   if {$response == ""} { set response order }
+   switch $response {
+      order { return [vv_returnredirect $conn [nsv_get wftk_ecomm hostname][nsv_get wftk_ecomm order_url($merchant)]?order=$order_key] }
+      debug {
+        return [ns_return 200 text/plain "
+Order received/modified; current order now:
+[xml string $order]
+"]
+      }
+      redirect { return [vv_returnredirect $conn $url] }
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_ecomm.html">Previous: AOLserver/wftk e-commerce application</a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm_calculate.html">Next: wftk_ecomm_calculate: calculating total values, taxes, etc.</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,83 @@
+<html><head><title>Project name: File layout</title></head>
+<body>
+<h2>File layout</h2>
+<center>
+[&nbsp;<a href="index.html">Previous: The procdef manager</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The procdef manager</a>&nbsp;]
+[&nbsp;<a href="list.html">Next: list: Displaying the procdef directory</a>&nbsp;]
+</center>
+
+<hr>
+Well, this is the third component of the wftk, so my environment is getting a little more mature.
+I've moved XML manipulation into a <a href="http://www.vivtek.com/xml/xmlapi/">library</a> to
+cut down on overhead; eventually I'll redo the core engine to use that library instead of simply
+defining everything right in the same file.
+<p></p>
+But this program is really simple.  It takes a command on the command line, and it returns some
+HTML representing some facet of the procdef repository (or some individual procdef in the
+repository.)  A separate program will serve to make changes to procdefs and such; this one
+will just show things.  (I think.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include <stdio.h>
+#include <string.h>
+#include "xmlapi.h"
+#include "localdefs.h"
+
+XML * directory;
+XML * item;
+XML * version;
+XML * datasheet;
+
+FILE * file;
+
+char sbuf[1024];
+char * mark;
+char * format;
+XML  * xml;
+XML  * holder;
+
+int main (int argc, char *argv[])
+{
+   if (argc &lt; 2) {
+      printf ("Usage: pdm &lt;command> [&lt;args>]\n");
+      return (1);
+   }
+   directory = NULL;
+   item = NULL;
+   version = NULL;
+
+   if (!strcmp (argv[1], "list") ) {
+      <i>See <a href="list.html">list: Displaying the procdef directory</a></i>
+   } else if (!strcmp (argv[1], "starter")) {
+      <i>See <a href="starter.html">starter: Displaying a process start form</a></i>
+   } else if (!strcmp (argv[1], "datasheet")) {
+      <i>See <a href="datasheet.html">datasheet: Generating a blank datasheet</a></i>
+   } else if (!strcmp (argv[1], "editor")) {
+      <i>See <a href="editor.html">editor: Displaying an edit form</a></i>
+   } else {
+      printf ("Unknown command '%s'\n", argv[1]);
+   }
+
+   if (directory) xml_free (directory);
+   if (item) xml_free (item);
+   if (version) xml_free (version);
+
+   return (0);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="index.html">Previous: The procdef manager</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href="list.html">Next: list: Displaying the procdef directory</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

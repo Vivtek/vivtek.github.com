@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: To do</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table>
+<tr><td><img src=logo.png>
+<td valign=top>
+<center>
+<h3>wftk: Overview</h3>
+[ <a href=index.html>documentation home</a> ]
+</center>
+</td></tr></table>
+
+<h3>Where is wftk going?</h3>
+Everything on this list will eventually get done.  If you need a particular set of functionality, I'm available, my rates are reasonable,
+and you will be enshrined in the documentation as a Really Cool Person or Organization.
+
+<ul>
+<li><b><a href="code/java/index.html">wftk-j</a></b><br>
+    I've had a number of people ask when I can port the wftk to native <b>Java</b>.  I'd love to, but I have a family to feed.  I would like
+    to propose a <b>wftk-j consortium</b> to help me with the design and maybe all together chip in enough money to keep me off the streets for
+    a month or so.  If you're interested, <a href="mailto:wftk@vivtek.com">tell me.</a>  If I get a couple of takers, I'll create a wftk-j
+    consortium page with everybody's names, a timeline, progress reports, and so forth.  I think J2EE would benefit from a solid free
+    workflow engine.  Note: even if everyone is completely silent on this
+    topic, I will be starting on wftk-j in <strike>July</strike> September 2002.  Or whenever.
+<li><b>Repository manager</b><br>
+    As noted <a href="overview.html">elsewhere</a>, the wftk consists (or will consist) of two central
+    modules.  The initial v1.0 release includes only one of those, the core engine.  The second is the
+    repository manager, and in July 2002 I will first release the repmgr-v1.0 properly, then I will
+    begin work on wftk-v1.5, which will be the integration of the two systems.  The repository manager
+    is slick because it represents the other end of what I think of as the "action/data" dichotomy --
+    while the wftk core organizes action rather nicely, it doesn't do a good job organizing data and
+    datasources.  The repository manager addresses that weakness.
+<li><b>Standards</b><br>
+    There are several examples of workflow definition languages out there.  Yes, I do hope to address every last one of them eventually.
+    <ul>
+    <li><b>WfMC interfaces</b><br>
+        The WfMC (Workflow Management Coalition) is an industry standards group which has defined five interfaces for interacting with
+        workflow engines.  There is as yet no reference implementation.  It would be cool if wftk could be that implementation.
+        The interfaces are: (1) procdef definition language, (2) workflow client app API, (3) application invocation, (4) interfaces
+        to other workflow engines, and (5) admin and monitoring.  Not a one of these is particularly horrible to implement, and I'd love
+        to do it.  If you're interested in seeing progress on this front, please leave a suitcase with a large number of unmarked small
+        bills under the bridge.  Tell no-one, and don't involve law enforcement.
+    <li>IBM's definitions<br>
+        IBM has recently been making noises on the workflow front, and has come up with some XML definition languages which look
+        attractive: <b>WSFL (Web Services Flow Language)</b>, for instance, would be nice to implement.
+    <li><b>BPML</b><br>
+        (Business Process Modelling Language) -- same story, different people.  I'd like to do something good here, too.  In general,
+        note that getting wftk to work with a different procdef language is essentially a matter of writing a new pdrep adaptor, one
+        which compiles the language in question and arrives at the wftk's procdef language to present to the core engine.  Simple.
+    </ul>
+<li>Scripting wrappers<br>
+    By "scripting wrapper" I mean an API wrapper for a scripting language.  The Python wrapper, for instance, works well already.  The
+    Tcl wrapper works under AOLserver and is still not 100% stable, it seems at the moment.
+    <ul>
+    <li><b>Perl: use Workflow;</b>
+    <li><b>C++</b> classes (and documentation of classes already designed)
+    <li><b>C#/.NET</b>
+    <li><b>Visual Basic</b>/ActiveX object<br>
+        I used to do a lot of VB work, and I've just recently had a couple of inquiries about using wftk from VB.  Good idea!  I'm
+        now working on it.
+    <li><b>PHP</b>: started<br>
+        Somehow, although I had even started doing the research on a PHP module, I forgot it on this
+        page.  But now I have a motivator for PHP!  So this will be moving forwards in priority.
+    </ul>
+<li>User-interface wrappers<br>
+    One thing obviously and egregiously missing from the wftk at present is any form of a UI beyond the command-line tools.
+    <ul>
+    <li><b>WebDAV</b><br>
+        A WebDAV wrapper (based on the Medusa server) has been proposed as a dandy way to make information visible from
+        the repository manager.  WebDAV is really neat.  Consider the ability to save a file from (say) Photoshop or Word,
+        at which point a workflow process is automatically started.  How cool is <i>that</i>?  I love this job.
+    <li><b>PHP</b><br>
+        PHP might actually turn out to be the first UI implementation, actually.  Didn't expect <i>that</i>.
+    <li><b>Popup</b> window UI<br>
+        The popup UI is a lightweight C++/wxWindows app which fronts for the repository manager (and thus indirectly for the wftk).
+    <li><b>Zope</b><br>
+        The Python wrapper is reaching maturity, which means Zope should be easy to do.
+    <li><b>Medusa</b><br>
+        Medusa rocks.  Thanks to Jo Meder, I'm nearly finished with a Medusa-based repmgr server.
+    <li>CGI/C
+    <li><b>AOLserver</b><br>
+        The Tcl/AOLserver wrapper is also reaching maturity and is in use at one production facility for data maintenance.  This
+        application uses the repmgr wrapper.
+    <li><b>IIS/ASP</b><br>
+        With or without a .NET wrapper, an IIS UI would be a useful thing.
+    <li><b>ColdFusion</b><br>
+        This requires the C++ classes above.
+    <li><b>CVS</b><br>
+        Making CVS workflow-aware is something I've been thinking about for a while but just
+        haven't had the time to deal with; CVS is not the friendliest piece of software to work with.
+        (Of course, once it's all set up it just blends into the background, which is why nobody
+        spends much time changing it -- you don't even remember it's there.)  The idea here is that
+        I could grant person X an update privilege level which, instead of being simply "update",
+        would take each update set that the user performed, call it all a single patch set, and then
+        create an approval process for the patch set based on that user's group (i.e. different
+        users could have different approval processes.)  Until approval succeeds, that user would see
+        their own changes in the repository, but nobody else would (this would require some sort of
+        module finagling or something; I don't know yet).  Once approval was granted (possibly of a
+        <i>changed</i> patch set) then everybody else would see those changes upon checkout.  Note
+        that the submitting user needs to get a set of updates if their patch set gets changed during
+        approval.  Finally, if the patch set is flat-out rejected, then the user needs to get a set
+        of changes to return the code to its pre-changed state.  A real can of worms, but boy would
+        it ever be convenient!
+    </ul>
+<li>Applications/Demos/Scenarios<br>
+    I don't think I need to belabor this point.  <a href="examples/index.html">See the examples list.</a>  All those systems should
+    be built as demo systems.
+<li>Adaptors<br>
+    There are plenty of places to extend functionality without sweeping changes in the wftk (that's the whole point).  And there
+    are some reorganization tasks to be done.  Some of the tasks I list here won't make a lot of sense unless you're pretty familiar
+    with the code.
+  <ul>
+  <li>Rebuild dsrep and pdrep adaptors on the list adaptor.
+  <li>Move <b>Oracle</b> database functionality to list adaptor class from dsrep class.
+  <li><b>MAPI</b> notification adaptor.
+  <li><b>Sybase</b>
+  <li><b>PostgreSQL</b><br>
+      And more interestingly, wouldn't it be great to set up wftk as a trigger handler for PostgreSQL?  A <b>workflow-aware database</b>.
+      That would be so ...  words fail me.
+  <li><b>OpenLDAP</b> for perms, users adaptors.
+  <li><b>gdbm</b> for file-system-based indexing.
+  <li>... (add your favorite here) ...<br>
+      There is no shortage of peripheral systems with which wftk should know how to interact.
+  </ul>
+</ul>
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2003 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

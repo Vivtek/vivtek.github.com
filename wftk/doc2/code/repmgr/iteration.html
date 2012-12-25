@@ -1,0 +1,419 @@
+<html><head><title>Repository manager: Iterating across list contents</title></head>
+<body>
+<h2>Iterating across list contents</h2>
+<center>
+[&nbsp;<a href="lists.html">Previous: Creating and administering lists</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="objects.html">Next: Working with individual objects</a>&nbsp;]
+</center>
+
+<hr>
+This is (of course) a front for adaptors.  List retrieval comes in two flavors, but both work from a list specifier XML that
+the caller supplies.  The first flavor takes a copy of the list specifier and adds a bunch of elements to it representing results at
+some level of complexity.  The second flavor is a true iterator; it saves a cursor and the caller may retrieve successive results.
+The first returns the (filled-in) list it got; the second returns pointers into what may be a partial list; you are guaranteed
+that the ID of the pointer records is valid; nothing else is guaranteed but may be supported later -- "first" does a "list" before
+proceeding, so any funky query stuff we define later will work just fine for it, and "next" just advances a cursor in the result list.
+
+<p></p>
+This area, and the object retrieval area, are the two points in the API at which pseudolists come into play.  Pseudolists are lists
+which are defined and used internally by the repository manager itself.  Their names begin with an underscore, and they are as follows:
+<table>
+<tr><td>_lists</td><td>The list of all lists defined in the repository.  Pseudolists are included, at least for now.</td></tr>
+<tr><td>_pages</td><td>The list of pages defined.  Each page is marked with its parent via a "parent" attribute.</td></tr>
+<tr><td>_tasks</td><td>The task list.  This is simply the list of tasks generated, both those attached to other objects, and those which stand alone.</td></tr>
+<tr><td>_todo</td><td>The to-do list.  The _todo list is the _tasks list, but filtered for tasks assigned to the current user.</td></tr>
+<tr><td>_text</td><td>The list of text pieces to be used to make pages.</td></tr>
+<tr><td>_log</td><td>The change log.  This will figure heavily in times to come, for retrieving incremental updates.</td></tr>
+<tr><td>_images</td><td>Images used by the repository's Wiki.</td></tr>
+<tr><td>_styles</td><td>Styles used by the repository's Wiki.</td></tr>
+<tr><td>_links</td><td>External links referenced by the repository's Wiki.</td></tr>
+</table>
+
+<p></p>
+<i>March 15, 2002</i>: Added the ability to look aside to a defined index for all list queries (by setting the "list-from" attribute on
+the list definition.)
+
+<p></p>
+<i>May 30, 2003</i>: Special handling for _tasks and _todo -- they actually look at _taskindex but then switch keys back to the _tasks-native
+key.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_list (XML * repository, XML * list)
+{
+   WFTK_ADAPTOR * ad;
+   const char *id = xml_attrval (list, "id");
+   XML * mark;
+   XML * mark2;
+   XML * copy;
+   XML * user;
+   const char * line;
+   const char * end;
+   char * key;
+   int count = 0;
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (sock) { /* Remote. */
+      xml_setf (sock->parms, "outgoing", "list %s\n", xml_attrval (list, "id"));
+      _repos_send (sock);
+      line = _repos_receive (sock);
+      if (*line == '-') {
+         xml_set (list, "error-state", line + 6);
+         return (list);
+      }
+      line = strchr (line, '\n') + 1;
+      while (*line == ' ') {
+         count++;
+         copy = xml_create ("record");
+         end = strchr (line, '\n');
+         if (!end) break;
+         xml_set (copy, "id", "");
+         xml_attrncat (copy, "id", line + 1, end - line - 1);
+         xml_append (list, copy);
+         line = end + 1;
+      }
+      xml_setnum (list, "count", count);
+      xml_set (sock->parms, "buffer", "");
+      return list;
+   }
+
+   if (!strcmp (id, "_todo")) {
+      user = wftk_session_getuser (repository);
+      if (user) {
+         mark = xml_create ("where");
+         xml_set (mark, "field", "user");
+         xml_set (mark, "value", xml_attrval (user, "id"));
+         xml_prepend_pretty (list, mark);
+      }
+   }
+
+   if (!strcmp (id, "_tasks") || !(strcmp (id, "_todo"))) {
+      xml_set (list, "actual-list", id);
+      xml_set (list, "id", "_taskindex");
+   } else {
+      xml_unset (list, "actual-list");
+   }
+
+   mark = NULL;
+   if (*xml_attrval (list, "id")) {
+      mark = repos_defn (repository, xml_attrval (list, "id"));
+      if (mark) {
+         xml_copyinto (list, mark);
+      }
+   }
+   if (!strcmp (id, "_taskindex") &amp;&amp; !*xml_attrval (list, "order")) xml_set (list, "order", "priority desc");
+
+   if (!strcmp (xml_attrval (list, "storage"), "here")) return list; /* An immediate mode.  Handy, eh? */
+
+   xml_set (list, "error-state", "");
+   if (!strcmp (id, "_lists")) {
+      mark = xml_firstelem (repository);
+      while (mark) {
+         if (xml_is (mark, "list") &amp;&amp; *xml_attrval (mark, "id") != '_') { /* We don't return overridden pseudolists in _lists. */
+            xml_append (list, xml_copy (mark));
+            count++;
+         }
+         mark = xml_nextelem (mark);
+      }
+      xml_setnum (list, "count", count);
+      return list;
+   }
+   if (!strcmp (id, "_pages")) {
+      mark = xml_firstelem (repository);
+      while (mark) {
+         if (xml_is (mark, "page")) {
+            xml_append (list, copy = xml_copy (mark));
+            if (xml_parent (mark) != repository) xml_set (copy, "parent", xml_attrval (xml_parent(mark), "id"));
+            count++;
+            if (xml_firstelem (mark)) {
+               mark = xml_firstelem (mark);
+               continue;
+            }
+         }
+
+         do {
+            if (xml_nextelem (mark)) {
+               mark = xml_nextelem (mark);
+               break;
+            } else {
+               mark = xml_parent (mark);
+               if (mark == repository) mark = NULL;
+               if (!mark) break;
+            }
+         } while (1);
+      }
+      xml_setnum (list, "count", count);
+      return list;
+   }
+
+   if (!mark &amp;&amp; *xml_attrval (list, "id")) {
+      xml_setf (list, "error-state", "List %s not defined in repository.", xml_attrval (list, "id"));
+      repos_log (repository, 2, 0, NULL, "repmgr", "repos_list: list %s not defined", id);
+      return (list);
+   }
+
+   /* Check for a list-from index and read from that if requested. */
+   if (*xml_attrval (list, "list-from")) {
+      mark = xml_locf (list, ".index[%s]", xml_attrval (list, "list-from"));
+      if (mark) {
+         mark = xml_copy (mark);
+         xml_replacecontent (list, xml_createtext ("\n"));
+         xml_copyinto (list, mark);
+         xml_free (mark);
+      }
+      xml_unset (list, "id");
+   }
+
+   ad = wftk_get_adaptor (repository, LIST, *xml_attrval (list, "id") ? xml_attrval (list, "id") : xml_attrval (list, "storage"));
+   if (!ad) {
+      repos_log (repository, 1, 1, NULL, "repmgr", "error while listing %s: can't find adaptor for '%s'",
+                                                   xml_attrval (list, "id"), xml_attrval (list, "storage"));
+      xml_setf (list, "error-state", "can't find adaptor for '%s'", xml_attrval (list, "storage"));
+      return NULL;
+   }
+   xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+
+   wftk_call_adaptor (ad, "query", list);
+   wftk_free_adaptor (repository, ad);
+
+   /* Clean up the result list. */
+   mark = xml_firstelem (list); mark2 = NULL;
+   while (mark) {
+      if (xml_is (mark, "field") ||
+          xml_is (mark, "where") ||
+          xml_is (mark, "index") ||
+          xml_is (mark, "state")) {
+         xml_delete_pretty (mark);
+         if (mark2) mark = mark2;
+         else       mark = xml_firstelem (list);
+      } else {
+         mark2 = mark;
+         mark = xml_nextelem (mark);
+      }
+   }
+   /*while (mark = xml_loc(list, ".where")) xml_delete (mark);
+   while (mark = xml_loc(list, ".index")) xml_delete (mark);*/
+
+   if (*xml_attrval (list, "actual-list")) {
+      xml_set (list, "id", xml_attrval (list, "actual-list"));
+      xml_unset (list, "actual-list");
+
+      if (!strcmp (xml_attrval (list, "id"), "_tasks") || !strcmp (xml_attrval (list, "id"), "_todo")) {
+         mark = xml_firstelem (list);
+         while (mark) {
+            key = xmlobj_get (mark, NULL, "key");
+            if (key) xml_set_nodup (mark, "id", key);
+            xml_set_nodup (mark, "label", xmlobj_get (mark, NULL, "label"));
+            xml_set_nodup (mark, "role",  xmlobj_get (mark, NULL, "role"));
+            xml_set_nodup (mark, "user",  xmlobj_get (mark, NULL, "user"));
+            mark = xml_nextelem (mark);
+         }
+      }
+   }
+
+   if (*xml_attrval (list, "error-state")) {
+      repos_log (repository, 2, 0, NULL, "repmgr", "repos_list %s: %s", id, xml_attrval (list, "error-state"));
+   }
+
+   return list;
+}
+/* TODO: make this work again... (it being inherently more scalable.) */
+WFTK_EXPORT XML * repos_list_first (XML * repository, XML * list)
+{
+   WFTK_ADAPTOR * ad;
+   XML * ret;
+   XML * mark;
+
+   mark = repos_defn (repository, xml_attrval (list, "id"));
+   if (mark) {
+      xml_copyinto (list, mark);
+   }
+
+   /* Check for a list-from index and read from that if requested. */
+   if (*xml_attrval (list, "list-from")) {
+      mark = xml_locf (list, ".index[%s]", xml_attrval (list, "list-from"));
+      if (mark) {
+         mark = xml_copy (mark);
+         xml_replacecontent (list, xml_createtext ("\n"));
+         xml_copyinto (list, mark);
+         xml_free (mark);
+      }
+   }
+
+   ad = wftk_get_adaptor (repository, LIST, *xml_attrval (list, "id") ? xml_attrval (list, "id") : xml_attrval (list, "storage"));
+   if (!ad) return NULL;
+   xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+
+   ret = wftk_call_adaptor (ad, "first", list);
+   wftk_free_adaptor (repository, ad);
+
+   return ret;
+}
+WFTK_EXPORT XML * repos_list_next (XML * repository, XML * list)
+{
+   WFTK_ADAPTOR * ad;
+   XML * ret;
+
+   /* On list_next, we don't need to do the index substitution because it's already been done. */
+
+   ad = wftk_get_adaptor (repository, LIST, *xml_attrval (list, "id") ? xml_attrval (list, "id") : xml_attrval (list, "storage"));
+   if (!ad) return NULL;
+   xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+
+   ret = wftk_call_adaptor (ad, "next", list);
+   wftk_free_adaptor (repository, ad);
+
+   return ret;
+}
+</pre></td></tr></table>
+
+The change log is a special set of lists defined implicitly by the repository manager.  At some point it'll be adaptor-based, but
+for the time being its requirements outstrip the list adaptor I have (LIST_localdir), so right now it's pretty hard-wired.  The
+change log reader (repos_changes) works in two modes.  The first looks for which lists have been changed since a given date.  It
+returns a list of lists with change timestamps.  The second looks for changes to a specific list after the given date, and it
+returns a list of record keys with timestamp, action taken (add, mod, or del), and the userid of the person who made the change.
+This userid is actually the first occurrence of userid in the repository manager, and really it needn't be a userid -- essentially
+it indexes a list of change sources or something.  Could be people, could be programs or reasons or organizations or webpages or whatever
+makes sense, I suppose.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_changes (XML * repository, XML * list, const char * date, const char * list_id)
+{
+   FILE * log;
+   XML * scratch = xml_create ("s");
+   XML * record = xml_create ("record");
+   char line[1024];
+   char datecopy[32];
+   int  count;
+   char * end;
+   char * mark;
+   char * mark2;
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (sock) { /* Remote. */
+      memset (datecopy, '\0', 32);
+      strncpy (datecopy, date, 31);
+      if (strlen (datecopy) > 10) datecopy[10] = 'T';
+      xml_setf (sock->parms, "outgoing", "changes %s %s\n", datecopy, list_id);
+      _repos_send (sock);
+      mark = (char *) _repos_receive (sock);
+      if (*mark == '-') {
+         xml_set (list, "error-state", mark + 6);
+         return (list);
+      }
+      mark = strchr (mark, '\n') + 1;
+      while (*mark == ' ') {
+         count++;
+         record = xml_create ("record");
+         end = strchr (mark, '\n');
+         if (!end) break;
+         strncpy (line, mark + 1, end - mark);
+         line[end - mark] = '\0';
+
+         mark = line;
+         mark2 = strchr (mark, '\t');
+         if (mark2) *mark2 = '\0';
+         xml_set (record, "action", mark);
+         if (mark2) {
+            mark = mark2 + 1;
+            mark2 = strchr (mark, '\t');
+            if (mark2) *mark2 = '\0';
+            xml_set (record, "time", mark);
+            if (mark2) {
+               mark = mark2 + 1;
+               mark2 = strchr (mark, '\t');
+               if (mark2) *mark2 = '\0';
+               xml_set (record, "user", mark);
+               if (mark2) {
+                  mark = mark2 + 1;
+                  mark2 = strchr (mark, '\n');
+                  if (mark2) *mark2 = '\0';
+                  xml_set (record, "id", mark);
+               }
+            }
+         }
+
+         xml_append (list, record);
+
+         mark = end + 1;
+      }
+      xml_setnum (list, "count", count);
+      xml_set (sock->parms, "buffer", "");
+      return list;
+   }
+
+   if (list_id) {
+      xml_setf (scratch, "f", "_log/%s.txt", list_id);
+      log = _repos_fopen (repository, xml_attrval (scratch, "f"), "r");
+      if (log) {
+         while (fgets (line, sizeof(line), log)) {
+            mark = line;
+            mark2 = strchr (mark, '\t');
+            if (mark2) *mark2 = '\0';
+            xml_set (record, "action", mark);
+            if (mark2) {
+               mark = mark2 + 1;
+               mark2 = strchr (mark, '\t');
+               if (mark2) *mark2 = '\0';
+               xml_set (record, "time", mark);
+               if (mark2) {
+                  mark = mark2 + 1;
+                  mark2 = strchr (mark, '\t');
+                  if (mark2) *mark2 = '\0';
+                  xml_set (record, "user", mark);
+                  if (mark2) {
+                     mark = mark2 + 1;
+                     mark2 = strchr (mark, '\n');
+                     if (mark2) *mark2 = '\0';
+                     xml_set (record, "id", mark);
+                  }
+               }
+            }
+
+            if (date) {
+               if (strcmp (date, xml_attrval (record, "time")) > -1) continue;
+            }
+
+            xml_append (list, xml_copy (record));
+         }
+         fclose (log);
+      }
+   } else {
+      /* Scan directory, or ask adaptor or something.  TODO: write this! */
+   }
+   xml_free (scratch);
+   xml_free (record);
+
+   return list;
+}
+</pre></td></tr></table>
+
+<i>(December 22, 2001):</i> The snapshot feature is a nifty little thing for integration with external datasources -- it asks the adaptor
+for a snapshot of the list, then it compares this snapshot with the last snapshot it stored (if any).  If changes are detected, and note
+that by using a current file date or a checksum we can detect modifications, then all the changes are logged and published.  This is a
+handy way to mark changes for synching to a remote repository, too.  (Note January 8, 2002: I haven't actually written this, though.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_snapshot (XML * repository, const char * list_id)
+{
+
+}
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="lists.html">Previous: Creating and administering lists</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="objects.html">Next: Working with individual objects</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

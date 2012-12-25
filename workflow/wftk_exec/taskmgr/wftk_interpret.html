@@ -1,0 +1,95 @@
+<html><head><title>Task manager: Interpreting the results that wftk sends back</title></head>
+<body>
+<h2>Interpreting the results that wftk sends back</h2>
+<center>
+[&nbsp;<a href="datasheet_stuff.html">Previous: Datasheet interface</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="util.html">Next: Miscellaneous utility functions</a>&nbsp;]
+</center>
+
+<hr>
+When wftk is run to start a process or to complete a task, it returns a series of lines which
+encode what should happen next.  Most important of these is what tasks to activate.  The
+<code>wftk_interpret</code> function takes a list of lines returned from the wftk core engine,
+and does the task creation and notification specified.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc wftk_interpret {db process workflow} {
+   while {[llength $workflow] > 0} {
+      set cmd [lindex $workflow 0]
+      set workflow [lrange $workflow 1 end]
+
+      switch [string range $cmd 0 0] {
+         A {
+             <i>See <a href="wftk_interpret.html#task">Starting tasks</a></i>
+         }
+         L {
+             <i>See <a href="wftk_interpret.html#alert">Handling notifications</a></i>
+         }
+         F {
+             <i>See <a href="wftk_interpret.html#complete">Completing the process</a></i>
+         }
+      }
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="task">
+<i>Starting tasks</i><br>
+Task creation, at least, is relatively straightforward.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set p [split [string range $cmd 2 end] -]
+
+set fields [list id status created]
+set values [list '[lindex $p 0]' 'active' '[now]']
+
+lappend fields process
+lappend values "'$process'"
+
+lappend fields owner
+set owner [lindex $p 1]
+if ![string compare $owner "!user"] {
+   upvar user user
+   set owner $user
+}
+lappend values '[sql_safe_string $owner]'
+
+lappend fields description
+lappend values '[sql_safe_string [join [lrange $p 2 end] -]]'
+
+set query "insert into task ("
+append query [join $fields ", "]
+append query ") values ("
+append query [join $values ", "]
+append query ")"
+
+ns_db dml $db $query
+</pre></td></tr></table>
+<br><br>
+<a name="alert">
+<i>Handling notifications</i><br>
+<br><br>
+<a name="complete">
+<i>Completing the process</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "update process set status='complete' where id='$process'"
+ns_db dml $db $query
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="datasheet_stuff.html">Previous: Datasheet interface</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="util.html">Next: Miscellaneous utility functions</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

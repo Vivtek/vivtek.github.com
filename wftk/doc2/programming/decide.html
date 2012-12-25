@@ -1,0 +1,42 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk: decisions</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk: working with decisions</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="index.html">wftk programmer's guide home</a> ]
+<hr>
+
+<h3>Decisions</h3>
+Decision calculation is probably not all that useful for the wftk client.  It's really intended for
+use by the core engine; a modified version is used by the permissions adaptor.  For details on how
+the decision XML is written and how it's reduced by the decider, see the code documentation for now.
+Later I'll put something better together.
+<p>
+<h3>Functions</h3>
+<pre>
+XML  * wftk_decide (void * session, XML * datasheet, XML * decision);
+</pre>
+
+<h3>Details</h3>
+<a name="wftk_decide"></a>
+<font size=+1>wftk_decide</font> returns <code>XML *</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>XML * decision</code>
+</blockquote>
+The actual decision structure is passed in and compressed.  If you need the structure later, copy it first!
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

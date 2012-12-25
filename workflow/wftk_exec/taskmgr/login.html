@@ -1,0 +1,29 @@
+<html>
+<head><title>Login</title></head>
+
+<body bgcolor=FFFFFF>
+<h2>(unresolved tag title)</h2>
+<hr>
+You can use this blank to select a different userid to switch to, or you can modify your
+personal information using the form below.
+<form action=login method=get>
+Userid to switch to: <input name=user value="(unresolved tag userid)">
+<input type=submit value="Click to force new login">
+</form>
+<hr>
+<form action=user method=post>
+<input type=hidden name=action value=modify>
+<input type=hidden name=user value=(unresolved tag userid)>
+<table border=0>
+<tr><td>Name</td><td><input name=name value="(unresolved tag name)"></td></tr>
+<tr><td>Password<br><font size=-1>So it ain't secure.  Sue me.</font></td>
+    <td><input name=password value="(unresolved tag password)"></td></tr>
+<tr><td>Email</td><td><input name=email value="(unresolved tag email)"></td></tr>
+<tr><td>Website</td><td><input name=website value="(unresolved tag website)"></td></tr>
+</table>
+<input type=submit value="Click to update information">
+</form>
+
+</body>
+</html>
+

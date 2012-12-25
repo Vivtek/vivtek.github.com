@@ -1,0 +1,76 @@
+<html><head><title>WFTK PDM: view: Viewing information and version history of a procdef</title></head>
+<body>
+<h2>view: Viewing information and version history of a procdef</h2>
+<center>
+[&nbsp;<a href="delete.html">Previous: delete: Deleting unnecessary versions</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The procdef manager</a>&nbsp;]
+[&nbsp;<a href="checkout.html">Next: checkout: Creating a new version</a>&nbsp;]
+</center>
+
+<hr>
+The <code>view</code> command serves as a jumping-off point for working with a procdef.  It
+displays the various versions defined over the history of the procdef, and allows you to
+check the procdef out (creating a new version.)  I guess it's logical that you should also be
+able to check versions in from this screen, but we'll see if that makes sense.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="checkout.html#load_item">Loading an item file</a></i>
+
+printf ("Content-type: text/html\n\n");
+printf ("&lt;html>&lt;head>&lt;title>Procdef %s&lt;/title>&lt;/head>\n", xml_attrval (item, "title"));
+printf ("&lt;body bgcolor=ffffff>\n");
+printf ("&lt;h2>Procdef -- '%s'&lt;/h2>Current version: %s&lt;br>Original author: %s&lt;hr>",
+        xml_attrval (item, "title"),
+        *(xml_attrval (item, "ver")) ? xml_attrval (item, "ver") : "&lt;b>none&lt;/b>",
+        xml_attrval (item, "owner"));
+
+holder = xml_loc (item, "item.description");
+if (holder) {
+   xml_writecontent (stdout, holder);
+   printf ("&lt;p>\n");
+}
+
+printf ("&lt;ul>\n");
+xml = xml_loc (item, "item.versions");
+if (xml) {
+   holder = xml_firstelem (xml);
+   while (holder) {
+      if (!strcmp (holder->name, "version")) {
+         printf ("&lt;li> &lt;a href=%s?command=edit&amp;item=%s&amp;ver=%s>Version %s&lt;/a>\n",
+                 xml_attrval (environment, "SCRIPT_NAME"), xml_attrval (query, "item"),
+                 xml_attrval (holder, "id"), xml_attrval (holder, "id"));
+         if (!strcmp (xml_attrval (holder, "id"), xml_attrval (item, "ver"))) {
+            printf (" (current)\n");
+         }
+      }
+      holder = xml_nextelem (holder);
+   }
+}
+printf ("&lt;/ul>\n");
+
+if (user_perm (current_user, "workflow", xml_attrval (query, "item"), "checkout")) {
+   printf ("&lt;form action=\"%s\" method=GET>\n", xml_attrval (environment, "SCRIPT_NAME"));
+   printf ("&lt;input type=hidden name=command value=checkout>\n");
+   printf ("&lt;input type=hidden name=item value=%s>\n", xml_attrval (query, "item"));
+   printf ("&lt;input type=submit value=\"Check out a new version\">\n");
+   printf ("&lt;/form>\n");
+}
+
+printf ("&lt;/body>&lt;/html>\n");
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="delete.html">Previous: delete: Deleting unnecessary versions</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href="checkout.html">Next: checkout: Creating a new version</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,267 @@
+<html><head><title>xmlapi: xml_string: Writing XML data to strings in memory</title></head>
+<body>
+<h2>xml_string: Writing XML data to strings in memory</h2>
+<center>
+[&nbsp;<a href="xml_write.html">Previous: xml_write: Writing XML data to disk</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_prepend.html">Next: xml_prepend: Inserting elements</a>&nbsp;]
+</center>
+
+<hr>
+<i>(March 30, 2001)</i>: It's taken me a long time to get to this in C (the Perl XMLAPI had this right from day one)
+but boy have I wanted it a lot!  It does the obvious: instead of writing the XML to a stream, it builds a malloc'd string
+buffer instead.  The caller must free the buffer.  Just as with the stream writer, we have a regular version and one which
+just writes the content of the element given (useful for retrieving the content of text-only elements.)
+<p></p>
+Just to make things easy, our functions allocate in 256-byte blocks.  Most of the work is done in the helper functions
+<code>_xml_string_tackon</code> and <code>_xml_string_append</code>.  The first takes a buffer and a string to add to it,
+and grows the buffer if necessary before appending the data.  The second does the work of moving through the XML tree
+to build the return buffer.<p></p>
+<i>(May 27, 2001)</i>: I'm extending this with an additional <code>_xml_string_format</code> call to be used in the <code>*f</code>
+functions.  And I've also included HTML versions of the string and stringcontent functions.  See the <code>xml_writehtml</code>
+implementation for a short discussion of what's different between HTML and XML writing.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>char * _xml_string_tackon (char * buffer, int * cursize, int * curptr, const char * data)
+{
+   int len;
+
+   if (!data) return (buffer);
+   if (!*data) return (buffer);
+
+   len = strlen (data);
+   if (len + *curptr + 1 > *cursize) {
+      *cursize += 256;
+      buffer = (char *) REALLOC ((void *) buffer, *cursize);
+   }
+   *curptr += len;
+   strcat (buffer, data);
+   return (buffer);
+}
+char * _xml_string_tackonn (char * buffer, int * cursize, int * curptr, const char * data, int len)
+{
+   if (!len) return (buffer);
+   if (len + *curptr + 1 > *cursize) {
+      *cursize += 256;
+      buffer = (char *) REALLOC ((void *) buffer, *cursize);
+   }
+   strncpy (buffer + *curptr, data, len);
+   *curptr += len;
+   buffer[*curptr] = '\0';
+   return (buffer);
+}
+
+char * _xml_string_format (const char * format, va_list args)
+{
+   char * buffer = (char *) MALLOC (256);
+   int cursize = 256;
+   int curptr = 0;
+   char * colon;
+   char * strarg;
+   int intarg;
+   char numbuf[sizeof (int) * 3 + 1];
+
+   while (colon = strchr (format, '%')) {
+      buffer = _xml_string_tackonn (buffer, &amp;cursize, &amp;curptr, format, colon - format);
+      format = colon;
+      format ++;
+      switch (*format) {
+         case 's':
+            strarg = va_arg (args, char *);
+            buffer = _xml_string_tackon (buffer, &amp;cursize, &amp;curptr, strarg);
+            break;
+         case 'd':
+            intarg = va_arg (args, int);
+            sprintf (numbuf, "%d", intarg);
+            buffer = _xml_string_tackon (buffer, &amp;cursize, &amp;curptr, numbuf);
+            break;
+         default:
+            buffer = _xml_string_tackonn (buffer, &amp;cursize, &amp;curptr, format, 1);
+            break;
+      }
+      format ++;
+   }
+
+   buffer = _xml_string_tackon (buffer, &amp;cursize, &amp;curptr, format);
+   return (buffer);
+}
+
+char * _xml_string_append (char * buffer, int * cursize, int * curptr, XML * xml)
+{
+   ATTR * attr;
+   ELEMENTLIST * list;
+
+   if (xml->name == NULL) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, xml->attrs->value);
+      return (buffer);
+   }
+
+   buffer = _xml_string_tackon (buffer, cursize, curptr, "&lt;");
+   buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name);
+   attr = xml->attrs;
+   while (attr != NULL) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, " ");
+      buffer = _xml_string_tackon (buffer, cursize, curptr, attr->name);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "=\"");
+      buffer = _xml_string_tackon (buffer, cursize, curptr, attr->value);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "\"");
+      attr = attr->next;
+   }
+
+   if (xml->children == NULL) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "/>");
+      return (buffer);
+   } else buffer = _xml_string_tackon (buffer, cursize, curptr, ">");
+
+   list = xml->children;
+   while (list) {
+      buffer = _xml_string_append (buffer, cursize, curptr, list->element);
+      list = list->next;
+   }
+
+   buffer = _xml_string_tackon (buffer, cursize, curptr, "&lt;/");
+   buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name);
+   buffer = _xml_string_tackon (buffer, cursize, curptr, ">");
+
+   return (buffer);
+}
+
+XMLAPI char * xml_string (XML * xml)
+{
+   char * ret;
+   int cursize;
+   int curptr;
+
+   ret = (char *) MALLOC (256);
+   *ret = '\0';
+   cursize = 256;
+   curptr = 0;
+
+   return (_xml_string_append (ret, &amp;cursize, &amp;curptr, xml));
+}
+
+
+XMLAPI char * xml_stringcontent (XML * xml)
+{
+   char * ret;
+   int cursize;
+   int curptr;
+   ELEMENTLIST * list;
+
+   ret = (char *) MALLOC (256);
+   *ret = '\0';
+   cursize = 256;
+   curptr = 0;
+
+   list = xml->children;
+   while (list) {
+      ret = _xml_string_append (ret, &amp;cursize, &amp;curptr, list->element);
+      list = list->next;
+   }
+
+   return (ret);
+}
+
+char * _xml_string_appendhtml (char * buffer, int * cursize, int * curptr, XML * xml)
+{
+   ATTR * attr;
+   ELEMENTLIST * list;
+
+   if (xml->name == NULL) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, xml->attrs->value);
+      return (buffer);
+   }
+
+   buffer = _xml_string_tackon (buffer, cursize, curptr, "&lt;");
+   buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name);
+   attr = xml->attrs;
+   while (attr != NULL) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, " ");
+      buffer = _xml_string_tackon (buffer, cursize, curptr, attr->name);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "=\"");
+      buffer = _xml_string_tackon (buffer, cursize, curptr, attr->value);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "\"");
+      attr = attr->next;
+   }
+
+   buffer = _xml_string_tackon (buffer, cursize, curptr, ">");
+   if (xml->children == NULL) {
+      if (!strcmp (xml->name, "p") ||
+          !strcmp (xml->name, "a")) {
+         buffer = _xml_string_tackon (buffer, cursize, curptr, "&lt;/");
+         buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name);
+         buffer = _xml_string_tackon (buffer, cursize, curptr, ">");
+      }
+      return (buffer);
+   }
+
+   list = xml->children;
+   while (list) {
+      buffer = _xml_string_appendhtml (buffer, cursize, curptr, list->element);
+      list = list->next;
+   }
+
+   if (!strcmp (xml->name, "li") ||
+       !strcmp (xml->name, "opt")) {
+      /* Do nothing. */
+   } else {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "&lt;/");
+      buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, ">");
+   }
+
+   return (buffer);
+}
+
+XMLAPI char * xml_stringhtml (XML * xml)
+{
+   char * ret;
+   int cursize;
+   int curptr;
+
+   ret = (char *) MALLOC (256);
+   *ret = '\0';
+   cursize = 256;
+   curptr = 0;
+
+   return (_xml_string_appendhtml (ret, &amp;cursize, &amp;curptr, xml));
+}
+
+
+XMLAPI char * xml_stringcontenthtml (XML * xml)
+{
+   char * ret;
+   int cursize;
+   int curptr;
+   ELEMENTLIST * list;
+
+   ret = (char *) MALLOC (256);
+   *ret = '\0';
+   cursize = 256;
+   curptr = 0;
+
+   list = xml->children;
+   while (list) {
+      ret = _xml_string_appendhtml (ret, &amp;cursize, &amp;curptr, list->element);
+      list = list->next;
+   }
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_write.html">Previous: xml_write: Writing XML data to disk</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_prepend.html">Next: xml_prepend: Inserting elements</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

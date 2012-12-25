@@ -1,0 +1,44 @@
+<html><head><title>Repository manager: Publishing objects: internals</title></head>
+<body>
+<h2>Publishing objects: internals</h2>
+<center>
+[&nbsp;<a href="remote_repositories.html">Previous: Working with repository objects</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_lists.html">Next: Creating and administering lists</a>&nbsp;]
+</center>
+
+<hr>
+Up to now, there has been no remote publishing because the main library doesn't call up remote repositories for publishing.
+This may make it easier to manage this, but only after the stuff is actually, you know, implemented.
+WFTK_EXPORT int   FN_NAME(repos_publish_all)  (XML * repository)
+{
+   return 0;
+}
+
+WFTK_EXPORT int   FN_NAME(repos_publish_list) (XML * repository, const char * list)
+{
+   return 0;
+}
+
+WFTK_EXPORT int   FN_NAME(repos_publish_obj)  (XML * repository, const char * list, const char * key)
+{
+   return 0;
+}
+</pre></td></tr></table>
+
+I probably cut out 20% of the weight of the repmgr library just by eliminating the publishing logic.
+
+
+
+<center>
+[&nbsp;<a href="remote_repositories.html">Previous: Working with repository objects</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_lists.html">Next: Creating and administering lists</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

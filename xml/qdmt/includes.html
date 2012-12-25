@@ -1,0 +1,148 @@
+<html><head><title>QDMT: QDMT interface</title></head>
+<body>
+<h2>QDMT interface</h2>
+<center>
+[&nbsp;<a href=index.html>Previous: index</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: QDMT</a>&nbsp;]
+[&nbsp;<a href=qdmt.html>Next: QDMT implementation</a>&nbsp;]
+</center>
+
+<hr>
+I'll open up with a warning: most of the presentation of this code is influenced in the back
+of my mind by my desire to turn this into a comparison of C and Perl coding styles.  I've been
+writing C code for a very long time, and only recently have I started doing Perl.  I like both.
+I have applications for markup tokenization in both.  I want QDMT in both.  But I have a 
+pressing need for QDMT in C only at the moment.  Oh well.  But in the following I'll talk a 
+lot about "C-like" style, which would be really kind of odd in a presentation of C code unless
+the author were explicitly comparing language coding styles, which (hereafter) I will
+not.
+<p>
+So anyway, the interface for QDMT is pretty standard plain C.  (I'm not getting into any
+C++ ruminations here, just the basic facts.)  To start things up, you create a tokenizer, which
+is a <code>QDMT_TOKENIZER</code> structure.  The tokenizer is then called repeatedly and
+delivers tokens, which are <code>QDMT_TOK</code> structures.  Very straightforward.
+<p>
+Since I don't want to duplicate everything in <code>malloc</code>'d buffers, the tokens themselves
+will contain extents, not buffers.  An <i>extent</i>, at least the way I'm defining it, consists
+of a pointer to the data (i.e. into a buffer) and the length of the data.  So I can define a
+single buffer and create all the extents I want on it.
+<p>
+I'll be requiring some standard libraries:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;malloc.h>
+#include &lt;string.h>
+</pre></td></tr></table>
+<p>
+The basic datastructures we'll be working with are as follows:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>typedef struct _qdmt_tokenizer QDMT_TOKENIZER;
+typedef struct _qdmt_token QDMT_TOKEN;
+typedef struct _qdmt_attribute QDMT_ATTRIBUTE;
+typedef enum   _qdmt_tagtype QDMT_TAGTYPE;
+typedef struct _qdmt_extent QDMT_EXTENT;
+</pre></td></tr></table>
+<p>
+And here are the types of token we'll be returning from a tokenizer:
+<ul>
+<li>QDMT_TAG_PLAIN is plain text, not strictly a tag but certainly a type of token.
+<li>QDMT_TAG_OPEN is an open tag: <code>&lt;a ...&gt;</code>.
+<li>QDMT_TAG_CLOSE is the corresponding close tag: <code>&lt;/a&gt;</code>.
+<li>QDMT_TAG_EMPTY is an XML empty tag: <code>&lt;br/&gt;</code>.
+<li>QDMT_TAG_COMMENT is a markup comment: <code>&lt;!-- --&gt;</code>.
+<li>QDMT_TAG_PI is an XML processing instruction: <code>&lt;? ?&gt;</code>.
+<li>QDMT_TAG_DIRECTIVE is an XML directive: <code>&lt;! &gt;</code>.
+<li>QDMT_TAG_CDATA, finally, is XML CDATA: <code>&lt;![CDATA[ ... ]]&gt;</code>.
+</ul>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>enum _qdmt_tagtype {
+   QDMT_TAG_PLAIN, QDMT_TAG_OPEN, QDMT_TAG_CLOSE, QDMT_TAG_EMPTY,
+   QDMT_TAG_COMMENT, QDMT_TAG_PI, QDMT_TAG_DIRECTIVE, QDMT_TAG_CDATA };
+
+</pre></td></tr></table>
+
+A tokenizer may be built on a regular file stream, or on a buffer which we have in memory
+somewhere.  Ultimately the filestream version will buffer most of the file in memory anyway.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _qdmt_tokenizer {
+   FILE * file;
+   char * buf;
+};
+
+</pre></td></tr></table>
+
+Attributes are pretty simple.  Since the names and values of attributes are assumed to be
+pretty short, I don't mind duplicating them in buffer in exchange for ease of use.  Later
+versions might want to make a hash table or something for stashing these guys, but right
+now they'll just get <code>malloc</code>'d each time.
+
+Each attribute also has a pointer to the extent which defines it, in case I want to do
+something more specific with it.  Unlikely but possible.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _qdmt_attribute {
+   char *name;
+   char *value;
+   QDMT_EXTENT *ref;
+};
+
+</pre></td></tr></table>
+
+And as mentioned above, a token contains an extent.  It also contains some attributes, defined
+above.  Note that the actual number of attrributes is determined at runtime and so the array
+is dimensioned as size 1.
+This kind of thing is not unusual in
+Windows programming, where I have the vast majority of my C experience; I'm not sure of its
+usage under Unix.  But it will work.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _qdmt_token {
+   QDMT_EXTENT * full;
+   char * name;
+   QDMT_TAGTYPE type;
+   int num_attributes;
+   QDMT_ATTRIBUTE attributes[1];
+};
+
+</pre></td></tr></table>
+
+Finally, let's look at the extent structure.  It's probably more complicated than it needs to
+be, but I want to have a compact way to get at anything that might interest me about a token.
+Extents are assumed to be in a tree, and eventually the extent tree might be used to reflect
+more of the element structure of the document.  Not right now, though.  Right now the only
+tree structure we'll see is that the reference extents for attributes will refer into the
+extent for the parent element.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _qdmt_extent {
+   char *text;
+   int length;
+   int from_row, from_col;
+   int to_row, to_col;
+   QDMT_EXTENT *parent;
+};
+
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href=index.html>Previous: index</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: QDMT</a>&nbsp;]
+[&nbsp;<a href=qdmt.html>Next: QDMT implementation</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

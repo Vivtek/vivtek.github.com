@@ -1,0 +1,731 @@
+<head>
+<title>wftk perl - Workflow::wftk</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk perl - Workflow::wftk</div>
+
+<p><a name="__index__"></a></p>
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<p>Workflow::wftk - a vast set of workflow-related tools in Perl,  building on the (partial) success of the original wftk workflow toolkit.</p>
+<p>
+</p>
+<hr />
+<p>The wftk is an open-source workflow toolkit, implemented entirely in native Perl.  The fact that it is a toolkit means that it attempts
+to be all things workflow-related to all people, while imposing as few restrictions on your coding style and architecture as possible.</p>
+<p>"Workflow" is any code that deals with the organization of human behavior.  Since humans are notoriously slow and unpredictable when it comes
+to scheduling, a workflow process is inherently asynchronous, and most of the time a workflow process will exist in a static form in a database.
+It is activated to become a system process only when a human has completed some task and the system must now determine what comes next.</p>
+<p>The <code>Workflow::wftk</code> object itself represents a session against wftk repository.  The repository is (usually) a local directory containing
+configuration files and probably some local data files, but data can reside in many places.  For a full, step-by-step introduction to the wftk
+I heartily recommend consulting the tutorial at <a href="http://www.vivtek.com/wftk/perl_tutorial">http://www.vivtek.com/wftk/perl_tutorial</a> -- that online book consists of a great deal of
+example code derived from the unit tests, and presents each facet of the extensive functionality of the wftk in a more or less logical manner.</p>
+<p>The POD documentation here will simply give you a much briefer overview of the usage of the wftk; it's really more of a quick reference.</p>
+<p>
+</p>
+<hr />
+<!-- INDEX BEGIN -->
+
+
+	<ul>
+
+		<li><a href="#basic_session_manipulation_and_utilities">Basic session manipulation and utilities</a></li>
+		<ul>
+
+			<li><a href="#new">new</a></li>
+			<li><a href="#config">config</a></li>
+			<li><a href="#directory">directory</a></li>
+		</ul>
+
+		<li><a href="#list_api_for_data_manipulation">List API for data manipulation</a></li>
+		<ul>
+
+			<li><a href="#lists">lists</a></li>
+			<li><a href="#list">list</a></li>
+			<li><a href="#open">open</a></li>
+			<li><a href="#close">close</a></li>
+			<li><a href="#drop">drop</a></li>
+			<li><a href="#copy">copy</a></li>
+			<li><a href="#copy_into">copy_into</a></li>
+			<li><a href="#list_conf">list_conf</a></li>
+		</ul>
+
+		<li><a href="#the_commandline_interface">The command-line interface</a></li>
+		<ul>
+
+			<li><a href="#do">do</a></li>
+			<li><a href="#curlist__curkey">curlist, curkey</a></li>
+			<li><a href="#new_record">new_record</a></li>
+			<li><a href="#load_record">load_record</a></li>
+			<li><a href="#get__put">get, put</a></li>
+		</ul>
+
+		<li><a href="#the_sql_interface">The SQL interface</a></li>
+		<ul>
+
+			<li><a href="#execute_sql">execute_sql</a></li>
+			<li><a href="#sql_get_list">sql_get_list</a></li>
+			<li><a href="#sql_get">sql_get</a></li>
+		</ul>
+
+		<li><a href="#the_dbi_interface">The DBI interface</a></li>
+		<ul>
+
+			<li><a href="#dbh">dbh</a></li>
+			<li><a href="#prepare">prepare</a></li>
+		</ul>
+
+	</ul>
+
+<hr>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   package Workflow::wftk;
+
+   use warnings;
+   use strict;
+
+   use Workflow::wftk::Data;
+   use Workflow::wftk::Record;
+   use Workflow::wftk::Shell;
+
+   use DBI;
+
+   our $VERSION = '0.01';
+   $Workflow::wftk::version = $VERSION;
+</pre><p>
+</p>
+<hr />
+<hr>
+<p>
+</p>
+<h2><a name="basic_session_manipulation_and_utilities">Basic session manipulation and utilities</a></h2>
+<p>
+</p>
+<h3><a name="new">new</a></h3>
+<p>The <code>new</code> function opens a repository session.  You can supply either a definition string or the name of a configuration file.</p>
+<pre class="code">
+   use Workflow::wftk;
+
+   my $wftk = Workflow::wftk-&gt;new({file =&gt; 'wftk.conf'});   # Open a configuration file.
+   my $wftk = Workflow::wftk-&gt;new();                        # Open the default configuration file (wftk.conf).
+
+   my $wftk = Workflow::wftk-&gt;new(&lt;&lt;&quot;   CONF&quot;);             # Open a session using a definition string.
+    ! [mylist: list]
+    ! type: memory:fields=field1,field2
+    !
+    ! [second_list: list]
+    ! type: memory
+    ! *fields: field1 field2 field3
+    ! description: My second list
+   CONF
+</pre><p>The configuration in the final example creates a dynamic repository with two data lists.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub new {
+      my $self = {};
+      bless $self, shift;
+
+      $self-&gt;{conf} = Workflow::wftk::Record-&gt;new(@_);
+
+      my %lists = $self-&gt;{conf}-&gt;get_kind('list');
+      $self-&gt;{deflists} = \%lists;
+      $self-&gt;{lists} = {};
+
+      $self-&gt;{directory} = $self-&gt;{conf}-&gt;get('directory') || '.'; # TODO: File::Spec.
+
+      $self-&gt;{module} = $INC{'Workflow/wftk.pm'}; # Where is this module installed?
+      $self-&gt;{module} =~ s/\.pm$//;
+
+      $self-&gt;{diagnostic} = ";
+
+      $self-&gt;{dbh} = DBI-&gt;connect('dbi:wftk:','usr','pwd',
+                                   {
+                                     RaiseError=&gt;1,
+                                     PrintError=&gt;0,
+                                     wftk_repos=&gt;$self,
+                                   });
+
+      return $self;
+   }
+</pre><p>
+</p>
+<h3><a name="config">config</a></h3>
+<p>The <code>config</code> method gets a value from the configuration read, if it's there, or returns undef if not.</p>
+<pre class="code">
+   my $list_type = $wftk-&gt;config('mylist.type');
+</pre><p><em>Implementation</em>:</p>
+<pre class="code">
+   sub config { $_[0]-&gt;{conf}-&gt;get($_[1]); }
+</pre><p>
+</p>
+<h3><a name="directory">directory</a></h3>
+<p>The <code>directory</code> function just returns the working directory for the repository.</p>
+<pre class="code">
+   my $dir = $wftk-&gt;directory();
+</pre><p><em>Implementation</em>:</p>
+<pre class="code">
+   sub directory { $_[0]-&gt;{directory} }
+</pre><p>
+</p>
+<h2><a name="list_api_for_data_manipulation">List API for data manipulation</a></h2>
+<p>All data in the wftk is organized into <strong>lists</strong>.  There is an entire very long chapter of the tutorial devoted to list access,
+so this reference will just scratch the surface.  All data access is in reality handled by <code>Workflow::wftk::Data</code>, but the
+session object gives you some convenient ways to get to it without getting your hands dirty or having to refer to that module
+directly.</p>
+<p>
+</p>
+<h3><a name="lists">lists</a></h3>
+<p>The <code>lists</code> method returns a hash whose keys are the names of all lists either open in the current session
+or defined in the repository's configuration, and whose values are the descriptions of those lists.</p>
+<pre class="code">
+   my %lists = $wftk-&gt;lists();
+</pre><p><em>Implementation</em>:</p>
+<pre class="code">
+   sub lists {
+      my $self = shift;
+      my %r = ();
+      while (my ($k,$v) = each %{$self-&gt;{lists}}) { $r{$k} = $v-&gt;describe(); }
+      foreach (sort keys %{$self-&gt;{deflists}}) {
+         next if defined $r{$_};
+         $r{$_} = 'not opened';
+      }
+      return %r;
+   }
+</pre><p>
+</p>
+<h3><a name="list">list</a></h3>
+<p>The <code>list</code> method retrieves an open list object from the session by name.  If the name isn't given, it uses
+the current list of the shell, if there is one.</p>
+<pre class="code">
+   my $list = $wftk-&gt;list('mylist');
+</pre><p><em>Implementation</em>:</p>
+<pre class="code">
+   sub list {
+      my $self = shift;
+      my $list = shift;
+      $list = $self-&gt;curlist() unless $list;
+      return unless $list;
+      return $self-&gt;{lists}-&gt;{$list};
+   }
+</pre><p>
+</p>
+<h3><a name="open">open</a></h3>
+<p>The <code>open</code> method opens a list given a name and an optional definition string.  If the list is
+already open, a handle is returned.  (No error is raised if the definitions don't match, so beware.)
+If the definition is omitted and the list is defined in the configuration for the repository, that
+definition will be used.  Otherwise, a memory list is opened with no fields.  (Meaning that the
+fields will be taken from the records you store in it.)</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub open {
+      my ($self, $list, $def) = @_;
+      return $self-&gt;list($list) if $self-&gt;list($list);
+      return Workflow::wftk::Data-&gt;new ($self, $list, $def);
+   }
+</pre><p>
+</p>
+<h3><a name="close">close</a></h3>
+<p>The <code>close</code> method closes an open list by name.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub close {
+      my ($self, $list) = @_;
+      return unless $self-&gt;{lists}-&gt;{$list};
+      return $self-&gt;{lists}-&gt;{$list}-&gt;close;
+   }
+</pre><p>
+</p>
+<h3><a name="drop">drop</a></h3>
+<p>The <code>drop</code> method drops a list from the repository.  If it's in-memory, this deletes it.  If not, it may or may not delete its
+storage (i.e. if it's a file in the filesystem, the file may be left in place).</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub drop {
+      my ($self, $list) = @_;
+      delete $self-&gt;{lists}-&gt;{$list} if $list;
+   }
+</pre><p>
+</p>
+<h3><a name="copy">copy</a></h3>
+<p>The <code>copy</code> method just copies one list to another with a minimum of hassle, by reading records from the source and writing them
+to the destination.  The destination is dropped first, if it exists, so the copy is clean (use <code>copy_into</code> to avoid that).</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub copy {
+      my ($self, $src, $dst) = @_;
+      $self-&gt;drop($dst);
+      $self-&gt;copy_into($src, $dst);
+   }
+</pre><p>
+</p>
+<h3><a name="copy_into">copy_into</a></h3>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub copy_into {
+      my ($self, $src, $dst) = @_;
+      my $list_obj = $self-&gt;open ($src);
+      my $list_dst = $self-&gt;open ($dst);
+      for (my $key = $list_obj-&gt;first_key(); defined $key; $key = $list_obj-&gt;next_key()) {
+         my $rec = $list_obj-&gt;get($key);
+         $list_dst-&gt;mod($key,$rec);
+      }
+      #$list_obj-&gt;close();
+      #$list_dst-&gt;close();
+   }
+</pre><p>
+</p>
+<h3><a name="list_conf">list_conf</a></h3>
+<p>The <code>list_conf</code> method sets up a configuration record (based on <code>Workflow::wftk::Record</code>), starting from the name
+of a (possibly preconfigured) list and the definition string, if any, given when it is opened.  The definition string
+overrides any preconfiguration values which may be in the repository's setup, and is formatted more or less in the
+same way as DBI connect strings.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub list_conf {
+      my ($self, $list, $def) = @_;
+
+      #print STDERR &quot;list_conf for $list\n&quot;;
+      #print STDERR &quot;def is $def\n&quot; if $def;
+
+      my $ret = Workflow::wftk::Record-&gt;make_record ({name =&gt; $list});
+      if (grep { $_ eq $list } $self-&gt;{conf}-&gt;get_kind('list')) {
+         #print STDERR &quot;$list defined in repository\n&quot;;
+         my $conf = $self-&gt;{conf}-&gt;get($list);
+         #print STDERR &quot;conf is $conf\n&quot;;
+         foreach my $f ($conf-&gt;fields()) {
+            $ret-&gt;put($f, scalar $conf-&gt;get($f));
+         }
+      }
+
+      $ret-&gt;put('type', 'memory') unless $ret-&gt;get('type');
+      if ($ret-&gt;get('type') =~ /:/ &amp;&amp; not $def) {
+         $def = $ret-&gt;get('type');
+      }
+
+      if ($def) {
+         my ($type, $rest) = split /: */, $def, 2;
+         $ret-&gt;put('type', $type);
+
+         #print STDERR &quot;type is $type; rest is $rest\n&quot;;
+
+         my @parts = split / *; */, $rest;
+
+         if ($parts[0] !~ /=/) {
+            $ret-&gt;put($type, shift @parts);
+            #print STDERR &quot;primary parameter is &quot; . $ret-&gt;get($type) . &quot;\n&quot;;
+         }
+         foreach (@parts) {
+            my ($k,$v) = split / *= */, $_, 2;
+            $v = 1 unless defined $v;
+            if ($k eq 'fields') {
+               my @fields = split /[ ,]+/, $v;
+               $ret-&gt;put ('fields', \@fields);
+            } else {
+               $ret-&gt;put ($k, $v);
+            }
+         }
+      }
+
+      return $ret;
+   }
+</pre><p>
+</p>
+<h2><a name="the_commandline_interface">The command-line interface</a></h2>
+<p>
+</p>
+<h3><a name="do">do</a></h3>
+<p>The <code>do</code> method checks whether a shell has been created against the session already.  If so, it either runs the command given, or starts
+an interactive shell.  This is the kind of thing Perl makes so easy, the kind of thing I spent a lot of 2002 trying -- and failing -- to get
+quite right in C.</p>
+<p>The shell also provides an interface for SQL queries against the repository, and the result of an SQL query is accessible as a temporary
+list in the repository.  How exactly that is accessed is still a little unclear.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub do {
+      my $self = shift;
+      $self-&gt;{shell} = Workflow::wftk::Shell-&gt;new($self) unless $self-&gt;{shell};
+      $self-&gt;{shell}-&gt;do(@_);
+   }
+</pre><p>
+</p>
+<h3><a name="curlist__curkey">curlist, curkey</a></h3>
+<p>The <code>curlist</code> method returns the current list selected in the shell, while <code>curkey</code> returns the current key, if there is one.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub curlist {
+      my ($self, $list) = @_;
+      return unless $self-&gt;{shell};
+      if ($list) {
+         if ($self-&gt;{shell}-&gt;{curlist} = $self-&gt;open($list)) {
+            $self-&gt;{shell}-&gt;{curlistname} = $list;
+         } # TODO: error handling?
+      }
+      return $self-&gt;{shell}-&gt;{curlistname};
+   }
+
+   sub curkey {
+      my $self = shift;
+      return unless $self-&gt;{shell};
+      return $self-&gt;{shell}-&gt;{lastkey};
+   }
+</pre><p>
+</p>
+<h3><a name="new_record">new_record</a></h3>
+<p>The <code>new_record</code> creates a new record for the current list (or the list named as its optional second argument if given)
+and makes that record the current record in the shell.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub new_record {
+      my ($self, $list) = @_;
+      $self-&gt;{shell} = Workflow::wftk::Shell-&gt;new($self) unless $self-&gt;{shell};
+      $self-&gt;curlist($list);
+      my $list_obj = $self-&gt;{shell}-&gt;{repos}-&gt;list() or return;
+
+      $self-&gt;{shell}-&gt;{lastkey} = &quot;&lt;new&gt;&quot;;
+      $self-&gt;{shell}-&gt;{curobj} = $list_obj-&gt;get_new(1);
+      $self-&gt;{shell}-&gt;{object_dirty} = 0;
+   }
+</pre><p>
+</p>
+<h3><a name="load_record">load_record</a></h3>
+<p>Given a string representation of a record's data fields, <code>load_record</code> sets the fields to match the string specification.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub load_record {
+      my ($self, $in) = @_;
+      return unless $self-&gt;{shell};
+      return unless $self-&gt;{shell}-&gt;{curobj};
+      $self-&gt;{shell}-&gt;{curobj}-&gt;parse($in);
+   }
+</pre><p>
+</p>
+<h3><a name="get__put">get, put</a></h3>
+<p>The <code>get</code> and <code>put</code> methods are shortcuts for the same methods in the current record.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub get {
+      my $self = shift;
+      return unless $self-&gt;{shell};
+      return unless $self-&gt;{shell}-&gt;{curobj};
+      $self-&gt;{shell}-&gt;{curobj}-&gt;get(@_);
+   }
+
+   sub put {
+      my $self = shift;
+      return unless $self-&gt;{shell};
+      return unless $self-&gt;{shell}-&gt;{curobj};
+      $self-&gt;{shell}-&gt;{curobj}-&gt;get(@_);
+   }
+</pre><p>
+</p>
+<h2><a name="the_sql_interface">The SQL interface</a></h2>
+<p>
+</p>
+<h3><a name="execute_sql">execute_sql</a></h3>
+<p>Here's where things get fun.  The <code>execute_sql</code> runs an SQL command against the lists defined in the repository.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub execute_sql {
+      my $self = shift;
+      my $sql = shift;
+
+      $sql =~ s/[; ]*$//;
+
+      my $result = 'result';   # TODO: redirection.
+
+      my $dbh = $self-&gt;dbh();
+      my $sth = eval { $dbh-&gt;prepare ($sql) };
+      if ($@) {
+         print $@;
+         return;
+      }
+      eval { $sth-&gt;execute(@_) };
+      if ($@) {
+         print $@;
+         return;
+      }
+      if ($sth-&gt;rows()) {
+         if ($sql =~ /^select/i) {
+            #print $sth-&gt;rows() . &quot; row(s)\n&quot;;
+
+            $self-&gt;drop($result) if $result;   # TODO: I should be able to specify a generic list spec, and for copy or copy_into.
+            my $list_obj = undef;
+            $list_obj = $self-&gt;open ($result) if $result;
+            $list_obj-&gt;describe($sql) if $list_obj;
+            $list_obj-&gt;{sort_keys} = 0;
+            $list_obj-&gt;{cache_keys} = 1;
+            my $header = 0;
+            my $key_inc = 0;
+            my $this_key = undef;
+            while (my $row = $sth-&gt;fetchrow_hashref) {
+               unless ($header++) {
+                  my @keys = keys %$row;
+                  if ($keys[0] eq '!key') {
+                     $key_inc = 1;
+                     shift @keys;
+                  }
+                  $list_obj-&gt;add_fields(@keys);
+               }
+               my $rec = $list_obj-&gt;get_new();
+               while (my ($k,$v) = each %$row) {
+                  if ($k eq '!key') {
+                     $this_key = $v;
+                  } else {
+                     $rec-&gt;put($k, $v);
+                  }
+               }
+               if ($key_inc and $list_obj) {
+                  $list_obj-&gt;mod($this_key,$rec);
+               } else {
+                  $list_obj-&gt;add($rec);
+               }
+            }
+            return 1;
+         #} else {
+         #   print $sth-&gt;rows() . &quot; row(s) affected\n&quot;;
+         }
+      }
+      return 0;
+   }
+</pre><p>
+</p>
+<h3><a name="sql_get_list">sql_get_list</a></h3>
+<p>Next is the <code>sql_get_list</code> method, which executes a SELECT statement and returns a list of results.  If there is only a single column
+in the results, <code>sql_get_list</code> returns a list of scalar values; otherwise, it returns a list of arrayrefs.  If you want to save the
+overhead of caching the entire result set from a larger query, use the DBI interface; this is only here for the sake of convenience.</p>
+<p>Essentially, this is <em>exactly the same</em> as <code>execute_sql</code> above, except that it returns a result.</p>
+<p>On closer reading of the DBI::st spec, I see that DBI actually provides a lot of sophisticated ways of retrieving data.  So if you're
+proficient with DBI, perhaps you see this as unnecessary syntactic sugar, and perhaps you're even right.  But I feel comforted by it.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub sql_get_list {
+      my $self = shift;
+      my $query = shift;
+      $query =~ s/[; ]*$//;
+
+      my $dbh = $self-&gt;dbh();
+      my $sth = eval { $dbh-&gt;prepare ($query) };
+      if ($@) {
+         print $@;  # TODO: this ain't right.
+         $self-&gt;diag($@);
+         return;
+      }
+      eval { $sth-&gt;execute(@_) };
+      if ($@) {
+         print $@; # TODO: still ain't right.
+         $self-&gt;diag($@);
+         return;
+      }
+      my @result = ();
+      if ($sth-&gt;rows()) {
+         if ($query =~ /^select/i) {
+            while (my @row = $sth-&gt;fetchrow_array) {
+               if ($sth-&gt;{NUM_OF_FIELDS} eq 1) {
+                  push @result, $row[0];
+               } else {
+                  push @result, \@row;
+               }
+            }
+         }
+      }
+
+      return @result;
+   }
+</pre><p>
+</p>
+<h3><a name="sql_get">sql_get</a></h3>
+<p>The <code>sql_get</code> method does exactly the same thing as <code>sql</code>get&gt;list&gt;, except it returns the first row of the select.  Again, if a single
+value is selected, that's the value returned; if a row of multiple values is requested, the return is an arrayref.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub sql_get {
+      my $self = shift;
+      my $query = shift;
+      $query =~ s/[; ]*$//;
+
+      my $dbh = $self-&gt;dbh();
+      my $sth = eval { $dbh-&gt;prepare ($query) };
+      if ($@) {
+         print $@;  # TODO: this ain't right.
+         $self-&gt;diag($@);
+         return;
+      }
+      eval { $sth-&gt;execute(@_) };
+      if ($@) {
+         print $@; # TODO: still ain't right.
+         $self-&gt;diag($@);
+         return;
+      }
+      my $result;
+      if ($sth-&gt;rows()) {  # TODO: do we need to limit rows to 1?
+         if ($query =~ /^select/i) {
+            while (my @row = $sth-&gt;fetchrow_array) {
+               if ($sth-&gt;{NUM_OF_FIELDS} eq 1) {
+                  $result = $row[0];
+                  $sth-&gt;finish;
+               } else {
+                  $result = \@row;
+                  $sth-&gt;finish;
+               }
+               return $result;
+            }
+         }
+      }
+
+      return $result;   # This gets returned if there are no rows returned from the query.
+   }
+</pre><p>
+</p>
+<h2><a name="the_dbi_interface">The DBI interface</a></h2>
+<p>There are really only two methods that expose the DBI interface per se at the session level.  The <code>dbh</code> method, of course,
+returns the session's internal DBI handle to itself.  The <code>prepare</code> method just passes its arguments in to that internal
+handle and returns the result.</p>
+<p>
+</p>
+<h3><a name="dbh">dbh</a></h3>
+<pre class="code">
+  my $dbh = $wftk-&gt;dbh();
+  $dbh-&gt;prepare (&quot;select * from mylist where field=?&quot;, $value);
+</pre><p><em>Implementation</em>:</p>
+<pre class="code">
+   sub dbh { $_[0]-&gt;{dbh} }
+</pre><p>
+</p>
+<h3><a name="prepare">prepare</a></h3>
+<pre class="code">
+  $wftk-&gt;prepare (&quot;select * from mylist where field=?&quot;, $value);
+</pre><p><em>Implementation</em>:</p>
+<pre class="code">
+   sub prepare {
+      my $self = shift;
+      $self-&gt;{dbh}-&gt;prepare(@_);
+   }
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

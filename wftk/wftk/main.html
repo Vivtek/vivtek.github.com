@@ -1,0 +1,118 @@
+<html><head><title>wftk core engine: Overview of the program and main()</title></head>
+<body>
+<h2>Overview of the program and main()</h2>
+<center>
+[&nbsp;<a href="index.html">Previous: wftk core index</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk core index</a>&nbsp;]
+[&nbsp;<a href="xml_stuff.html">Next: In-memory XML data structures and functionality</a>&nbsp;]
+</center>
+
+<hr>
+The structure of the program file is the same as any single-file C program: <code>#include</code>
+directives, followed by declarations, followed by the main program.  A literate presentation is
+<p></p>
+So let's go ahead and define our <code>#include</code>s, shall we?
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;malloc.h>
+#include &lt;stdarg.h>
+#include &lt;string.h>
+#include "xmlparse.h"
+#include "localdefs.h"
+void output (char type, const char *format, ...);
+</pre></td></tr></table>
+
+The <code>localdefs.h</code> file contains whatever local definitions a particular wftk
+installation needs: particularly the locations of the process definition repository and the
+datasheet repository (remember that in this version both of these are simply directories in
+the local filesystem, but that later we'll have much more flexible options for both locations.)
+
+Next we define all our data structures and helper functions.  XML and expat are rather core
+to this.  Under the rubric of "XML" we'll define our central XML data structures and the
+functions we'll use to work with them.  The use of the expat parser to parse XML text into
+these structures will be in a separate section because it's not trivial.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="xml_stuff.html">In-memory XML data structures and functionality</a></i>
+<i>See <a href="expat.html">xml_read: Using expat to parse XML files into memory</a></i>
+</pre></td></tr></table>
+
+Next up, let's look at how we will read our command input, and how we'll create our output.
+Commands will be read from the command line or from a command stream and placed into a linked
+list of command objects.  This will enhance the usability of this code in other projects, I
+hope.  It'll also make it easy to write a different parsing front end for the interpreter.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="command_input.html">The command stack and how to load it</a></i>
+<i>See <a href="output.html">Our oh-so-complex output stream</a></i>
+</pre></td></tr></table>
+
+Now we're getting close to the main program: let's define our globals.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="globals.html">Global variables: state</a></i>
+</pre></td></tr></table>
+
+All the underpinnings out of the way, now we can look at the command interpreter.
+The interpreter is broken into two parts -- really two interpreters.  The entire process
+is driven by the command stack, but the commands on that stack drive the real work of
+interpretation, which is doing whatever the procdef tells us to do.  Execution state is
+contained in the datasheet, so that it can be reloaded between runs.  (Thus the datasheet
+represents persistent storage implemented via XML -- lots of buzzwords in that!)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="run_procdef.html">Interpreting the process definition</a></i>
+<i>See <a href="interpreter.html">Interpreting command streams</a></i>
+</pre></td></tr></table>
+
+And hey!  Just as you were losing hope, there's some code in this item after all!
+Not much, granted, but all it has to do is to read the command from the command line,
+use that to initialize the command stack, and then call the interpreter on the command
+stack.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int main(int argc, char * argv[])
+{
+   <i>See <a href="globals.html#init">Initializing global variables from the command line</a></i>
+
+   interpret (command_stack);
+
+   xml_free (datasheet);
+   xml_free (procdef);
+   return 0;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="print_usage">
+<i>Print usage description</i><br>
+Here is as good a place as any to define the text we'll print if the command line doesn't
+suit us.  There's not much that will offend us, I'm sure.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>printf ("usage: wftk &lt;command> &lt;arguments>\n");
+printf ("  Commands:\n");
+printf ("  start &lt;process id> &lt;procdef>\n");
+printf ("  activate &lt;process id> &lt;locator> &lt;task id>\n");
+printf ("  complete &lt;process id> &lt;task id>\n");
+printf ("  reject &lt;process id> &lt;task id>\n");
+printf ("  setvalue &lt;process id> &lt;name> &lt;type> &lt;file> or value on stdin\n");
+printf ("  settaskvalue &lt;process id> &lt;task id> &lt;name> &lt;type> &lt;file> or value on stdin\n");
+printf ("  script &lt;process id> &lt;file> or command list on stdin\n");
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="index.html">Previous: wftk core index</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk core index</a>&nbsp;]
+[&nbsp;<a href="xml_stuff.html">Next: In-memory XML data structures and functionality</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

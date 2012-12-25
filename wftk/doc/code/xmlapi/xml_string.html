@@ -1,0 +1,362 @@
+<html><head><title>xmlapi: xml_string: Writing XML data to strings in memory</title></head>
+<body>
+<h2>xml_string: Writing XML data to strings in memory</h2>
+<center>
+[&nbsp;<a href="xml_write.html">Previous: xml_write: Writing XML data to disk</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_prepend.html">Next: xml_prepend: Inserting elements</a>&nbsp;]
+</center>
+
+<hr>
+<i>(March 30, 2001)</i>: It's taken me a long time to get to this in C (the Perl XMLAPI had this right from day one)
+but boy have I wanted it a lot!  It does the obvious: instead of writing the XML to a stream, it builds a malloc'd string
+buffer instead.  The caller must free the buffer.  Just as with the stream writer, we have a regular version and one which
+just writes the content of the element given (useful for retrieving the content of text-only elements.)
+<p></p>
+Just to make things easy, our functions allocate in 256-byte blocks.  Most of the work is done in the helper functions
+<code>_xml_string_tackon</code> and <code>_xml_string_append</code>.  The first takes a buffer and a string to add to it,
+and grows the buffer if necessary before appending the data.  The second does the work of moving through the XML tree
+to build the return buffer.<p></p>
+<i>(May 27, 2001)</i>: I'm extending this with an additional <code>xml_string_format</code> call to be used in the <code>*f</code>
+functions.  And I've also included HTML versions of the string and stringcontent functions.  See the <code>xml_writehtml</code>
+implementation for a short discussion of what's different between HTML and XML writing.
+<i>(October 13, 2001)</i>: Here, too, I'm doing special-character escaping to allow reparsing, except here I'm building it into the
+tackon functions with a flag.  I'm not escaping written HTML; I'm not sure whether that's smart or not...  Anyway, I've implemented
+a scanner for strings which finds the first character which needs escaping.  If there is no such character, it returns NULL (analogous
+to strpbrk);
+<p></p>
+<i>(October 11, 2003)</i>: Decided to export xml_string_format; otherwise I'd be tempted to use vsnprintf for repository logging
+and open myself up to buffer overflows.  The decision to do that, of course, prompts me to extend the API with a varargs variant.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>char * _xml_danger_char (const char * str)
+{
+   if (!str) return NULL;
+   while (*str) {
+      if (*str == '&amp;' || *str == '&lt;' || *str == '>' || *str == '"') return (char *) str;
+      if ((unsigned) *str > 127) return (char *) str;
+      str++;
+   }
+   return NULL;
+}
+char * _xml_string_tackonn (char * buffer, int * cursize, int * curptr, const char * data, int len)
+{
+   if (!len) return (buffer);
+   if (len + *curptr + 1 > *cursize) {
+      while (len + *curptr + 1 > *cursize) *cursize += 256;
+      buffer = (char *) REALLOC ((void *) buffer, *cursize);
+   }
+   strncpy (buffer + *curptr, data, len);
+   *curptr += len;
+   buffer[*curptr] = '\0';
+   return (buffer);
+}
+char * _xml_string_tackon (char * buffer, int * cursize, int * curptr, const char * data, int escaped)
+{
+   int len;
+   long value;
+   char *mark;
+   char numbuf[sizeof (long) * 3 + 4];
+
+   if (!data) return (buffer);
+   if (!*data) return (buffer);
+
+   if (escaped) {
+      mark = _xml_danger_char (data);
+      if (mark) {
+         buffer = _xml_string_tackonn (buffer, cursize, curptr, data, mark - data);
+         len = 1;
+         switch (*mark) {
+            case '&amp;': buffer = _xml_string_tackonn (buffer, cursize, curptr, "&amp;amp;", 5); break;
+            case '&lt;':  buffer = _xml_string_tackonn (buffer, cursize, curptr, "&amp;lt;", 4);  break;
+            case '>':   buffer = _xml_string_tackonn (buffer, cursize, curptr, "&amp;gt;", 4);  break;
+            case '"':   buffer = _xml_string_tackonn (buffer, cursize, curptr, "&amp;quot;", 6);  break;
+            default:
+              if ((*mark &amp; 0x00E0) == 0xC0) {
+                  /* two bytes:   marker is 110x xxxx */
+                  len = 2;
+                  value = (mark[0] &amp; 0x001F) * 64 + (mark[1] &amp; 0x003F);
+               } else if ((*mark &amp; 0x00F0) == 0xE0) {
+                  /* three bytes: marker is 1110 xxxx */
+                  len = 3;
+                  value = ((mark[0] &amp; 0x000F) * 64 + (mark[1] &amp; 0x003F)) * 64 + (mark[2] &amp; 0x003F);
+               } else if ((*mark &amp; 0x00F8) == 0xF0) {
+                  /* four bytes:  marker is 1111 0xxx */
+                  len = 4;
+                  value = (((mark[0] &amp; 0x0007) * 64 + (mark[1] &amp; 0x003F)) * 64 + (mark[2] &amp; 0x003F)) * 64 + (mark[3] &amp; 0x003F);
+               } else if ((*mark &amp; 0x00FC) == 0xF8) {
+                  /* five bytes:  marker is 1111 10xx */
+                  len = 5;
+                  value = ((((mark[0] &amp; 0x0003) * 64 + (mark[1] &amp; 0x003F)) * 64 + (mark[2] &amp; 0x003F)) * 64 + (mark[3] &amp; 0x003F)) * 64 + (mark[4] &amp; 0x003F);
+               } else if ((*mark &amp; 0x00FE) == 0xFC) {
+                  /* six bytes:   marker is 1111 110x */
+                  len = 6;
+                  value = (((((mark[0] &amp; 0x0001) * 64 + (mark[1] &amp; 0x003F)) * 64 + (mark[2] &amp; 0x003F)) * 64 + (mark[3] &amp; 0x003F)) * 64 + (mark[4] &amp; 0x003F)) * 64 + (mark[5] &amp; 0x003F);
+               } else {
+                  value = 0x20; /* Illegal value, but instead of freaking out we'll do something quasi-normal. */
+               }
+               sprintf (numbuf, "&amp;#%ld;", value);
+               buffer = _xml_string_tackonn (buffer, cursize, curptr, numbuf, strlen (numbuf));
+               break;
+         }
+         buffer = _xml_string_tackon (buffer, cursize, curptr, mark + len, 1);
+         return (buffer);
+      }
+   }
+
+   len = strlen (data);
+   if (len + *curptr + 1 > *cursize) {
+      while (len + *curptr + 1 > *cursize) *cursize += 256;
+      buffer = (char *) REALLOC ((void *) buffer, *cursize);
+   }
+   *curptr += len;
+   strcat (buffer, data);
+   return (buffer);
+}
+
+
+char * xml_string_format (const char * format, ...)
+{
+   va_list args;
+   char * ret;
+
+   va_start (args, format);
+   ret = xml_string_formatv (format, args);
+   va_end (args);
+
+   return ret;
+}
+
+char * xml_string_formatv (const char * format, va_list args)
+{
+   char * buffer = (char *) MALLOC (256);
+   int cursize = 256;
+   int curptr = 0;
+   char * colon;
+   char * strarg;
+   int intarg;
+   char numbuf[sizeof (int) * 3 + 1];
+
+   *buffer = '\0';
+   while (colon = strchr (format, '%')) {
+      buffer = _xml_string_tackonn (buffer, &amp;cursize, &amp;curptr, format, colon - format);
+      format = colon;
+      format ++;
+      switch (*format) {
+         case 's':
+            strarg = va_arg (args, char *);
+            buffer = _xml_string_tackon (buffer, &amp;cursize, &amp;curptr, strarg, 0);
+            break;
+         case 'd':
+            intarg = va_arg (args, int);
+            sprintf (numbuf, "%d", intarg);
+            buffer = _xml_string_tackon (buffer, &amp;cursize, &amp;curptr, numbuf, 0);
+            break;
+         default:
+            buffer = _xml_string_tackonn (buffer, &amp;cursize, &amp;curptr, format, 1);
+            break;
+      }
+      format ++;
+   }
+
+   buffer = _xml_string_tackon (buffer, &amp;cursize, &amp;curptr, format, 0);
+   return (buffer);
+}
+
+char * _xml_string_append (char * buffer, int * cursize, int * curptr, XML * xml)
+{
+   ATTR * attr;
+   ELEMENTLIST * list;
+
+   if (!xml) return (buffer);
+
+   if (xml->name == NULL) {
+      if (xml->attrs) if (xml->attrs->value) buffer = _xml_string_tackon (buffer, cursize, curptr, xml->attrs->value, 1);
+      return (buffer);
+   }
+
+   buffer = _xml_string_tackon (buffer, cursize, curptr, "&lt;", 0);
+   buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name, 0);
+   attr = xml->attrs;
+   while (attr != NULL) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, " ", 0);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, attr->name, 0);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "=\"", 0);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, attr->value, 1);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "\"", 0);
+      attr = attr->next;
+   }
+
+   if (xml->children == NULL) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "/>", 0);
+      return (buffer);
+   } else buffer = _xml_string_tackon (buffer, cursize, curptr, ">", 0);
+
+   list = xml->children;
+   while (list) {
+      buffer = _xml_string_append (buffer, cursize, curptr, list->element);
+      list = list->next;
+   }
+
+   buffer = _xml_string_tackon (buffer, cursize, curptr, "&lt;/", 0);
+   buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name, 0);
+   buffer = _xml_string_tackon (buffer, cursize, curptr, ">", 0);
+
+   return (buffer);
+}
+
+XMLAPI char * xml_string (XML * xml)
+{
+   char * ret;
+   int cursize;
+   int curptr;
+
+   ret = (char *) MALLOC (256);
+   *ret = '\0';
+   cursize = 256;
+   curptr = 0;
+
+   if (!xml) return (ret);
+
+   return (_xml_string_append (ret, &amp;cursize, &amp;curptr, xml));
+}
+
+
+XMLAPI char * xml_stringcontent (XML * xml)
+{
+   char * ret;
+   int cursize;
+   int curptr;
+   ELEMENTLIST * list;
+
+   ret = (char *) MALLOC (256);
+   *ret = '\0';
+   cursize = 256;
+   curptr = 0;
+
+   if (!xml) return (ret);
+
+   list = xml->children;
+   while (list) {
+      ret = _xml_string_append (ret, &amp;cursize, &amp;curptr, list->element);
+      list = list->next;
+   }
+
+   return (ret);
+}
+
+char * _xml_string_appendhtml (char * buffer, int * cursize, int * curptr, XML * xml)
+{
+   ATTR * attr;
+   ELEMENTLIST * list;
+
+   if (!xml) return (buffer);
+
+   if (xml->name == NULL) {
+      if (xml->attrs) if (xml->attrs->value) buffer = _xml_string_tackon (buffer, cursize, curptr, xml->attrs->value, 0);
+      return (buffer);
+   }
+
+   if (xml_is (xml, "nbsp")) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "&amp;nbsp;", 0);
+      return (buffer);
+   }
+
+   buffer = _xml_string_tackon (buffer, cursize, curptr, "&lt;", 0);
+   buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name, 0);
+   attr = xml->attrs;
+   while (attr != NULL) {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, " ", 0);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, attr->name, 0);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "=\"", 0);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, attr->value, 0);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "\"", 0);
+      attr = attr->next;
+   }
+
+   buffer = _xml_string_tackon (buffer, cursize, curptr, ">", 0);
+   if (xml->children == NULL) {
+      if (!strcmp (xml->name, "p") ||
+          !strcmp (xml->name, "a") ||
+          !strcmp (xml->name, "textarea")) {
+         buffer = _xml_string_tackon (buffer, cursize, curptr, "&lt;/", 0);
+         buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name, 0);
+         buffer = _xml_string_tackon (buffer, cursize, curptr, ">", 0);
+      }
+      return (buffer);
+   }
+
+   list = xml->children;
+   while (list) {
+      buffer = _xml_string_appendhtml (buffer, cursize, curptr, list->element);
+      list = list->next;
+   }
+
+   if (!strcmp (xml->name, "li") ||
+       !strcmp (xml->name, "opt")) {
+      /* Do nothing. */
+   } else {
+      buffer = _xml_string_tackon (buffer, cursize, curptr, "&lt;/", 0);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, xml->name, 0);
+      buffer = _xml_string_tackon (buffer, cursize, curptr, ">", 0);
+   }
+
+   return (buffer);
+}
+
+XMLAPI char * xml_stringhtml (XML * xml)
+{
+   char * ret;
+   int cursize;
+   int curptr;
+
+   ret = (char *) MALLOC (256);
+   *ret = '\0';
+   cursize = 256;
+   curptr = 0;
+
+   if (!xml) return (ret);
+
+   return (_xml_string_appendhtml (ret, &amp;cursize, &amp;curptr, xml));
+}
+
+
+XMLAPI char * xml_stringcontenthtml (XML * xml)
+{
+   char * ret;
+   int cursize;
+   int curptr;
+   ELEMENTLIST * list;
+
+   ret = (char *) MALLOC (256);
+   *ret = '\0';
+   cursize = 256;
+   curptr = 0;
+
+   if (!xml) return (ret);
+
+   list = xml->children;
+   while (list) {
+      ret = _xml_string_appendhtml (ret, &amp;cursize, &amp;curptr, list->element);
+      list = list->next;
+   }
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_write.html">Previous: xml_write: Writing XML data to disk</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_prepend.html">Next: xml_prepend: Inserting elements</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,102 @@
+<html><head><title>xmlapi: Functions except for xml_read</title></head>
+<body>
+<h2>Functions except for xml_read</h2>
+<center>
+[&nbsp;<a href="h.html">Previous: Definitions</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_write.html">Next: xml_write: Writing XML data to disk</a>&nbsp;]
+</center>
+
+<hr>
+So here's my budding XML manipulation API.  First, the include files, then a list of pieces
+of code (defined on other pages) which get pulled in to build the source file.
+<p></p>
+<i>July 18, 2001</i>: Note that I'm getting more agnostic about the memory allocation used
+by XMLAPI; originally, of course, it was exclusively malloc-based, but with the Python wrapper
+I decided it was time to allow the compiler to specify variants.
+<p></p>
+Also for the Python wrapper, I'm not including any reference to the external expat library;
+these functions will be reimplemented on the pyexpat module instead, in native Python.  This
+avoids a double linkage, as Python already includes its own version of expat.
+<p></p>
+These changes haven't been tested yet, or incorporated into the Python wrapper, so don't get
+too bent out of shape if they don't work.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+
+#ifdef PYTHON
+#define XMLAPI_MALLOC_PYTHON
+#undef XMLAPI_MALLOC_NATIVE
+#endif
+
+#ifndef XMLAPI_MALLOC_NATIVE
+#define XMLAPI_MALLOC_NATIVE
+#endif
+
+#ifdef XMLAPI_MALLOC_NATIVE
+#include &lt;malloc.h>
+#define MALLOC(x) malloc(x)
+#define REALLOC(x,y) realloc((x),(y))
+#define FREE(x) free(x)
+#endif
+
+#ifdef XMLAPI_MALLOC_PYTHON
+#include &lt;python.h>
+#define MALLOC(x) PyMem_Malloc(x)
+#define REALLOC(x,y) PyMem_Realloc((x),(y))
+#define FREE(x,y) PyMem_Free(x)
+#endif
+
+#include &lt;string.h>
+#include &lt;stdlib.h>
+#include &lt;stdarg.h>
+
+#ifndef PYTHON
+#include &lt;expat.h>
+#endif
+
+#include "xmlapi.h"
+
+<i>See <a href="xml_string.html">xml_string: Writing XML data to strings in memory</a></i>
+
+<i>See <a href="xml_create.html">xml_create: Creating an empty element</a></i>
+<i>See <a href="xml_set.html">Working with attributes: xml_set and xml_attrval</a></i>
+<i>See <a href="xml_prepend.html">xml_prepend: Inserting elements</a></i>
+<i>See <a href="xml_append.html">xml_append: Inserting elements</a></i>
+<i>See <a href="xml_replace.html">xml_replace and xml_replacecontent: Replacing an element with another.</a></i>
+<i>See <a href="xml_insert.html">inserting things: xml_insertbefore and xml_insertafter</a></i>
+<i>See <a href="xml_createtext.html">xml_createtext: a shortcut for plain text</a></i>
+<i>See <a href="xml_write.html">xml_write: Writing XML data to disk</a></i>
+<i>See <a href="xml_free.html">xml_free: Cleaning up afterwards</a></i>
+<i>See <a href="xml_delete.html">Deleting pieces: xml_delete</a></i>
+<i>See <a href="xml_first.html">Children: xml_first and xml_last</a></i>
+<i>See <a href="xml_next.html">Siblings: xml_next and xml_prev</a></i>
+<i>See <a href="xml_loc.html">Bookmarking things: xml_loc and xml_getloc</a></i>
+#ifndef PYTHON
+<i>See <a href="xml_read.html">xml_read: Using expat to parse XML files into memory</a></i>
+#endif
+<i>See <a href="xml_copy.html">xml_copy: making fresh copies of XML</a></i>
+<i>See <a href="xml_attr.html">xml_attr*: Working with attributes</a></i>
+<i>See <a href="xml_is.html">xml_is: Checking an object's name</a></i>
+<i>See <a href="xml_search.html">xml_search: Searching trees for elements</a></i>
+<i>See <a href="xml_charcodings.html">xml_charcodings: dealing with UTF-8 and systems that don't quite get it</a></i>
+<i>See <a href="xml_sort.html">xml_sort: Sorting children</a></i>
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="h.html">Previous: Definitions</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_write.html">Next: xml_write: Writing XML data to disk</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

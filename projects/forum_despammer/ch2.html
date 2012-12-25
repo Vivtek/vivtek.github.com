@@ -1,0 +1,466 @@
+<html>
+<head>
+<title>Despamming the Toonbots forum</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">forum despamming</p>
+<p>[ <a href="/projects/forum_despammer">modbot</a> ]</p>
+<p>[ <a href="spam_archive/">spam archive</a> ]</p>
+<p>[ <a href="google_count.html">google count</a> ]</p>
+<p>[ <a href=todo.html>to-do list</a> ]</p>
+<p>[ <a href="despammer1.html">despammer alpha</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=todo>new task</a> ]</p>
+<p>[ <a href=archive.html>view archive</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Despamming the Toonbots forum, Chapter the Second</div>
+<div class="subtitle">Examining the preliminary results.</div>
+<hr>
+<p>
+So <a href="ch1.html">on the last page</a> we extracted some results.  We're looking at the hit logs for the originating IPs for
+posts in the last week.  And there are already some surprises, so to auto-despam we're going to have to code for these surprises.
+Here's an abbreviated list of what I found, with commentary after each block.  (The original runs to 904 lines, but it turns out
+many of the spam posts are coming from a single IP, which is therefore duplicated.
+</p>
+<p>
+The IPs of non-spam are obfuscated in this listing, because they're people I know.  There's no reason to violate their privacy.
+</p>
+<p>
+<pre class="code">
+------------------------------------------------------------------------------------
+6286 - xxx.xxx.xxx.xxx - Re: Cheapest shops selling phentermine
+------------------------------------------------------------------------------------
+</pre>
+<p>
+This one has no access lines after it -- why?  Because it's older than my online access log files.  It shows as newer than a week
+because WebBBS touches the file when a followup is posted.  Since the title and the body contain the word "phentermine", spammers
+flock here.  Why do spammers flock to where there is already spam?  I ... don't know.
+</p>
+<p>
+Action: if no known hits, it's not spam at all.  (Which means only that we must despam any given post as long as hit logs are
+available for it, which isn't a real limitation.)
+</p>
+<pre class="code">
+------------------------------------------------------------------------------------
+6854 - xxx.xxx.xxx.xxx - Re: Eating the piece of fruit
+------------------------------------------------------------------------------------
+25/Jan/2007:09:11:06 - /toonbots/board_thread2154.html - 
+25/Jan/2007:09:11:11 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/board_thread2154.html
+25/Jan/2007:09:11:15 - /toonbots/discuss.pl?read=6804 - http://www.vivtek.com/toonbots/discuss.pl
+25/Jan/2007:09:12:54 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6804
+25/Jan/2007:09:12:57 - /toonbots/discuss.pl? - http://www.vivtek.com/toonbots/discuss.pl?post
+25/Jan/2007:09:13:03 - /toonbots/discuss.pl?read=6767 - http://www.vivtek.com/toonbots/discuss.pl?
+25/Jan/2007:09:13:22 - /toonbots/discuss.pl?read=6759 - http://www.vivtek.com/toonbots/discuss.pl?
+28/Jan/2007:17:11:20 - /toonbots/ - 
+28/Jan/2007:17:11:24 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/
+28/Jan/2007:17:11:26 - /toonbots/discuss.pl?read=6817 - http://www.vivtek.com/toonbots/discuss.pl
+28/Jan/2007:17:11:29 - /toonbots/discuss.pl?read=6805 - http://www.vivtek.com/toonbots/discuss.pl?read=6817
+28/Jan/2007:17:11:42 - /toonbots/discuss.pl?read=6817 - http://www.vivtek.com/toonbots/discuss.pl?read=6805
+28/Jan/2007:17:11:46 - /toonbots/discuss.pl? - http://www.vivtek.com/toonbots/discuss.pl?read=6817
+28/Jan/2007:17:11:55 - /toonbots/discuss.pl?read=6817 - http://www.vivtek.com/toonbots/discuss.pl?
+28/Jan/2007:17:12:26 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6817
+28/Jan/2007:17:12:30 - /toonbots/discuss.pl? - http://www.vivtek.com/toonbots/discuss.pl?post
+28/Jan/2007:23:53:38 - /toonbots - 
+28/Jan/2007:23:53:38 - /toonbots/ - 
+28/Jan/2007:23:53:43 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/
+29/Jan/2007:11:48:58 - /toonbots/ - 
+29/Jan/2007:11:49:02 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/
+29/Jan/2007:11:49:05 - /toonbots/discuss.pl?read=6856 - http://www.vivtek.com/toonbots/discuss.pl
+29/Jan/2007:11:49:33 - /toonbots/discuss.pl?read=6767 - http://www.vivtek.com/toonbots/discuss.pl
+29/Jan/2007:11:49:41 - /toonbots/discuss.pl?read=6765 - http://www.vivtek.com/toonbots/discuss.pl
+29/Jan/2007:11:49:47 - /toonbots/discuss.pl?read=6858 - http://www.vivtek.com/toonbots/discuss.pl
+29/Jan/2007:11:49:51 - /toonbots/discuss.pl?read=6856 - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:11:06:31 - /toonbots - 
+31/Jan/2007:11:06:31 - /toonbots/ - 
+31/Jan/2007:11:07:05 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/
+31/Jan/2007:11:07:53 - /toonbots/discuss.pl?read=6888 - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:11:08:03 - /toonbots/discuss.pl?read=6890 - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:21:34:24 - /toonbots - 
+31/Jan/2007:21:34:25 - /toonbots/ - 
+31/Jan/2007:21:35:21 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/
+31/Jan/2007:23:15:11 - /toonbots - 
+31/Jan/2007:23:15:12 - /toonbots/ - 
+31/Jan/2007:23:15:15 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/
+31/Jan/2007:23:43:58 - /toonbots - 
+31/Jan/2007:23:43:58 - /toonbots/ - 
+31/Jan/2007:23:44:00 - /toonbots - 
+01/Feb/2007:22:05:46 - /toonbots - 
+01/Feb/2007:22:05:48 - /toonbots/ - 
+01/Feb/2007:22:05:58 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/
+01/Feb/2007:22:10:19 - /toonbots/discuss.pl?read=6926 - http://www.vivtek.com/toonbots/discuss.pl
+</pre>
+<p>
+Also not spam: this person checks the comic occasionally.  Action: if any hit is to a non-page, count it as non-spam
+(but watch out! This rule turns out to be wrong, later!)
+</p>
+<pre class="code">
+------------------------------------------------------------------------------------
+6847 - 84.19.188.16 - home equity loan rate calculator
+------------------------------------------------------------------------------------
+11/Dec/2006:21:13:02 - /toonbots/board_thread548.html - http://www.vivtek.com/toonbots/board_thread548.html
+11/Dec/2006:21:13:04 - /toonbots/board_archive.html - http://www.vivtek.com/board_archive.html
+11/Dec/2006:21:13:05 - /toonbots/discuss.pl - http://www.vivtek.com/discuss.pl
+11/Dec/2006:21:13:09 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+13/Dec/2006:18:03:50 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+13/Dec/2006:18:03:51 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+13/Dec/2006:18:03:52 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+14/Dec/2006:14:43:32 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+14/Dec/2006:14:43:32 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+14/Dec/2006:14:43:33 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+15/Dec/2006:12:32:38 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+15/Dec/2006:12:32:39 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+15/Dec/2006:12:32:40 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+15/Dec/2006:21:49:05 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+15/Dec/2006:21:49:05 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+15/Dec/2006:21:49:06 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+20/Dec/2006:02:45:33 - /toonbots/board_thread548.html - http://www.vivtek.com/toonbots/board_thread548.html
+20/Dec/2006:02:45:35 - /toonbots/board_archive.html - http://www.vivtek.com/board_archive.html
+20/Dec/2006:02:45:37 - /toonbots/discuss.pl - http://www.vivtek.com/discuss.pl
+20/Dec/2006:02:45:37 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+22/Dec/2006:16:57:28 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+22/Dec/2006:16:57:29 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+22/Dec/2006:16:57:29 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+26/Dec/2006:00:58:09 - /toonbots/board_thread548.html - http://www.vivtek.com/toonbots/board_thread548.html
+26/Dec/2006:00:58:10 - /toonbots/board_archive.html - http://www.vivtek.com/board_archive.html
+26/Dec/2006:00:58:12 - /toonbots/discuss.pl - http://www.vivtek.com/discuss.pl
+26/Dec/2006:00:58:12 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+27/Dec/2006:00:40:44 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+27/Dec/2006:00:40:45 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+27/Dec/2006:00:40:46 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+27/Dec/2006:23:38:20 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+27/Dec/2006:23:38:21 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+27/Dec/2006:23:38:22 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+31/Dec/2006:13:51:47 - /toonbots/board_thread548.html - http://www.vivtek.com/toonbots/board_thread548.html
+31/Dec/2006:13:51:49 - /toonbots/board_archive.html - http://www.vivtek.com/board_archive.html
+31/Dec/2006:13:51:50 - /toonbots/discuss.pl - http://www.vivtek.com/discuss.pl
+31/Dec/2006:13:51:51 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+02/Jan/2007:11:32:28 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+02/Jan/2007:11:32:29 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+02/Jan/2007:11:32:30 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+03/Jan/2007:00:23:01 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+03/Jan/2007:00:23:01 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+03/Jan/2007:00:23:02 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+03/Jan/2007:21:02:45 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+03/Jan/2007:21:02:45 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+05/Jan/2007:02:47:45 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+08/Jan/2007:04:53:55 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+08/Jan/2007:04:53:56 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+08/Jan/2007:04:53:57 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+08/Jan/2007:23:20:29 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+08/Jan/2007:23:20:30 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+08/Jan/2007:23:20:31 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+09/Jan/2007:07:21:46 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+09/Jan/2007:07:21:47 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+09/Jan/2007:07:21:48 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+15/Jan/2007:15:06:11 - /toonbots/board_thread548.html - http://www.vivtek.com/toonbots/board_thread548.html
+15/Jan/2007:15:06:13 - /toonbots/board_archive.html - http://www.vivtek.com/board_archive.html
+15/Jan/2007:15:06:15 - /toonbots/discuss.pl - http://www.vivtek.com/discuss.pl
+15/Jan/2007:15:06:15 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+17/Jan/2007:14:09:23 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+17/Jan/2007:14:09:24 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+17/Jan/2007:14:09:25 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+18/Jan/2007:19:59:14 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+18/Jan/2007:19:59:15 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+18/Jan/2007:19:59:16 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+24/Jan/2007:02:21:17 - /toonbots/board_thread548.html - http://www.vivtek.com/toonbots/board_thread548.html
+24/Jan/2007:02:21:19 - /toonbots/board_archive.html - http://www.vivtek.com/board_archive.html
+24/Jan/2007:02:21:21 - /toonbots/discuss.pl - http://www.vivtek.com/discuss.pl
+24/Jan/2007:02:21:22 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+25/Jan/2007:06:19:45 - /toonbots/board_thread5217.html - http://www.vivtek.com/toonbots/board_thread5217.html
+25/Jan/2007:06:19:49 - /toonbots/board_archive.html - http://www.vivtek.com/board_archive.html
+25/Jan/2007:06:19:51 - /toonbots/discuss.pl - http://www.vivtek.com/discuss.pl
+25/Jan/2007:06:19:52 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+28/Jan/2007:07:16:18 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+28/Jan/2007:07:16:20 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+28/Jan/2007:07:16:23 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+28/Jan/2007:11:25:50 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+30/Jan/2007:07:03:21 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+30/Jan/2007:08:39:20 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:17:05:50 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:17:05:51 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:19:29:06 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:19:29:07 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+01/Feb/2007:06:53:41 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+01/Feb/2007:06:53:42 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+01/Feb/2007:06:53:43 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+01/Feb/2007:08:23:45 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+</pre>
+<p>
+Here we have a long-term spammer, a repeat offender despite the fact that I regularly despam the forum manually.
+The IP 84.19.188.16 resolves to <code>ns.km21105-02.keymachine.de</code>, but <code>ns.km21105-02.keymachine.de</code>
+does not resolve.  "whois -h whois.arin.net 84.19.188.16" gives us the fact that it's a RIPE number (Europe), and
+the RIPE database at www.ripe.net confirms that it's an IP belonging to Keyweb AG.  Their abuse address is abuse@keyweb.de,
+and we'll take this up with them separately, but the goal here is not a social solution but a technical one.
+</p>
+<p>
+In this case, there are two points to note: first, the spammer always gives the page as its own referrer to obscure how
+a particular forum was found.  (In this case, the spammer's original search led to board thread 548.  The only thing there
+which looks vaguely spammy is Chris's joke about SYSTEM REQUIREMENTS: Pentium 166, 24 MB RAM, Windows 95 or better, fallout
+shelter highly recommended.  I don't think it was the fallout shelter that did it -- I think that forum spammers try to post
+on fora which are already being spammed.  My guess is (1) they will waste less time that way, since the post will work; (2)
+the admins of such fora are probably lax enough not to mallet them, and (3) spammers are stupid.)
+</p>
+<p>
+The second warning sign: in more than a month, this spammer has never visited anything but the forum.  No visits to non-forum
+URLs, if we count the archive.  But there's plenty of traffic on the forum.
+</p>
+<pre class="code">
+------------------------------------------------------------------------------------
+6966 - 81.177.26.50 - 43 - It is the greatest treatment
+------------------------------------------------------------------------------------
+28/Jan/2007:01:11:22 - /blog/ - http://www.vivtek.com/blog/
+28/Jan/2007:01:11:22 - /blog/t/forum_spam.html - http://www.vivtek.com/t/forum_spam.html
+28/Jan/2007:01:11:24 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+28/Jan/2007:01:11:24 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+29/Jan/2007:18:45:11 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+29/Jan/2007:18:45:12 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+30/Jan/2007:02:09:41 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+30/Jan/2007:02:09:42 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+30/Jan/2007:06:20:27 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+30/Jan/2007:06:20:28 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+30/Jan/2007:10:17:23 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+30/Jan/2007:10:17:24 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+30/Jan/2007:13:49:30 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+30/Jan/2007:13:49:31 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+30/Jan/2007:19:12:52 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+30/Jan/2007:19:12:52 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:03:49:42 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:03:49:43 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:07:33:43 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:07:33:44 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:17:40:22 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:17:40:23 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:23:20:25 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+31/Jan/2007:23:20:26 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+01/Feb/2007:04:13:43 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+01/Feb/2007:04:13:44 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+01/Feb/2007:15:45:18 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+01/Feb/2007:15:45:19 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+02/Feb/2007:00:52:06 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+02/Feb/2007:00:52:07 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+02/Feb/2007:09:27:09 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+02/Feb/2007:09:27:09 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+02/Feb/2007:12:15:09 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+02/Feb/2007:12:15:19 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+02/Feb/2007:17:42:50 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+02/Feb/2007:17:42:51 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+02/Feb/2007:22:50:53 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+02/Feb/2007:22:50:54 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+</pre>
+<p>
+Here was a surprise: this spammer didn't find the forum through an archive thread.  Ironically, this one
+found the forum because I blogged about forum spam and linked to the forum...  My guess is that the search in this
+case is for any link to something with "forum" in the link text.  That fits this.  Note the prolixity of this
+spammer.
+</p>
+<p>
+Modification of action: if the spammer hits a couple of pages at the beginning of his career, it doesn't
+disqualify him as a spammer.
+</p>
+<pre class="code">
+------------------------------------------------------------------------------------
+6967 - 209.160.64.98 - My Video collection :)
+------------------------------------------------------------------------------------
+28/Jan/2007:12:07:58 - /toonbots/board_thread548.html - http://www.vivtek.com/toonbots/board_thread548.html
+28/Jan/2007:12:08:02 - /toonbots/board_archive.html - http://www.vivtek.com/board_archive.html
+28/Jan/2007:12:08:12 - /toonbots/discuss.pl - http://www.vivtek.com/discuss.pl
+28/Jan/2007:12:08:13 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+</pre>
+<p>
+Another straightforward discovery through the archived thread 548; note 4 seconds taken to "read" that lengthy thread, then 10 seconds
+to find the forum, followed by 1 second to post.  Elapsed time: 15 seconds.  Spammers have to hurry; they're not here to read my content.
+</p>
+<pre class="code">
+------------------------------------------------------------------------------------
+6968 - 84.16.240.239 - Cool site. Thanks!!! pharmacy [url=http://hulpen.i
+------------------------------------------------------------------------------------
+03/Feb/2007:18:44:01 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+</pre>
+<p>
+Another surprise: this one swoops in, posts, and is done.  No reading of the site <i>at all</i>.  Easy to filter, disturbing in
+its implication that the forum has been indexed by spammers.  This IP resolves to mail.taksim.biz, and www.taksim.biz is what
+looks to me to be a Turkish Webmail provider.  ARIN and RIPE tell us it's a German provider, but I'm not sure this one's worth
+following up.
+</p>
+<p>
+Action: lame attempts to post without actually reading anything are obvious spam.  Filter out.
+</p>
+<pre class="code">
+------------------------------------------------------------------------------------
+6971 - 66.232.107.244 - II - Wanna some more - 1?
+------------------------------------------------------------------------------------
+03/Feb/2007:19:37:11 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+03/Feb/2007:19:37:13 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+03/Feb/2007:23:31:53 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+03/Feb/2007:23:31:54 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+</pre>
+<p>
+This one probably hit the forum directly through Google on something in one of the post subject lines.
+It's still covered by the "no other content = spam" rule.
+</p>
+<pre class="code">
+------------------------------------------------------------------------------------
+6975 - 69.238.208.99 - free hardcore sex videos
+------------------------------------------------------------------------------------
+03/Feb/2007:21:27:39 - /toonbots/board_thread199.html - http://www.vivtek.com/toonbots/board_thread199.html
+03/Feb/2007:21:27:50 - /toonbots/board_archive.html - http://www.vivtek.com/board_archive.html
+03/Feb/2007:21:28:25 - /toonbots/discuss.pl - http://www.vivtek.com/discuss.pl
+03/Feb/2007:21:28:34 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+</pre>
+<p>
+Same modus operandi, different incoming thread.  Number 199 mentions Vicks, NyQuil, Proctor &amp; Gamble (misspelled), and "50 proof",
+which is probably the explanation for its attractiveness to spammers.
+</p>
+<pre class="code">
+------------------------------------------------------------------------------------
+6908 - 63.166.111.6 - Wholesale Video Games
+------------------------------------------------------------------------------------
+03/Jan/2007:18:57:15 - /toonbots/board_thread5217.html - 
+04/Jan/2007:16:23:41 - /toonbots/board_thread5217.html - http://www.vivtek.com/toonbots/board_thread5217.html
+04/Jan/2007:16:23:45 - /toonbots/board_archive.html - http://www.vivtek.com/board_archive.html
+04/Jan/2007:16:23:52 - /toonbots/discuss.pl - http://www.vivtek.com/discuss.pl
+04/Jan/2007:16:23:53 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl
+[snip]
+</pre>
+<p>
+No need to belabor the log on that one -- the probable attractor in that archive thread is the word "drugstore".
+</p>
+<pre class="code">
+------------------------------------------------------------------------------------
+6886 - 58.15.127.29 - samsung last month made the RAZR V3x Ferrari Chall
+------------------------------------------------------------------------------------
+30/Jan/2007:17:53:55 - /toonbots/discuss.pl - http://www.vivtek.com/toonbots/discuss.pl
+30/Jan/2007:17:54:22 - /toonbots/discuss.pl?read=6286 - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+30/Jan/2007:17:54:34 - /toonbots/discuss.pl?post - http://www.vivtek.com/toonbots/discuss.pl?read=6286
+</pre>
+<p>
+Here, the attractor is again on the front page, and is nearly certainly "phentermine" in one of the post titles.
+</p>
+<p>
+<b>Conclusions:</b><br>
+Spammers tend to want to post where they already find spam.  They probably Google for tempting words (or search using other
+tools; I don't mean to implicate Google specifically.)  They don't read sites; they simply post.  They probably mark fora
+and sell lists of vulnerable ones, like mine.
+</p>
+<p>
+For this particular situation, it's probably safe to flag a post as spam if the poster hasn't ever read content, or has read only
+a page or two briefly, then posted immediately.  I'm thinking that a more conventional blog would have a similar pattern.  Still, to
+be safe, I'm just going to move spam into a spam folder instead of deleting it outright.
+</p>
+<p>Next: <a href="ch3.html">Using our conclusions to delete spam</a>.</p>
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

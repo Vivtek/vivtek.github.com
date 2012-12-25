@@ -1,0 +1,615 @@
+<html><head><title>File tagger</title><style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style></head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">programming</p>
+<p>[ <a href="/projects/">all projects</a> ]</p>
+<p>[ <a href="/blog/">blog</a> ]</p>
+<p>[ <a href="/projects/forum_despammer/">forum despammer</a> ]</p>
+<p>[ <a href="/projects/wiki/">wiki tools</a> ]</p>
+<p>[ <a href="/projects/fantasy_names/">name generator</a> ]</p>
+<p>[ <a href="/gdbm.html">gdbm</a> ]</p>
+<p>[ <a href="/expat.html">expat</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">File tagger</div>
+<p>
+This little ditty is the second I've written in the App-a-week framework; the idea is to take small, interesting application ideas from the
+Internet community and implement them in a well-documented way.  The <i>idea</i> is to do that in a couple of days, but in practice, this
+second application has dragged out for three weeks, due to the Christmas holiday and due to the fact that I've taken the time to work through
+my always-in-progress Python GUI framework.  Good excuse to do something with that, but the reason I've never finished it is that it's
+<i>hard work</i>.  Ha.
+</p>
+<p>
+You can see the straight Python of this program <a href="filetagger1.py.txt">here</a>, and you can download a compiled
+version for Windows <a href="filetagger1.zip">here</a>.  If you want to develop with this framework, um, drop me a line
+and I'll get more motivated with an easily downloadable version, but it's still pretty immature (although this program
+demonstrates that it is capable of supporting at least one application!)
+</p>
+<p>
+Anyway, you can see the framework <a href="http://www.vivtek.com/wftk/doc/code/python/wxpywf.html">here at the wxpywf page</a>,
+and this application
+is a special-purpose modification of the
+<a href="http://www.vivtek.com/wftk/doc/code/python/pypop.html">PyPop general-purpose application wrapper</a>
+for the wxpywf framework classes.  The wxpywf module relies heavily on various XML-oriented work I've done in the context
+of the <a href="http://www.vivtek.com/wftk/">wftk open-source workflow toolkit</a>, with an underlying C library for XML
+manipulation, a Python import wrapper for that, an object-oriented Python wrapper on <i>that</i>, and finally the wxpywf
+library.  I just keep getting closer to nirvana with this thing; eventually the wrappers will be stacked twenty high
+and I'll just say, "Computer, organize files."  Yeah.
+</p>
+<p>
+In the wxpywf framework, the UI is described with XML, and the code is all placed into so-called CLIs (command-line interfaces), which bundle actions taken
+into command-addressable chunks.  The nice implication of the command-line framework is that actions can be logged, scripted, and performed in consistent
+ways through different interfaces.  I find it a nice abstraction, and since this was the first application of anything like
+real size that I've actually "finished" with it, I discovered to my pleasant surprise that it <i>is</i> convenient.
+</p>
+<p>
+So let's get down to business by importing our modules and describing our UI.
+</p>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>import wftk
+import wxpywf
+import string
+import os.path
+from wxPython.wx import *
+
+ui = """
+&lt;ui>
+
+&lt;list id="files">
+&lt;field id="path" label="Full path"/>
+&lt;field id="name" label="Name or nickname"/>
+&lt;field id="description" label="Description"/>
+&lt;field id="tags" label="List of tags"/>
+&lt;/list>
+
+&lt;menubar id="main">
+  &lt;menu label="&amp;amp;File">
+     &lt;item cmd="add" label="&amp;amp;Add a file" help="Add a file to the database"/>
+     &lt;item cmd="mod" label="&amp;amp;Edit file info" help="Edit a file's information in the database"/>
+     &lt;item cmd="del" label="&amp;amp;Delete a file" help="Delete a file from the database"/>
+     &lt;separator/>
+     &lt;item cmd="exit" label="E&amp;amp;xit" help="Quit the program"/>
+  &lt;/menu>
+&lt;/menubar>
+
+&lt;frame id="main" menu="main" title="File tagger" onfiledrop="add %s">
+  &lt;tabset edge="bottom" field="tabshown">
+    &lt;tab label="Cloud">
+       &lt;html field="html"/>
+    &lt;/tab>
+    &lt;tab label="Files">
+       &lt;splitter split="vertical" minpanesize="40" sashpos="80">
+         &lt;panel>
+           &lt;box id="box1" dir="vertical"/>
+           &lt;radio-group label="Display:" dir="vertical" field="selection" box="box1" box-weight="0">
+              &lt;radio value="all" label="All tags"/>
+              &lt;radio value="some" label="Some tags"/>
+           &lt;/radio-group>
+           &lt;listbox field="tags" box="box1" box-weight="1">
+              &lt;value value="test1"/>
+              &lt;value value="test2"/>
+           &lt;/listbox>
+           &lt;button label="Show" box="box1" box-weight="0" cmd="update_list"/>
+           &lt;button label="test" box="box1" box-weight="1" cmd="test blah blargh"/>
+         &lt;/panel>
+         &lt;list list="files" field="filelist">
+           &lt;col label="Name" field="name"/>
+           &lt;col label="Tags" field="tags"/>
+           &lt;col label="Description" field="description"/>
+         &lt;/list>
+       &lt;/splitter>
+    &lt;/tab>
+  &lt;/tabset>
+&lt;/frame>
+
+&lt;dialog id="add" title="Adding files" h="300" w="300">
+  &lt;box id="box1" dir="vertical"/>
+  &lt;static box="box1" format="yes">You are adding [numfiles] files.&lt;/static>
+  &lt;static box="box1">Tags to apply to all files (separate with spaces):&lt;/static>
+  &lt;text box="box1" field="tags" multiline="yes"/>
+  &lt;static box="box1">Description for all files:&lt;/static>
+  &lt;text box="box1" field="description" multiline="yes"/>
+  &lt;checkbox box="box1" field="edit_each" label="Do you want to edit each file separately?"
+             on="yes" off="no"/>
+  &lt;box id="box2" box="box1" dir="horizontal"/>
+  &lt;button box="box2" label="Add" value="ok"/>
+  &lt;button box="box2" label="Cancel" value="cancel"/>
+&lt;/dialog>
+
+&lt;dialog id="mod" title="Editing file info" h="300" w="300">
+  &lt;box id="box1" dir="vertical"/>
+  &lt;static box="box1" format="yes">Path: [path]&lt;/static>
+  &lt;box id="box1a" box="box1" dir="horizontal"/>
+  &lt;static box="box1a">Nickname:&lt;/static>
+  &lt;text box="box1a" field="name"/>
+  &lt;static box="box1">Tags (separated by spaces):&lt;/static>
+  &lt;text box="box1" field="tags" multiline="yes"/>
+  &lt;static box="box1">Description:&lt;/static>
+  &lt;text box="box1" field="description" multiline="yes"/>
+  &lt;box id="box2" box="box1" dir="horizontal"/>
+  &lt;button box="box2" label="Update" value="ok"/>
+  &lt;button box="box2" label="Cancel" value="cancel"/>
+&lt;/dialog>
+
+
+
+&lt;/ui>
+"""
+
+defn = wftk.xml (ui)
+</pre></td></tr></table>
+
+<p>
+Now let's interpret the command-line parameters.  The general form of the invocation is:
+</p>
+<pre>
+   filetagger1 -fcst[tag] &lt;file&gt; [command arg arg arg]
+     -f : show file tab first
+     -c : show cloud tab first
+     -s : run silently (execute command and exit)
+</pre>
+<p>
+The initial values of the flags are stashed in the UI definition after loading, and will be processed when the frame is being built.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>defn['command-line'] = sys.argv
+sys.argv.pop(0)
+if len(sys.argv) > 0 and sys.argv[0][0] == '-':
+   flags = sys.argv.pop(0)[1:]
+   while flags != '':
+      if flags[0] == 'f': defn['show'] = 'Files'
+      if flags[0] == 'c': defn['show'] = 'Clouds'
+      if flags[0] == 's': defn['silent'] = 'yes'
+      if flags[0] == 't':
+         defn['selection'] = 'some'
+         defn['tags'] = flags[1:]
+         break
+      flags = flags[1:]
+try:
+   defn['datafile'] = sys.argv.pop(0)
+except:
+   defn['datafile'] = 'default.ftg'
+if len(sys.argv):
+   args = []
+   for a in sys.argv[1:]:
+      if a.index(' ') > -1:
+         args.append ('"%s"' % a)
+      else:
+         args.append (a)
+   defn['startcmd'] = sys.argv[0] + ' ' + ' '.join(args)   # I just love this groovy syntax!
+</pre></td></tr></table>
+
+<p>
+Next, let's open the data file, if it exists.  If it doesn't exist or if the XML is corrupted, we'll just build a standard template.
+On every change to the data file, we're
+going to save it back out to disk -- that might be a little expensive for a larger database, but this little app isn't intended to scale all that well.
+If we want it to scale, we're going to have to rebuild the data access portions, a task for a later date.
+</p>
+<p>
+Once the data file is open, we'll add it to the defn structure -- that will make it easily accessible to everything in the app.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>try:
+   infile = open(defn['datafile'])
+   data = wftk.xmlobj()
+   data.read (infile)
+except IOError, message:
+   data = wftk.xmlobj (str="""
+&lt;data>
+&lt;files/>
+&lt;tags/>
+&lt;cloud/>
+&lt;/data>
+""")
+except wftk.ParseError, message:
+   # TODO: delve into the many layers between here and expat, and format better messages; py_xmlapi isn't doing the best it could.
+   defn['datafile-error'] = "%s is corrupted XML (%s).  Quit before making any changes if you think you can save it." \
+                             % (defn['datafile'], message)
+   data = wftk.xmlobj (str="""
+&lt;data>
+&lt;files/>
+&lt;tags/>
+&lt;cloud/>
+&lt;/data>
+""")
+
+defn.append_pretty (data)
+</pre></td></tr></table>
+
+<p>
+Now let's define a little index into the file list, just for ease later, and the same for tags.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class g: pass
+dataindex = g()
+dataindex.filelist = {}
+dataindex.tags = ['tags']
+dataindex.tag_counts = {}
+def reindex():
+   dataindex.filelist = {}
+   dataindex.tags = []
+   dataindex.tag_counts = {}
+   for f in data.loc('.files').elements():
+      dataindex.filelist[f['path']] = f
+      for tag in f['tags'].split():
+         try:
+            if dataindex.tags.index(tag) > -1: dataindex.tag_counts[tag] = dataindex.tag_counts[tag] + 1
+         except:
+            dataindex.tags.append(tag)
+            dataindex.tag_counts[tag] = 1
+reindex()
+</pre></td></tr></table>
+
+<p>
+The next step is to define the commands which will be called by the UI above.  In a WxPyWf program, most of the code is stored in a "command-line interface",
+or CLI, which is attached to the frames and dialogs of the UI.  The commands work with the widgets and controls defined in the UI,
+and any external datasources defined; the commands are thus the actual program itself.
+<p></p>
+<p>
+Since most of the application logic of the file tagger application is right here in this CLI, it makes a lot of sense for me to document it in separate
+sections, so as to avoid potential unwieldiness.
+So here, you simply see the "glue", as it were, which defines the functions to be used, initializes the application, and so forth.  Follow the links
+to the definitions of the various actual commands which do interesting things.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class mycli(wftk.cli):
+   def __init__ (self, defn):
+      self.defn = defn
+      self.mode = 0
+      self.commands={}
+      self.commands['initialize']   = ['initialize',   self.initialize,   0,  0, '']
+      self.commands['update_list']  = ['update_list',  self.update_list,  0,  0, '']
+      self.commands['find_tags']    = ['find_tags',    self.find_tags,    0,  0, '']
+      self.commands['update_cloud'] = ['update_cloud', self.update_cloud, 0,  0, '']
+      self.commands['save']         = ['save',         self.save,         0,  0, '']
+      self.commands['show_tag']     = ['show_tag',     self.show_tag,     1,  1, '[tag]']
+      self.commands['add']          = ['add',          self.add,          0, -1, '[list of files]']
+      self.commands['mod']          = ['mod',          self.mod,          0, -1, '[file] [changes]']
+      self.commands['del']          = ['del',          self.delete,       0, -1, '[list of files]']
+      self.commands['test']         = ['test',         self.test,         0, -1, '']
+
+
+   def initialize(self, context, action, obj):
+      self.frame.do (context, 'find_tags')
+      if defn['show']      != '': self.frame.do (context, "set tabshown %s" % defn['show'])
+      if defn['selection'] != '': self.frame.do (context, "set selection %s" % defn['selection'])
+      if defn['tags']      != '': self.frame.do (context, "set tags %s" % defn['tags'])
+      self.frame.do (context, 'update_list')
+      self.frame.do (context, 'update_cloud')
+      if defn['startcmd']  != '': self.frame.do (context, defn['startcmd'])
+      if defn['silent'] == 'yes': self.frame.do (context, 'exit')  # TODO: should this be standard WxPyWf behavior?
+
+   def save(self, context, action, obj):
+      data.write(defn['datafile'])
+
+   def test(self, context, action, obj):
+      wxpywf.notify_user (self.frame['html'])
+
+   def show_tag(self, context, action, obj):
+      self.frame.do (context, "set selection some")
+      self.frame.do (context, "set tags %s" % action['parm(0)'])
+      self.frame.do (context, "set tabshown Files")
+      self.frame.do (context, "update_list")
+
+   <i>See <a href="filetagger1.html#update_list">Updating the list control</a></i>
+   <i>See <a href="filetagger1.html#find_tags">Finding the list of tags and updating the listbox</a></i>
+   <i>See <a href="filetagger1.html#update_cloud">Updating the cloud HTML</a></i>
+   <i>See <a href="filetagger1.html#add">Adding a file or files</a></i>
+   <i>See <a href="filetagger1.html#mod">Modifying the data associated with a file</a></i>
+   <i>See <a href="filetagger1.html#del">Deleting a file or files</a></i>
+
+</pre></td></tr></table>
+
+<p>
+Finally, we conclude by providing the minimum necessary Python wrapper code to bootstrap all the above into a WxPyWf program.  Well, almost
+minimum -- this is the handiest place to notify the user about anything funky with the command line.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class App(wxApp):
+   def OnInit(self):
+      frame = wxpywf.frame(None, defn, defn.search ('frame', 'id', 'main'), cli_list=[mycli(defn)])
+      self.SetTopWindow(frame)
+      if defn['datafile-error']: wxpywf.notify_user(defn['datafile-error'])
+      return true
+
+app = App(0)
+app.MainLoop()
+</pre></td></tr></table>
+And that, in a nutshell, is a WxPyWf program.  It really couldn't be less complicated.  Now let's define the commands which do all the
+heavy lifting.
+<br><br>
+<a name="update_list">
+<i>Updating the list control</i><br>
+The list updater is the first time we actually use any data from the applicaton.  Note that the UI of the Files tab is laid out with a list control and
+a panel.  The panel contains controls whose current settings influence the XML structure in the <code>context</code> parameter to the command.  For
+instance, the radio group "selection" can take a value of "all" or "some" depending on which radio button is selected, and the value of "tags" is whichever
+tag is selected in the list box.  This command is called when the "Show" button is clicked.
+
+So to determine the list of files to be displayed, we first look at the radio button selection.  If it's "all", we display everything, easily done with
+a list comprehension.  If not, we scan the list of files in the data structure and build it tuple by tuple on the basis of the tags field of each file.
+Either way, we give the list control the list of tuples to display, and there you have it.  Done.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def update_list(self, context, action, obj):
+      if context['selection'] == 'all':
+         file_list = [(f, f['path']) for f in data.loc('.files').elements()]
+      else:
+         file_list = []
+         for file in data.loc('.files').elements():
+            keys = file['tags'].split()
+            try:
+               if keys.index(context['tags']) > -1:
+                  #print "keys %s contains %s" % (keys, context['tags'])
+                  file_list.append ((file, file['path']))
+            except:
+               pass
+      self.frame.getboundfield('filelist').reload(file_list)
+</pre></td></tr></table>
+<br><br>
+<a name="find_tags">
+<i>Finding the list of tags and updating the listbox</i><br>
+While the list control itself is bound to the field for the list control above, the listbox for the tags, as a simple control, is embedded in a panel
+instead.  So we have to tell the panel which of its fields should be updated.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def find_tags(self, context, action, obj):
+      keys = dataindex.tags
+      keys.sort()
+      self.frame.getboundfield('tags').new_listbox_values('tags', keys)
+</pre></td></tr></table>
+<br><br>
+<a name="update_cloud">
+<i>Updating the cloud HTML</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def update_cloud(self, context, action, obj):
+      if len(dataindex.tags) == 0:
+         self.frame['html'] = "There are no files in the database.&lt;br>Add some by switching to the Files tab below."
+         return true
+      sm = 3.0
+      lg = 8.0
+      delta = lg - sm
+      links = []
+      maxcount = 0
+      for key in dataindex.tags:
+         if dataindex.tag_counts[key] > maxcount:
+            maxcount = dataindex.tag_counts[key]
+      for key in dataindex.tags:
+         weight = dataindex.tag_counts[key] * 1.0 / maxcount
+         font = int(sm + delta * weight)
+         links.append ('&lt;a href="cmd:show_tag %s">&lt;font size="%d">%s&lt;/font>&lt;/a>' \
+                       % (key, font, key))
+      self.frame['html'] = '\n'.join(links)
+</pre></td></tr></table>
+<br><br>
+<a name="add">
+<i>Adding a file or files</i><br>
+<p>
+The add handler is actually a little involved; it's essentially a wizard.
+</p>
+<p>
+First, we get a list of files to be added from the (XML) action structure given us.  If there are no files specified, then we'll pop up a standard
+files dialog to get the user to select one or more.
+</p>
+<p>
+One way or the other, we now have a list of zero or more files to add.  If there are zero, our action is clear.  If there's one, we'll pop up a
+modification dialog (see below).  If there's more than one, then we'll get clever: first, we present a dialog allowing the user to specify tags and a
+general description, <i>then</i> we'll let the user check a box to edit each file's information separately afterwards.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def add(self, context, action, obj):
+      files = [action['parm(%s)' % i] for i in range(int(action['parms']))] # Note: this syntax is scarily beautiful.  See below.
+      if len(files) == 0:
+         dlg = wxFileDialog(self.frame, "Choose a file or files to add to the database", ".", "", "*.*", wxOPEN|wxMULTIPLE)
+         if dlg.ShowModal() == wxID_OK:
+            for path in dlg.GetPaths():
+               files = files + [path]
+         dlg.Destroy()
+
+      if len(files) == 0:
+         return true
+      elif len(files) == 1:
+         filerec = wftk.xmlobj (str="<file/>")
+         filerec['path'] = files[0]
+         filerec['name'] = os.path.basename(filerec['path'])
+         if context['selection'] == 'some': filerec['tags'] = context['tags']
+         if wxpywf.call_dialog(defn.search('dialog', 'id', 'mod'), self.frame, self.frame, \
+                               rec=filerec, title='Add file to database'):
+            data.loc('.files').append_pretty(filerec)
+      else:
+         filesrec = wftk.xmlobj()
+         filesrec['numfiles'] = `len(files)`
+         if context['selection'] == 'some': filesrec['tags'] = context['tags']
+         filesrec['edit_each'] = 'yes'
+         if defn['silent'] == 'yes' or \
+            wxpywf.call_dialog(defn.search('dialog', 'id', 'add'), self.frame, self.frame, \
+                               rec=filesrec, title='Add multiple files to database'):
+            for file in files:
+               filerec = wftk.xmlobj (str="<file/>")
+               filerec['path'] = file
+               filerec['name'] = os.path.basename(filerec['path'])
+               for field in ('tags', 'description'): filerec[field] = filesrec[field]
+               if filesrec['edit_each'] == 'yes':
+                  if not wxpywf.call_dialog(defn.search('dialog', 'id', 'mod'), self.frame, \
+                                            self.frame, rec=filerec, \
+                                            title='Adding file to database'):
+                     next
+               data.loc('.files').append_pretty(filerec)
+      reindex()
+      self.frame.do (context, 'update_list')
+      self.frame.do (context, 'find_tags')
+      self.frame.do (context, 'update_cloud')
+      self.frame.do (context, 'save')
+</pre></td></tr></table>
+
+Note on the elegant syntax of <code>files = [action['parms(%s)' % i] for i in range(action['parms'])]</code>: this is what Python
+calls a <i>list comprehension</i> and it's one of those write-only things that makes LISP or Perl so hard to work with but normally doesn't trouble
+us when working with Python.  But it's just so <i>beautiful</i>...  Suffice it to say that the action object tells us how many parameters it's giving
+us, and they're all in "parm" elements.  This single line extracts the contents of each "parm" element into a nice list of strings.
+<p>
+Granted, this is not the first list comprehension in this presentation.  It is, however, the first I wrote.  Then it started to get addictive.
+</p>
+<br><br>
+<a name="mod">
+<i>Modifying the data associated with a file</i><br>
+Modification of a file requires a file to be selected in the list control, unless one is specified in the command itself (for instance, if it's
+invoked from the command line.)  Either way, the modification dialog is displayed.  If the dialog is cancelled, then the file isn't saved or
+anything updated.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def mod(self, context, action, obj):
+      try:
+         rec = dataindex.filelist[context['filelist']]
+      except KeyError:
+         wxpywf.notify_user("There is no file selected in the file list.")
+         return true
+
+      if wxpywf.call_dialog(defn.search ('dialog', 'id', 'mod'), self.frame, self.frame, rec):
+         reindex()
+         self.frame.do (context, 'update_list')
+         self.frame.do (context, 'find_tags')
+         self.frame.do (context, 'update_cloud')
+         self.frame.do (context, 'save')
+</pre></td></tr></table>
+<br><br>
+<a name="del">
+<i>Deleting a file or files</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def delete(self, context, action, obj):
+      try:
+         rec = dataindex.filelist[context['filelist']]
+      except KeyError:
+         wxpywf.notify_user("There is no file selected in the file list.")
+         return true
+      if wxpywf.ask_user("Delete file %s from the database?\n(This will not delete the file itself.)" \
+                         % context['filelist'], title="Deleting file") == wxID_YES:
+         rec.delete()
+         reindex()
+         self.frame.do (context, 'update_list')
+         self.frame.do (context, 'find_tags')
+         self.frame.do (context, 'update_cloud')
+         self.frame.do (context, 'save')
+</pre></td></tr></table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body></html>

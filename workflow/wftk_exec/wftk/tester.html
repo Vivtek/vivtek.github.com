@@ -1,0 +1,68 @@
+<html><head><title>wftk command-line utility: main()</title></head>
+<body>
+<h2>main()</h2>
+<center>
+[&nbsp;<a href="wftk_util.html">Previous: wftk command-line utility</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_create.html">Next: create: Make a new datasheet</a>&nbsp;]
+</center>
+
+<hr>
+Boy, this thing is almost too simple.  Well, once I reflect the entire wftk library in it, it won't be.  But what I'm
+interested in is a program whereby I invoke it like this:
+
+<blockquote><code>
+wftk_util create . thingle
+</code></blockquote>
+
+and it creates a datasheet 'thingle' for me.  Then I continue to call it:
+
+<blockquote><code>
+wftk_util define . thingle . thingle_class<br>
+wftk_util require . thingle<br>
+wftk_util complete . thingle<br>
+wftk_util complete . thingle 14<br>
+</code></blockquote>
+
+and so on.  Good way to test new datasheet repositories, too.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include "wftk.h"
+#include &lt;string.h>
+
+main (int argc, char * argv[])
+{
+   if (argc &lt; 2) {
+      printf ("Loser!  You need a command!  create, define, complete, reject, or setvalue (for now).\n");
+      exit (1);
+   }
+
+   if (!strcmp (argv[1], "create")) {
+      <i>See <a href=""></a></i>
+   } else if (!strcmp (argv[1], "define")) {
+      <i>See <a href=""></a></i>
+   } else if (!strcmp (argv[1], "complete")) {
+      <i>See <a href=""></a></i>
+   } else if (!strcmp (argv[1], "reject")) {
+      <i>See <a href=""></a></i>
+   } else if (!strcmp (argv[1], "setvalue")) {
+      <i>See <a href=""></a></i>
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_util.html">Previous: wftk command-line utility</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_create.html">Next: create: Make a new datasheet</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

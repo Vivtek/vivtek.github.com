@@ -1,0 +1,1043 @@
+<html><head><title>xmlobj: xmlobj library</title></head>
+<body>
+<h2>xmlobj library</h2>
+<center>
+[&nbsp;<a href="xmlobj_h.html">Previous: xmlobj include file</a>&nbsp;]
+[&nbsp;<a href="xmlobj.html">Top: xmlobj library</a>&nbsp;]
+[&nbsp;<a href="xmlobj.html">Next: XML object storage</a>&nbsp;]
+</center>
+
+<hr>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;string.h>
+#include "xmlobj.h"
+</pre></td></tr></table>
+
+First and foremost, what we do with fields is get their values.  Field value retrieval is pretty straightforward;
+the caveat is that the value is a malloc'd string which the caller
+must free.  If the given field is found, then get first attempts to return a "value" attribute.  If that fails,
+then the content of the field is converted into an <i>HTML</i>-formatted string (thus no escaping of UTF-8 characters)
+and returned.
+<p></p>
+If the given field isn't found, an effort is made to find a default value in the class definition.
+<p></p>
+If the field <i>really</i> can't be found, then a NULL pointer is returned, <i>not</i> a blank value
+like missing xml_attrval calls.  This is rather important to note.
+<p></p>
+<i>May 4, 2002</i>: The <i>first</i> thing we do with fields, though, is to find them.  This was using the xml_search
+function, but now we need some more flexibility.  And it occurs to me that xml_search isn't what we should have been
+using anyway, as it would recurse into structure, which is clearly wrong.  So instead, we have xmlobj_field (which
+creates the field if it can't find it) and xmlobj_is_field (which just tries to find the field and returns NULL if
+it can't.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xmlobj_is_field (XML * obj, XML * class, const char * fieldname)
+{
+   XML * field;
+
+   if (!obj) return (NULL);
+   field = xml_firstelem (obj);
+   while (field) {
+      if (xml_is (field, fieldname)) break;
+      if (xml_is (field, "field") &amp;&amp; !strcmp (fieldname, xml_attrval (field, "id"))) break;
+      field = xml_nextelem (field);
+   }
+
+   return field;
+}
+XMLAPI XML * xmlobj_field (XML * obj, XML * class, const char * fieldname)
+{
+   XML * field;
+   XML * fdef = NULL;
+
+   if (!obj) return (NULL);
+   if (!(field = xmlobj_is_field (obj, class, fieldname))) {
+      if (class) fdef = xml_locf (class, ".field[%s]", fieldname);
+      field = xml_create ("field");
+      xml_set (field, "id", fieldname);
+      if (fdef) if (*xml_attrval (fdef, "ver-keep")) xml_set (field, "ver", "0");
+      xml_append_pretty (obj, field);
+   }
+   return field;
+}
+</pre></td></tr></table>
+
+And <i>now</i> we can get down to the business of getting and setting values.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI char * xmlobj_get (XML * obj, XML * class, const char * field)
+{
+   XML * mark;
+   char * val;
+
+   if (!obj) return (NULL);
+   mark = xmlobj_is_field (obj, class, field);
+
+   if (mark) return xmlobj_get_direct (mark);
+
+   mark = xml_search (class, "field", "id", field);
+   if (mark) {
+      val = (char *) xml_attrval (mark, "default");
+      if (*val) return (strdup (val));
+   }
+
+   if (!strcmp (field, "key")) { /* Special handling for the pseudofield "key" */
+      return xmlobj_getkey (obj, class);
+   }
+
+   return (NULL);
+}
+XMLAPI char * xmlobj_get_direct (XML * field)
+{
+   char * val;
+   const char * ver;
+   XML * v;
+
+   if (!field) return NULL;
+
+   ver = xml_attrval (field, "ver");
+   if (*ver) {
+      v = xmlobj_ver_direct (field, ver);
+      if (v) field = v;
+   }
+   val = (char *) xml_attrval (field, "value");
+   if (*val) return (strdup (val));
+   return xml_stringcontenthtml (field);
+}
+XMLAPI int xmlobj_getnum (XML * obj, XML * class, const char * field)
+{
+   XML * mark;
+   int retval;
+   char * val;
+
+   if (!obj) return (0);
+   mark = xml_search (obj, "field", "id", field);
+   if (mark) {
+      val = (char *) xml_attrval (mark, "value");
+      if (*val) return (atoi(val));
+      val = xml_stringcontenthtml(mark);
+      retval = atoi(val);
+      free (val);
+      return retval;
+   }
+
+   mark = xml_search (class, "field", "id", field);
+   if (mark) {
+      val = (char *) xml_attrval (mark, "default");
+      if (*val) return (atoi(val));
+   }
+
+   if (!strcmp (field, "key")) { /* Special handling for the pseudofield "key" */
+      val = xmlobj_getkey (obj, class);
+      retval = atoi(val);
+      free (val);
+      return retval;
+   }
+
+   return (0);
+}
+</pre></td></tr></table>
+
+So logically, if we can get values, we probably want to set them as well.  Here, though, we start
+to get a tad more sophisticated (or at least we will at some point) -- the class should tell us
+whether or not the value in question may be set (it may be readonly, virtual, or simply not in the
+view defined by the class, assuming the class is a strict one.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI int xmlobj_set (XML * obj, XML * class, const char * field, const char * value)
+{
+   XML * mark;
+   int newver = 0;
+
+   if (!obj) return 0;
+   mark = xmlobj_field (obj, class, field);
+   if (*xml_attrval (mark, "ver")) newver = xml_attrvalnum (mark, "ver") + 1;
+   if (newver) {
+      xml_setnum (mark, "ver", newver);
+      mark = xmlobj_ver_direct (mark, xml_attrval (mark, "ver"));
+   }
+   xmlobj_set_direct (mark, value);
+   /* TODO: if (newver) then get and apply retention rule. */
+}
+XMLAPI int xmlobj_set_direct (XML * field, const char * value)
+{
+   xml_unset (field, "value");
+   xml_replacecontent (field, xml_createtext (value ? value : ""));
+
+   return 1;
+}
+XMLAPI int xmlobj_set_nodup (XML * obj, XML * class, const char * field, char * value)
+{
+   XML * mark;
+   int newver = 0;
+
+   if (!obj) return 0;
+   mark = xmlobj_field (obj, class, field);
+   if (*xml_attrval (mark, "ver")) newver = xml_attrvalnum (mark, "ver") + 1;
+   if (newver) {
+      xml_setnum (mark, "ver", newver);
+      mark = xmlobj_ver_direct (mark, xml_attrval (mark, "ver"));
+   }
+   xmlobj_set_direct_nodup (mark, value);
+   /* TODO: if (newver) then get and apply retention rule. */
+
+   return 1;
+}
+XMLAPI int xmlobj_set_direct_nodup (XML * field, char * value)
+{
+   xml_unset (field, "value");
+   xml_replacecontent (field, xml_createtext_nodup (value ? value : strdup ("")));
+
+   return 1;
+}
+XMLAPI int xmlobj_set_elem (XML * obj, XML * class, const char * field, const char * value)
+{
+   XML * mark;
+
+   if (!obj) return 0;
+   mark = xmlobj_is_field (obj, class, field);
+   if (!mark) {
+      mark = xml_create (field);
+      xml_append_pretty (obj, mark);
+   }
+   xml_replacecontent (mark, xml_createtext (value ? value : ""));
+
+   return 1;
+}
+XMLAPI int xmlobj_set_elem_nodup (XML * obj, XML * class, const char * field, char * value)
+{
+   XML * mark;
+
+   if (!obj) return 0;
+   mark = xmlobj_is_field (obj, class, field);
+   if (!mark) {
+      mark = xml_create (field);
+      xml_append_pretty (obj, mark);
+   }
+   xml_replacecontent (mark, xml_createtext_nodup (value ? value : strdup("")));
+
+   return 1;
+}
+XMLAPI int xmlobj_setnum (XML * obj, XML * class, const char * field, int value)
+{
+   XML * mark;
+   char buf[sizeof(int)*3];
+
+   if (!obj) return 0;
+   mark = xml_search (obj, "field", "id", field);
+   if (!mark) {
+      mark = xml_create ("field");
+      xml_set (mark, "id", field);
+      xml_append_pretty (obj, mark);
+   }
+
+   sprintf (buf, "%d", value);
+   xml_replacecontent (mark, xml_createtext (buf));
+
+   return 1;
+}
+</pre></td></tr></table>
+
+The next item on the agenda is formatting of short text strings.  Such a string encloses field names
+in square brackets; these are interpolated with the values of the fields named.  The current version
+is quite straightforward; there are, however, lots of neat extensions you could toss in here.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI char * xmlobj_format (XML * obj, XML * class, const char * format)
+{
+   char * mark;
+   int len;
+   char * val;
+   XML * s = xml_create ("s");
+
+   xml_set (s, "s", "");
+
+   mark = strchr (format, '[');
+   while (mark) {
+      xml_attrncat (s, "s", format, mark - format);
+      format = mark + 1;
+      xml_set (s, "name", "");
+      mark = strchr (format, ']');
+      if (mark) len = mark - format;
+      else      len = strlen (format);
+      xml_attrncat (s, "name", format, len);
+      val = xmlobj_get (obj, class, xml_attrval (s, "name"));
+      if (val) {
+         xml_attrcat (s, "s", val);
+         free (val);
+      }
+      format += len;
+      if (*format) format++;
+      mark = strchr (format, '[');
+   }
+   xml_attrcat (s, "s", format);
+
+   mark = strdup (xml_attrval (s, "s"));
+   xml_free (s);
+   return (mark);
+}
+</pre></td></tr></table>
+
+The long text version of this is from the wftk API; I'll deal with it later.  The template formatter
+just serves as a convenient wrapper for <a href="xml_template_index.html">xml_template</a> and I'll deal
+with that later, too.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI       char * xmlobj_formatlong(XML * obj, XML * class, const char * format) { return NULL; }
+XMLAPI       XML *  xmlobj_template  (XML * obj, XML * class, XML * template) { return NULL; }
+</pre></td></tr></table>
+
+Onwards; getting a key value is dependent on the class, of course, which should have a key definition.
+<i>(August 30, 2002)</i>:
+Rather arbitrarily, I define keys as having no spaces, no capital letters, and no punctuation.  This is mostly
+to avoid problems when using keys for filenames.  Trust me on this, I've shot myself in the foot all too often
+with invalid filenames.  If you really, really want to have keys with spaces, capital
+letters, or punctuation... well... this is open source for a reason, bub.  Get to typing.
+
+<p></p>
+The way I enforce this heavy-handed decision is with the simple little function _xmlobj_fixkey.  Since we
+know that our key is going to be in an allocated buffer, we can play around with it to fix up our key.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static void _xmlobj_fixkey (char * key)
+{
+   char *scan;
+
+   if (!key) return;
+   do {
+      if (!*key) return;
+      if (*key >= 'A' &amp;&amp; *key <= 'Z') *key += 'a' - 'A';
+      if (*key == ' ') *key = '_';
+      if (*key < '0' || *key > 'z' || (*key > '9' &amp;&amp; *key < 'a' &amp;&amp; *key != '_')) {
+         scan = key;
+         while (*scan) { *scan = scan[1]; scan++; }
+         key --;
+      }
+   } while (*(++key));
+}
+XMLAPI char * xmlobj_getkey (XML * obj, XML * class)
+{
+   const char * key = NULL;
+   char * ret;
+
+   if (class) key = xml_attrval (class, "key");
+
+   if (key &amp;&amp; *key) {
+      if (strchr (key, '[')) {
+         ret = xmlobj_format (obj, class, key);
+         _xmlobj_fixkey (ret);
+         return ret;
+      } else {
+         ret = xmlobj_get (obj, class, key);
+         _xmlobj_fixkey (ret);
+         return ret;
+      }
+   }
+
+   class = xml_search (obj, "field", NULL, NULL);
+   if (!class) {
+      return (strdup ("none"));
+   } else {
+      key = xml_attrval (class, "value");
+      if (*key) {
+         ret = strdup (key);
+         _xmlobj_fixkey (ret);
+         xml_set (obj, "key", ret);
+         return (ret);
+      } else {
+         ret = xml_stringcontenthtml (class);
+         _xmlobj_fixkey (ret);
+         return (ret);
+      }
+   }
+}
+</pre></td></tr></table>
+
+Next up is the diff/patch functionality.  This is <i>only</i> meaningful in the context of these
+records; it ignores any changes which don't have meaning as fields or links.  The advantage is that
+order of fields/links, whitespace, and so forth are all completely transparent to this diff/patch
+functionality.  The result is that when I go to modify a record I can store precisely the change
+made, allowing a rudimentary transaction log to be kept (which permits rollbacks, selective approval
+processes, and so forth.  It's good stuff.)
+<p></p>
+Basically, record diff works like this:
+<ul>
+<li>Check for discrepancies in the attributes of the two records.
+<li>For fields in the edited record which are new to the original, make a note of attributes and values.
+<li>For fields in the original record which are missing in the edited version, do nothing.
+<li>For fields present in both records, make a note of changed attributes or values.
+<li>For links in the edited record which are new to the original, include the entire link.
+<li>For links in the original missing from the edited version, do nothing.
+<li>For links present in both records, scan the subrecords in the link and basically do the same with them.
+<li>For other XML elements, if they have "id" attributes and they're not present in the original, they'll be noted.
+</ul>
+Note that this all means that a field which is <i>missing</i> in the changed record will not appear
+in the diff.  The reason for this is simple: this is intended to support an XML field-based editing
+system, and partial records shouldn't have the ability to remove fields that they don't know about.
+If a field needs to be erased, the best you can do is to set its value to a blank -- but you can't
+remove a field once the record knows about it.  Which is, of course, exactly the way we want it.
+<p></p>
+Links, mentioned in passing above, are not well supported by the rest of the API yet;
+they can be seen as lists of relationships with outside records.
+Typically they will simply be lists of keys, but
+they can include arbitrary other fields as well, to allow labelling of links.  This section of the
+xmlobj library is under considerable flux at the moment.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xmlobj_diff (XML * obj, XML * class, XML * changed)
+{
+   XML * diff = xml_create ("diff");
+   XML * ofield;
+   XML * cfield;
+   XML * dfield;
+   char * linkfield = NULL;
+   XML_ATTR * attr = xml_attrfirst (changed);
+   char * ovalue = NULL;
+   char * cvalue = NULL;
+   XML * olinkrec;
+   XML * clinkrec;
+   XML * dlinkrec;
+   XML * olinkfld;
+   XML * clinkfld;
+   const char * key;
+
+   while (attr) {
+      if (strcmp (xml_attrval (obj, xml_attrname (attr)), xml_attrvalue (attr))) {
+         xml_set (diff, xml_attrname (attr), xml_attrvalue (attr));
+      }
+      attr = xml_attrnext (attr);
+   }
+
+   cfield = xml_firstelem (changed);
+   while (cfield) {
+      if (xml_is (cfield, "field")) {
+         ofield = xml_locf (obj, ".field[%s]", xml_attrval (cfield, "id"));
+         if (!ofield) {
+            xml_append_pretty (diff, xml_copy (cfield));
+         } else {
+            dfield = NULL;
+            attr = xml_attrfirst (cfield);
+            while (attr) {
+               if (strcmp (xml_attrval (ofield, xml_attrname (attr)), xml_attrvalue (attr))) {
+                  if (!dfield) { dfield = xml_create ("field"); xml_set (dfield, "id", xml_attrval (cfield, "id")); }
+                  xml_set (dfield, xml_attrname (attr), xml_attrvalue (attr));
+               }
+               attr = xml_attrnext (attr);
+            }
+            ovalue = xmlobj_get (obj, class, xml_attrval (cfield, "id"));
+            cvalue = xmlobj_get (changed, class, xml_attrval (cfield, "id"));
+            if (!ovalue) {
+               if (cvalue) {
+                  if (!dfield) { dfield = xml_create ("field"); xml_set (dfield, "id", xml_attrval (cfield, "id")); }
+                  xml_append (dfield, xml_createtext_nodup (cvalue));
+                  cvalue = NULL;
+               } else {
+                  if (dfield) xml_set (dfield, "diff:content", "unchanged");
+               }
+            } else if (cvalue) {
+               if (!strcmp (ovalue, cvalue)) {
+                  if (dfield) xml_set (dfield, "diff:content", "unchanged");
+               } else {
+                  if (!dfield) { dfield = xml_create ("field"); xml_set (dfield, "id", xml_attrval (cfield, "id")); }
+                  xml_append (dfield, xml_createtext_nodup (cvalue));
+                  cvalue = NULL;
+               }
+            }
+            if (ovalue) free (ovalue);
+            if (cvalue) free (cvalue);
+            if (dfield) xml_append_pretty (diff, dfield);
+         }
+      } else if (xml_is (cfield, "link")) {
+         /* I need to document how links work, but I'm using them to represent many-to-many linking tables. */
+         ofield = xml_locf (obj, ".link[%s]", xml_attrval (cfield, "id"));
+         if (!ofield) {
+            ofield = xml_copy (cfield);
+            olinkrec = xml_firstelem (ofield);
+            while (olinkrec) {
+               xml_set (olinkrec, "diff:action", "add");
+               olinkrec = xml_nextelem (olinkrec);
+            }
+            xml_append_pretty (diff, ofield);
+            
+         } else {
+            dfield = NULL;
+
+            /* Find key of link; if a link is named e.g. id="My Table:local_id" then "local_id" is the key field of the link,
+               which corresponds to the key of the current record.  If this field is included in the link record, it should
+               actually be completely ignored. */
+            key = xml_attrval (cfield, "id");
+            key = strchr (key, ':');
+            if (key) key++;
+
+            /* Scan original for deleted links. */
+            olinkrec = xml_firstelem (ofield);
+            while (olinkrec) {
+               clinkrec = xml_firstelem (cfield);
+               while (clinkrec) {
+                  clinkfld = xml_firstelem (clinkrec);
+                  while (clinkfld) {
+                     if (key &amp;&amp; !strcmp (key, xml_attrval (clinkfld, "id"))) {
+                        clinkfld = xml_nextelem (clinkfld);
+                        continue;
+                     }
+                     cvalue = xmlobj_get (clinkrec, NULL, xml_attrval (clinkfld, "id"));
+                     ovalue = xmlobj_get (olinkrec, NULL, xml_attrval (clinkfld, "id"));
+                     if (!cvalue &amp;&amp; !ovalue) {
+                        clinkfld = xml_nextelem (clinkfld);
+                        continue;
+                     }
+                     if (!cvalue) {
+                        free (ovalue);
+                        break;
+                     }
+                     if (!ovalue) {
+                        free (cvalue);
+                        break;
+                     }
+                     if (strcmp (cvalue, ovalue)) {
+                        free (ovalue); free (cvalue);
+                        break;
+                     }
+                     free (ovalue); free (cvalue);
+                     clinkfld = xml_nextelem (clinkfld);
+                  }
+                  if (!clinkfld) { /* All fields matched, so the records match. */
+                     break;
+                  }
+                  /* Otherwise, keep looking for a matching field. */  
+                  clinkrec = xml_nextelem (clinkrec);
+               }
+               if (!clinkrec) { /* No link records matched, so this olinkrec was deleted. */
+                  if (!dfield) {
+                     dfield = xml_create ("link");
+                     xml_copyattrs (dfield, cfield);
+                  }
+                  dlinkrec = xml_create (xml_name (olinkrec));
+                  xml_append_pretty (dfield, dlinkrec);
+                  xml_set (dlinkrec, "diff:action", "del");
+                  olinkfld = xml_firstelem (olinkrec);
+                  while (olinkfld) {
+                     xml_append_pretty (dlinkrec, xml_copy (olinkfld));
+                     olinkfld = xml_nextelem (olinkfld);
+                  }
+               }
+               /* Now check next link record. */
+               olinkrec = xml_nextelem (olinkrec);
+            }
+
+            /* Scan edited for added links. */
+            clinkrec = xml_firstelem (cfield);
+            while (clinkrec) {
+               olinkrec = xml_firstelem (ofield);
+               while (olinkrec) {
+                  clinkfld = xml_firstelem (clinkrec);
+                  while (clinkfld) {
+                     if (key &amp;&amp; !strcmp (key, xml_attrval (clinkfld, "id"))) {
+                        clinkfld = xml_nextelem (clinkfld);
+                        continue;
+                     }
+                     cvalue = xmlobj_get (clinkrec, NULL, xml_attrval (clinkfld, "id"));
+                     ovalue = xmlobj_get (olinkrec, NULL, xml_attrval (clinkfld, "id"));
+                     if (!cvalue &amp;&amp; !ovalue) {
+                        clinkfld = xml_nextelem (clinkfld);
+                        continue;
+                     }
+                     if (!cvalue) {
+                        free (ovalue);
+                        break;
+                     }
+                     if (!ovalue) {
+                        free (cvalue);
+                        break;
+                     }
+                     if (strcmp (cvalue, ovalue)) {
+                        free (ovalue); free (cvalue);
+                        break;
+                     }
+                     free (ovalue); free (cvalue);
+                     clinkfld = xml_nextelem (clinkfld);
+                  }
+                  if (!clinkfld) { /* All fields matched, so the records match. */
+                     break;
+                  }
+                  /* Otherwise, keep looking for a matching field. */  
+                  olinkrec = xml_nextelem (olinkrec);
+               }
+               if (!olinkrec) { /* No link records matched, so this clinkrec was added. */
+                  if (!dfield) {
+                     dfield = xml_create ("link");
+                     xml_copyattrs (dfield, cfield);
+                  }
+                  dlinkrec = xml_create (xml_name (clinkrec));
+                  xml_append_pretty (dfield, dlinkrec);
+                  xml_set (dlinkrec, "diff:action", "add");
+                  clinkfld = xml_firstelem (clinkrec);
+                  while (clinkfld) {
+                     xml_append_pretty (dlinkrec, xml_copy (clinkfld));
+                     clinkfld = xml_nextelem (clinkfld);
+                  }
+               }
+               /* Now check next link record. */
+               clinkrec = xml_nextelem (clinkrec);
+            }
+
+            /* Scan original for matches that are possibly changed -- TODO (requires reference to record class) */
+
+            /* Finally, if we've accumulated any changes, write them to the diff. */
+            if (dfield) xml_append_pretty (diff, dfield);
+         }
+      } else {
+         /* For arbitrary content, I'm not entirely sure what to do.  One thing is obvious, though; arbitrary content
+            which does not yet exist in the original object should be copied (that keeps things consistent with the above. ) */
+         ofield = xml_locf (obj, ".%s[%s]", xml_name (cfield), xml_attrval (cfield, "id"));
+         if (!ofield) {
+            xml_append (diff, xml_copy (cfield));
+         } else {
+            /* ??? TODO: figure out if there's anything rational we can do here. */
+         }
+      }
+
+      cfield = xml_nextelem (cfield);
+   }
+   return diff;
+}
+</pre></td></tr></table>
+
+Application of a diff (the "patch" operation) is pretty straightforward, then.  We just step down through the changes noted, and apply them.
+The process also results in an "undiff" which we return, so that we can simply and easily back out of changes. 
+Thus xmlobj_patch (orig, xmlobj_patch (orig, diff)) should leave orig substantially the same as it started out, although there may be
+some whitespace changes.
+<p></p>
+If we <i>only</i> want to generate the undiff record without changing the original, we use "undiff".
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * _xmlobj_patch (XML * orig, XML * diff, int change_orig);
+XMLAPI XML * xmlobj_patch (XML * obj, XML * class, XML * diff)
+{
+   return _xmlobj_patch (obj, diff, 1);
+}
+XMLAPI XML * xmlobj_undiff (XML * obj, XML * class, XML * diff)
+{
+   return _xmlobj_patch (obj, diff, 0);
+}
+</pre></td></tr></table>
+
+And of course both of those call the same function anyway (so they should actually be macros, right?)
+<p></p>
+<i>October 1, 2002</i>: Stupid oversight -- I wasn't changing diff'd attributes of the root
+element.  Sheesh.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * _xmlobj_patch (XML * orig, XML * diff, int change_orig)
+{
+   XML * undiff = xml_create ("diff");
+   char * value;
+   XML * scan;
+   XML * mark;
+   XML_ATTR * attr = xml_attrfirst (diff);
+
+   XML * olist;
+   XML * ulist;
+   XML * olinkrec;
+   XML * dlinkfld;
+   XML * olinkfld;
+   char * dvalue;
+   char * ovalue;
+   XML * undifflink;
+
+   while (attr) {
+      xml_set (undiff, xml_attrname (attr), xml_attrval (orig, xml_attrname (attr)));
+      if (change_orig) {
+         xml_set (orig, xml_attrname (attr), xml_attrval (diff, xml_attrname (attr)));
+      }
+      attr = xml_attrnext (attr);
+   }
+
+   scan = xml_firstelem (diff);
+   while (scan) {
+      if (xml_is (scan, "field")) {
+         /* Patching fields is easy. */
+         value = xmlobj_get (orig, NULL, xml_attrval (scan, "id"));
+         if (value) {
+            xmlobj_set (undiff, NULL, xml_attrval (scan, "id"), value);
+            free ((void *) value);
+         } else {
+            xmlobj_set (undiff, NULL, xml_attrval (scan, "id"), "");
+         }
+
+         if (change_orig) {
+            value = xmlobj_get (diff, NULL, xml_attrval (scan, "id"));
+            xmlobj_set (orig, NULL, xml_attrval (scan, "id"), value);
+            free ((void *) value);
+         }
+      } else if (xml_is (scan, "link")) {
+         /* To patch lists, we first make sure we've got the list in the undiff and orig. */
+         olist = xml_locf (orig, ".link[%s]", xml_attrval (scan, "id"));
+         if (change_orig &amp;&amp; !olist) {
+            olist = xml_create ("link");
+            xml_copyattrs (olist, scan);
+            xml_append_pretty (orig, olist);
+         }
+         ulist = xml_create ("link");
+         xml_copyattrs (ulist, scan);
+         xml_append_pretty (undiff, ulist);
+
+         /* Now we scan the list *change* spec, and undiff/patch as required. */
+         mark = xml_firstelem (scan);
+         while (mark) {
+            if (xml_is (mark, "link-to")) {
+               if (!strcmp (xml_attrval (mark, "diff:action"), "add")) {
+                  olinkrec = NULL;
+                  if (olist) {
+                     /* Scan olist for link to be sure it's not there. */
+                     olinkrec = xml_firstelem (olist);
+                     while (olinkrec) {
+                        if (xml_is (olinkrec, "link-to")) {
+                           dlinkfld = xml_firstelem (mark);
+                           while (dlinkfld) {
+                              dvalue = xmlobj_get (mark, NULL, xml_attrval (dlinkfld, "id"));
+                              ovalue = xmlobj_get (olinkrec, NULL, xml_attrval (dlinkfld, "id"));
+                              if (!dvalue &amp;&amp; !ovalue) {
+                              } else if (!dvalue) {
+                                 free ((void *) ovalue);
+                                 break;
+                              } else if (!ovalue) {
+                                 free ((void *) dvalue);
+                                 break;
+                              } else {
+                                 if (strcmp (dvalue, ovalue)) {
+                                    free ((void *) dvalue);
+                                    free ((void *) ovalue);
+                                    break;
+                                 }
+                                 free ((void *) dvalue);
+                                 free ((void *) ovalue);
+                              }
+                              dlinkfld = xml_nextelem (dlinkfld);
+                           }
+                           if (!dlinkfld) break;
+                        }
+                        olinkrec = xml_nextelem (olinkrec);
+                     }
+                  }
+                  if (!olinkrec) { /* We make an add only if there is no pre-existing identical link. */
+                     undifflink = xml_copy (mark);
+                     xml_set (undifflink, "diff:action", "del");
+                     xml_append_pretty (ulist, undifflink);
+                     if (change_orig) {
+                        undifflink = xml_copy (mark);
+                        xml_unset (undifflink, "diff:action");
+                        xml_append_pretty (olist, undifflink);
+                     }
+                  }
+               } else if (!strcmp (xml_attrval (mark, "diff:action"), "del")) {
+                  if (olist) {
+                     /* Scan olist for link to be sure it *is* there. */
+                     olinkrec = xml_firstelem (olist);
+                     while (olinkrec) {
+                        if (xml_is (olinkrec, "link-to")) {
+                           dlinkfld = xml_firstelem (mark);
+                           while (dlinkfld) {
+                              dvalue = xmlobj_get (mark, NULL, xml_attrval (dlinkfld, "id"));
+                              ovalue = xmlobj_get (olinkrec, NULL, xml_attrval (dlinkfld, "id"));
+                              if (!dvalue &amp;&amp; !ovalue) {
+                              } else if (!dvalue) {
+                                 free ((void *) ovalue);
+                                 break;
+                              } else if (!ovalue) {
+                                 free ((void *) dvalue);
+                                 break;
+                              } else {
+                                 if (strcmp (dvalue, ovalue)) {
+                                    free ((void *) dvalue);
+                                    free ((void *) ovalue);
+                                    break;
+                                 }
+                                 free ((void *) dvalue);
+                                 free ((void *) ovalue);
+                              }
+                              dlinkfld = xml_nextelem (dlinkfld);
+                           }
+                           if (!dlinkfld) break;
+                        }
+                        olinkrec = xml_nextelem (olinkrec);
+                     }
+                     if (olinkrec) {
+                        undifflink = xml_copy (olinkrec);
+                        xml_set (undifflink, "diff:action", "add");
+                        xml_append_pretty (ulist, undifflink);
+                        if (change_orig) {
+                           xml_delete (olinkrec);
+                        }
+                     }
+                  }
+               }
+            }
+            mark = xml_nextelem (mark);
+         }
+      } else {
+         /* For patching arbitrary content, we're fine -- but we don't have any way of removing it, so
+            the undiff simply won't show it.  TODO: think about whether this could make more sense. */
+         if (change_orig) {
+            mark = xml_search (orig, xml_name (scan), "id", xml_attrval (scan, "id"));
+            if (!mark) {
+               xml_append_pretty (orig, xml_copy (scan));
+            }
+         }
+      }
+
+      scan = xml_nextelem (scan);
+   }
+
+   return undiff;
+}
+</pre></td></tr></table>
+
+
+<i>(August 13, 2002)</i>: It's frightening to look at these dates sometimes and realize how
+long I've been doing this.  Anyway, today I need versioning functionality.  I've revamped
+the versioning API entirely and it's really pretty straightforward at this point.
+<p></p>
+Note that most of the maintenance of versions takes place in xmlobj_get and xmlobj_set
+transparently.  Only in fairly rare instances will we need to call the versioning API directly.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML  * xmlobj_ver        (XML * obj, XML * class, const char * field, const char * ver)
+{
+   XML * fld = xmlobj_field (obj, class, field);
+   return (xmlobj_ver_direct (fld, ver));
+}
+XMLAPI XML  * xmlobj_ver_direct (XML * field, const char * ver)
+{
+   XML * v = xml_firstelem (field);
+   while (v) {
+      if (xml_is (v, "ver")) {
+         if (!strcmp (ver, xml_attrval (v, "id"))) return v;
+      }
+      v = xml_nextelem (v);       
+   }
+   v = xml_create ("ver");
+   xml_append_pretty (field, v);
+   xml_set (v, "id", ver);
+   return v;
+}
+XMLAPI char * xmlobj_getver     (XML * obj, XML * class, const char * field, const char * ver)
+{
+   XML * v = xmlobj_ver (obj, class, field, ver);
+   return (xmlobj_get_direct (v));
+}
+XMLAPI const char * xmlobj_curver (XML * obj, XML * class, const char * field)
+{
+   XML * fld = xmlobj_field (obj, class, field);
+   return (xml_attrval (fld, "ver"));
+}
+XMLAPI XML  * xmlobj_setver     (XML * obj, XML * class, const char * field, const char * ver)
+{
+   XML * fld = xmlobj_field (obj, class, field);
+   xml_set (fld, "ver", ver);
+   return (xmlobj_ver_direct (fld, ver));
+}
+XMLAPI XML * xmlobj_newver (XML * obj, XML * class, const char * field)
+{
+   XML * fld = xmlobj_field (obj, class, field);
+   return (xmlobj_newver_direct (fld));
+}
+XMLAPI XML * xmlobj_newver_direct (XML * field)
+{
+   xml_setnum (field, "ver", xml_attrvalnum (field, "ver") + 1);
+   return (xmlobj_ver_direct (field, xml_attrval (field, "ver")));
+}
+</pre></td></tr></table>
+
+<i>(December 30, 2002)</i> So my latest trick is to sort lists of xmlobj records.  This is actually a lot easier than it looks, since
+qsort is available to do the work of sorting -- all we have to do is to compare two records.  Easy!  And of course most of the
+work was already done during last year when I wrote the xml_sort function for the XMLAPI.  This is just a little more structured, so
+that it can take advantage of knowledge about field types and such.
+<p></p>
+The "order" parameter is simply a string in the SQL standard format for the order clause.  Thus we can sort on "priority desc, entry_date"
+with no further ado.  The function first parses the order specifier into a sort description, and then goes on to build the sort
+array and call qsort.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _xmlobj_sort_hdl {
+  XML * sort;
+  XML * class;
+  XML * elem;
+};
+int _xmlobj_sort_comparison (const void * a, const void * b);
+XMLAPI XML * xmlobj_list_sort (XML * list, XML * class, const char * order)
+{
+   int i;
+   XML * child;
+   XML * sort = xml_create ("sort");
+   XML * sortelem;
+   XML * field;
+   char * mark;
+   const char * mark2;
+   struct _xmlobj_sort_hdl * array;
+   ELEMENTLIST * elist;
+
+   xml_set (list, "error-state", "");
+
+   /* Parse the order specifier. */
+   mark = strchr (order, ',');
+   while (mark) {
+      sortelem = xml_create ("field");
+      xml_set (sortelem, "id", "");
+      xml_attrncat (sortelem, "id", order, mark - order);
+      xml_append (sort, sortelem);
+      order = mark + 1;
+      while (*order == ' ') order++;
+
+      mark = strchr (order, ',');
+   }
+   sortelem = xml_create ("field");
+   xml_set (sortelem, "id", order);
+   xml_append (sort, sortelem);
+
+   /* Scan the order elements to fix up asc/desc and retrieve types. */
+   sortelem = xml_firstelem (sort);
+   while (sortelem) {
+      xml_set (sortelem, "dir", "asc");
+      mark = strchr (xml_attrval (sortelem, "id"), ' ');
+      if (mark) {
+         xml_set (sortelem, "dir", mark + 1);
+         while (*xml_attrval (sortelem, "dir") == ' ') {
+            mark2 = xml_attrval (sortelem, "dir");
+            xml_set (sortelem, "dir", mark2 + 1);
+         }
+         xml_set (sortelem, "newid", "");
+         xml_attrncat (sortelem, "newid", xml_attrval (sortelem, "id"), mark - xml_attrval (sortelem, "id"));
+         xml_set (sortelem, "id", xml_attrval (sortelem, "newid"));
+         xml_unset (sortelem, "newid");
+
+         if (strcmp (xml_attrval (sortelem, "dir"), "asc") &amp;&amp; strcmp (xml_attrval (sortelem, "dir"), "desc")) {
+            xml_setf (list, "error-state", "Unknown sort direction '%s' specified", xml_attrval (sortelem, "dir"));
+            xml_free (sort);
+            return (NULL);
+         }
+      }
+
+      if (class &amp;&amp; *xml_attrval (sortelem, "id") != '?' &amp;&amp; *xml_attrval (sortelem, "id") != '!') {
+         field = xml_search (class, "field", "id", xml_attrval (sortelem, "id"));
+         if (!field) {
+            xml_setf (list, "error-state", "Unknown field '%s' specified", xml_attrval (sortelem, "id"));
+            xml_free (sort);
+            return (NULL);
+         }
+
+         xml_set (sortelem, "type", xml_attrval (field, "type"));
+      }
+
+      if (*xml_attrval (sortelem, "id") == '?') {
+         mark2 = xml_attrval (sortelem, "id");
+         xml_set (sortelem, "id", mark2 + 1);
+      }
+
+      sortelem = xml_nextelem (sortelem);
+   }
+
+   /* Count the children. */
+   i=0; child = xml_firstelem (list);
+   while (child) {
+      i++;
+      child = xml_nextelem (child);
+   }
+   if (i < 2) return list;
+
+   /* Build the array. */
+   array = (struct _xmlobj_sort_hdl *) malloc (i * sizeof (struct _xmlobj_sort_hdl));
+   i=0; child = xml_firstelem (list);
+   while (child) {
+      array[i].sort = sort;
+      array[i].class = class;
+      array[i].elem = child;
+      i++;
+      child = xml_nextelem (child);
+   }
+
+   /* Sort the array. */
+   qsort (array, i, sizeof (struct _xmlobj_sort_hdl), _xmlobj_sort_comparison);
+
+   /* Rearrange the children, being very slick about it. */
+   i = 0; elist = list->children;
+   while (elist) {
+      if (elist->element->name) {
+         elist->element = array[i].elem;
+         i++;
+      }
+      elist = elist->next;
+   }
+
+   free ((void *) array);
+   xml_free (sort);
+
+   return list;
+}
+</pre></td></tr></table>
+
+The comparison function is only slightly more involved than that in the XMLAPI, since it scans the sort elements instead of being
+limited to a single sort value.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int _xmlobj_sort_comparison (const void * a, const void * b)
+{
+   XML * sort;
+   int res;
+   int ia, ib;
+   char * ca, * cb;
+   struct _xmlobj_sort_hdl * _a = (struct _xmlobj_sort_hdl *) a;
+   struct _xmlobj_sort_hdl * _b = (struct _xmlobj_sort_hdl *) b;
+
+   if (a == b) return 0;
+
+   sort = xml_firstelem (_a->sort);
+   while (sort) {
+      if (!strcmp (xml_attrval (sort, "type"), "numeric")) {
+         ia = xmlobj_getnum (_a->elem, _a->class, xml_attrval (sort, "id"));
+         ib = xmlobj_getnum (_b->elem, _b->class, xml_attrval (sort, "id"));
+         res = 0;
+         if (ia < ib) res = -1;
+         if (ia > ib) res = 1;
+      } else {
+         ca = xmlobj_get (_a->elem, _a->class, xml_attrval (sort, "id"));
+         cb = xmlobj_get (_b->elem, _b->class, xml_attrval (sort, "id"));
+         res = strcmp (ca, cb);
+         free (ca);
+         free (cb);
+      }
+
+      if (!strcmp (xml_attrval (sort, "dir"), "desc")) res = - res;
+      if (res) return res;
+
+      sort = xml_nextelem (sort);
+   }
+   return 0;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xmlobj_h.html">Previous: xmlobj include file</a>&nbsp;]
+[&nbsp;<a href="xmlobj.html">Top: xmlobj library</a>&nbsp;]
+[&nbsp;<a href="xmlobj.html">Next: XML object storage</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

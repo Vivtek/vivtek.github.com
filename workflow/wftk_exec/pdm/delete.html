@@ -1,0 +1,118 @@
+<html><head><title>WFTK PDM: delete: Deleting unnecessary versions</title></head>
+<body>
+<h2>delete: Deleting unnecessary versions</h2>
+<center>
+[&nbsp;<a href="new.html">Previous: new: Creating a new document</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The procdef manager</a>&nbsp;]
+[&nbsp;<a href="view.html">Next: view: Viewing information and version history of a procdef</a>&nbsp;]
+</center>
+
+<hr>
+The <code>delete</code> command is not a function which should be granted lightly.  If a version is actually
+in use by an active process and is deleted, chaos will ensue.  Rather than test for that, though, I'm going to
+trust the user, except that if the version is actually the current version <i>right now</i> I'll refuse to
+delete it.
+<p></p>
+One weird thing we have going on here is that instead of separate item and ver parameters, we have a single
+itemver* parameter for each item/version to be deleted.  First, this allows us to use checkboxes to denote
+versions to be deleted, but second, our CGI handler won't record more than one parameter with a given name.
+So each item/version has to have its own name.  This parameter is simply itemver_&lt;item>_&lt;version>.
+That should get us through. 
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="list.html#load_index">Loading the repository index from index.xml</a></i>
+
+attr = query->attrs;
+while (attr) {
+   if (!strncmp (attr->name, "itemver_", 8)) {
+      strcpy (buf2, attr->name + 8);
+      mark = strrchr (buf2, '_');
+      if (mark) {
+         *mark = '\0';
+         mark++;
+         <i>See <a href="delete.html#delete">Actually deleting a version</a></i>
+      }
+   }
+   attr = attr->next;
+}
+</pre></td></tr></table>
+
+And of course after deleting, the place to go is back to the main list of stuff to edit.  If that's not where
+I started, well, pff.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>printf ("Content-type: text/html\n");
+printf ("Status: 302 Redirect\n");
+printf ("Location: %s\n\n", xml_attrval (environment, "SCRIPT_NAME"));
+printf ("&lt;html>&lt;head>&lt;title>Delete succeeded&lt;/title>&lt;/head>\n");
+printf ("&lt;body>&lt;h2>Delete succeeded&lt;/h2>&lt;/body>&lt;/html>\n");
+</pre></td></tr></table>
+<br><br>
+<a name="delete">
+<i>Actually deleting a version</i><br>
+OK.  Coming into this code block, we have <code>buf2</code> pointing at the item key, and <code>mark</code>
+pointing at the version key.  So we load the item and check that its current version isn't the one we're
+trying to delete.  If we're still cool on that, then we'll delete the version from the item file.  If the
+item now has no versions, we'll delete the item entry from the index and mark the index as dirty so it'll
+get saved later.
+<p></p>
+Note that at this point we're not actually deleting any files.  That will come later -- in version 2.0 of
+the PDM, we'll want to split all the work of actually affecting the repository into a procdef repository 
+module (presumably shared with the core engine), and then leave the CGI wrapper around it.  But that will
+come later.  Right now we just want to get things working at all.  But when we can safely isolate things like
+using 'rm' on Unix and 'del' on Windows, well, then I'll delete files.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>object_revoke (current_user, "wftkpdm", attr->name + 8, NULL);
+user_save (current_user);
+holder = xml_loc (directory, sbuf);
+if (holder &amp;&amp; strcmp (xml_attrval (holder, "curver"), mark) ) {
+   sprintf (sbuf, "%s%s.xml", PROCESS_DEFINITION_REPOSITORY, buf2);
+   file = fopen (sbuf, "r");
+   if (file) {
+      item = xml_read (file);
+      if (item) {
+         sprintf (sbuf, "item.versions.version[%s]", mark);
+         version = xml_loc (item, sbuf);
+         if (version) {
+            xml_delete (version);
+            /* Here's where we'd delete the version file if we were deleting files. */
+
+            xml = xml_loc (item, "item.versions.version");
+            if (!xml) { /* Hey - no more versions.  Delete the item. */
+               xml_delete (holder);
+               index_dirty = 1;
+               /* Again, here's where we'd delete the item file if we were that kind of person. */
+            } else {
+               sprintf (sbuf, "%s%s.xml", PROCESS_DEFINITION_REPOSITORY, buf2);
+               file = fopen (sbuf, "w");
+               if (file) {
+                  xml_write (file, item);
+                  fclose (file);
+               }
+            }
+         }
+         xml_free (item);
+      }
+      fclose (file);
+   }
+}
+</pre></td></tr></table>
+
+
+
+
+
+<center>
+[&nbsp;<a href="new.html">Previous: new: Creating a new document</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href="view.html">Next: view: Viewing information and version history of a procdef</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

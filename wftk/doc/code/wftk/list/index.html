@@ -1,0 +1,112 @@
+<html><head><title>wftk core: list method adaptor</title></head>
+<body>
+<h2>wftk core: list method adaptor</h2>
+<center>
+[ <a href="../index.html">back to the core</a> ] [ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+A <i>list adaptor</i> is effectively the definition of how to store objects in a list.  The canonical
+list adaptor is localdir, which stores objects as XML files in a directory.  Other examples of lists
+are database tables, wftk-specific repositories, lines in a file, and so on.  The <a href="../repmgr/index.html">repository
+manager</a> can be used to manage lists and the processing to be done when lists' data is changed.
+<p>
+Just as the adaptor mechanism is a poor man's ActiveX, the list adaptor is a poor man's Recordset
+(see ADO).  I'm taking everything Microsoft does and doing it more simply.  Eventually I'll put them
+right out of business.
+<p>
+These are the functions exposed by a list adaptor, with many more to come, I'm sure:
+<table>
+<tr><td><i><u>Function</i></u></td><td><i><u>Parameters</i></u></td><td><i><u>Purpose</i></u></td></tr>
+<tr bgcolor=eeeeee><td valign=top>0: init</td>
+    <td valign=top>&nbsp;</td>
+    <td>Initialize adaptor instance</td></tr>
+<tr bgcolor=ffffff><td valign=top>1: free</td>
+    <td valign=top>&nbsp;</td>
+    <td>Clean up instance before shutting down</td></tr>
+<tr bgcolor=eeeeee><td valign=top>2: info</td>
+    <td valign=top>&nbsp;</td>
+    <td>Return XML describing the adaptor</td></tr>
+<tr bgcolor=ffffff><td valign-top>3: create</td>
+    <td valign=top>List definition</td>
+    <td>Create a list.</td></tr>
+<tr bgcolor=eeeeee><td valign-top>4: destroy</td>
+    <td valign=top>List definition</td>
+    <td>Destroy a list.</td></tr>
+<tr bgcolor=ffffff><td valign-top>5: add</td>
+    <td valign=top>List definition<br/>Object</td>
+    <td>Add an object to a list.</td></tr>
+<tr bgcolor=eeeeee><td valign-top>6: update</td>
+    <td valign=top>List definition<br/>Object</td>
+    <td>Update an object.</td></tr>
+<tr bgcolor=ffffff><td valign-top>7: delete</td>
+    <td valign=top>List definition<br/>Key</td>
+    <td>Delete an object.  If no key given, deletes current object in list.</td></tr>
+<tr bgcolor=eeeeee><td valign-top>8: get</td>
+    <td valign=top>List definition<br/>Key</td>
+    <td>Retrieve an object.  If no key given, retrieves the current object.</td></tr>
+<tr bgcolor=ffffff><td valign-top>9: query</td>
+    <td valign=top>List definition</td>
+    <td>Fills out the list definition with abbreviated records.</td></tr>
+<tr bgcolor=eeeeee><td valign-top>10: first</td>
+    <td valign=top>List definition</td>
+    <td>Iterates through a list.  Note that the list defn is used as a cursor.  Don't use the original!</td></tr>
+<tr bgcolor=ffffff><td valign-top>11: next</td>
+    <td valign=top>List definition</td>
+    <td>Iterates.</td></tr>
+<tr bgcolor=eeeeee><td valign-top>12: prev</td>
+    <td valign=top>List definition</td>
+    <td>Iterates.</td></tr>
+<tr bgcolor=ffffff><td valign-top>13: last</td>
+    <td valign=top>List definition</td>
+    <td>Iterates.</td></tr>
+<tr bgcolor=eeeeee><td valign-top>14: keygen</td>
+    <td valign=top>List definition<br>Object</td>
+    <td>Builds a key from the object definition.</td></tr>
+<tr bgcolor=ffffff><td valign-top>15: attach_open</td>
+    <td valign=top>List definition<br>Key<br>Field name<br>(optional) name of local file</td>
+    <td>Opens an attachment stream for writing.  The adaptor takes care of everything once the
+        stream is closed.  The localdir adaptor can use the name of local file to determine
+        a filename for storage of the attachment (this makes it easy to treat, say, an images
+        directory as a list with attachments.)  The function returns a handle which can be
+        decorated with a MIME type in content-type.</td></tr>
+<tr bgcolor=eeeeee><td valign-top>16: attach_write</td>
+    <td valign=top>Buffer to read from<br>size<br>number<br>Handle</td>
+    <td>Writes data to an open attachment handle (like fwrite())</td></tr>
+<tr bgcolor=ffffff><td valign-top>17: attach_close</td>
+    <td valign=top>Handle</td>
+    <td>Does the actual attachment; until attach_close is called, no effect is visible on the
+        object.  Among other things, the adaptor takes care of version control at this point.</td></tr>
+<tr bgcolor=eeeeee><td valign-top>18: attach_cancel</td>
+    <td valign=top>Handle</td>
+    <td>Closes the attachment handle with no effect on the object and no embarrassment.</td></tr>
+<tr bgcolor=ffffff><td valign-top>19: retrieve_open</td>
+    <td valign=top>List definition<br>Key<br>Field name</td>
+    <td>Opens an attachment (or any other field for that matter) for reading.  The handle is XML and
+        is decorated with attributes 'size' and 'content-type'.</td></tr>
+<tr bgcolor=eeeeee><td valign-top>20: retrieve_read</td>
+    <td valign=top>Buffer to write to<br>size<br>number<br>Handle</td>
+    <td>Reads data from an open attachment retrieval handle (like fread()).</td></tr>
+<tr bgcolor=ffffff><td valign-top>21: retrieve_close</td>
+    <td valign=top>Handle.</td>
+    <td>Finishes a retrieval action.</td></tr>
+</table>
+
+<p>
+Implementations:<ul>
+<li><a href="LIST_localdir.html">LIST_localdir</a> (stores list data in files in directory)
+<li>(TODO) LIST_db (list interface for RDBMS systems; uses underlying TASKINDEX adaptor)
+<li>(TODO) LIST_lines (stores records as lines in a file; useful for conversion to/from CSV, etc.)
+</ul>
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

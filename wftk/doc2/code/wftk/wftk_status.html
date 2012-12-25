@@ -1,0 +1,194 @@
+<html><head><title>wftk core library: Getting and setting process status</title></head>
+<body>
+<h2>Getting and setting process status</h2>
+<center>
+[&nbsp;<a href="wftk_value.html">Previous: Dealing with values</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_role.html">Next: Working with roles</a>&nbsp;]
+</center>
+
+<hr>
+Getting process status is simple; setting it may involve activation of potential task branches.  I'm still not sure about
+this.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT const char * wftk_status_get (XML * session, XML * datasheet) {
+   const char * status;
+   if (!datasheet) return "none";
+   status = xml_attrval (datasheet, "status");
+   if (*status) return status;
+   return "start";
+}
+</pre></td></tr></table>
+
+<i>22 June 2002</i>: Sure enough, my intuition was correct (or so it seems at the moment) -- when I set the status, that is equivalent
+to describing a state transition.  So when I do this, I need to check all state-related workflows attached to the process and see
+what transitions are available from the new state.  If any such transitions are found, and if they specify the explicit creation of
+tasks, then we queue those tasks.
+
+<p></p> There is, however, an additional can of worms associated with state transitions: that is simply the fact that if there are explicit
+transitions already created for the state we're leaving, then those tasks must be rescinded.  So far, so good.  But then there's more.
+Among the specifications for a state transition is the notion that a procdef can be required for approval before the transition takes
+effect.  If such a workflow is already underway when another request for a state transition comes in, what should happen?  It seems
+obvious to me that the active workflow should be deactivated.  Unfortunately we have no particular mechanism for the deactivation of a
+workflow.  So for now, the simple way out is just not to deactivate this active workflow.  TODO: revisit this sometime next year or
+something.
+
+<p></p> Upon activation, though, there is also an "after" procdef allowed.  This can be seen as a notification process to tell people that
+this transition has fired.  Note that there may also be an "on" procdef attached to the ending state.  This, however, can note only that
+a particular state was reached, and has no information about which specific transition occurred (i.e. from which state we have
+transitioned.)
+
+<p></p>
+The complete specification of a state transition is as follows:
+<pre>
+&lt;state id="state1"&gt;
+  &lt;to id="state2" mode="potential|auto|task" role="..." user="..." label="..." before="..." after="..."/&gt;
+  &lt;on procdef="..."/&gt;
+&lt;/state&gt;
+</pre>
+
+The default mode is "potential".  Mode "task" means that an explicit (ad-hoc) task is created and indexed to represent the transition;
+in this case, the role, user, and label attributes are used to specify that task.  Mode "auto" causes the transition to be made
+immediately upon entry to the state.  The "before" and "after" attributes are used to specify procdefs in a procdef repository to be
+activated against the process; the "before" procdef will serve as an approval process for the transition, while
+the "after" will be activated when the transition actually is made.  As mentioned above, the "on" procdef is activated whenever the
+state is entered.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int wftk_status_set (XML * session, XML * datasheet, const char * status) {
+   _status_set (session, datasheet, status, 1);
+}
+static int _status_set (XML * session, XML * datasheet, const char * status, int invoke_before) {
+   const char * cur_status;
+   WFTK_ADAPTORLIST * adlist;
+   XML * workflow;
+   XML * procdef;
+   XML * state;
+   XML * task;
+   XML * oldstate = NULL;
+   XML * newstate = NULL;
+   XML * transition = NULL;
+
+   if (!datasheet) return 0;
+
+   cur_status = wftk_status_get (session, datasheet);
+   if (!strcmp (cur_status, status)) return 1;
+
+   /* Find any known state descriptions for the current status and the new status. */
+   workflow = xml_firstelem (datasheet);
+   while (workflow) {
+      if (*xml_attrval (workflow, "state")) {
+         procdef = _procdef_load (session, workflow);
+         state = xml_firstelem (procdef);
+         while (state) {
+            if (xml_is (state, "state")) {
+               if (!oldstate &amp;&amp; !strcmp (xml_attrval (state, "id"), cur_status)) {
+                  oldstate = state;
+                  xml_set (oldstate, "workflow-id", xml_attrval (workflow, "id"));
+               }
+               if (!newstate &amp;&amp; !strcmp (xml_attrval (state, "id"), status)) {
+                  newstate = state;
+                  xml_set (newstate, "workflow-id", xml_attrval (workflow, "id"));
+               }
+               if (oldstate &amp;&amp; newstate) break;
+            }
+            state = xml_nextelem (state);
+         }
+      }
+      if (oldstate &amp;&amp; newstate) break;
+      workflow = xml_nextelem (workflow);
+   }
+
+   /* If an oldstate was found, look for a transition which describes our current one. */
+   transition = xml_locf (oldstate, ".to[%s]", status);
+   if (transition) xml_set (transition, "workflow-id", xml_attrval (oldstate, "workflow-id"));
+
+   /* If we have a "before" procdef, and if there is no item marked as being the , 
+      activate the "before" procdef and suspend. */
+   if (invoke_before &amp;&amp; transition &amp;&amp; *xml_attrval (transition, "before")) {
+      wftk_process_start (session, datasheet, NULL, xml_attrval (transition, "before"));
+      return 1;
+   }
+
+   /* Get a list of taskindex adaptors for notification, because we'll be doing lots of task/process stuff now. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+
+   /* We're not suspended; thus we're actually changing the state. */
+   /* Search for all active transition tasks and rescind them.  Transition tasks start with '!'. */
+   while (task = xml_firstelem (datasheet)) {
+      while (task) {
+         if (xml_is (task, "task")) {
+            if (*xml_attrval (task, "id") == '!') {
+               wftk_call_adaptorlist (adlist, "taskdel", xml_attrval (datasheet, "id"), xml_attrval (task, "id"));
+               xml_delete (task);
+               break;
+            }
+         }
+         task = xml_nextelem (task);
+      }
+      if (!task) break;
+   }
+
+   /* Now, change the state. */
+   xml_set (datasheet, "status", status);
+   wftk_process_save (session, datasheet);
+
+   /* Notify task indices. */
+   if (!strcmp (status, "complete")) {
+      wftk_call_adaptorlist (adlist, "proccomplete", xml_attrval (datasheet, "id"));
+   } else if (!strcmp (status, "error")) {
+      wftk_call_adaptorlist (adlist, "procerror", xml_attrval (datasheet, "id"));
+   } else {
+      wftk_call_adaptorlist (adlist, "procput", datasheet);
+   }
+
+   /* If the new state has any "on" elements, we start all named procdefs. */
+   /* If the new state has any "to" elements with mode="task" then we start all such tasks. */
+   transition = xml_firstelem (newstate);
+   while (transition) {
+      if (xml_is (transition, "on")) {
+         /* TODO: implement this, both for linked procdefs and for queueing explicit workflow in the "on" tag. */
+         if (*xml_attrval (transition, "procdef")) {
+            wftk_process_start (session, datasheet, xml_attrval (transition, "pdrep"), xml_attrval (transition, "procdef"));
+         } else {
+            queue_procdef (session, datasheet, transition, ".workflow[%d]", xml_attrvalnum (newstate, "workflow-id"));
+            process_procdef (session, datasheet, xml_loc (datasheet, ".state"), xml_loc (datasheet, ".state.queue"));
+         }
+      } else if (xml_is (transition, "to")) {
+         if (!strcmp (xml_attrval (transition, "mode"), "task")) {
+            task = xml_create ("task");
+            xml_copyinto (task, transition); /* Grab any data, user, role, label, etc. */
+            xml_setf (task, "id", "!%s", xml_attrval (transition, "id"));
+            xml_append_pretty (datasheet, task);
+            wftk_call_adaptorlist (adlist, "tasknew", task);
+         }
+      }
+      transition = xml_nextelem (transition);
+   }
+
+   wftk_free_adaptorlist (session, adlist);
+
+   if (!strcmp (status, "complete")) {
+      /* TODO: If the process is attached as a subproc of another task, retrieve that task and complete it. */
+   }
+
+   return 1;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_value.html">Previous: Dealing with values</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_role.html">Next: Working with roles</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

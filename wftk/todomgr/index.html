@@ -1,0 +1,140 @@
+<html>
+<head><title>To-do manager, take 1</title></head>
+<body>
+<h2>To-do manager</h2><hr>
+This implementation of a to-do manager is heavily influenced by the
+<a href="http://www.vivtek.com/wftk.html">open-source workflow toolkit</a> project,
+and it's also growing out of my long-time need for a project task manager for dealing
+with my customers' support requests.  The database schema used will thus be the same
+required by the wftk engine, but the goal is an application that can stand alone without
+workflow.
+<p>
+The platform I'm developing this version against is <a href="/aolserver.html">AOLserver/Tcl</a>
+for a couple of reasons.  The most important of those reasons is simply that I'm pressed for
+time due to a couple of illnesses (gotta love these Indiana springs) and I'm pretty good at
+Tcl, so this is the quickest way to get this portion of the overall wftk system completed.
+However, the platform, while not particularly portable, has a lot to recommend it.  If you're
+not familiar with it, I encourage you to read up on it a little.
+<p>
+And just so I have all the related links out of the way right off the bat, I'm coding this
+in a <a href="/litprog.html">literate programming style</a> using my very raw tool 
+<a href="/lpml.html">LPML</a>.  Please feel free to give me any feedback you might have about
+the formatting of the code, therefore, because that is also under development.
+<p>
+For the wftk folks following along, the fact that this prototype is being implemented in
+AOLserver/Tcl in no way constrains your own implementation.  I want to hammer out the function
+points and database schema without wasting too much time on languages I'm less familiar with,
+but for the "release" version of the wftk (whatever that means), I'd like to have at least
+a Perl/CGI implementation (for broad support) and possibly something in ASP as well.  I'm
+sure most of you would like to see a Java servlet approach, but within the timeframe of this
+initial project, I don't consider that likely.  (Now if anybody wants to <i>help</i>, that'll
+be a different matter!)
+<p>
+Really, to fit into a wftk installation, the to-do manager must:
+<ul>
+<li>Work with the schema of the active process repository
+<li>Know when to call the wftk engine to get things done (primarily at task completion), and
+<li>Present the to-do list in any way necessary.
+</ul>
+And here's how I do it.
+<ul>
+<li> <a href="main.html">File organization of todomgr.tcl</a>
+<li> <a href="schema.html">Database schema of the task list</a>
+<ul>
+<li> <a href="schema.html#process">Process table</a>
+<li> <a href="schema.html#task">Task table</a>
+</ul>
+<li> <a href="user_schema.html">Schema for user access</a>
+<li> <a href="perm_schema.html">Permissions schema</a>
+<ul>
+<li> <a href="perm_schema.html#keyword">Keyword table</a>
+<li> <a href="perm_schema.html#permission">Permission table</a>
+</ul>
+<li> <a href="todomgr_create.html">Definition of todomgr_create</a>
+<ul>
+<li> <a href="todomgr_create.html#freshform">Show process/task creation form</a>
+<li> <a href="todomgr_create.html#newtask">Requesting a task for a process</a>
+<li> <a href="todomgr_create.html#task">Create task</a>
+<li> <a href="todomgr_create.html#newprocess">Requesting a new process</a>
+<li> <a href="todomgr_create.html#process">Create process</a>
+</ul>
+<li> <a href="todomgr_start.html">Definition of todomgr_start</a>
+<ul>
+<li> <a href="todomgr_start.html#showlist">Show list of available procdefs</a>
+<li> <a href="todomgr_start.html#startform">Show start form for specified procdef</a>
+<li> <a href="todomgr_start.html#start">Actually starting a new process from a procdef</a>
+</ul>
+<li> <a href="todomgr_show.html">Definition of todomgr_show</a>
+<ul>
+<li> <a href="todomgr_show.html#task">Show task</a>
+<li> <a href="todomgr_show.html#getprocess">Getting process info for task display</a>
+<li> <a href="todomgr_show.html#getowner">Getting owner info for task/process display</a>
+<li> <a href="todomgr_show.html#makeprioritybox">Making select box to change priority level</a>
+<li> <a href="todomgr_show.html#process">Show process</a>
+<li> <a href="todomgr_show.html#getkeywords">Showing keywords for the process</a>
+<li> <a href="todomgr_show.html#processlist">Listing processes</a>
+</ul>
+<li> <a href="todomgr_overview.html">Definition of todomgr_overview</a>
+<li> <a href="todomgr_update.html">Definition of todomgr_update</a>
+<ul>
+<li> <a href="todomgr_update.html#task">Updating task record</a>
+<li> <a href="todomgr_update.html#taskcheckuser">Checking user permissions to update task</a>
+<li> <a href="todomgr_update.html#process">Updating process record</a>
+<li> <a href="todomgr_update.html#goback">Forwarding back to where the update started</a>
+</ul>
+<li> <a href="todomgr_complete.html">Definition of todomgr_complete</a>
+<li> <a href="todomgr_reject.html">Definition of todomgr_reject</a>
+<li> <a href="user.html">User functionality</a>
+<ul>
+<li> <a href="user.html#check">Checking authuser</a>
+</ul>
+<li> <a href="login_admin.html">Login management stuff</a>
+<ul>
+<li> <a href="login_admin.html#showlogin">Showing the current login</a>
+<li> <a href="login_admin.html#modlogin">Switching logins</a>
+</ul>
+<li> <a href="user_admin.html">User administration screens</a>
+<ul>
+<li> <a href="user_admin.html#list">Listing users</a>
+<li> <a href="user_admin.html#add">Adding users</a>
+<li> <a href="user_admin.html#modify">Modifying users</a>
+<li> <a href="user_admin.html#delete">Deleting users</a>
+</ul>
+<li> <a href="keywords.html">Keyword/permission management</a>
+<ul>
+<li> <a href="keywords.html#process">Setting/creating keywords for a process.</a>
+<li> <a href="keywords.html#user">Setting permissions for a user</a>
+<li> <a href="keywords.html#keyword">Inspecting a keyword</a>
+<li> <a href="keywords.html#keywordlist">Listing keywords</a>
+</ul>
+<li> <a href="pageout.html">How I'm writing pages out</a>
+<ul>
+<li> <a href="pageout.html#handle404">Handling 404 returns</a>
+</ul>
+<li> <a href="datasheet_stuff.html">Datasheet interface</a>
+<ul>
+<li> <a href="datasheet_stuff.html#setvalue">URL handler setvalue</a>
+<li> <a href="datasheet_stuff.html#datasheet_getvalue">Definition of datasheet_getvalue</a>
+<li> <a href="datasheet_stuff.html#datasheet_showdata">Definition of datasheet_showdata</a>
+<li> <a href="datasheet_stuff.html#datasheet_setvalue">Definition of datasheet_setvalue</a>
+</ul>
+<li> <a href="wftk_interpret.html">Interpreting the results that wftk sends back</a>
+<ul>
+<li> <a href="wftk_interpret.html#task">Starting tasks</a>
+<li> <a href="wftk_interpret.html#alert">Handling notifications</a>
+<li> <a href="wftk_interpret.html#complete">Completing the process</a>
+</ul>
+<li> <a href="util.html">Miscellaneous utility functions</a>
+</ul>
+
+
+This presentation defines two files:
+<ul>
+<li> <code>todomgr.tcl</code>:<a href="main.html">File organization of todomgr.tcl</a>
+<li> <code>schema.sql</code>:<a href="schema.html">Database schema of the task list</a>
+</ul>
+
+</body>
+</html>
+
+

@@ -1,0 +1,71 @@
+<html><head><title>wftk command-line utility: Working with the enactment history</title></head>
+<body>
+<h2>Working with the enactment history</h2>
+<center>
+[&nbsp;<a href="wftk_util_value.html">Previous: Dealing with values</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_role.html">Next: Working with roles</a>&nbsp;]
+</center>
+
+<hr>
+<br><br>
+<a name="log">
+<i>log: get or write to enactment history</i><br>
+The command-line utility can do two things with the enactment history: it can show it, or it can write a log line to
+it.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 2) {
+   printf ("wftk log: repository and ID of the datasheet are required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+
+if (argsleft > 0) {
+   /* Write log line. */
+   wftk_log (session, datasheet, argv[argp++]);
+   wftk_process_save (session, datasheet);
+   exit (0);
+}
+
+list = wftk_enactment (session, datasheet);
+if (list) {
+   mark = xml_firstelem (list);
+   while (mark) {
+      printf ("%s [%s]: ", xml_attrval (mark, "at"), xml_attrval (mark, "by"));
+      if (!strcmp ("log", mark->name)) {
+         printf ("%s\n", xml_attrval (mark, "text"));
+      } else if (!strcmp ("task", mark->name)) {
+         if (!strcmp ("reject", xml_attrval (mark, "action"))) {
+            printf ("REJECT ");
+         }
+         printf ("task %s %s\n", xml_attrval (mark, "id"), xml_attrval (mark, "label"));
+      } else if (!strcmp ("data", mark->name)) {
+         printf ("value %s (was '%s')\n", xml_attrval (mark, "id"), xml_attrval (mark, "was"));
+      } else {
+         printf ("entry '%s'\n", mark->name);
+      }
+      mark = xml_nextelem (mark);
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_util_value.html">Previous: Dealing with values</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_role.html">Next: Working with roles</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

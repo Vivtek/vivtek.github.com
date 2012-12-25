@@ -1,0 +1,164 @@
+<html><head><title>use wftk: Perl wrapper for wftk</title></head>
+<body>
+<h2>use wftk: Perl wrapper for wftk</h2>
+<center>
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+<i>December 26, 2003</i>:
+Well, here we are, starting out on a new chapter of wftk history.  I seem to have reached the breaking
+point with really wanting to write Perl scripts (my hack-until-it-works weapon of choice) against wftk
+repositories.  And so I have built an actual CPAN module, and here we go.
+<p></p>
+<u>What's where</u><br>
+The basic structure of this module is a lot like our other OO efforts of the past year; we have
+a main module "wftk", which has a "Repository" submodule, and thence "Local" and "SOAP" subsubmodules.
+Each subsub implements a variant of the repository on whatever platform works.  I anticipate other
+implementations at some point, but (as always) not yet.
+<p></p>
+use Workflow::wftk 
+<ul>
+<li><a href="xmlapi.html">use Workflow::wftk::XML</a> - a native Perl port of the <a href="../xmlapi/index.html">XMLAPI</a> library used for all wftk data structures
+<li><a href="repository.html">use Workflow::wftk::Repository</a> - the Perl version of the OO schema for the <a href="../repmgr/index.html">repository manager</a>
+<ul>
+<li><a href="local_repos.html">local repository implementation</a> - the only point of impact on the C-language repmgr implementation, this uses Inline::C to wrap the repmgr library.
+<li><a href="soap_repos.html">SOAP repository implementation</a> - this hypothetical implementation talks to a remote SOAP server to implement repmgr functionality.
+</ul>
+
+<li><a href="testing.html">Test scripts for the module</a> - all trustworthy CPAN modules rely on Test::Harness to run some basic tests to ensure proper installation.  This one should be no exception.
+</ul>
+
+<u>Building a CPAN module</u><br>
+I put off implementing this Perl wrapper for a long time, just because I was worried about the learning curve.  As it turned out, it
+really wasn't anything to be overly fearful of.  The basics of the module are automagically built for you by running h2xs, and then
+I simply took that and reverse-engineered some of it so that my litprog engine wrote source files into the right places, and
+everybody turned out happy.
+
+<p></p>
+(TODO: narrate a little more, so as not to forget why everything is where it is (possibly already too late...)).
+
+<p></p>
+<u>Cutting to the chase: the wftk package</u><br>
+This page defines the central wftk package of the module, which really doesn't do a whole lot -- meaning it's an
+excellent way to introduce the mechanics of the package itself, before we get into heavier lifting in our
+subs and subsubs.  First off, let's bow to the standards and realize that a package definition <i>includes
+documentation</i>.  That's pretty darned cool.  But from a writing standpoint, we probably want the documentation
+up front, so we define what we're writing, then below that, we implement it.  Isn't it handy, therefore, that
+we are doing literate programming?  (Yes, I get confused between levels, too.  But it's all good clean fun in the end.)
+
+<p></p>
+Boilerplate first:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#######################################################################################################
+#
+# The "use wftk" module is a Perl wrapper for the wftk, at theaters near you under:
+# http://www.vivtek.com/wftk/doc/code/perl
+#
+# Copyright (c) 2003, Vivtek, and released under the GPL, as follows:
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#######################################################################################################
+</pre></td></tr></table>
+
+
+Next comes the setup and code of the module itself, which we'll define below:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="index.html#code">Actual code</a></i>
+</pre></td></tr></table>
+
+And now we're free to write our POD documentation right up front here, defining what the
+package is and how it will be used.  The final HTML formatting of this will eventually end up in
+the documentation section.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>=head1 NAME
+
+wftk - Perl wrapper(s) for everything to do with the wftk
+open-source workflow toolkit.
+
+=head1 SYNOPSIS
+
+  use Workflow::wftk;
+
+=head1 DESCRIPTION
+
+The wrapper does nearly all of its work in wftk::Repository.
+
+=head1 AUTHOR
+
+Michael Roberts, wftk@vivtek.com
+
+=cut
+</pre></td></tr></table>
+
+
+Well, that could be more informative, but you get the idea.  Now we're free to define our actual code.
+
+<br><br>
+<a name="code">
+<i>Actual code</i><br>
+We start with some standard Perl module/package boilerplate.  It's generated automagically by h2xs when you first
+create your module; I tossed out some stuff we won't be using (like Export) but essentially what you see
+is what I got.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>package Workflow::wftk;
+
+require 5.6.0;
+use strict;
+use warnings;
+
+our @ISA = qw();
+
+our $VERSION = '0.01';
+</pre></td></tr></table>
+
+Next, we define ... whatever we want, actually.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub test {
+   print "Whaddaya know...\n";
+}
+</pre></td></tr></table>
+
+Finally, a last bit of package boilerplate: we return "1" so "use" won't freak, and we "__END__" to allow
+the POD documentation stuff to be inserted (remember we already wrote it above.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>1;
+__END__
+</pre></td></tr></table>
+
+And that was a Perl module (and package, at the same time.)  Not so bad.
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

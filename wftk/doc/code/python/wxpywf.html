@@ -1,0 +1,854 @@
+<html><head><title>wxPyWf: wxPython tools for the wftk</title></head>
+<body>
+<h2>wxPyWf: wxPython tools for the wftk</h2>
+<center>
+[<a href="index.html">wftk-Python</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+The wxPyWf is a set of handy-dandy classes to facilitate the building of quick wxPython GUI applications
+using the tools in the wftk.  These roughly fall into two categories: those which simply use the XMLAPI
+to do XML kinds of things (like menu and dialog definers), and those which use wxPython to present
+truly workflow-specific things (like ... don't know yet.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#######################################################################################################
+#
+# The wxPyWf is a set of classes to facilitate the building of quick wxPython GUI apps using wftk.
+# More information at http://www.vivtek.com/wftk/doc/code/python
+#
+# Copyright (c) 2003-2007, Vivtek, and released under the GPL.
+#
+#######################################################################################################
+</pre></td></tr></table>
+
+We import the wftk OO classes and the repmgr command-line interface, and some wxPython stuff.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>import wftk
+import repmgr_cli
+from wxPython.wx import *
+from wxPython.html import *
+</pre></td></tr></table>
+
+<p></p>
+First and foremost of the wxPyWf classes is the XML-defined menu.  I'm departing from the norm in
+my GUI design tools here, to a certain extent, in that menu events do not directly invoke a handling
+procedure; rather, each menu event is used to construct a command, which is then handed off to a
+command-line interface handler (a CLI object).  This has some awfully nice consequences: we can build
+macros rather easily, we can log all actions taken by the user, and we can share a common CLI between
+GUI and server-side code.
+<p></p>
+I'm not sure whether it will make sense for dialogs to work in the same way; I rather think that
+a dialog will allow the construction of a repmgr list object instead.  That list object may then
+be used to specify an action, but it may be used in some other way instead -- and of course it may
+have absolutely arbitrarily complex structure.  The dialog generalizes rather well to the notion of
+a wizard, so I think this is a solid way to go.
+<p></p>
+Anyway, each class defined in this package is on its own documentation page.  Follow any of the
+links below to learn more.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="wxpywf.html#frame">wxPyWf: frame class</a></i>
+<i>See <a href="wxpywf.html#panel">wxPyWf: panel and dialog classes</a></i>
+<i>See <a href="wxpywf.html#menu">wxPyWf: menu class</a></i>
+<i>See <a href="wxpywf.html#list">wxPyWf: list class</a></i>
+<i>See <a href="wxpywf.html#tabset">wxPyWf: tabset class</a></i>
+<i>See <a href="wxpywf.html#splitter">wxPyWf: splitter</a></i>
+<i>See <a href="wxpywf.html#htmlwin">wxPyWf: HTML window</a></i>
+<i>See <a href="wxpywf.html#filedroptarget">wxPyWf: file drop target</a></i>
+</pre></td></tr></table>
+
+<p>
+Then there are some useful little extras, like easy user notification and the like, here.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="wxpywf.html#utils">Utility functions</a></i>
+</pre></td></tr></table>
+<br><br>
+<a name="frame">
+<i>wxPyWf: frame class</i><br>
+<p>
+The frame class includes very arbitrary window layouts consisting of any collection of splitters and objects of other
+window classes; these subclasses may be any wxPython class or a wxPyWf panel.  A frame may also have a menu, of course.
+</p><p>
+There is a difference (confusing to me) between a frame and a dialog.  A frame is simply a window with the titlebar at the
+top, perhaps a menu bar, and perhaps a status bar.  The client area of the frame may then contain anything at all.  A dialog,
+on the other hand, is expected to contain a set of controls.  A panel is a non-framed window which acts as a dialog in that
+it is a container for controls.  And a frame can contain a panel -- but the key is that it need not.  It will more often subdivide
+its window into pieces using splitters and the like.  We can think of a dialog as a special case of a frame which contains
+only a panel and nothing else (and the GUI also does some convenience processing for us involving results retrieval -- but
+as wxpywf does even more in that regard, this is nearly a moot point.)
+</p><p>
+A frame also provides the point of reference of a list of command handlers; every item defined in the frame passes command events
+to the frame for handling.  The frame is responsible for doing the appropriate thing.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class frame(wxFrame):
+   def __init__(self, parent, defn, starter, cli_list=[]):
+       h = starter['h']
+       if not h: h = 500  # TODO: user config -- not just in app, but in Registry
+       h = int(h)
+       w = starter['w']
+       if not w: w = 500
+       w = int(w)
+
+       self.defn = starter
+       self.repos = defn
+
+       self._handlers = cli_list + [gui_cli(self), repmgr_cli.cli(None)]
+       for cli in self._handlers: cli.set_frame(self)
+
+       wxFrame.__init__(self, parent, -1, self.defn['title'], size = (w, h),
+                        style=wxDEFAULT_FRAME_STYLE|wxNO_FULL_REPAINT_ON_RESIZE)
+       self.CreateStatusBar (1, wxST_SIZEGRIP) # Only if specified?
+
+       self._context = wftk.xml ("<context/>")  # Private data storage for the frame.
+       self.boundfields = {} # Used when setting fields in the context; if any are bound to controls, the controls will self-update accordingly.
+
+       #EVT_CLOSE(self, self.OnExit)  # Hooked if specified in XML?  TODO: figure that one out.
+
+       # Define the frame by defining its children.
+       for ch in self.defn.elements():
+          win = define(ch, self, self)
+
+       # Set up a file drop target, if specified.
+       if starter['onfiledrop']: self.SetDropTarget(filedroptarget(starter['onfiledrop'], self, self))
+
+       # Attach and activate the menu, if specified.
+       menu_id = self.defn['menu']
+       if menu_id != "":
+          menu_defn = defn.search('menubar', 'id', self.defn['menu'])
+          if menu_defn == None:
+             notify_user ("Undefined menu bar '%s' referenced in %s '%s'.  Menu will not be shown." \
+                          % (self.defn['menu'], 'definition item', self.defn['id']), frame=self)
+          else:
+             self.menu = menu (menu_defn, self, self._context, self)
+
+       # Call the "initialize" command; this will typically be implemented in the application's main CLI and do ... whatever.
+       self.do(self._context, "initialize")
+
+       # After initialization, show the frame if silent running hasn't been specified.  (Note that the initialization command is
+       # perfectly capable of setting the silent running flag.  How cool is that?)
+       if defn['silent'] != 'yes': self.Show(true)
+
+   def getboundfield (self, field): return self.boundfields[field]
+   def setvalue (self, field, value):
+      try:
+         self.boundfields[field].setvalue(field, value)
+      except:
+         self._context[field] = value
+   def __setitem__ (self, field, value):
+      try:
+         self.boundfields[field].setvalue(field, value)
+      except:
+         self._context[field] = value
+   def __getitem__ (self, field): return self._context['field']
+</pre></td></tr></table>
+
+To handle command events by passing them to the CLI handlers in sequence,
+the frame defines a 'do' method (which makes it a command line handler itself, actually):
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def do (self, context, cmd):
+      for h in self._handlers:
+         rslt = h.do(self._context, cmd)
+         if rslt: break
+
+</pre></td></tr></table>
+<br><br>
+<a name="panel">
+<i>wxPyWf: panel and dialog classes</i><br>
+<p>
+A panel (or dialog) defines a set of input widgets and can be written to (an XMLOBJ is given to specify the values of
+all the fields) or read from (an XMLOBJ is extracted from the current values of the fields.)  It may also have arbitrary
+sets of buttons; each button has a command against a CLI list, and the parameter set to that command is the XMLOBJ value
+of the panel/dialog.  If there's no explicit panel definition, the class will make up a default; if given a list defn
+structure, the default is more likely to be a good one.
+</p>
+<p>
+The panel writes its fields to a record XML passed in (if not specified, it uses the frame's content member);
+changes are made to most controls when the
+selection changes; text fields might end up being updated only when a button is clicked, or something.
+</p>
+<p>
+Layout is either explicit, with positions for each widget on the panel (TODO: implement), or by means of boxes.  If using boxes, the
+boxes and the widgets are defined at the same level, and each widget then specifies the box it belongs to.  The same
+goes for groups.  Everything in the panel, that is, is defined at the same element level, as a direct child of the panel
+definition element.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class panel(wxPanel):
+   def __init__ (self, defn, frame, parent, rec=None):
+      if rec == None: rec = frame._context
+      self.defn = defn
+      self.frame = frame
+      self.parent = parent
+      self.rec = rec
+
+      self.boundfields = {}
+
+      wxPanel.__init__(self, parent, -1)
+
+      self.dialog = false
+      self.setup()
+
+   def setup (self, bindtoframe=true):
+      # Define the layout boxes
+      self.boxes = {}
+      self.topbox = None
+      for ch in self.defn.elements():
+         if ch.is_a('box'):
+            dir = wxHORIZONTAL
+            if first_char_of(ch['dir']) == 'v': dir = wxVERTICAL
+            self.boxes[ch['id']] = wxBoxSizer(dir)
+            if not ch['box']: self.topbox = self.boxes[ch['id']]
+
+      # Define the controls on the panel
+      self.controls = {}
+      for ch in self.defn.elements():
+         if ch.is_a('radio-group'):
+            id = wxNewId()
+            ch['ctl-id'] = id
+            (labels, values) = self.ScanControlValues (ch, 'radio')
+            control = wxRadioBox(self, id, ch['label'], majorDimension=1, choices = labels)
+            if not self.dialog: EVT_RADIOBOX(self, id, self.OnControlChange)
+            self.controls[ch['ctl-id']] = (control, ch, values)
+            try:
+               control.SetSelection(values.index(self.rec[ch['field']]))
+            except:
+               pass
+            if not self.dialog: self.rec[ch['field']] = values[control.GetSelection()]
+            if bindtoframe: self.frame.boundfields[ch['field']] = self
+            self.boundfields[ch['field']] = ch['ctl-id']
+         elif ch.is_a('listbox'):
+            id = wxNewId()
+            ch['ctl-id'] = id
+            (labels, values) = self.ScanControlValues (ch, 'value')
+            control = wxListBox(self, id, choices = labels)
+            if not self.dialog: EVT_LISTBOX(self, id, self.OnControlChange)
+            self.controls[ch['ctl-id']] = (control, ch, values)
+            try:
+               control.SetSelection(values.index(self.rec[ch['field']]))
+            except:
+               pass
+            if not self.dialog:self.rec[ch['field']] = values[control.GetSelection()]
+            if bindtoframe: self.frame.boundfields[ch['field']] = self
+            self.boundfields[ch['field']] = ch['ctl-id']
+         elif ch.is_a('button'):
+            id = -1
+            if self.dialog:
+               if ch['value'] == 'ok':
+                  id = wxID_OK
+               elif ch['value'] == 'cancel':
+                  id = wxID_CANCEL
+            if id == -1: id = wxNewId()
+            ch['ctl-id'] = id
+            control = wxButton (self, id, ch['label'])
+            if ch['cmd']: EVT_BUTTON(self, id, self.OnControlChange)
+            self.controls[ch['ctl-id']] = (control, ch, ch['cmd'])
+         elif ch.is_a('static'):
+            id = wxNewId()
+            ch['ctl-id'] = id
+            if ch['format'] == 'yes':
+               control = wxStaticText (self, -1, self.rec.format(ch.stringcontenthtml()))
+            else:
+               control = wxStaticText (self, -1, ch.stringcontenthtml())
+            self.controls[ch['ctl-id']] = (control, ch, None)
+         elif ch.is_a('text'):
+            id = wxNewId()
+            ch['ctl-id'] = id
+            style = 0
+            if ch['multiline'] == 'yes': style = style + wxTE_MULTILINE
+            if ch['password']  == 'yes': style = style + wxTE_PASSWORD
+            if ch['readonly']  == 'yes': style = style + wxTE_READONLY
+            if ch['format'] == 'yes':
+               control = wxTextCtrl (self, id, value = self.rec.format(ch.stringcontenthtml()), style=style)
+            else:
+               control = wxTextCtrl (self, id, value = ch.stringcontenthtml(), style=style)
+            self.controls[ch['ctl-id']] = (control, ch, None)
+            if ch['field']:
+               if self.rec[ch['field']] == None: self.rec[ch['field']] = ''
+               control.SetValue(self.rec[ch['field']])
+               if bindtoframe: self.frame.boundfields[ch['field']] = self
+               self.boundfields[ch['field']] = ch['ctl-id']
+         elif ch.is_a('checkbox'):
+            id = wxNewId()
+            ch['ctl-id'] = id
+            if ch['format'] == 'yes':
+               control = wxCheckBox (self, id, self.rec.format(ch['label']))
+            else:
+               control = wxCheckBox (self, id, ch['label'])
+            EVT_CHECKBOX (self, id, self.OnControlChange)
+            on = ch['on']
+            if not on: on = '1'
+            off = ch['off']
+            if not off: off = '0'
+            self.controls[ch['ctl-id']] = (control, ch, [off, on])
+            if ch['field']:
+               if self.rec[ch['field']] == None: self.rec[ch['field']] = ''
+               control.SetValue(self.rec[ch['field']] == on)
+               if bindtoframe: self.frame.boundfields[ch['field']] = self
+               self.boundfields[ch['field']] = ch['ctl-id']
+
+      # Lay out the controls
+      for ch in self.defn.elements():
+         if ch.is_a('box'):
+            if ch['box']: self.boxes[ch['box']].Add(self.boxes[ch['id']], option=0)
+         else:
+            if ch['box']: self.boxes[ch['box']].Add(self.controls[ch['ctl-id']][0], option=0)
+
+      if self.topbox:
+         self.SetSizer(self.topbox)
+         if self.dialog: self.topbox.Fit(self)
+         self.SetAutoLayout(true)
+
+
+   def new_listbox_values(self, field, new_values, labels=None):
+      defn = self.defn.search('listbox', 'field', field)
+      if not defn: raise KeyError, "no listbox %s defined" % field
+      (control, ch, values) = self.controls[defn['ctl-id']]
+      if labels:
+         labels = [labels[v] for v in new_values]
+      else:
+         labels = new_values
+      control.Clear()
+      control.InsertItems(labels, 0)
+      control.SetDimensions(-1, -1, -1, -1, sizeFlags=wxSIZE_AUTO_WIDTH)
+      self.controls[defn['ctl-id']] = (control, ch, new_values)
+
+   def ScanControlValues(self, defn, child):
+      labels = []
+      values = []
+      count = 0
+      for r in defn.elements():
+         if r.is_a(child):
+            v = r['value']
+            if not v: v = count
+            values = values + [v]
+            l = r['label']
+            if not l: l = r['value']
+            labels = labels + [l]
+            count = count + 1
+
+      return (labels, values)
+
+   def OnControlChange(self, event):
+      type = event.GetEventType()
+      id = `event.GetId()`
+      (control, ch, values) = self.controls[id]
+      if type == wxEVT_COMMAND_RADIOBOX_SELECTED or type == wxEVT_COMMAND_LISTBOX_SELECTED:
+         self.rec[ch['field']] = values[control.GetSelection()]
+      elif type == wxEVT_COMMAND_BUTTON_CLICKED:
+         self.frame.do(self.frame._context, values)
+      elif type == wxEVT_COMMAND_CHECKBOX_CLICKED:
+         self.rec[ch['field']] = values[int(control.GetValue())]
+
+   def setvalue(self, field, value):
+      try:
+         (control, ch, values) = self.controls[self.boundfields[field]]
+      except:
+         self.rec[field] = value
+         return
+
+      if ch.is_a('radio-group') or ch.is_a('listbox'):
+         try:
+            index = values.index(value)
+         except:
+            return
+         control.SetSelection(index)
+         self.rec[field] = value
+      elif ch.is_a('text'):
+         control.SetValue(value)
+         self.rec[field] = value
+      elif ch.is_a('checkbox'):
+         control.SetValue(value == values[0])
+         self.rec[field] = value
+
+   def writerec(self):
+      for field in self.boundfields.keys():
+         (control, ch, values) = self.controls[self.boundfields[field]]
+         if ch.is_a('radio-group') or ch.is_a('listbox'):
+            self.rec[field] = values[control.GetSelection()]
+         elif ch.is_a('text'):
+            self.rec[field] = control.GetValue()
+         elif ch.is_a('checkbox'):
+            self.rec[field] = values[control.GetValue()]
+
+</pre></td></tr></table>
+
+Dialogs are basically fancy panels (the wxDialog class inherits from wxPanel) and so our wxpywf dialog class inherits from both the wxDialog and panel
+classes.  There's also a call_dialog function to allow simple calling of a dialog in a single function.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class dialog(wxDialog, panel):
+   def __init__(self, defn, frame, parent, rec=None, title=None, bindtoframe=None):
+      if rec == None:
+         rec = frame._context
+         if bindtoframe == None: bindtoframe = true
+      else:
+         if bindtoframe == None: bindtoframe = false
+      self.defn = defn
+      self.frame = frame
+      self.parent = parent
+      self.rec = rec
+
+      self.boundfields = {}
+
+      if title == None: title=defn['title']
+
+      wxDialog.__init__ (self, parent, -1, title=title)
+
+      self.dialog = true
+      self.setup(bindtoframe)
+      self.Layout()   # Thanks to http://aspn.activestate.com/ASPN/Mail/Message/wxPython-users/630396
+
+def call_dialog (defn, frame, parent, rec=None, title=None):
+   if title == None: title=defn['title']
+
+   dlg = dialog(defn, frame, parent, rec, title)
+
+   ctl = dlg.ShowModal()
+   retval = ''
+   if ctl != wxID_CANCEL:
+      dlg.writerec()
+      (control, ch, values) = dlg.controls[`ctl`]
+      retval = ch['value']
+
+   return retval
+</pre></td></tr></table>
+
+
+<br><br>
+<a name="tabset">
+<i>wxPyWf: tabset class</i><br>
+A tabset, or notebook, has a line of tabs along one edge to select between different windows sharing the same part of screen real
+estate.  The tabset class doesn't have a lot of special code; the customization lies in interpretation of the definition.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>def first_char_of (str):
+   try:
+      return str[0]
+   except:
+      pass
+   return ''
+
+class tabset(wxNotebook):
+   def __init__ (self, defn, frame, parent):
+      self.defn = defn
+      self.frame = frame
+      self.parent = parent
+      self.id = wxNewId()
+      defn['id'] = self.id
+      s = 0
+      if first_char_of(defn['edge']) == 'l': s = wxNB_LEFT
+      if first_char_of(defn['edge']) == 'r': s = wxNB_RIGHT
+      if first_char_of(defn['edge']) == 'b': s = wxNB_BOTTOM
+
+      wxNotebook.__init__(self, parent, self.id, style=s)
+      for ch in self.defn.elements():
+         if ch.is_a('tab'):
+            win = define(ch.elements()[0], frame, self)
+            if win:
+               self.AddPage (win, ch['label'])
+
+      if self.defn['field']:
+         self.frame.boundfields[self.defn['field']] = self
+         EVT_NOTEBOOK_PAGE_CHANGED(parent, self.id, self.OnPageChanged)
+
+
+   def OnPageChanged(self, event):
+      sel = self.GetSelection()
+      self.frame._context[self.defn['field']] = self.GetPageText(sel)
+      #event.skip()
+
+   def setvalue(self, field, value):
+      for i in range(self.GetPageCount()):
+         if value == self.GetPageText(i):
+            self.SetSelection(i)
+            self.frame._context[field] = value
+            return
+
+</pre></td></tr></table>
+<br><br>
+<a name="htmlwin">
+<i>wxPyWf: HTML window</i><br>
+The wxHTML window is a pretty simple HTML viewer, not really a particuarly good browser.  However, its ability to display
+formatted text and to intercept links makes it pretty useful.  By default, HTML and mailto links call out to the OS to invoke
+the appropriate handler.  I suppose that should be overridden in some way.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class html_window(wxHtmlWindow):
+   def __init__ (self, defn, frame, parent):
+      self.defn = defn
+      self.frame = frame
+      self.parent = parent
+      self.id = wxNewId()
+      defn['id'] = self.id
+      wxHtmlWindow.__init__(self, parent, self.id)
+
+      # Write XHTML content into HTML window as initial value
+      self.SetPage (self.defn.stringcontenthtml())
+
+      if defn['field']: self.frame.boundfields[defn['field']] = self
+
+   def setvalue(self, field, value): self.SetPage (value)
+
+   def OnLinkClicked(self, linkinfo):
+      where = string.lower(linkinfo.GetHref())
+      if where[0:5] == 'http:': os.startfile(where)
+      if where[0:7] == 'mailto:': os.startfile(where)
+      if where[0:4] == 'cmd:':
+         self.frame.do (self.frame._context, where[4:])
+
+</pre></td></tr></table>
+<br><br>
+<a name="splitter">
+<i>wxPyWf: splitter</i><br>
+There are multiple wx solutions to splitting an area into multiple areas; the splitter window is convenient
+and easy to understand in the XML structure, so it's a good candidate.  But you could also build a panel
+with box sizers and put stuff onto the panel -- the advantage to the splitter is that it gives you a sash
+you can pull back and forth.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class splitter(wxSplitterWindow):
+   def __init__ (self, defn, frame, parent):
+      self.defn = defn
+      self.frame = frame
+      self.parent = parent
+      self.id = wxNewId()
+      defn['id'] = self.id
+      wxSplitterWindow.__init__(self, parent, self.id)
+
+      p1 = None
+      p2 = None
+
+      for ch in self.defn.elements():
+         win = define(ch, frame, self)
+         if win:
+            if p1:
+               p2 = win
+            else:
+               p1 = win
+         if p2: break
+
+      min = defn['minpanesize']
+      if min: self.SetMinimumPaneSize(int(min))
+      if first_char_of(defn['split']) == 'v':
+         self.SplitVertically(p1, p2)
+      else:
+         self.SplitHorizontally(p1, p2)
+      pos = defn['sashpos']
+      if pos or pos == 0: self.SetSashPosition(int(pos))
+
+</pre></td></tr></table>
+<br><br>
+<a name="filedroptarget">
+<i>wxPyWf: file drop target</i><br>
+Supporting the dropping of files onto a window is a little difficult; it's not simply a nice, easy message or event handler, but rather
+requires the creation of a file drop object.  In wxPyWf, though, file drop targets are defined as commands in the "onfiledrop" attribute on
+various widgets.  The framework takes care of all the rigamarole, and the application simply has to do the right thing when the command in
+question is invoked.  The command is assumed to contain a "%s" which will be replaced with the list of files.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class filedroptarget(wxFileDropTarget):
+    def __init__(self, cmd, parent, frame):
+        wxFileDropTarget.__init__(self)
+        self.parent = parent
+        self.frame = frame
+        self.cmd = cmd
+
+    def OnDropFiles(self, x, y, filenames):
+        cmd = self.cmd % ' '.join(map((lambda x: '"%s"' % x), filenames))
+        self.frame.do (self.frame._context, cmd)
+</pre></td></tr></table>
+
+Now that wasn't so hard, was it?  Well, except for the lamda form there in the command builder.  I'm pretty sure this was the first time
+outside Kent Dybvig's Scheme compiler class that I have ever been remotely motivated to use a lambda form.  But yeah, it felt good, I admit it.
+<br><br>
+<a name="menu">
+<i>wxPyWf: menu class</i><br>
+A menu has a definition (which is an XML document), a command-line handler for its events (or a list thereof),
+and of course the window its menu is attached to.  At some point we'll want to work out the difference
+between fixed and popup menus (the popup menu has a context object, so that'll need
+some kind of tracking.)
+<p></p>
+Upon creation of the object, we already create and display our menubar and menu items.
+<p></p>
+Different parts of the menu may talk to different CLI objects.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class menu(wftk.xml):
+</pre></td></tr></table>
+
+Upon initialization, we immediately create a menubar and build the menu specified by the XML we're
+given.
+<p></p>
+The <code>_iterparent</code> attribute is used for the iteration functions below.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def __init__ (self, defn, window, context, handler):
+      self._window = window
+      self._context = context
+      if handler==None:
+         self._handlers = []
+      elif type(handler) == type([]):
+         self._handlers = handler
+      else:
+         self._handlers = [handler]
+      self.defn = defn.new_copy()
+
+
+      self.refresh()
+
+      self._window.SetMenuBar (self._menubar)
+
+
+
+</pre></td></tr></table>
+
+When a menu event occurs, menu_handler is invoked.  This takes the menu ID of the event, and
+searches the menu definition for that ID to retrieve the command associated with the menu entry.
+Then it tries each handler in its list of handlers until one of them accepts the command.  If
+none accepts the command (returns something other than None) then it just does nothing.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def menu_handler (self, event):
+      d = self.defn.search(None, "id", `event.GetId()`)
+      cmd = d['cmd']
+      self.do(self._context, cmd)
+
+   def do(self, context, cmd):
+      for h in self._handlers:
+         rslt = h.do(self._context, cmd)
+         if rslt: break
+</pre></td></tr></table>
+
+After each action which affects the structure of the XML, the menu structure must be refreshed to
+mirror changes back out to the UI.  I had thought of hooking all the XML functions to make sure that
+happened automatically, but I don't know whether it's possible to do so (I think it probably isn't.)
+Even if I override all the change functions, the location and iteration functions still return 'xml'
+objects, not 'menu' objects -- so if I change pieces of XML, I wouldn't invoke my specialized
+versions anyway.
+
+<p></p>
+To cut corners, this initial "refresh" doesn't actually refresh -- it just creates a new menu.
+Technically, this will work, as the old menu should be garbage collected, but it seems rather
+expensive to me.  Probably I'll regret this.
+
+<p></p>
+The initial (Oct. 24, 2002) implementation is pretty thin.  Really I should be building wxMenuItem
+objects so that the XML can specify fonts and other attributes of fancy menus.  But this will be
+relatively easy to pick up later. (TODO: pick this up later.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def refresh (self):
+      self._menubar = wxMenuBar()
+      for e in self.defn.elements():
+         self.init_menu (self._menubar, e)
+
+   def init_menu (self, parent, d):
+      if d.is_a('menu'):
+        if not d['id']: d['id'] = wxNewId()
+        d.menu=wxMenu()
+        if d.parent().is_a ('menubar'):
+           parent.Append (d.menu, d['label'])
+        else:
+           parent.AppendMenu (int(d['id']), d['label'], d.menu, d['help'])
+           pass
+        for e in d.elements():
+           self.init_menu (d.menu, e)
+        return
+      if d.is_a('item'):
+        if not d['id']: d['id'] = wxNewId()
+        parent.Append (int(d['id']), d['label'], d['help'])
+        EVT_MENU(self._window, int(d['id']), self.menu_handler)
+        return
+      if d.is_a('separator'):
+        parent.AppendSeparator()
+        return
+      if d.is_a('break'):
+        parent.Break()
+</pre></td></tr></table>
+<br><br>
+<a name="list">
+<i>wxPyWf: list class</i><br>
+The list is a slightly embryonic idea, although I've actually used it in a project.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class list(wxListCtrl):
+   def __init__ (self, defn, frame, parent):
+      self.defn = defn
+      self.id = wxNewId()
+      self.defn['id'] = self.id
+      self.frame = frame
+      self.parent = parent
+      self.list = defn['list']
+
+      wxListCtrl.__init__(self, self.parent, self.id, style=wxLC_REPORT|wxSUNKEN_BORDER)
+
+      self.field = self.defn['field']
+      if self.field: self.frame.boundfields[self.defn['field']] = self
+
+      count = 0
+      self.cols = []
+      for col in self.defn.elements():
+         if col.is_a('col'):
+            self.InsertColumn(count, col['label'])
+            self.cols = self.cols + [col['field']]
+            count = count + 1
+
+      EVT_LIST_ITEM_SELECTED(frame, self.id, self.select)
+      EVT_LIST_ITEM_ACTIVATED(frame, self.id, self.select)
+      #EVT_LIST_DELETE_ITEM(frame, self.id, self.delete)
+      #EVT_LIST_COL_CLICK(frame, self.id, self.select)
+
+   def select(self, event):
+      self.cur_item = event.m_itemIndex
+      if self.field: self.frame._context[self.field] = self.keys[self.GetItemData(self.cur_item)]
+      #cmd = "view %s %s" % (self.list, self.keys[self.cur_item])
+      #for h in self.frame._handlers:
+      #   rslt = h.do(self._context, cmd)
+      #   if rslt: break
+
+   def activate(self, event):
+      pass
+
+   def delete(self, event):
+      delitem = event.m_itemIndex
+      # send command?  what?  TODO: need an ondelete="" command, I suppose.  Then a way to determine which index is which record.
+
+   def setvalue (self, field, value):
+      pass
+
+   def clear (self):
+      self.numitem = 0
+      self.DeleteAllItems()
+      self.keys = []
+      if self.field: self.frame._context[self.field] = ''
+
+   def autosize (self):
+      for count in range(len(self.cols)):
+         self.SetColumnWidth(count, wxLIST_AUTOSIZE)
+
+   def add_line(self, rec, key):
+      field = 0
+      for f in self.cols:
+         if field == 0:
+            self.InsertStringItem (self.numitem, rec[f])
+         else:
+            self.SetStringItem (self.numitem, field, rec[f])
+         field = field + 1
+      self.SetItemData (self.numitem, len(self.keys))
+      self.keys.append (key)
+      self.numitem = self.numitem + 1
+      return (self.numitem - 1)
+
+   def reload (self, rec_list):
+      self.clear()
+      for (rec, key) in rec_list: self.add_line (rec, key)
+      self.autosize()
+
+
+</pre></td></tr></table>
+
+<br><br>
+<a name="utils">
+<i>Utility functions</i><br>
+The notify_user function is the most notable here.  TODO: add logging to this; right now it just pops up a message box.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>def notify_user (line, frame=None, title="Notification"):
+    # TODO: if the frame is a wftk frame, the definition and its application title can be used to override the title.
+    dlg = wxMessageDialog(frame, line,
+                          title, wxOK | wxICON_INFORMATION)
+                          #wxYES_NO | wxNO_DEFAULT | wxCANCEL | wxICON_INFORMATION)
+    dlg.ShowModal()
+    dlg.Destroy()
+def ask_user (line, frame=None, title="Yes or no?"):
+    # TODO: if the frame is a wftk frame, the definition and its application title can be used to override the title.
+    dlg = wxMessageDialog(frame, line,
+                          title, wxYES_NO | wxICON_INFORMATION)
+    ret = dlg.ShowModal()
+    dlg.Destroy()
+    return ret
+</pre></td></tr></table>
+
+We also need a simple command-line interface handler for some basic GUI commands (such as "exit").  The most interesting command here
+(so far) is the "set" command, which not only sets fields in the context, but also updates bound controls accordingly.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class gui_cli(wftk.cli):
+   def __init__ (self, parent):
+      self.parent=parent
+      self.mode = 0
+      self.commands={}
+      self.commands['exit']  = ['exit', self.exit,  0, 0, '']
+      self.commands['set']   = ['set',  self.set,   2, 2, '[field] [value]']
+
+   def exit(self, context, action, obj):
+      self.parent.Close()
+
+   def set(self, context, action, obj):
+      field = action['parm(0)']
+      value = action['parm(1)']
+      try:
+         self.parent[field] = value
+      except:
+         context[field] = value
+</pre></td></tr></table>
+
+And then there is the switch allowing the association of XML element names in a frame definition with classes in this module (or, I suppose,
+non-wrapped classes in some way (TODO: see if that makes sense)).
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>def define(defn, frame, parent):
+   if (defn.is_a ('tabset') or defn.is_a ('notebook')):
+      return tabset(defn, frame, parent)
+
+   if (defn.is_a ('html')):
+      return html_window(defn, frame, parent)
+
+   if (defn.is_a ('splitter')):
+      return splitter (defn, frame, parent)
+
+   if (defn.is_a ('panel')):
+      return panel (defn, frame, parent)
+
+   if (defn.is_a ('list')):
+      return list (defn, frame, parent)
+
+   if (defn.is_a ('text')):
+      return text (defn, frame, parent)
+
+   return None # If we don't define it, we ignore it.
+
+
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2003-2007, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

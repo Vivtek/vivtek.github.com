@@ -1,0 +1,1873 @@
+<html><head><title>AOLserver Tcl wrapper</title></head>
+<body>
+<h2>AOLserver Tcl wrapper</h2>
+<center>
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+This was my first attempt at creating a Tcl wrapper of any sort around a C library, even though I've been writing Tcl for
+AOLserver for nearly seven years now.  So take it with a grain of salt, and if anybody has any suggestions for improvements
+in architecture, <a href="mailto:wftk@vivtek.com">feel free to laugh at me</a>.  Bear in mind that this code must function
+under Tcl 7.x in order to maintain compatibility with my existing antideluvian AOLserver 2.x installation (if it makes you
+feel any better, my other two installations are both 3.x).
+<p></p>
+The first real sticky wicket I ran into (naturally) was Tcl's assumption of string semantics for <i>everything</i>.  As I
+required binary pointers all over the place, the interface turned out to be somewhat difficult.  The way I solved it was, I
+suppose, the usual way: I maintain a central hash table, into which I put tags as handles to binary (XMLAPI) structures.
+This works fine, except that I was unable to find a way to generate unique tags, so I ended up requiring the caller to
+provide a unique tag.  This makes the calling code look pretty strange; to parse file contents into an XML structure, for
+instance, the caller needs to do this:
+<pre>
+  set zdata $conn-z
+  open zf [whatever]
+  xml read $zdata $zf
+  close $zf
+  ...
+  xml free $zdata
+</pre>
+This isn't what I'd call particularly easy to use -- but it does work.  Although I see a significant risk of memory leaks
+here.
+<p></p>
+At any rate, here's how I ended up implementing things.  First, we include our includes.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include "ns.h"
+#include "xmlapi.h"
+#include "repmgr.h"
+#include "xmlobj.h"
+</pre></td></tr></table>
+
+Now here, you see the dependency on ns.h.  This is AOLserver-specific.  I can only assume that you could replace it with
+#include "tcl.h" if you were aiming for general Tcl applicability -- but some of the AOLserver API is used below, and that
+would have to be replaced.  Since I've never used Tcl outside of AOLserver, I don't really know.  Or have it as a very high
+priority.
+
+<p></p>
+Now a couple of defines for the Tcl commands.  Note that this library does not (yet) wrap the wftk core workflow API.  My primary
+motivation with this wrapper was to get data management working via the <a href="../repmgr/index.html">repository manager</a>, which
+has worked rather well so far, with the unfortunate except of an intermittent core dump somewhere in repos_mod.  Irritating indeed.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>/* This module is a wrapper for the wftk (open-source workflow toolkit).  As such, it defines several commands in
+   Tcl which can be used for workflow- and XML-oriented functionality.
+
+   xml    - wraps the XMLAPI, used for general XML manipulation.
+   repmgr - wraps the repository manager, used for list- and record-oriented data manipulation.
+
+*/
+
+#define XML_COMMAND "xml"
+#define XMLOBJ_COMMAND "xmlobj"
+#define REPMGR_COMMAND "repmgr"
+
+DllExport int Ns_ModuleVersion = 1;
+static Tcl_CmdProc XMLCmd;
+static Tcl_CmdProc RepmgrCmd;
+</pre></td></tr></table>
+
+Next on the tour: prototypes for all the functions we're wrapping, of which there are many.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static int XMLAPI_free (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_load (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_save (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_write (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_writecontent (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_writehtml (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_writecontenthtml (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_string (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_stringcontent (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_stringhtml (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_stringcontenthtml (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_prepend (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_append (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_append_pretty (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_replace (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_replacecontent (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_loc (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_getloc (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_set (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_attrval (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_attrs (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_create (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_createtext (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_delete (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_is (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_name (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_is_element (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_parent (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_first (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_firstelem (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_last (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_lastelem (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_next (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_nextelem (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_prev (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_prevelem (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_copy (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_copyinto (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_read (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_parse (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_search (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_search_all (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_toutf8_attr (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_toutf8_text (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLAPI_toraw_str (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+
+/* And the xmlobj library: */
+static int XMLOBJ_get (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLOBJ_set (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLOBJ_format (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLOBJ_diff (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLOBJ_undiff (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int XMLOBJ_patch (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+
+
+/* Prototypes for our repmgr wrappers: */
+static int RM_open (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_close (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_publish_all (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_publish_list (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_publish_obj (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_publish_pages (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_publish_page (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_create (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_drop (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_defn (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_form (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_define (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_add (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_del (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_mod (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_list (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_changes (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_snapshot (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_getkey (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_get (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_edit (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_display (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_getobjvalue (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_format_string (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_getvalue (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_setvalue (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_get_layout (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_push (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_push_all (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_pull (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_pull_all (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+static int RM_synch (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv);
+</pre></td></tr></table>
+
+The hash table.  This hash table was meant to be a higher level of hash table organization; I believe it's unused at the moment.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>/* The hash of hashes where interps stash hashes. */
+
+static Tcl_HashTable HashStash;
+</pre></td></tr></table>
+
+Now we define our handler for the three Tcl commands we're defining.  This is all pretty obvious stuff.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static int
+XMLCmd(ClientData dummy, Tcl_Interp *interp, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    Tcl_HashTable * handles;
+    int (*handler)();
+
+    if (argc < 3) {
+       interp->result = "Usage: xml handle command";
+       return TCL_ERROR;
+    }
+
+    /*entry = Tcl_FindHashEntry (&amp;HashStash, (char *) interp);
+    if (!entry) {
+       sprintf (interp->result, "Nope: %ld", interp);
+       return TCL_ERROR;
+    }
+    handles = Tcl_GetHashValue (entry);*/
+    handles = &amp;HashStash;
+
+    if (*argv[1] == 'a') {
+       if (!strcmp (argv[1], "attrval")) return XMLAPI_attrval (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "append")) return XMLAPI_append (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "append_pretty")) return XMLAPI_append_pretty (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "attrs")) return XMLAPI_attrs (interp, handles, argc, argv);
+    } else if (*argv[1] == 'c') {
+       if (!strcmp (argv[1], "create")) return XMLAPI_create (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "createtext")) return XMLAPI_createtext (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "copy")) return XMLAPI_copy (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "copyinto")) return XMLAPI_copyinto (interp, handles, argc, argv);
+    } else if (*argv[1] == 'd') {
+       if (!strcmp (argv[1], "delete")) return XMLAPI_delete (interp, handles, argc, argv);
+    } else if (*argv[1] == 'f') {
+       if (!strcmp (argv[1], "free")) return XMLAPI_free (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "firstelem")) return XMLAPI_firstelem (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "first")) return XMLAPI_first (interp, handles, argc, argv);
+    } else if (*argv[1] == 'g') {
+       if (!strcmp (argv[1], "getloc")) return XMLAPI_getloc (interp, handles, argc, argv);
+    } else if (*argv[1] == 'i') {
+       if (!strcmp (argv[1], "is")) return XMLAPI_is (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "is_element")) return XMLAPI_is_element (interp, handles, argc, argv);
+    } else if (*argv[1] == 'l') {
+       if (!strcmp (argv[1], "loc")) return XMLAPI_loc (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "load")) return XMLAPI_load (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "last")) return XMLAPI_last (interp, handles, argc, argv);
+    } else if (*argv[1] == 'n') {
+       if (!strcmp (argv[1], "nextelem")) return XMLAPI_nextelem (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "next")) return XMLAPI_next (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "name")) return XMLAPI_name (interp, handles, argc, argv);
+    } else if (*argv[1] == 'p') {
+       if (!strcmp (argv[1], "parse")) return XMLAPI_parse (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "parent")) return XMLAPI_parent (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "prepend")) return XMLAPI_prepend (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "prev")) return XMLAPI_prev (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "prevelem")) return XMLAPI_prevelem (interp, handles, argc, argv);
+    } else if (*argv[1] == 'r') {
+       if (!strcmp (argv[1], "replace")) return XMLAPI_replace (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "replacecontent")) return XMLAPI_replacecontent (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "read")) return XMLAPI_read (interp, handles, argc, argv);
+    } else if (*argv[1] == 's') {
+       if (!strcmp (argv[1], "set")) return XMLAPI_set (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "string")) return XMLAPI_string (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "stringcontent")) return XMLAPI_stringcontent (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "stringhtml")) return XMLAPI_stringhtml (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "stringcontenthtml")) return XMLAPI_stringcontenthtml (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "search")) return XMLAPI_search (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "search_all")) return XMLAPI_search_all (interp, handles, argc, argv);
+    } else if (*argv[1] == 't') {
+       if (!strcmp (argv[1], "toutf8_attr")) return XMLAPI_toutf8_attr (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "toutr8_text")) return XMLAPI_toutf8_text (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "toraw_str")) return XMLAPI_toraw_str (interp, handles, argc, argv);
+    } else if (*argv[1] == 'w') {
+       if (!strcmp (argv[1], "write")) return XMLAPI_write (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "writecontent")) return XMLAPI_writecontent (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "writehtml")) return XMLAPI_writehtml (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "writecontenthtml")) return XMLAPI_writecontenthtml (interp, handles, argc, argv);
+    }
+
+
+    sprintf (interp->result, "Unknown command %s", argv[1]);
+    return TCL_ERROR;
+}
+
+static int
+XMLOBJCmd(ClientData dummy, Tcl_Interp *interp, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    Tcl_HashTable * handles;
+    int (*handler)();
+
+    if (argc < 3) {
+       interp->result = "Usage: xmlobj cmd <extra>";
+       return TCL_ERROR;
+    }
+
+    handles = &amp;HashStash;
+
+    if (*argv[1] == 'd') {
+       if (!strcmp (argv[1], "diff")) return XMLOBJ_diff (interp, handles, argc, argv);
+    } else if (*argv[1] == 'f') {
+       if (!strcmp (argv[1], "format")) return XMLOBJ_format (interp, handles, argc, argv);
+    } else if (*argv[1] == 'g') {
+       if (!strcmp (argv[1], "get")) return XMLOBJ_get (interp, handles, argc, argv);
+    } else if (*argv[1] == 'p') {
+       if (!strcmp (argv[1], "patch")) return XMLOBJ_patch (interp, handles, argc, argv);
+    } else if (*argv[1] == 's') {
+       if (!strcmp (argv[1], "set")) return XMLOBJ_set (interp, handles, argc, argv);
+    } else if (*argv[1] == 'u') {
+       if (!strcmp (argv[1], "undiff")) return XMLOBJ_undiff (interp, handles, argc, argv);
+    }
+
+
+    sprintf (interp->result, "Unknown command %s", argv[1]);
+    return TCL_ERROR;
+}
+
+static int
+RepmgrCmd(ClientData dummy, Tcl_Interp *interp, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    Tcl_HashTable * handles;
+    int (*handler)();
+
+    if (argc < 3) {
+       interp->result = "Usage: repmgr cmd repository <extra>";
+       return TCL_ERROR;
+    }
+
+    handles = &amp;HashStash;
+
+    if (*argv[1] == 'a') {
+       if (!strcmp (argv[1], "add")) return RM_add (interp, handles, argc, argv);
+    } else if (*argv[1] == 'c') {
+       if (!strcmp (argv[1], "close")) return RM_close (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "changes")) return RM_changes (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "create")) return RM_create (interp, handles, argc, argv);
+    } else if (*argv[1] == 'd') {
+       if (!strcmp (argv[1], "display")) return RM_display (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "define")) return RM_define (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "del")) return RM_del (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "drop")) return RM_drop (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "defn")) return RM_defn (interp, handles, argc, argv);
+    } else if (*argv[1] == 'e') {
+       if (!strcmp (argv[1], "edit")) return RM_edit (interp, handles, argc, argv);
+    } else if (*argv[1] == 'f') {
+       if (!strcmp (argv[1], "form")) return RM_form (interp, handles, argc, argv);
+    } else if (*argv[1] == 'g') {
+       if (!strcmp (argv[1], "getkey")) return RM_getkey (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "get")) return RM_get (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "getvalue")) return RM_getvalue (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "get_layout")) return RM_get_layout (interp, handles, argc, argv);
+    } else if (*argv[1] == 'l') {
+       if (!strcmp (argv[1], "list")) return RM_list (interp, handles, argc, argv);
+    } else if (*argv[1] == 'm') {
+       if (!strcmp (argv[1], "mod")) return RM_mod (interp, handles, argc, argv);
+    } else if (*argv[1] == 'o') {
+       if (!strcmp (argv[1], "open")) return RM_open (interp, handles, argc, argv);
+    } else if (*argv[1] == 'p') {
+       if (!strcmp (argv[1], "publish_all")) return RM_publish_all (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "publish_list")) return RM_publish_list (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "publish_obj")) return RM_publish_obj (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "publish_pages")) return RM_publish_pages (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "publish_page")) return RM_publish_page (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "push")) return RM_push (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "push_all")) return RM_push_all (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "pull")) return RM_pull (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "pull_all")) return RM_pull_all (interp, handles, argc, argv);
+    } else if (*argv[1] == 's') {
+       if (!strcmp (argv[1], "synch")) return RM_synch (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "snapshot")) return RM_snapshot (interp, handles, argc, argv);
+       if (!strcmp (argv[1], "setvalue")) return RM_setvalue (interp, handles, argc, argv);
+    }
+
+
+    sprintf (interp->result, "Unknown command %s", argv[1]);
+    return TCL_ERROR;
+}
+</pre></td></tr></table>
+
+An initialization and cleanup functions.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static int
+XMLAPIInterpInit(Tcl_Interp *interp, void *context) 
+{
+    int newentry;
+    Tcl_HashEntry * entry;
+ 
+
+    /*Tcl_HashTable * handles = ns_malloc (sizeof (Tcl_HashTable));
+    Tcl_InitHashTable (handles, TCL_STRING_KEYS);
+    entry = Tcl_CreateHashEntry (&amp;HashStash, (char *) interp, &amp;newentry);
+    Tcl_SetHashValue (entry, handles);*/
+
+    Tcl_CreateCommand(interp, XML_COMMAND, XMLCmd, NULL, NULL);
+    Tcl_CreateCommand(interp, REPMGR_COMMAND, RepmgrCmd, NULL, NULL);
+    Tcl_CreateCommand(interp, XMLOBJ_COMMAND, XMLOBJCmd, NULL, NULL);
+
+    return NS_OK;
+}
+
+static int
+XMLAPIHashTableCleanup (Tcl_HashTable * handles)
+{
+    return NS_OK;
+}
+
+DllExport int
+Ns_ModuleInit(char *hServer, char *hModule)
+{
+    struct _cmdinfo * cmd;
+    int newentry;
+    Tcl_HashEntry * entry;
+
+    Tcl_InitHashTable (&amp;HashStash, TCL_STRING_KEYS);
+    /*Tcl_InitHashTable (&amp;CmdHash, TCL_STRING_KEYS);
+    for (cmd = commands; cmd->name != NULL; cmd++) {
+       entry = Tcl_CreateHashEntry (&amp;CmdHash, cmd->name, &amp;newentry);
+       Tcl_SetHashValue (entry, cmd->proc);
+    }*/
+    return (Ns_TclInitInterps(hServer, XMLAPIInterpInit, NULL));
+}
+
+static Tcl_HashEntry * prepare_entry (Tcl_HashTable * handles, char * name)
+{
+    int newentry;
+    Tcl_HashEntry * entry;
+    XML * xml;
+
+    entry = Tcl_CreateHashEntry (handles, name, &amp;newentry);
+    if (!newentry) {
+       xml = Tcl_GetHashValue (entry);
+       if (!xml_parent (xml)) xml_free (xml);
+    }
+
+    return entry;
+}
+</pre></td></tr></table>
+
+
+And the rest is just the implementation of the wrapper functions.  As you can probably tell, I wrote this code
+without documentation, and now I'm coming back to throw a thin layer of doc over it, and I don't want to take the
+time to get detailed.  If I require modifications to this code, then I predict that the quality of this
+documentation will rise sharply.  In the meantime, you're on your own.
+
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>
+/* ----------------------------------------------------------------------------------
+   Implementation of XMLAPI wrapper functions
+   ----------------------------------------------------------------------------------
+*/
+static int XMLAPI_free (Tcl_Interp * interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    int newentry;
+    Tcl_HashEntry * entry;
+    XML * xml;
+
+    /* Find and dispose of any pre-existing XML attached to the handle. */
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (entry) {
+       xml = Tcl_GetHashValue (entry);
+       if (!xml_parent (xml)) xml_free (xml);
+       Tcl_SetHashValue (entry, NULL);
+    }
+
+    return TCL_OK;
+}
+
+static int XMLAPI_load (Tcl_Interp * interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    int newentry;
+    Tcl_HashEntry * entry;
+    XML * xml;
+
+    /* Find and dispose of any pre-existing XML attached to the handle. */
+    entry = prepare_entry (handles, argv[2]);
+    xml = xml_load (argv[3]);
+    Tcl_SetHashValue (entry, xml);
+
+    return TCL_OK;
+}
+static int XMLAPI_save (Tcl_Interp * interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    int newentry;
+    Tcl_HashEntry * entry;
+    XML * xml;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (entry) {
+       xml = Tcl_GetHashValue (entry);
+       xml_save (xml, argv[3]);
+    }
+
+    return TCL_OK;
+}
+
+static int XMLAPI_write (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    FILE * file = NULL;
+
+    Tcl_GetOpenFile (interp, argv[3], 1, 0, (ClientData *) &amp;file);
+    if (!file) {
+       strcpy (interp->result, "Can't access file");
+       return TCL_ERROR;
+    }
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       strcpy (interp->result, "Unknown handle");
+       return TCL_ERROR;
+    }
+    xml = Tcl_GetHashValue (entry);
+    xml_write (file, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_writecontent (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    FILE * file = NULL;
+
+    Tcl_GetOpenFile (interp, argv[3], 1, 0, (ClientData *) &amp;file);
+    if (!file) {
+       strcpy (interp->result, "Can't access file");
+       return TCL_ERROR;
+    }
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       strcpy (interp->result, "Unknown handle");
+       return TCL_ERROR;
+    }
+    xml = Tcl_GetHashValue (entry);
+    xml_writecontent (file, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_writehtml (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    FILE * file = NULL;
+
+    Tcl_GetOpenFile (interp, argv[3], 1, 0, (ClientData *) &amp;file);
+    if (!file) {
+       strcpy (interp->result, "Can't access file");
+       return TCL_ERROR;
+    }
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       strcpy (interp->result, "Unknown handle");
+       return TCL_ERROR;
+    }
+    xml = Tcl_GetHashValue (entry);
+    xml_writehtml (file, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_writecontenthtml (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    FILE * file = NULL;
+
+    Tcl_GetOpenFile (interp, argv[3], 1, 0, (ClientData *) &amp;file);
+    if (!file) {
+       strcpy (interp->result, "Can't access file");
+       return TCL_ERROR;
+    }
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       strcpy (interp->result, "Unknown handle");
+       return TCL_ERROR;
+    }
+    xml = Tcl_GetHashValue (entry);
+    xml_writecontenthtml (file, xml);
+    return TCL_OK;
+}
+static int XMLAPI_string (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    char * result;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+
+    xml = Tcl_GetHashValue (entry);
+    result = xml_string (xml);
+
+    Tcl_SetResult (interp, result, TCL_DYNAMIC);
+    return TCL_OK;
+}
+
+static int XMLAPI_stringcontent (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    char * result;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+
+    xml = Tcl_GetHashValue (entry);
+    result = xml_stringcontent (xml);
+
+    Tcl_SetResult (interp, result, TCL_DYNAMIC);
+    return TCL_OK;
+}
+
+static int XMLAPI_stringhtml (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    char * result;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+
+    xml = Tcl_GetHashValue (entry);
+    result = xml_stringhtml (xml);
+
+    Tcl_SetResult (interp, result, TCL_DYNAMIC);
+    return TCL_OK;
+}
+
+static int XMLAPI_stringcontenthtml (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    char * result;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+
+    xml = Tcl_GetHashValue (entry);
+    result = xml_stringcontenthtml (xml);
+
+    Tcl_SetResult (interp, result, TCL_DYNAMIC);
+    return TCL_OK;
+}
+
+static int XMLAPI_prepend (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * dest;
+    XML * src;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    dest = Tcl_GetHashValue (entry);
+
+    entry = Tcl_FindHashEntry (handles, argv[3]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[3]);
+       return TCL_ERROR;
+    }
+    src = Tcl_GetHashValue (entry);
+
+    xml_prepend (dest, src);
+
+    return TCL_OK;
+}
+
+static int XMLAPI_append (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * dest;
+    XML * src;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    dest = Tcl_GetHashValue (entry);
+
+    entry = Tcl_FindHashEntry (handles, argv[3]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[3]);
+       return TCL_ERROR;
+    }
+    src = Tcl_GetHashValue (entry);
+
+    xml_append (dest, src);
+
+    return TCL_OK;
+}
+
+static int XMLAPI_append_pretty (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * dest;
+    XML * src;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    dest = Tcl_GetHashValue (entry);
+
+    entry = Tcl_FindHashEntry (handles, argv[3]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[3]);
+       return TCL_ERROR;
+    }
+    src = Tcl_GetHashValue (entry);
+
+    xml_append_pretty (dest, src);
+
+    return TCL_OK;
+}
+
+static int XMLAPI_replace (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * dest;
+    XML * src;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    dest = Tcl_GetHashValue (entry);
+
+    entry = Tcl_FindHashEntry (handles, argv[3]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[3]);
+       return TCL_ERROR;
+    }
+    src = Tcl_GetHashValue (entry);
+
+    xml_replace (dest, src);
+
+    Tcl_SetHashValue (entry, NULL); /* Don't need this one any more! */
+
+    return TCL_OK;
+}
+
+static int XMLAPI_replacecontent (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * dest;
+    XML * src;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    dest = Tcl_GetHashValue (entry);
+
+    entry = Tcl_FindHashEntry (handles, argv[3]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[3]);
+       return TCL_ERROR;
+    }
+    src = Tcl_GetHashValue (entry);
+
+    xml_replacecontent (dest, src);
+
+    return TCL_OK;
+}
+
+static int XMLAPI_loc (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    XML * src;
+
+    entry = Tcl_FindHashEntry (handles, argv[4]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[4]);
+       return TCL_ERROR;
+    }
+    src = Tcl_GetHashValue (entry);
+
+    entry = prepare_entry (handles, argv[2]);
+
+    xml = xml_loc (src, argv[3]);
+    Tcl_SetHashValue (entry, xml);
+
+    return TCL_OK;
+}
+
+static int XMLAPI_getloc (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    char * loc;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    xml = Tcl_GetHashValue (entry);
+
+    loc = xml_getlocbuf (xml);
+
+    Tcl_SetResult (interp, loc, TCL_DYNAMIC);
+    return TCL_OK;
+}
+
+static int XMLAPI_set (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    char * loc;
+
+    if (argc < 5) {
+       sprintf (interp->result, "Usage: xml [handle] set [attr] [value]");
+       return TCL_ERROR;
+    }
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    xml = Tcl_GetHashValue (entry);
+
+    xml_set (xml, argv[3], argv[4]);
+
+    return TCL_OK;
+}
+
+static int XMLAPI_attrval (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    char * res;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    xml = Tcl_GetHashValue (entry);
+
+    res = (char *) xml_attrval (xml, argv[3]);
+
+    Tcl_SetResult (interp, res, TCL_VOLATILE);
+    return TCL_OK;
+}
+
+static int XMLAPI_attrs (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int XMLAPI_create (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+
+    entry = prepare_entry (handles, argv[2]);
+    xml = xml_create (argv[3]);
+
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_createtext (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+
+    entry = prepare_entry (handles, argv[2]);
+    xml = xml_createtext (argv[3]);
+
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_delete (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    char * res;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    xml = Tcl_GetHashValue (entry);
+
+    xml_delete (xml);
+    Tcl_SetHashValue (entry, NULL);
+
+    return TCL_OK;
+}
+
+static int XMLAPI_is (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    char * res;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    xml = Tcl_GetHashValue (entry);
+
+    if (argc < 4) {
+       if (xml) strcpy (interp->result, "1");
+       else     strcpy (interp->result, "0");
+    } else {
+       if (xml_is (xml, argv[3])) strcpy (interp->result, "1");
+       else                       strcpy (interp->result, "0");
+    }
+
+    return TCL_OK;
+}
+
+static int XMLAPI_name (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    char * res;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    xml = Tcl_GetHashValue (entry);
+
+    res = (char *) xml_name (xml);
+
+    Tcl_SetResult (interp, res, TCL_VOLATILE);
+    return TCL_OK;
+}
+
+static int XMLAPI_is_element (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    char * res;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    xml = Tcl_GetHashValue (entry);
+
+    if (xml_is_element (xml)) strcpy (interp->result, "1");
+    else                      strcpy (interp->result, "0");
+
+    return TCL_OK;
+}
+
+static int XMLAPI_parent (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    XML * src;
+
+    if (argc > 3) {
+       entry = Tcl_FindHashEntry (handles, argv[3]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[3]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+
+       entry = prepare_entry (handles, argv[2]);
+    } else {
+       entry = Tcl_FindHashEntry (handles, argv[2]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[2]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+    }
+
+    xml = xml_parent (src);
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_first (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    XML * src;
+
+    if (argc > 3) {
+       entry = Tcl_FindHashEntry (handles, argv[3]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[3]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+
+       entry = prepare_entry (handles, argv[2]);
+    } else {
+       entry = Tcl_FindHashEntry (handles, argv[2]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[2]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+    }
+
+    xml = xml_first (src);
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_firstelem (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    XML * src;
+
+    if (argc > 3) {
+       entry = Tcl_FindHashEntry (handles, argv[3]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[3]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+
+       entry = prepare_entry (handles, argv[2]);
+    } else {
+       entry = Tcl_FindHashEntry (handles, argv[2]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[2]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+    }
+
+    xml = xml_firstelem (src);
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_last (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    XML * src;
+
+    if (argc > 3) {
+       entry = Tcl_FindHashEntry (handles, argv[3]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[3]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+
+       entry = prepare_entry (handles, argv[2]);
+    } else {
+       entry = Tcl_FindHashEntry (handles, argv[2]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[2]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+    }
+
+    xml = xml_last (src);
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_lastelem (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    XML * src;
+
+    if (argc > 3) {
+       entry = Tcl_FindHashEntry (handles, argv[3]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[3]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+
+       entry = prepare_entry (handles, argv[2]);
+    } else {
+       entry = Tcl_FindHashEntry (handles, argv[2]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[2]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+    }
+
+    xml = xml_lastelem (src);
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_next (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    XML * src;
+
+    if (argc > 3) {
+       entry = Tcl_FindHashEntry (handles, argv[3]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[3]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+
+       entry = prepare_entry (handles, argv[2]);
+    } else {
+       entry = Tcl_FindHashEntry (handles, argv[2]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[2]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+    }
+
+    xml = xml_next (src);
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_nextelem (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    XML * src;
+
+    if (argc > 3) {
+       entry = Tcl_FindHashEntry (handles, argv[3]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[3]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+
+       entry = prepare_entry (handles, argv[2]);
+    } else {
+       entry = Tcl_FindHashEntry (handles, argv[2]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[2]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+    }
+
+    xml = xml_nextelem (src);
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_prev (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    XML * src;
+
+    if (argc > 3) {
+       entry = Tcl_FindHashEntry (handles, argv[3]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[3]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+
+       entry = prepare_entry (handles, argv[2]);
+    } else {
+       entry = Tcl_FindHashEntry (handles, argv[2]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[2]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+    }
+
+    xml = xml_prev (src);
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_prevelem (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    XML * src;
+
+    if (argc > 3) {
+       entry = Tcl_FindHashEntry (handles, argv[3]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[3]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+
+       entry = prepare_entry (handles, argv[2]);
+    } else {
+       entry = Tcl_FindHashEntry (handles, argv[2]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[2]);
+          return TCL_ERROR;
+       }
+       src = Tcl_GetHashValue (entry);
+    }
+
+    xml = xml_prevelem (src);
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_copy (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    XML * src;
+
+    entry = Tcl_FindHashEntry (handles, argv[3]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[4]);
+       return TCL_ERROR;
+    }
+    src = Tcl_GetHashValue (entry);
+
+    entry = prepare_entry (handles, argv[2]);
+
+    xml = xml_copy (src);
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_copyinto (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * dest;
+    XML * src;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    dest = Tcl_GetHashValue (entry);
+
+    entry = Tcl_FindHashEntry (handles, argv[3]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[3]);
+       return TCL_ERROR;
+    }
+    src = Tcl_GetHashValue (entry);
+
+    xml_copyinto (dest, src);
+
+    return TCL_OK;
+}
+
+static int XMLAPI_read (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    FILE * file = NULL;
+
+    Tcl_GetOpenFile (interp, argv[3], 0, 0, (ClientData *) &amp;file);
+    if (!file) {
+       strcpy (interp->result, "Can't access file");
+       return TCL_ERROR;
+    }
+
+    entry = prepare_entry (handles, argv[2]);
+    xml = xml_read_error (file);
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_parse (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+
+    entry = prepare_entry (handles, argv[2]);
+    xml = xml_parse (argv[3]);
+
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_search (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * xml;
+    XML * src;
+
+    entry = Tcl_FindHashEntry (handles, argv[3]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[3]);
+       return TCL_ERROR;
+    }
+    src = Tcl_GetHashValue (entry);
+
+    entry = prepare_entry (handles, argv[2]);
+
+    xml = xml_search (src, argc > 4 ? argv[4] : NULL, argc > 5 ? argv[5] : NULL, argc > 6 ? argv[6] : NULL);
+    Tcl_SetHashValue (entry, xml);
+    return TCL_OK;
+}
+
+static int XMLAPI_search_all (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int XMLAPI_toutf8_attr (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int XMLAPI_toutf8_text (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int XMLAPI_toraw_str (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+
+/* ---------------------------------------------------------------------------------
+   Implementation of xmlobj wrapper functions
+   ---------------------------------------------------------------------------------
+*/
+static int XMLOBJ_get (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * obj;
+    XML * class;
+    char * result;
+
+    if (argc < 5) {
+       strcpy (interp->result, "usage: xmlobj get obj class field");
+       return TCL_ERROR;
+    }
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[4]);
+       return TCL_ERROR;
+    }
+    obj = Tcl_GetHashValue (entry);
+    entry = Tcl_FindHashEntry (handles, argv[3]);
+    if (!entry) class = NULL;
+    else        class = Tcl_GetHashValue (entry);
+
+    result = xmlobj_get (obj, class, argv[4]);
+
+    Tcl_SetResult (interp, result, TCL_DYNAMIC);
+    return TCL_OK;
+}
+
+static int XMLOBJ_format (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * obj;
+    XML * class;
+    char * result;
+
+    if (argc < 5) {
+       strcpy (interp->result, "usage: xmlobj format obj class \"string[field]string\"");
+       return TCL_ERROR;
+    }
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    obj = Tcl_GetHashValue (entry);
+    entry = Tcl_FindHashEntry (handles, argv[3]);
+    if (!entry) class = NULL;
+    else        class = Tcl_GetHashValue (entry);
+
+    result = xmlobj_format (obj, class, argv[4]);
+
+    Tcl_SetResult (interp, result, TCL_DYNAMIC);
+    return TCL_OK;
+}
+
+static int XMLOBJ_set (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * obj;
+    XML * class;
+
+    if (argc < 6) {
+       strcpy (interp->result, "usage: xmlobj set obj class field value");
+       return TCL_ERROR;
+    }
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    obj = Tcl_GetHashValue (entry);
+    entry = Tcl_FindHashEntry (handles, argv[3]);
+    if (!entry) class = NULL;
+    else        class = Tcl_GetHashValue (entry);
+
+    xmlobj_set (obj, class, argv[4], argv[5]);
+
+    return TCL_OK;
+}
+
+static int XMLOBJ_diff (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * obj;
+    XML * class;
+    XML * comp;
+    XML * diff;
+
+    if (argc < 5) {
+       strcpy (interp->result, "usage: xmlobj diff obj class target [diff-result]");
+       return TCL_ERROR;
+    }
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    obj = Tcl_GetHashValue (entry);
+    entry = Tcl_FindHashEntry (handles, argv[3]);
+    if (!entry) class = NULL;
+    else        class = Tcl_GetHashValue (entry);
+    entry = Tcl_FindHashEntry (handles, argv[4]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[4]);
+       return TCL_ERROR;
+    }
+    comp = Tcl_GetHashValue (entry);
+
+    diff = xmlobj_diff (obj, class, comp);
+    if (xml_firstelem (diff)) strcpy (interp->result, "1");
+    else                      strcpy (interp->result, "0");
+
+    if (argc > 5) {
+       entry = prepare_entry (handles, argv[5]);
+       Tcl_SetHashValue (entry, diff);
+    } else xml_free (diff);
+
+    return TCL_OK;
+}
+
+static int XMLOBJ_patch (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * obj;
+    XML * class;
+    XML * comp;
+    XML * diff;
+
+    if (argc < 5) {
+       strcpy (interp->result, "usage: xmlobj patch obj class patch [undiff]");
+       return TCL_ERROR;
+    }
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    obj = Tcl_GetHashValue (entry);
+    entry = Tcl_FindHashEntry (handles, argv[3]);
+    if (!entry) class = NULL;
+    else        class = Tcl_GetHashValue (entry);
+    entry = Tcl_FindHashEntry (handles, argv[4]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[4]);
+       return TCL_ERROR;
+    }
+    comp = Tcl_GetHashValue (entry);
+
+    diff = xmlobj_patch (obj, class, comp);
+    if (xml_firstelem (diff)) strcpy (interp->result, "1");
+    else                      strcpy (interp->result, "0");
+
+    if (argc > 5) {
+       entry = prepare_entry (handles, argv[5]);
+       Tcl_SetHashValue (entry, diff);
+    } else xml_free (diff);
+
+    return TCL_OK;
+}
+
+static int XMLOBJ_undiff (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * obj;
+    XML * class;
+    XML * comp;
+    XML * diff;
+
+    if (argc < 6) {
+       strcpy (interp->result, "usage: xmlobj undiff obj class patch undiff");
+       return TCL_ERROR;
+    }
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    obj = Tcl_GetHashValue (entry);
+    entry = Tcl_FindHashEntry (handles, argv[3]);
+    if (!entry) class = NULL;
+    else        class = Tcl_GetHashValue (entry);
+    entry = Tcl_FindHashEntry (handles, argv[4]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[4]);
+       return TCL_ERROR;
+    }
+    comp = Tcl_GetHashValue (entry);
+
+    diff = xmlobj_patch (obj, class, comp);
+    if (xml_firstelem (diff)) strcpy (interp->result, "1");
+    else                      strcpy (interp->result, "0");
+
+    entry = prepare_entry (handles, argv[5]);
+    Tcl_SetHashValue (entry, diff);
+
+    return TCL_OK;
+}
+
+
+/* ----------------------------------------------------------------------------------
+   Implementation of repmgr wrapper functions
+   ----------------------------------------------------------------------------------
+*/
+static int RM_open (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * repos;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    repos = Tcl_GetHashValue (entry);
+    repos_open (repos, NULL);
+    return TCL_OK;
+}
+
+static int RM_close (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * repos;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    repos = Tcl_GetHashValue (entry);
+    repos_close (repos);
+    return TCL_OK;
+}
+
+static int RM_publish_all (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_publish_list (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_publish_obj (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_publish_pages (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_publish_page (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_create (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_drop (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_defn (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_form (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_define (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_add (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * repos;
+    XML * obj;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    repos = Tcl_GetHashValue (entry);
+
+    entry = Tcl_FindHashEntry (handles, argv[4]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[4]);
+       return TCL_ERROR;
+    }
+    obj = Tcl_GetHashValue (entry);
+
+    repos_add (repos, argv[3], obj);
+    return TCL_OK;
+}
+
+static int RM_del (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * repos;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    repos = Tcl_GetHashValue (entry);
+
+    repos_del (repos, argv[3], argv[4]);
+    return TCL_OK;
+}
+
+static int RM_mod (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * repos;
+    XML * obj = NULL;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    repos = Tcl_GetHashValue (entry);
+
+    if (strcmp (argv[4], "-")) {
+       entry = Tcl_FindHashEntry (handles, argv[4]);
+       if (!entry) {
+          sprintf (interp->result, "No handle '%s'", argv[4]);
+          return TCL_ERROR;
+       }
+       obj = Tcl_GetHashValue (entry);
+    }
+
+    repos_mod (repos, argv[3], obj, argc > 5 ? argv[5] : NULL);
+    return TCL_OK;
+}
+
+static int RM_list (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * repos;
+    XML * list;
+    XML * mark;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    repos = Tcl_GetHashValue (entry);
+
+    list = xml_create ("list");
+    xml_set (list, "id", argc > 3 ? argv[3] : "_lists");
+    repos_list (repos, list);
+
+    if (*xml_attrval (list, "error-state")) {
+       Tcl_SetResult (interp, (char *) xml_attrval (list, "error-state"), TCL_VOLATILE);
+       xml_free (list);
+       return TCL_ERROR;
+    }
+
+    mark = xml_firstelem (list);
+    while (mark) {
+       Tcl_AppendElement (interp, (char *)xml_attrval (mark, "id"));
+       mark = xml_nextelem (mark);
+    }
+    xml_free (list);
+    return TCL_OK;
+}
+
+static int RM_changes (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * repos;
+    XML * list;
+    XML * mark;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    repos = Tcl_GetHashValue (entry);
+
+    list = xml_create ("list");
+    repos_changes (repos, list, argv[4], argv[5]);
+
+    if (*xml_attrval (list, "error-state")) {
+       Tcl_SetResult (interp, (char *) xml_attrval (list, "error-state"), TCL_VOLATILE);
+       xml_free (list);
+       return TCL_ERROR;
+    }
+
+    mark = xml_firstelem (list);
+    while (mark) {
+       Tcl_AppendElement (interp, (char *)xml_attrval (mark, "id"));
+       mark = xml_nextelem (mark);
+    }
+    xml_free (list);
+    return TCL_OK;
+}
+
+static int RM_snapshot (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_getkey (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_get (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * repos;
+    XML * obj;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    repos = Tcl_GetHashValue (entry);
+
+    entry = prepare_entry (handles, argv[3]);
+
+    obj = repos_get (repos, argv[4], argv[5]);
+    Tcl_SetHashValue (entry, obj);
+    return TCL_OK;
+}
+
+static int RM_edit (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * repos;
+    XML * obj;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    repos = Tcl_GetHashValue (entry);
+
+    entry = prepare_entry (handles, argv[3]);
+
+    obj = repos_form (repos, argv[4], argv[5], "edit");
+    Tcl_SetHashValue (entry, obj);
+    return TCL_OK;
+}
+
+static int RM_display (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    Tcl_HashEntry * entry;
+    XML * repos;
+    XML * obj;
+
+    entry = Tcl_FindHashEntry (handles, argv[2]);
+    if (!entry) {
+       sprintf (interp->result, "No handle '%s'", argv[2]);
+       return TCL_ERROR;
+    }
+    repos = Tcl_GetHashValue (entry);
+
+    entry = prepare_entry (handles, argv[3]);
+
+    obj = repos_form (repos, argv[4], argv[5], "display");
+    Tcl_SetHashValue (entry, obj);
+    return TCL_OK;
+}
+
+static int RM_getvalue (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_setvalue (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_get_layout (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_push (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_push_all (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_pull (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_pull_all (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+
+static int RM_synch (Tcl_Interp *interp, Tcl_HashTable * handles, int argc, char **argv)
+{
+    return TCL_OK;
+}
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

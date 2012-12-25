@@ -1,0 +1,243 @@
+<html><head><title>User module: Listing objects and permissions</title></head>
+<body>
+<h2>Listing objects and permissions</h2>
+<center>
+[&nbsp;<a href="user_perm.html">Previous: Actually using all this XML to figure out a user's permissions</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="main.html">Next: main.c: using the user module</a>&nbsp;]
+</center>
+
+<hr>
+In order to present nice menus and show our neat-o little folder system, we want a listing
+facility.
+<br><br>
+<a name="user_list">
+<i>user_list()</i><br>
+The first step in listing things is the <code>user_list</code> function, which (given a user
+or group) produces a <code>&lt;user_list></code> XML structure.  As usual, if any of the
+strings is NULL, that counts as a wildcard.  I'm also including "." as a wildcard, as I don't
+expect classes, objects, or permissions named "." would be very useful anyway.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _user_add_to_list (XML * ret, XML * user, const char * class, const char * object, const char * permission)
+{
+   XML * child;
+   XML * piece;
+   int ok;
+   child = xml_firstelem (user);
+   while (child) {
+      if (!strcmp (child->name, "object")) {
+         if ((!strcmp (class, ".") || !strcmp (class, xml_attrval (child, "class"))) &amp;&amp;
+             (!strcmp (object, ".") || !strcmp (object, xml_attrval (child, "object"))) &amp;&amp;
+             (!strcmp (permission, ".") ||
+              _user_perm_cmp (xml_attrval (child, "permission"), permission))) {
+               piece = xml_create ("object");
+               xml_set (piece, "class", xml_attrval (child, "class"));
+               xml_set (piece, "object", xml_attrval (child, "object"));
+               xml_set (piece, "permission", xml_attrval (child, "permission"));
+               xml_append (ret, piece);
+         }
+      } else if (!strcmp (child->name, "group-include")) {
+         if (!strcmp (permission, ".") ||
+             _user_perm_cmp (xml_attrval (child, "permission"), permission)) {
+             piece = xml_create ("group-include");
+             xml_set (piece, "name", xml_attrval (child, "name"));
+             xml_set (piece, "permission", xml_attrval (child, "permission"));
+             xml_append (ret, piece);
+         }
+      } else if (!strcmp (child->name, "group")) {
+         piece = group_get (xml_attrval (child, "name"));
+         if (piece) {
+            _user_add_to_list (ret, piece, class, object, permission);
+            xml_free (piece);
+         }
+      }
+      child = xml_nextelem (child);
+   }
+}
+
+XML * user_list (XML * user, const char * class, const char * object, const char * permission)
+{
+   XML * ret;
+
+   ret = xml_create ("user_list");
+   _user_add_to_list (ret, user, class ? class : ".", object ? object : ".", permission ? permission : ".");
+   return (ret);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="groups">
+<i>user_groups_list(): Get a list of groups to which a user belongs.</i><br>
+The next trick is to be able to list the groups to which a user belongs (regardless of permission level).
+This stashes everything into a flat list, from which it can be printed or whatever.  As there's nothing
+in our group structure that prevents cycles, this function is rather paranoid when adding something to the
+list -- it checks to make sure it's not already there.  This will have the salacious effect of not looping
+forever if there <i>is</i> a cycle.
+
+<p></p>
+The optional permission allows us to get a list of groups to which a user has a certain permission level.
+Groups to which the user actually belongs count as 'own' permission.  Thus objects in that group are owned
+by the user.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void user_groups_list (XML * user, XML * holder, const char * permission)
+{
+   XML * elem;
+   XML * check;
+   XML * newone;
+   XML * group;
+
+   if (!permission) permission = "view";
+   if (!*permission) permission = "view";
+
+   elem = xml_firstelem (user);
+   while (elem) {
+      if (!strcmp (elem->name, "group") ||
+            (!strcmp (elem->name, "group-include") &amp;&amp;
+            _user_perm_cmp (xml_attrval (elem, "permission"), permission))) {
+         check = xml_firstelem (holder);
+         while (check) {
+            if (!strcmp (xml_attrval (check, "name"), xml_attrval (elem, "name"))) break;
+            check = xml_nextelem (check);
+         }
+         if (!check) {
+            group = group_get (xml_attrval (elem, "name"));
+            if (group) {
+               newone = xml_create ("group");
+               xml_set (newone, "name", xml_attrval (elem, "name"));
+               xml_set (newone, "label", xml_attrval (elem, "label"));
+               if (!*xml_attrval (newone, "label")) xml_set (newone, "label", xml_attrval (elem, "name"));
+
+               xml_append (holder, newone);
+
+               user_groups_list (group, holder, permission);
+            }
+            xml_free (group);
+         }
+      }
+
+      elem = xml_nextelem (elem);
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="users">
+<i>group_users_list*(): listing users in (or out of) groups</i><br>
+To list users, we do pretty much the same thing as listing groups, except that we recurse along group-included-by
+instead of group-include.  This recursion happens in this little helper function, which also tosses the groups
+visited into the list -- then our actual list routines can call this, and afterwards go through and delete those
+markers before returning the final list.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _group_users_search (XML * group, XML * holder, const char * permission)
+{
+   XML * elem;
+   XML * check;
+   XML * newone;
+   XML * othergroup;
+
+   if (!permission) permission = "view";
+   if (!*permission) permission = "view";
+
+   elem = xml_firstelem (group);
+   while (elem) {
+      if (!strcmp (elem->name, "group-included-by") &amp;&amp;
+          _user_perm_cmp (xml_attrval (elem, "permission"), permission)) {
+         check = xml_firstelem (holder);
+         while (check) {
+            if (!strcmp (check->name, "group") &amp;&amp;
+                !strcmp (xml_attrval (check, "name"), xml_attrval (elem, "name"))) break;
+            check = xml_nextelem (check);
+         }
+         if (!check) {
+            othergroup = group_get (xml_attrval (elem, "name"));
+            if (othergroup) {
+               newone = xml_create ("group");
+               xml_set (newone, "name", xml_attrval (elem, "name"));
+
+               xml_append (holder, newone);
+
+               _group_users_search (othergroup, holder, permission);
+            }
+            xml_free (othergroup);
+         }
+      }
+
+      if (!strcmp (elem->name, "user")) {
+         check = xml_firstelem (holder);
+         while (check) {
+            if (!strcmp (check->name, "user") &amp;&amp;
+                !strcmp (xml_attrval (check, "name"), xml_attrval (elem, "name"))) break;
+            check = xml_nextelem (check);
+         }
+         if (!check) {
+            newone = xml_create ("user");
+            xml_set (newone, "name", xml_attrval (elem, "name"));
+            xml_append (holder, newone);
+         }
+      }
+
+      elem = xml_nextelem (elem);
+   }
+}
+</pre></td></tr></table>
+
+So OK, let's define our actual functions now.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void group_users_list (XML * group, XML * holder, const char * permission)
+{
+   XML * elem;
+
+   _group_users_search (group, holder, permission);
+   elem = xml_firstelem (holder);
+   while (elem) {
+      if (!strcmp (elem->name, "group")) {
+         xml_delete (elem);
+         elem = xml_firstelem (holder);
+      } else {
+         elem = xml_nextelem (elem);
+      }
+   }
+}
+
+void group_users_list_detailed (XML * group, XML * holder, const char * permission)
+{
+   XML * elem;
+   XML * user;
+   ATTR * attr;
+
+   group_users_list (group, holder, permission);
+
+   elem = xml_firstelem (holder);
+   while (elem) {
+      user = user_get (xml_attrval (elem, "name"));
+      if (user) {
+         attr = user->attrs;
+         while (attr) {
+            xml_set (elem, attr->name, attr->value);
+            attr = attr->next;
+         }
+         xml_free (user);
+      }
+      elem = xml_nextelem (elem);
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="user_perm.html">Previous: Actually using all this XML to figure out a user's permissions</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="main.html">Next: main.c: using the user module</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,182 @@
+<head>
+<title>wftk tutorial - 08 Task-based workflow (procedural workflow)</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk tutorial - 08 Task-based workflow (procedural workflow)</div>
+
+<p>
+</p>
+<p>As mentioned in the introduction to the last chapter, there are two basic paradigms for workflow: state-based and procedural.  The wftk is comfortable
+with either.</p>
+
+<p>Most of the commercial workflow systems on the market, and the commercial procedural definition languages, are procedural workflow; most of the 
+open-source workflow systems I've seen seem to be state-based.  I'm sure this crass overgeneralization is wrong, because I haven't actually done a survey
+any more recently than about 2002, and that one was pretty lame -- but this is why discussion of established procdef standards is in this chapter, and
+not the last.</p>
+
+<p>A purely procedural workflow definition can be seen as encoding the detail progression of the system from the "start" state to the "complete" state,
+so the wftk generalizes that notion to allow the definition of a procedure to take the system between any two states.  When a potential task is completed,
+triggering the transition, then assuming that a procedure is attached to the transition, that procedure is initiated.</p>
+
+<p>A procedure (which gives its name to the procdef for historical reasons, as I hadn't considered state-based workflow in my initial approach to the
+wftk) is made up of the following:
+<ul>
+<li>Actions<br>
+The system can take direct action.  In so doing, the system takes on the identity of either the owner of the process or the person who started the
+transition.  If the permission levels for the action taken require an approval process, then the procedure blocks until that approval process completes.
+If the action is rejected, an exception state is entered.  If the exception is handled by the procdef, then we're good -- otherwise, the exception invokes
+the default exception handler of the system.  The "default default" exception handler is notification of the sysadmin.
+<li>Sequences<br>
+A sequence is just what you think it is: it specifies that its elements be executed in order.  When one completes, the next starts.  If one blocks,
+the sequence blocks.
+<li>Parallels<br>
+A parallel starts its elements "simultaneously".  That is, if one blocks the rest don't.  You can specify whether the parallel is complete if all of its
+elements complete, or if only one is sufficient.  If only one, then the blocked elements which didn't complete are all canceled when the winner does.
+<li>Decisions<br>
+A decision is an "if-then-else" node which applies a simple expression or a rule set to decide which of its elements should be executed.
+<li>Notifications<br>
+A notification is an action (you've got me), but for the sake of convenience, notifications are given a special rank because they're so ubiquitous and
+also because the idea of a permission for a notification is a little silly.  (Unless you're not testing for spam in your workflow -- but in that case,
+you want to address that at any earlier stage anyway.)
+<li>Tasks<br>
+Finally, a task in a procedural workflow is a "might" variety of potential task.  When execution encounters it, it becomes a concrete and actual task,
+and the procedure blocks until it is complete.
+</ul></p>
+
+<p>As you can see, this provides a <i>very powerful</i> way of specifying what the system should do after a given state transition -- powerful enough that
+the transition from "start" to "finish" is often all you need to specify the workflow.  Note that the checklist workflow we looked at back in
+Chapter 06 is essentially a parallel of tasks, which is how the wftk implements it.</p>
+
+<p>The wftk defines a fairly basic language for representing this workflow, a language that looks a lot like its data language.  However, there are a
+number of other languages in common use for the definition of workflow procedures.  So a given procdef list can be defined as using an alternate
+procedural language, and the wftk will translate that language into its own internal representation.  And yes, you can write your own language
+translator if you want to.</p>
+
+<p>Here is an index to the information in this chapter:</p>
+
+(unresolved tag 08-index)
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

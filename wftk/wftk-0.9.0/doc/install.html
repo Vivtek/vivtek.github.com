@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: Installation</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>wftk: Installation</h2>
+<center>
+[ <a href=index.html>documentation home</a> ]
+[ <a href=configure.html>configuration</a> ]
+[ <a href=code.html>design/implementation</a> ]
+</center>
+<hr>
+
+<strong>This is out of date.</strong>  But I want to get this out in beta for those of you chomping
+at the bit.  I'll fix things up as soon as I can.
+<p>
+
+As of version v0.5 (October 2000) there are very few tools for wftk installation.  OK, there
+are <i>no</i> tools for wftk installation.  You're on your own, in other words.  Also, all
+we have is an AOLserver version of the task manager, so you'll need AOLserver.  At this
+point I'm not even compatible with the current version of AOLserver; I'm still on v2.1
+because I've been working so hard on wftk that I haven't had time to upgrade.  So it's
+your fault.  Anyway, assuming you have AOLserver v2.1 installation media, here's how to
+set up the wftk:
+
+<ol>
+<li><b>Unzip or untar</b> the wftk archive.  On Windows, with v0.5, this <i>must</i> be in the <code>c:\wftk</code>
+    directory if you're going to use the precompiled code.
+<li>If you're compiling (i.e. Unix or you're a Windows renegade), <b>update the localdefs.h</b>
+    file in the include directory to point to your installation path.<br>
+    If you're compiling with MSVC under Windows, <b>update MSVC.BAT</b> in the top directory to
+    point to your MSVC directories.  If you want to build a workspace and project files,
+    feel free to contribute them back to the project, but I'm not going to mess with them.
+<li>If you're compiling, <b>compile</b> by running <code>make</code> in the three C-language directories.
+    Sorry for the redundancy; I'll fix this kind of thing up in v1.0 or so.  Under Windows,
+    run <code>build.bat</code> in each directory instead of running make.  You'll need Perl in this
+    case, or modify <code>build.bat</code> to eliminate the call to LPML.
+<li><b>Install AOLserver</b> from the media.  If you've already got AOLserver installed, skip this
+    step and the next one.
+<li>Using the AOLserver admin tool on port 9876 of your box (by default) <b>add a virtual
+    server</b>.  This will be your wftk server.
+<li>If you're running Windows, <b>set up an ODBC datasource</b> named wftk.  If you want,
+    use the <code>wftk.mdb</code> in the top-level directory.  This probably won't scale terribly well,
+    but it's a nice way to get your feet wet.
+<li>Point the <b>pageroot</b> of the virtual server to the top-level directory of your installation.<br>
+    Point the <b>tclroot</b> of the virtual server to the <code>taskmgr</code> directory.<br>
+    Configure your <b>database</b> information.  Get ready to debug queries if you're not running
+    PostgreSQL or Access/ODBC.<br>
+    <b>Add the proper CGI extension</b> for the CGI components; I'm using <code>.cgi</code> under
+    Unix and of course it must be <code>.exe</code> under Windows.<br>
+    Here's an excerpt from my (Windows) <code>nsd.ini</code> for this server:
+    <blockquote><code><pre>
+[ns/server/server1]
+DirectoryFile=index.html, index.htm, index.shtml
+PageRoot=c:\wftk
+
+[ns/server/server1/cgi]
+Map=GET /*.exe
+Map=POST /*.exe
+
+[ns/server/server1/db]
+Pools=*
+DefaultPool=wftk
+
+[ns/server/server1/module/nssock]
+Port=80
+Hostname=phobos
+
+[ns/server/server1/tcl]
+Library=c:\wftk\taskmgr
+</pre></code></blockquote>
+   Do the same for your virtual server and you can't go wrong.
+<li>If you haven't already, restart AOLserver to get it to load those definitions.
+<li>You'll want to <b>configure AOLserver's permissions</b> to keep hands off of POST requests; by default, all POSTs are
+    marked as password-only by AOLserver.  Since our POST CGIs already handle permissions, we don't need AOLserver to
+    meddle.  So do this:<ul>
+    <li> Go to the AOLserver admin page at [server]/NS/Admin.
+    <li> Select the Access Control link.
+    <li> Select the "Show All Records" link (that's in the fourth group of links down there)
+    <li> Find the record for POST / and select that.
+    <li> Select No restriction on users and No restriction on groups.  Update.
+    </ul>
+<li>Under Windows, find the DLLs in the <code>expat/bin</code> directory and <b>copy them to windows\system</b>.
+</ol>
+
+Now you should be ready to start.  You'll want to set up some users and groups to reflect
+your organization; the default user admin/admin is there already.
+<p>
+Let me know where the holes are in these instructions.  (Thanks to the guys at <a href=http://www.consotec.de>Consotec</a>
+for finding the first one; I had neglected to document my fix to the permissions.)
+
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2000 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

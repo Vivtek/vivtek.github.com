@@ -1,0 +1,103 @@
+<html><head><title>AOLserver/wftk e-commerce app: wftk_ecomm_format: format text from ns_set inputs</title></head>
+<body>
+<h2>wftk_ecomm_format: format text from ns_set inputs</h2>
+<center>
+[&nbsp;<a href="wftk_ecomm_order.html">Previous: wftk_ecomm_order: displaying an order (shopping cart contents)</a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm_loadfile.html">Next: Load contents of a file with optional merchant override</a>&nbsp;]
+</center>
+
+<hr>
+There are basically three types of format I use in various contexts.  The first, and simplest, are
+what I call "flat-string" templates, which format xmlobj objects.  The second, and hairiest, are
+XML templates which operate on lists and records and are used in publishing of pages, but I don't like
+them all that much, although their very flexible structure lets me do some sophisticated things.
+The third, and oldest, I've used in AOLserver page generation for eight years,
+and substitute tags formatted like [&#35;#this##] for named values, either in Tcl arrays or (in this
+case) in ns_set objects.  I like this style a lot, so I've chosen to use it in this system.  It doesn't
+let you do much in the way of structure, but usually that doesn't matter.
+
+<p></p>
+Anyway, note that the structure inherently allows you to nest tags as long as you like.  Kind of
+convenient in theory, though I can't actually recall any time I used it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc wftk_ecomm_format {format fields {format_function ""} {format_function_args [list]}} {
+   set hit [regexp -nocase {\[&#35;#([-a-z_ 0-9.!/?]*)##\]} $format match tag]
+   while {$hit} {
+      set tag [string tolower $tag]
+      set value [ns_set iget $fields $tag]
+      if {$value == "" &amp;&amp; $format_function != ""} {
+         set value [eval $format_function $tag $fields $format_function_args]
+         ns_set update $fields $tag $value
+      }
+
+      regsub -all -nocase \\\[&#35;#$tag##\\\] $format [wftk_ecomm_format_fixup $value] format
+      set hit [regexp -nocase {\[&#35;#([-a-z_ 0-9.!/?]*)##\]} $format match tag]
+   }
+
+   return $format
+}
+</pre></td></tr></table>
+
+A nasty aspect of Tcl's regsub command is that ampersands in the replacement text are themselves replaced
+by the text the replacement text is replacing.  (Parse it slowly; I think it works.)  This is highly
+inconvenient when we don't know whether the replacement text may contain ampersands already, so here's
+a little escaping function to fix them up.  Note the creative escaping you have to do...  It took me a
+full day in 1996 to figure this out and I've copied it around ever since.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc wftk_ecomm_format_fixup {str} {
+   regsub -all "&amp;" $str \\\\\\&amp; retval
+   return $retval
+}
+</pre></td></tr></table>
+
+A variant on formatting, of course, is the ability to take an HTML form and cram values into it.  Due to
+the infinite wisdom of the original creators of HTML, this is a complete and utter shambles, as there are
+no less than three completely separate mechanisms for indicating value (value= for fields, checked for
+radio buttons and checkboxes, and selected for dropdowns, which aren't even regular input fields to start
+with -- thanks, people!)  The following little function is useful for this kind of thing, and works from
+the same stuff as wftk_ecomm_format.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc wftk_ecomm_populate_form {format fields {format_function ""} {format_function_args [list]}} {
+   set done ""
+
+   set index [string first &lt; $format]
+
+   while {$index > -1} {
+      append done [string range $format 0 $index]<
+      incr index
+      set format [string range $format $index end]
+
+      if [string match input* $format] {
+         
+      } elseif [string match select* format] {
+
+      }
+
+      set index [string first &lt; $format]
+   }
+
+   return $done$format
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_ecomm_order.html">Previous: wftk_ecomm_order: displaying an order (shopping cart contents)</a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm_loadfile.html">Next: Load contents of a file with optional merchant override</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

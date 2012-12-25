@@ -1,0 +1,851 @@
+<html><head><title>LIST adaptor: delim</title></head>
+<body>
+<h2>LIST adaptor: delim (delimited file)</h2>
+<hr>
+<p></p>
+Yet another useful little list adaptor, the delimited file adaptor allows a line-based
+file with fields delimited by tabs to be used as a list.  (Later we might consider additional
+encoding schemes, like comma-delimited and quotes and stuff, all that Microsoft-Access touchy-feely
+back-to-BASIC stuff.)
+<p></p>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include &lt;string.h>
+#include &lt;sys/types.h>
+#include &lt;sys/stat.h>
+#include &lt;errno.h>
+#include &lt;malloc.h>
+#include "../wftk.h"
+#include "../../xmlapi/xmlobj.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "create",
+   "destroy",
+   "add",
+   "update",
+   "delete",
+   "get",
+   "query",
+   "first",
+   "next",
+   "rewind",
+   "prev",
+   "last",
+   "attach_open",
+   "attach_write",
+   "attach_close",
+   "attach_cancel",
+   "retrieve_open",
+   "retrieve_read",
+   "retrieve_close",
+   "load",
+   "clear"
+};
+
+XML * LIST_delim_init (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_free (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_info (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_create (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_destroy (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_add (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_update (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_delete (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_get (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_query (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_first (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_next (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_rewind (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_prev (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_last (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_attach_open (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_attach_write (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_attach_close (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_attach_cancel (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_retrieve_open (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_retrieve_read (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_retrieve_close (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_load (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_delim_clear (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   LIST_delim_init,
+   LIST_delim_free,
+   LIST_delim_info,
+   LIST_delim_create,
+   LIST_delim_destroy,
+   LIST_delim_add,
+   LIST_delim_update,
+   LIST_delim_delete,
+   LIST_delim_get,
+   LIST_delim_query,
+   LIST_delim_first,
+   LIST_delim_next,
+   LIST_delim_rewind,
+   LIST_delim_prev,
+   LIST_delim_last,
+   LIST_delim_attach_open,
+   LIST_delim_attach_write,
+   LIST_delim_attach_close,
+   LIST_delim_attach_cancel,
+   LIST_delim_retrieve_open,
+   LIST_delim_retrieve_read,
+   LIST_delim_retrieve_close,
+   LIST_delim_load,
+   LIST_delim_clear
+};
+
+static struct wftk_adaptor_info _LIST_delim_info =
+{
+   24,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct wftk_adaptor_info * LIST_delim_get_info ()
+{
+   return &amp; _LIST_delim_info;
+}
+</pre></td></tr></table>
+
+The problem with most of the list adaptors is of course that we don't get the full
+XML definition when we initialize the adaptor.  This is less horrible for the delim adaptor
+than for the localdir directory, because we at least get the filename we're working with.
+What we don't get, though, are any field definitions.  Irritating.  What idiot came up with
+this, anyway?
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_delim_init (WFTK_ADAPTOR * ad, va_list args)
+{
+   const char * parms;
+   char * mark;
+
+   parms = xml_attrval (ad->parms, "parm");
+   if (!*parms) {
+      xml_set (ad->parms, "file", "default_list.txt");
+      return NULL;
+   } else {
+      xml_set (ad->parms, "file", parms);
+   }
+
+   /* TODO: get current directory as basedir. */
+
+   return (XML *) 0;
+}
+XML * LIST_delim_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#define LIST_DELIM_MAXLINESIZE 4096
+XML * LIST_delim_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "list");
+   xml_set (info, "name", "delim");
+   xml_set (info, "ver", "1.1.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_setnum (info, "max_line_size", LIST_DELIM_MAXLINESIZE);
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+<p></p>
+As in the localdir adaptor, the first interesting function is the "get" function.
+Note that during "get" may be the first time we see the actual list definition.  It's also
+the only time that the base directory of the repository has been set -- so that's why we
+can't have already opened the file in the initialization function.
+<p></p>
+Yeah.  It's a pain.  So sue me.
+<p></p>
+This is probably stupid, but I think the best way to approach this is to cache the file
+contents in memory.  I suppose this should be some sort of configuration flag.  Anyway, here's
+how we load the cache:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * _LIST_delim_load (WFTK_ADAPTOR * ad, XML * list) {
+   FILE * file;
+   struct stat statbuf;
+   char line[LIST_DELIM_MAXLINESIZE+1];
+   char *nexttab;
+   char *tok;
+   XML * cache;
+   XML * mark;
+   XML * rec;
+   int field = 0;
+   int linenum = 0;
+
+   cache = xml_loc (ad->parms, ".cache");
+   if (!*xml_attrval (ad->parms, "fullfile")) {
+      xml_set (ad->parms, "fullfile", xml_attrval (ad->parms, "basedir"));
+      xml_attrcat (ad->parms, "fullfile", xml_attrval (ad->parms, "file"));
+   }
+
+   /* Does the file exist, and is it older than our cache, if there's a cache? */
+   if (cache) {
+      if (stat (xml_attrval (ad->parms, "fullfile"), &amp;statbuf) == -1) {
+         xml_delete (cache);
+         cache = NULL;
+      } else {
+         if (statbuf.st_mtime > xml_attrvalnum (cache, "mtime")) {
+            xml_delete (cache);
+            cache = NULL;
+         }
+      }
+   }
+
+   if (!cache) {
+      /* Open and load file.  Generate key for each line as it is read. */
+      cache = xml_create ("cache");
+      xml_append (ad->parms, cache);
+
+      if (stat (xml_attrval (ad->parms, "fullfile"), &amp;statbuf) != -1) {
+         xml_setnum (cache, "mtime", statbuf.st_mtime);
+      }
+
+      file = fopen (xml_attrval (ad->parms, "fullfile"), "rt");
+      if (file) {
+         while (fgets(line, sizeof(line), file)) {
+            if (line[strlen(line)-1] == '\n') line[strlen(line) - 1] = '\0';
+            if (!*line) {
+               xml_append (cache, xml_create ("blank"));
+            } else if (*line == '#') {
+               mark = xml_create ("comment");
+               xml_append (cache, mark);
+               xml_set (mark, "comment", line);
+            } else {
+               rec = xml_create ("rec");
+               xml_append (cache, rec);
+               tok = line;
+               mark = xml_firstelem (list);
+               while (mark) {
+                  if (xml_is (mark, "field")) {
+                     if (!strcmp (xml_attrval (mark, "special"), "linenum")) {
+                        xmlobj_setnum (rec, list, xml_attrval (mark, "id"), linenum);
+                     } else {
+                        if (!*tok) xmlobj_set (rec, list, xml_attrval (mark, "id"), "");
+                        else {
+                           nexttab = strchr (tok, '\t');
+                           if (nexttab) *nexttab = '\0';
+                           xmlobj_set (rec, list, xml_attrval (mark, "id"), tok);
+                           if (nexttab) tok = nexttab + 1;
+                           else         *tok = '\0';
+                        }
+                        field ++;
+                     }
+                  }
+                  mark = xml_nextelem (mark);
+               }
+               xmlobj_setnum (rec, list, "linenum", linenum);
+               xml_set (rec, "id", xmlobj_getkey (rec, list));
+
+               linenum++;
+            }
+         }
+         fclose (file);
+      } else {
+         if (strcmp (xml_attrval (list, "create"), "yes")) {
+            xml_setf (ad->parms, "error",
+                      "Unable to open list storage file %s (set create=\"yes\" on list to autocreate file)",
+                      xml_attrval (ad->parms, "fullfile"));
+         }
+      }
+   }
+
+   return cache;
+}
+</pre></td></tr></table>
+
+Once that's done, the actual retrieval of information is quite easy.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_delim_get (WFTK_ADAPTOR * ad, va_list args) {
+   XML * ret = NULL;
+   XML * list = NULL;
+   XML * cache;
+   char * key;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+   if (!key) return NULL;
+
+   cache = _LIST_delim_load (ad, list);
+   if (!cache) return NULL;
+
+   ret = xml_locf (cache, ".rec[%s]", key);
+   if (!ret) return NULL;
+
+   ret = xml_copy (ret);
+   xml_set (ret, "key", key);
+   return ret;
+}
+</pre></td></tr></table>
+
+Now the query command, which basically duplicates the cache and sorts it if requested.
+
+<p></p>
+<i>May 30, 2003</i>: Now it's time to start introducing "where" logic as well, since we need it for the _todo pseudolist.  For the time being, I'm
+developing this here, but it will move over into a utility module after it firms up, so that it can be reused for all list adaptors.  Then at some
+point we can build a regular SQL interface to the whole thing, and wouldn't <i>that</i> be cool?
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * wftk_LIST_where_prepare (XML * list)  /* TODO: make this more general (just a crude first cut) */
+{
+   XML * ret = NULL;
+   XML * mark;
+
+   mark = xml_firstelem (list);
+   while (mark) {
+      if (xml_is (mark, "where") || xml_is (mark, "where-or")) {
+         xml_set (mark, "field", xml_attrval (mark, "field"));
+         xml_set (mark, "value", xml_attrval (mark, "value"));
+         if (!ret) ret = xml_create ("and");
+         xml_append (ret, xml_copy (mark));
+      }
+      mark = xml_nextelem (mark);
+   }
+   return ret;
+}
+int   wftk_LIST_where_matches (XML * where, XML * record)
+{
+   XML * mark;
+   const char * comp;
+
+   if (xml_is (where, "where")) {
+      xml_set_nodup (where, "val1", xmlobj_get (record, NULL, xml_attrval (where, "field")));
+      xml_set_nodup (where, "val2", xmlobj_format (record, NULL, xml_attrval (where, "value")));
+
+      comp = xml_attrval (where, "comp");
+      /* if (!*comp || !strcmp (comp, "equal")) { TODO: other comparisons */
+         if (!strcmp (xml_attrval (where, "val1"), xml_attrval (where, "val2"))) return 1;
+         return 0;
+      /* } */
+   }
+
+   if (xml_is (where, "and")) {
+      mark = xml_firstelem (where);
+      while (mark) {
+         if (!wftk_LIST_where_matches (mark, record)) return 0;
+         mark = xml_nextelem (mark);
+      }
+
+      return 1;
+   }
+   if (xml_is (where, "or")) {
+      mark = xml_firstelem (where);
+      while (mark) {
+         if (wftk_LIST_where_matches (mark, record)) return 1;
+         mark = xml_nextelem (mark);
+      }
+
+      return 0;
+   }
+   if (xml_is (where, "not")) {
+      return (!wftk_LIST_where_matches (xml_firstelem (where), record));
+   }
+
+   return 1;
+}
+</pre></td></tr></table>
+
+Now down to the query itself.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_delim_query (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * list;
+   XML * defn;
+   XML * cache;
+   XML * mark;
+   XML * sort;
+   int count = 0;
+   XML * where = NULL;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   cache = _LIST_delim_load (ad, list);
+
+   if (*xml_attrval (list, "order")) {
+      defn = xml_copy (list);
+   }
+
+   where = wftk_LIST_where_prepare (list);
+
+   mark = xml_firstelem (cache);
+   while (mark) {
+      if (wftk_LIST_where_matches (where, mark)) { /* matches 'where' */
+         count++;
+         if (xml_is (mark, "rec")) {
+            xml_append (list, xml_copy (mark));
+         }
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   xml_free (where);
+
+   /* And now we sort the files as requested. */
+   if (*xml_attrval (list, "order")) {
+      xmlobj_list_sort (list, defn, xml_attrval (list, "order"));
+      xml_free (defn);
+   }
+
+   xml_setnum (list, "count", count);
+
+   return list;
+}
+</pre></td></tr></table>
+
+So now we're in a position to define iteration over lists.  Both backwards and forwards are simple
+to define for this adaptor; for databases things may be more difficult to manage.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_delim_first (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * ret;
+   XML * cache;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   cache = _LIST_delim_load (ad, list);
+   xml_set (list, "cur", "");
+
+   ret = xml_firstelem (cache); while (ret &amp;&amp; !xml_is (ret, "rec")) ret = xml_nextelem (ret);
+   if (ret) xml_set (list, "cur", xml_attrval (ret, "id"));
+   else     xml_set (list, "cur", "EOF");
+   return (ret);
+}
+XML * LIST_delim_next (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * cur;
+   XML * cache;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   cache = _LIST_delim_load (ad, list);
+
+   if (*xml_attrval (list, "cur")) {
+      if (!strcmp (xml_attrval (list, "cur"), "EOF")) return NULL;
+
+      cur = xml_locf (cache, ".rec[%s]", xml_attrval (list, "cur"));
+      if (cur) cur = xml_nextelem (cur); while (cur &amp;&amp; !xml_is (cur, "rec")) cur = xml_nextelem (cur);
+      if (cur) xml_set (list, "cur", xml_attrval (cur, "id"));
+      else     xml_set (list, "cur", "EOF");
+      return (cur);
+   }
+
+   cur = xml_firstelem (cache); while (cur &amp;&amp; !xml_is (cur, "rec")) cur = xml_nextelem (cur);
+   if (cur) xml_set (list, "cur", xml_attrval (cur, "id"));
+   else     xml_set (list, "cur", "EOF");
+   return (cur);
+}
+XML * LIST_delim_rewind (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   xml_set (list, "cur", "");
+}
+XML * LIST_delim_prev (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * list;
+   XML * cur;
+   XML * cache;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   if (!*xml_attrval (list, "cur")) return NULL;
+
+   cache = _LIST_delim_load (ad, list);
+
+   if (!strcmp (xml_attrval (list, "cur"), "EOF")) {
+      cur = xml_lastelem (cache); while (cur &amp;&amp; !xml_is (cur, "rec")) cur = xml_prevelem (cur);
+      if (cur) xml_set (list, "cur", xml_attrval (cur, "id"));
+      else     xml_set (list, "cur", "");
+      return (cur);
+   }
+
+   cur = xml_locf (cache, ".rec[%s]", xml_attrval (list, "cur"));
+   if (cur) cur = xml_prevelem (cur); while (cur &amp;&amp; !xml_is (cur, "rec")) cur = xml_prevelem (cur);
+   if (cur) xml_set (list, "cur", xml_attrval (cur, "id"));
+   else     xml_set (list, "cur", "");
+   return (cur);
+}
+XML * LIST_delim_last (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * list;
+   XML * ret;
+   XML * cache;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   cache = _LIST_delim_load (ad, list);
+
+   xml_set (list, "cur", "EOF");
+
+   ret = xml_lastelem (cache); while (ret &amp;&amp; !xml_is (ret, "rec")) ret = xml_prevelem (ret);
+   if (ret) xml_set (list, "cur", xml_attrval (ret, "id"));
+   else     xml_set (list, "cur", "");
+   return (ret);
+}
+</pre></td></tr></table>
+
+Let's skip the create/destroy stuff for now.  I haven't figured out sequencing for everything yet.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_delim_create (WFTK_ADAPTOR * ad, va_list args) { return 0; }
+XML * LIST_delim_destroy (WFTK_ADAPTOR * ad, va_list args) { return 0; }
+</pre></td></tr></table>
+
+Now for the functions capable of *changing* a list.  First off we need a cache writer; then all the
+data update functions will simply change the cache and write it out.  Pretty simple, really.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static void _LIST_delim_writeline (FILE * file, XML * list, XML * obj) {
+   XML * mark;
+   int field;
+   char * value;
+
+   mark = xml_firstelem (list);
+   field = 0;
+   while (mark) {
+      if (xml_is (mark, "field") &amp;&amp; strcmp ("linenum", xml_attrval (mark, "id"))) {
+         if (field) fprintf (file, "\t");
+         value = xmlobj_get (obj, list, xml_attrval (mark, "id")); /* TODO: replace with an xmlobj_print (rec, list, field, file) */
+         fprintf (file, "%s", value ? value : "");
+         if (value) free (value);
+         field ++;
+      }
+      mark = xml_nextelem (mark);
+   }
+   fprintf (file, "\n");
+}
+static void _LIST_delim_save (WFTK_ADAPTOR * ad, XML * list) {
+   FILE * file;
+   XML * cache;
+   XML * rec;
+
+   cache = xml_loc (ad->parms, ".cache");
+   if (!cache) return;
+
+   /* TODO: check for file modification. */
+
+   /* Open and load file.  Generate key for each line as it is read. */
+   if (!*xml_attrval (ad->parms, "fullfile")) {
+      xml_set (ad->parms, "fullfile", xml_attrval (ad->parms, "basedir"));
+      xml_attrcat (ad->parms, "fullfile", xml_attrval (ad->parms, "file"));
+   }
+
+   file = fopen (xml_attrval (ad->parms, "fullfile"), "wt");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Unable to open list storage file %s for writing", xml_attrval (ad->parms, "fullfile"));
+   }
+
+   rec = xml_firstelem (cache);
+   while (rec) {
+      if (xml_is (rec, "blank")) {
+         fprintf (file, "\n");
+      } else if (xml_is (rec, "comment")) {
+         fprintf (file, "%s\n", xml_attrval (rec, "comment"));
+      } else if (xml_is (rec, "rec")) {
+         _LIST_delim_writeline (file, list, rec);
+      }
+      rec = xml_nextelem (rec);
+   }
+   fclose (file);
+}
+</pre></td></tr></table>
+
+The rest of the adaptor is basically trivial; with one exception (add) we simply make changes to the
+cache, then save the cache back to the file.  If no cache has been loaded during an add operation,
+though, we just open the file in append mode, and write a line out fast.  This makes things easy for
+logging objects to log files, because unless we read the log we never have to load the cache at all.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_delim_add (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * obj;
+   const char * key;
+   XML * cache;
+   XML * mark;
+   FILE * file;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   obj = va_arg (args, XML *);
+   if (!obj) {
+      xml_set (ad->parms, "error", "No object given.");
+      return (XML *) 0;
+   }
+
+   xml_set_nodup (obj, "key", xmlobj_getkey (obj, list));
+   key = xml_attrval (obj, "key");
+   if (!*key) {
+      xml_set (ad->parms, "error", "No key can be determined.");
+      return (XML *) 0;
+   }
+
+   if (!*xml_attrval (ad->parms, "fullfile")) {
+      xml_set (ad->parms, "fullfile", xml_attrval (ad->parms, "basedir"));
+      xml_attrcat (ad->parms, "fullfile", xml_attrval (ad->parms, "file"));
+   }
+
+   file = fopen (xml_attrval (ad->parms, "fullfile"), "at");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Can't open list storage file %s for writing.", xml_attrval (ad->parms, "fullfile"));
+      return (XML *) 0;
+   }
+
+   _LIST_delim_writeline (file, list, obj);
+   fclose (file);
+
+   cache = xml_loc (ad->parms, ".cache");
+
+   if (cache) {
+      mark = xml_locf (cache, ".rec[%s]", key);
+      if (mark) {
+         xml_setf (ad->parms, "error", "The key %s is already present in the list.", xml_attrval (obj, "key"));
+         return (XML *) 0;
+      }
+
+      mark = xml_create ("rec");
+      xml_append (cache, mark);
+      xml_copyinto (mark, obj);
+      xml_set (mark, "id", xml_attrval (mark, "key"));
+   }
+
+   return NULL;
+}
+XML * LIST_delim_update (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * obj;
+   const char * key;
+   XML * cache;
+   XML * mark;
+   XML * newone;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   obj = va_arg (args, XML *);
+   if (!obj) {
+      xml_set (ad->parms, "error", "No object given.");
+      return (XML *) 0;
+   }
+
+   key = xml_attrval (obj, "key");
+   if (!*key) {
+      xml_set_nodup (obj, "key", xmlobj_getkey (obj, list));
+      key = xml_attrval (obj, "key");
+   }
+
+   cache = _LIST_delim_load (ad, list);
+
+   mark = xml_locf (cache, ".rec[%s]", key);
+   if (!mark) {
+      mark = xml_create ("rec");
+      xml_append (cache, mark);
+   } else {
+      newone = xml_create ("rec");
+      xml_replace (mark, newone);
+      mark = newone;
+   }
+
+   xml_copyinto (mark, obj);
+   xml_set_nodup (mark, "key", xmlobj_getkey (mark, list));
+   xml_set (mark, "id", xml_attrval (mark, "key"));
+
+   _LIST_delim_save (ad, list);
+
+   return NULL;
+}
+XML * LIST_delim_delete (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = NULL;
+   const char * key = NULL;
+   XML * cache;
+   XML * mark;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+   if (!key) {
+      xml_set (ad->parms, "error", "No object given.");
+      return (XML *) 0;
+   }
+
+   cache = _LIST_delim_load (ad, list);
+
+   mark = xml_locf (cache, ".rec[%s]", key);
+   if (mark) {
+      xml_delete (mark);
+      _LIST_delim_save (ad, list);
+   }
+
+   return NULL;
+}
+</pre></td></tr></table>
+
+<i>(21 August 2002)</i>: Load and clear are a couple of new functions I'm introducing in
+order to provide some more wholesale methods of moving and arranging data.  The load
+function of the delimited adaptor will be particularly interesting, since it will
+be used to bulk load database tables as well.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_delim_load (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = NULL;
+   XML * src = NULL;
+   XML * cache;
+   XML * mark;
+   WFTK_ADAPTOR * src_ad;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   src = va_arg (args, XML *);
+   if (!src) {
+      xml_set (ad->parms, "error", "No data source given.");
+      return (XML *) 0;
+   }
+
+   xml_delete (xml_loc (ad->parms, ".cache")); /* Invalidate the cache. */
+
+   src_ad = wftk_get_adaptor (ad->session, LIST, xml_attrval (src, "storage"));
+   if (!src_ad) return NULL;
+   xml_set (src_ad->parms, "basedir", xml_attrval (ad->parms, "basedir"));
+
+   mark = wftk_call_adaptor (src_ad, "first", src);
+   while (mark) {
+      wftk_call_adaptor (ad, "add", list, mark);
+      mark = wftk_call_adaptor (src_ad, "next", src);
+   }
+   wftk_free_adaptor (ad->session, src_ad);
+
+   return NULL;
+}
+XML * LIST_delim_clear (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = NULL;
+   XML * src = NULL;
+   FILE * file;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   xml_delete (xml_loc (ad->parms, ".cache")); /* Invalidate the cache. */
+
+   if (!*xml_attrval (ad->parms, "fullfile")) {
+      xml_set (ad->parms, "fullfile", xml_attrval (ad->parms, "basedir"));
+      xml_attrcat (ad->parms, "fullfile", xml_attrval (ad->parms, "file"));
+   }
+
+   file = fopen (xml_attrval (ad->parms, "fullfile"), "wt");
+   if (file) {
+      fprintf (file, "");
+      fclose (file);
+   }
+
+   return NULL;
+}
+</pre></td></tr></table>
+
+
+The delimited file, of course, can't store attachments.  What we'll really need is some way
+to indicate that attachments to a particular list are stored using a different adaptor -- but
+right now I'm not going to worry about it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_delim_attach_open (WFTK_ADAPTOR * ad, va_list args) { return NULL; }
+XML * LIST_delim_attach_write (WFTK_ADAPTOR * ad, va_list args) { return NULL; }
+XML * LIST_delim_attach_cancel (WFTK_ADAPTOR * ad, va_list args) { return NULL; }
+XML * LIST_delim_attach_close (WFTK_ADAPTOR * ad, va_list args) { return NULL; }
+XML * LIST_delim_retrieve_open (WFTK_ADAPTOR * ad, va_list args) { return NULL; }
+XML * LIST_delim_retrieve_read (WFTK_ADAPTOR * ad, va_list args) { return NULL; }
+XML * LIST_delim_retrieve_close (WFTK_ADAPTOR * ad, va_list args) { return NULL; }
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

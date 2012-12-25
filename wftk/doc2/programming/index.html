@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+<hr>
+
+<h3>Overview</h3>
+The wftk functionality is contained in several libraries which you can call from your own applications.
+Concrete examples of these applications remain few; the command-line utilities for the wftk core and the repository manager,
+the Python wrappers, the CGI front-end for the repository manager, and that's about it so far.
+<p>
+It is important to understand the <a href="../overview.html">relationship of the various parts of the wftk system</a>
+before planning and implementing a wftk wrapping application.  First and foremost, the XMLAPI exists to 
+handle nearly all data in the system, based on a set of internal data structures corresponding to XML documents.
+On top of the XMLAPI are the two central modules, the wftk core (which handles workflow-specific
+actions) and the repository manager (which handles data storage and organization).  Since the repmgr itself
+manages the wftk installation, many if not most applications have no need to call the wftk core API at all.
+This is the chief reason why I've found time to wrap the repmgr API and the XMLAPI in Python and Tcl and somehow
+have never gotten around to exposing the wftk core API in those languages.
+<p>
+
+<h3>Data structures</h3>
+<i>All</i> data structures for the wftk are built as internal XML objects using the XMLAPI.
+These are the various things you will encounter while working with the wftk:
+<ul>
+<li>Site definition structure (for repository manager configuration)
+<li>List definitions
+<li>Publishing formats
+<li>Datasheets = list objects
+<li>Process definitions (procdefs) and ad-hoc workflow description
+<li>Task objects
+<li>Request objects
+<li>User objects
+<li>Notification (alert) objects
+<li><a href="xml_list.html">List (query) objects</a>
+</ul>
+When working in a higher-level language, it's quite tempting to assume that the XMLAPI can be dispensed with.  Fortunately
+or unfortunately, this is not the case.  Since the XMLAPI data structures are passed back and forth from the wftk APIs, then
+you at least need some way of converting your high-level data structures into XMLAPI structures.  In many cases, it's simpler
+just to work with XMLAPI from the start.  This isn't to say that the embedded versions of the XMLAPI couldn't work more closely
+with their languages than they do -- they can.  But the internal struct-and-pointer layout of the XMLAPI structures needs to be
+identical for them to work across language boundaries.
+<p>
+<h3>Class schema</h3>
+The wftk APIs are object-oriented in nature, but are implemented in ANSI C for maximum portability and also because I'm an
+old curmudgeon who likes to thumb his nose at you young whipper-snappers.  There are a couple of real live object-oriented
+wrappers underway (Python and Java/JNI) so it's high time I published the object schema for these.
+<blockquote>
+<a href="classes.html">Class schema</a>
+</blockquote>
+
+<h3>Areas of functionality</h3>
+Full usage of the wftk in your application may entail writing some adaptors (this process is
+covered in the <a href="../interfaces/index.html">Interface Writer's Guide</a>),
+but assuming your adaptor needs are already covered and you're not retreating into object orientation, you need to know about the
+following sections of functionality exposed by the C APIs:
+<ul>
+<li><a href="repmgr.html">The repository manager API</a>
+<li><a href="wftk_api.html">The wftk core API</a>
+<li><a href="xmlapi/index.html">Programming with the XMLAPI</a>
+</ul>
+<p>
+<h3>Examples</h3>
+For now, you can look at the code in the command-line utility, but at some point I want to snip some
+working bits of code out as examples.  Most importantly, there are a couple of ways to use wftk that
+you probably aren't thinking of -- for instance, you can use it as a permission system for arbitrary
+actions using the <code>wftk_action</code> function.  (You can grant or revoke full permission or
+cause the action to start an approval process; after approval, wftk will automatically complete the
+action.)  WFTK -- it's not just for breakfast anymore.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

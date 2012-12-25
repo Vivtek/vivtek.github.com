@@ -1,0 +1,610 @@
+<head>
+<title>wftk perl - Workflow::wftk::Data</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk perl - Workflow::wftk::Data</div>
+
+<p><a name="__index__"></a></p>
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<p>Workflow::wftk::Data - Provides a common data-access model, the list, for use by workflows and other tools
+                       in the wftk.</p>
+<p>
+</p>
+<hr />
+<!-- INDEX BEGIN -->
+
+
+	<ul>
+
+		<li><a href="#new">new</a></li>
+		<li><a href="#connect">connect</a></li>
+		<li><a href="#read_conf">read_conf</a></li>
+		<li><a href="#describe">describe</a></li>
+		<li><a href="#keys">keys</a></li>
+		<li><a href="#first_key_and_next_key">first_key and next_key</a></li>
+		<li><a href="#fields">fields</a></li>
+		<li><a href="#add_fields">add_fields</a></li>
+		<li><a href="#get__get_sql">get, get_sql</a></li>
+		<li><a href="#exists">exists</a></li>
+		<li><a href="#get_new">get_new</a></li>
+		<li><a href="#put__add__mod_">put, add, mod,</a></li>
+		<li><a href="#genkey">genkey</a></li>
+		<li><a href="#patch">patch</a></li>
+		<li><a href="#delete__del">delete, del</a></li>
+		<li><a href="#close">close</a></li>
+		<li><a href="#as_text">as_text</a></li>
+		<li><a href="#hash_interface">Hash interface</a></li>
+	</ul>
+
+	<li><a href="#copyright___license">COPYRIGHT &amp; LICENSE</a></li>
+<hr>
+<p>Version 0.01</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   our $VERSION = '0.01';
+</pre><p>
+</p>
+<hr />
+<p>The <code>Workflow::wftk::Data</code> module is almost always subclassed.  Given a data classname and a data definition which the
+individual class driver knows how to interpret, a Data object can be opened and browsed, filtered and published,
+and so on.</p>
+<p>(If the module isn't subclassed, W::w::Data will create an in-memory virtual list, useful for cursors or intermediate
+results, but not too convincing as, you know, a workflow system.)</p>
+<p>
+</p>
+<hr />
+<hr>
+<p>
+</p>
+<h2><a name="new">new</a></h2>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub new {
+      my ($classname, $wftk, $list, $def) = @_;
+
+      my $self = undef;
+      my $needs_connect = 0;
+
+      $def = $wftk-&gt;list_conf($list, $def) unless $def and ref $def;
+
+      if ($classname eq 'Workflow::wftk::Data') {
+         my $list_type = $def-&gt;get('type');
+
+         if ($list_type ne 'memory') {
+            $needs_connect = 1;
+            # Look in local lib/Data directory first.
+            if (-e &quot;lib/Data/$list_type.pm&quot;) {
+               eval 'use Data::' . $list_type . '; $self = Data::'. $list_type . '-&gt;new($wftk, $list, $def);';
+               if ($@) {
+                  warn &quot;Unable to load custom data handler '$list_type': $@&quot;;
+                  return undef;
+               }
+            }
+            # Next, try module's own installation directory.
+            if (not defined $self and -e &quot;$wftk-&gt;{module}/Data/$list_type.pm&quot;) {
+               eval 'use Workflow::wftk::Data::' . $list_type . '; $self = Workflow::wftk::Data::' . $list_type . '-&gt;new($wftk, $list, $def);';
+               if ($@) {
+                  warn &quot;Unable to load standard data handler '$list_type': $@&quot;;
+                  return undef;
+               }
+            }
+            if (not defined $self) {
+               # Perhaps we've been given a full module name?
+               if ($list_type =~ /::/) {
+                  eval 'use ' . $list_type . '; $self = ' . $list_type .'-&gt;new($wftk, $list, $def);';
+                  if ($@) {
+                     warn &quot;Unable to load data handler '$list_type': $@&quot;;
+                     return undef;
+                  }
+               } else {
+                  # Then again, maybe the caller just screwed up entirely.
+                  warn &quot;No data handler '$list_type' found.\n&quot;;
+                  return undef;
+               }
+            }
+         }
+      }
+
+      unless ($self) {
+         $self = { # Default values
+                    cache_keys =&gt; 0,
+                    sort_keys =&gt; 1,
+                    repos =&gt; $wftk,
+                    list =&gt; $list,
+                    keys =&gt; [],
+                    fields =&gt; $def-&gt;get('fields') || [],
+                    sql_fields =&gt; undef,
+                    values =&gt; {},
+                    nextkey =&gt; 1,
+                    mask =&gt; '#',
+                    conf =&gt; $def,
+                 };
+         bless($self, $classname);
+         $self-&gt;describe($self);
+      }
+
+      $wftk-&gt;{lists}-&gt;{$list} = $self;
+
+      $self-&gt;connect($def) if $needs_connect;
+      return $self;
+   }
+</pre><p>
+</p>
+<h2><a name="connect">connect</a></h2>
+<p>The <code>connect</code> method connects to, say, a database, or opens a file, or does whatever the driver needs to do in order to access records.
+The memory "connect" doesn't do anything.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub connect { }
+</pre><p>
+</p>
+<h2><a name="read_conf">read_conf</a></h2>
+<p>The <code>read_conf</code> command is global, providing a tool to read a standard configuration string.  The first part of the string is returned as
+the return value; anything after semicolons is written into $self-&gt;{config}.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub read_conf {
+      my ($self, $def) = @_;
+
+      return " unless $def;
+
+      my @parts = split / *; */, $def;
+      my $ret;
+      if ($parts[0] =~ /=/) {
+         $ret = ";
+      } else {
+         $ret = shift @parts;
+      }
+      foreach (@parts) {
+         my ($k,$v) = split / *= */, $_, 2;
+         $v = 1 unless defined $v;
+         if ($k eq 'fields') {
+            my @fields = split /[ ,]+/, $v;
+            $self-&gt;{fields} = \@fields;
+         } else {
+            $self-&gt;{config}-&gt;{$k} = $v;
+         }
+      }
+      return $ret;
+   }
+</pre><p>
+</p>
+<h2><a name="describe">describe</a></h2>
+<p>The <code>describe</code> method sets a description and returns it.  If no string is given, it just returns the stored one.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub describe {
+      my ($self, $description) = @_;
+      $self-&gt;{description} = $description if $description;
+      $self-&gt;{description};
+   }
+</pre><p>
+</p>
+<h2><a name="keys">keys</a></h2>
+<p>The <code>keys</code> method returns a list of keys to objects in the list.  They're returned in the natural order of the list.  The presumption is
+that the list will be relatively small, of course -- if not, set a limit.  (TODO: limit setting)  For our in-memory list, this is a pretty
+safe shortcut.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub keys {
+      my $self = shift;
+      return @{$self-&gt;{keys}} if $self-&gt;{cache_keys};
+      return sort (keys (%{$self-&gt;{values}})) if $self-&gt;{sort_keys};
+      return keys (%{$self-&gt;{values}});
+   }
+</pre><p>
+</p>
+<h2><a name="first_key_and_next_key">first_key and next_key</a></h2>
+<p>A more reasonable approach for large lists, of course, is <code>first_key</code> and <code>next_key</code>, which do what you think they'll do.  Note that
+these are also used for FIRSTKEY and NEXTKEY to implement hash tying.  Did I mention I love Perl?</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub first_key {
+      my $self = shift;
+      if ($self-&gt;{cache_keys}) {
+         my $keys = scalar $self-&gt;keys();
+         $self-&gt;{iterator} = 1;
+         return $self-&gt;{keys}-&gt;[0];
+      }
+      my $keys = scalar CORE::keys %{$self-&gt;{values}};
+      return each %{$self-&gt;{values}};
+   }
+
+   sub next_key {
+      my ($self, $last_key) = @_;
+      return $self-&gt;{keys}-&gt;[$self-&gt;{iterator}++] if $self-&gt;{cache_keys};
+      return each %{$self-&gt;{values}};
+   }
+</pre><p>
+</p>
+<h2><a name="fields">fields</a></h2>
+<p>The <code>fields</code> method returns a list of the fields (column names) defined for the list.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub fields {
+      my $self = shift;
+      return @{$self-&gt;{sql_fields}} if $self-&gt;{sql_fields};
+      return @{$self-&gt;{fields}};
+   }
+</pre><p>
+</p>
+<h2><a name="add_fields">add_fields</a></h2>
+<p>The <code>add_fields</code> method can be called explicitly to define a list on the fly.  This
+implementation is for the in-memory table, and I'm frankly not sure what other
+adapters should do with it.  We'll see as we go, I suppose.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub add_fields {
+      my $self = shift;
+
+      foreach my $f (@_) {
+         unless (grep {$_ eq $f} @{$self-&gt;{fields}}) {
+            push @{$self-&gt;{fields}}, $f;
+         }
+      }
+   }
+</pre><p>
+</p>
+<h2><a name="get__get_sql">get, get_sql</a></h2>
+<p>The <code>get</code> method returns a <a href="/Workflow/wftk/Record.html">the Workflow::wftk::Record manpage</a> containing the values for a particular record.
+The <code>get_sql</code> does the same thing for just the fields exposed to SQL.  For an in-memory table, that's
+the same thing, but some adapters have more expensive retrieval that is avoided until absolutely
+necessary.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub get_sql {
+      my ($self, $key) = @_;
+      return undef if not defined $key;
+      return $self-&gt;{values}-&gt;{$key};
+   }
+   sub get {
+      my $self = shift;
+      $self-&gt;get_sql(@_);
+   }
+</pre><p>
+</p>
+<h2><a name="exists">exists</a></h2>
+<p>The <code>exists</code> method is provided more or less for completeness in the tie specification (to cover
+EXISTS).  In the memory version, it just checks for existence in the value hash.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub exists {
+      my ($self, $key) = @_;
+      exists $self-&gt;{values}-&gt;{$key};
+   }
+</pre><p>
+</p>
+<h2><a name="get_new">get_new</a></h2>
+<p>The <code>get_new</code> method builds a blank record that matches the list's definition.  The shell can
+then call an editor to edit that record in text format.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub get_new {
+      my ($self, $level) = @_;
+      Workflow::wftk::Record-&gt;new_for_list($self, $level);
+   }
+</pre><p>
+</p>
+<h2><a name="put__add__mod_">put, add, mod,</a></h2>
+<p>The <code>put</code> method takes a record object and writes it to the list.  This is just the internal part; outside, we call
+<code>add</code> or <code>mod</code> to create data modification events, which may invoke workflow, and the implementation of those
+methods are (1) very complex and (2) available for all subclasses of W::w::Data.  Put, on the other hand, is
+implementation-specific.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub put {
+      my ($self, $key, $record) = @_;
+      $record = Workflow::wftk::Record-&gt;make_record($record, $self);
+      if (defined $key) {
+         if (looks_like_number($key) &amp;&amp; $key &gt;= $self-&gt;{nextkey}) {
+            $self-&gt;{nextkey} = $key + 1;
+         }
+      } else {
+         $key = $self-&gt;{nextkey}++;
+      }
+      push @{$self-&gt;{keys}}, $key if $self-&gt;{cache_keys} and not grep {$_ eq $key} @{$self-&gt;{keys}};
+      if ($record-&gt;{body} and not $self-&gt;{body}) {
+         $self-&gt;{body} = $record-&gt;{body};
+      } elsif ($record-&gt;{body} and $self-&gt;{body} ne $record-&gt;{body}) {
+         $record-&gt;{values}-&gt;{$self-&gt;{body}} = $record-&gt;{values}-&gt;{$record-&gt;{body}};
+         delete $record-&gt;{values}-&gt;{$record-&gt;{body}};
+         $record-&gt;{body} = $self-&gt;{body};
+      }
+      $self-&gt;{values}-&gt;{$key} = $record;
+      $self-&gt;add_fields($record-&gt;fields()) unless $self-&gt;{sql_fields};
+      return $key;
+   }
+
+   #TODO: flesh these out, later.
+   sub add {
+      my ($self, $record) = @_;
+      return $self-&gt;put (undef, $record);
+   }
+
+   sub mod {
+      my ($self, $key, $record) = @_;
+      return $self-&gt;put ($key, $record);
+   }
+</pre><p>
+</p>
+<h2><a name="genkey">genkey</a></h2>
+<p>The <code>genkey</code> method generates a key for a given record.  Currently it just increments the numeric nextkey, but
+later it will be able to use a mask to generate some of the key from the data in the record.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub genkey {
+      my ($self, $rec) = @_;
+      $self-&gt;{nextkey}++;
+   }
+</pre><p>
+</p>
+<h2><a name="patch">patch</a></h2>
+<p>The <code>patch</code> method takes a partial record containing a subset of the fields in the original record, and only updates the
+ones it's given.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub patch {
+      my ($self, $key, $record) = @_;
+      return $self-&gt;put ($key, $record);  # TODO: this is obviously not written.
+   }
+</pre><p>
+</p>
+<h2><a name="delete__del">delete, del</a></h2>
+<p>The <code>delete</code> method, given a key, deletes the record.  Again, this is the internal part, to be overridden for
+other implementations.  The <code>del</code> method is called for properly workflowized deletion of records.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub delete {
+      my ($self, $key) = @_;
+      if ($self-&gt;{cache_keys}) {
+         my @remaining = grep {$_ ne $key} @{$self-&gt;{keys}};
+         $self-&gt;{keys} = \@remaining;
+      }
+      delete $self-&gt;{values}-&gt;{$key};
+   }
+
+   #TODO: flesh this out, later.
+   sub del {
+      my ($self, $key) = @_;
+      $self-&gt;delete($key);
+   }
+</pre><p>
+</p>
+<h2><a name="close">close</a></h2>
+<p>The <code>close</code> method doesn't do anything in the memory implementation.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub close { }
+</pre><p>
+</p>
+<h2><a name="as_text">as_text</a></h2>
+<p>The <code>as_text</code> method uses the brilliant Text::Table to format a handy text-based aligned list like MySQL.
+Have I mentioned, in this file, how much I love Perl?</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub as_text {
+      my ($self) = @_;   # TODO: we could consider some parameterization of this formatter.
+
+      my $select = 0;
+      $select = 1 if $self-&gt;describe() =~ /^select /i;
+
+      my @c;
+      my @fields = $self-&gt;fields();
+      if ($select) {
+         @c = (\'| ', shift @fields);
+      } else {
+         @c = (\'| ', 'key');
+      }
+      foreach my $c (@fields) {
+         push @c, \' | ', $c;
+      }
+      push @c, \' |';
+
+      my $t = Text::Table-&gt;new(@c);
+      foreach my $key ($self-&gt;keys()) {
+         if ($select) {
+            $t-&gt;add (map { $self-&gt;get_sql($key)-&gt;get($_) } $self-&gt;fields());
+         } else {
+            $t-&gt;add ($key, map { $self-&gt;get_sql($key)-&gt;get($_) } $self-&gt;fields());
+         }
+      }
+
+      my $text = $t-&gt;rule ('-', '+');
+      $text .= $t-&gt;table(0);
+      $text .= $t-&gt;rule ('-', '+');
+
+      foreach ($t-&gt;table(1, $t-&gt;body_height)) {
+         $text .= $_;
+      }
+      $text .= $t-&gt;rule ('-', '+');
+      return $text;
+   }
+</pre><p>
+</p>
+<h2><a name="hash_interface">Hash interface</a></h2>
+<p>The hash interface implements the following in order to allow the list to be tied to a hash:</p>
+<dl>
+<dt><strong><a name="item_tiehash">TIEHASH</a></strong>
+
+<dt><strong><a name="item_scalar">SCALAR</a></strong>
+
+<dt><strong><a name="item_clear">CLEAR</a></strong>
+
+<dt><strong><a name="item_firstkey">FIRSTKEY</a></strong>
+
+<dt><strong><a name="item_nextkey">NEXTKEY</a></strong>
+
+<dt><strong><a name="item_fetch">FETCH</a></strong>
+
+<dt><strong><a name="item_exists">EXISTS</a></strong>
+
+<dt><strong><a name="item_store">STORE</a></strong>
+
+<dt><strong><a name="item_delete">DELETE</a></strong>
+
+</dl>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub TIEHASH  { new(@_); }
+   sub SCALAR   { $_[0]-&gt;as_text; }
+   sub CLEAR    { $_[0]-&gt;connect; } # TODO: see what should actually be here.
+   sub FIRSTKEY { $_[0]-&gt;first_key; }
+   sub NEXTKEY  { $_[0]-&gt;next_key; }
+   sub FETCH    { $_[0]-&gt;get($_[1]); }
+   sub EXISTS   { $_[0]-&gt;exists ($_[1]); }
+   sub STORE    { $_[0]-&gt;mod($_[1], $_[2]) }
+   sub DELETE   { $_[0]-&gt;del($_[1]) }
+</pre><p>
+</p>
+<hr />
+<p>Michael Roberts, <code>&lt;michael at vivtek.com&gt;</code></p>
+<p>
+</p>
+<hr />
+<p>Please report any bugs or feature requests to <code>bug-workflow-wftk at rt.cpan.org</code>, or through
+the web interface at <a href="http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Workflow-wftk">http://rt.cpan.org/NoAuth/ReportBug.html</a>.  I will be notified, and then you'll
+automatically be notified of progress on your bug as I make changes.</p>
+<p>
+</p>
+<hr />
+<p>You can find documentation for this module with the perldoc command.</p>
+<pre class="code">
+    perldoc Workflow::wftk::Data
+</pre><p>
+</p>
+<hr />
+<p>Copyright 2008 Vivtek, all rights reserved.</p>
+<p>This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   1; # End of Workflow::wftk::Data
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

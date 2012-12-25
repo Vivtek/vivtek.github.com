@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk: roles</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk: working with role</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="index.html">wftk programmer's guide home</a> ]
+<hr>
+
+<h3>Roles</h3>
+A <i>role</i> is a named, well, role in connection with a process.  The roles are defined by the
+procdef, but arbitrary roles may also be assigned as needed.  A role, once assigned, ensures that tasks
+identified as belonging to particular roles will be assigned to the specified user when activated.
+In addition, there's obviously a documentation purpose as well, identifying some involved users by
+their function.  Note that if a task is activated which doesn't identify a role, then the roles have
+no effect on it.
+<p>
+When the "procstart" action is taken by the wftk, a "Requester" role is assigned automatically to the
+user performing the procstart action.  This usage of roles will probably be expanded in the future, so
+that there will be some number of system-standard roles (maybe "admin", for instance).
+<p>
+A role may be de-assigned either by assigning it a new user, or by passing it a blank string to denote
+that no user will own it.
+<p>
+<h3>Functions</h3>
+<pre>
+int    wftk_role_list       (void * session, XML * datasheet, XML * list);
+const char * wftk_role_user (void * session, XML * datasheet, const char * role);
+int    wftk_role_assign     (void * session, XML * datasheet, const char * role, const char * userid);
+</pre>
+
+<h3>Details</h3>
+
+<a name="wftk_role_list"></a>
+<font size=+1>wftk_role_list</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet,</code><br>
+<code>XML * list</code>
+</blockquote>
+
+Lists the roles defined for a given process.  Note that roles have meaning only within a process,
+so all the functions in the role API take a datasheet explicitly.
+
+<br><br>
+
+<a name="wftk_role_user"></a>
+<font size=+1>wftk_role_user</font> returns <code>const char *</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet,</code><br>
+<code>const char * role</code>
+</blockquote>
+
+Names the user (if any) assigned to the named role.  <i>Creates the role</i> if it wasn't there
+before.
+
+<br><br>
+
+<a name="wftk_role_assign"></a>
+<font size=+1>wftk_role_assign</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet,</code><br>
+<code>const char * role</code>,<br>
+<code>const char * user</code>
+</blockquote>
+
+Assigns the named user to the named role.  Creates the role if it wasn't already there; creates
+a user involvement entry if it wasn't already there.  No authentication or verification of the
+username is performed; you're presumed already to have done that.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

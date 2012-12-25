@@ -1,0 +1,85 @@
+<html><head><title>wftk command-line utility: Working with roles</title></head>
+<body>
+<h2>Working with roles</h2>
+<center>
+[&nbsp;<a href="wftk_util_enactment.html">Previous: Working with the enactment history</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_user.html">Next: Working with users</a>&nbsp;]
+</center>
+
+<hr>
+Roles are comparatively simple.  Each named role may be assigned to a user.  Then new workflow tasks for that role will
+automatically be assigned to the user in question.  Notifications may also be addressed to particular roles, and so forth.
+This utility doesn't do a whole lot with this stuff, just lists and updates, basically.
+<br><br>
+<a name="roles">
+<i>roles: list roles in a datasheet</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 2) {
+   printf ("wftk roles: repository and ID of the datasheet are required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+
+list = xml_create ("list");
+wftk_role_list (session, datasheet, list);
+mark = xml_firstelem (list);
+while (mark) {
+   printf ("%s : ", xml_attrval (mark, "name"));
+   if (!*xml_attrval (mark, "user")) {
+      printf ("[unassigned]\n");
+   } else {
+      printf ("%s\n", xml_attrval (mark, "user"));
+   }
+   mark = xml_nextelem (mark);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="role">
+<i>role: display or assign a role</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 3) {
+   printf ("wftk role: repository and ID of the datasheet are required, plus the name of a role.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+
+if (argsleft &lt; 2) {
+   printf ("%s : ", argv[argp]);
+   if (!*wftk_role_user (session, datasheet, argv[argp])) {
+      printf ("[unassigned]\n");
+   } else {
+      printf ("%s\n", wftk_role_user (session, datasheet, argv[argp]));
+   }
+} else {
+   wftk_role_assign (session, datasheet, argv[argp], argv[argp+1]); argp++; argp++;
+   wftk_process_save (session, datasheet);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_util_enactment.html">Previous: Working with the enactment history</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_user.html">Next: Working with users</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,66 @@
+<html><head><title>xmlobj: XML object storage</title></head>
+<body>
+<h2>xmlobj: XML object storage</h2>
+<hr>
+This set of routines is logically somewhat separate from the XMLAPI itself, as it implements an
+object storage system (with fields, links, and what-not) on top of the XMLAPI, using it as a handy
+internal storage format which has its own serialization mechanism built in.
+<p></p>
+The xmlobj library started out as part of the <a href="../repmgr/index.html">repository manager</a>
+section of the wftk, but upon closer examination it became fairly clear that wftk-only applications
+could benefit from this code without needing full-fledge repository management.  So I pulled it
+over here.
+<p></p>
+The upshot of the object storage format is simple: the XML object is taken to contain some mixture of
+arbitrary XML along with "field" elements.  The field elements are primarily what xmlobj works with:
+it finds them using an "id" attribute, and manipulates their values.  The basic field structure stores
+its value as the field element's content.  Further refinement is possible: a field may contain a list
+of values, for instance, or a set of value versions.  The field may have a type or format.  Links are
+also supported (more later on that).  A class definition object may also be passed in, and will
+determine visibility of fields, default values for missing fields, and so on.
+<p></p>
+The key: any XML not understood by the xmlobj library is <i>completely ignored</i>, which makes it
+simple to store arbitrary information in such a record.  This is the new model for the wftk datasheet,
+which rationalizes a lot of the flailing around in earlier wftk versions.
+<p></p>
+<i>May 4, 2002:</i> Which is all fine and well, but most people don't use XML this way.  So instead, I've
+decided to augment the search capability of the field retrieval mechanism; if a field is named, say, "address",
+then the retriever will work equally well with &lt;field id="address"&gt;1029 S. 15th Street&lt;/field&gt; <i>or</i>
+with &lt;address&gt;1029 S. 15 Street&lt;/address&gt; -- much more reasonable.  To set a value which is an
+element, I extend the API with an xmlobj_set_elem function.  xmlobj_set will still create a field element, but
+it will happily set the value of an element field if it finds one.
+<p></p>
+The really nice thing about this extension is that we can think about convenient dotted naming for more complex
+values: the name "address.line[0]" can refer to an xml_loc-like array arrangement, and so on.  I think this is going
+to be extremely convenient to use.
+<p></p>
+<i>June 18, 2003:</i> Thanks to startext GmbH, I'm putting in that convenient dotted naming for more complex values.
+Like the xml_loc syntax, (parens) refer to numbered offsets in lists and [square brackets] to keyed list entries
+using an "id" attribute.  Dots go one level down with subrecords.  Eventually, the repository manager will also
+work with this stuff to index subrecords within lists and so forth.  This is a neat extension.
+<p></p>
+<i>February 28, 2004</i>: Well.  The dotted syntax I finished in June of last year when I first attacked it, but
+for some reason I got blocked on the indexed forms of addressing.  So as it turns out, I'm doing a lot of work
+under Tcl with the wftk this month, and since getting and releasing XML handles is a bit of a hassle under Tcl
+the way I have things set up, I realized it was going to be a lot easier to handle these complex indexed data
+structures if I finished the indexed addressing.  So I did.  Still a couple of to-do points in there, but by
+and large it works, and it was a lot easier than I'd anticipated.  I guess my subconscious has been working on
+it for half a year now.
+<ul>
+<li> <a href="xmlobj.html">XML object storage</a>
+<li> <a href="xmlobj_h.html">xmlobj include file</a>
+<li> <a href="xmlobj_c.html">xmlobj library</a>
+</ul>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

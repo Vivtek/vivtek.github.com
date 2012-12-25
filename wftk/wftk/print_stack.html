@@ -1,0 +1,43 @@
+<html><head><title>wftk core engine: Printing the current stack as a locator</title></head>
+<body>
+<h2>Printing the current stack as a locator</h2>
+<center>
+[&nbsp;<a href="globals.html">Previous: Global variables: state</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk core index</a>&nbsp;]
+[&nbsp;<a href="index.html">Next: wftk core index</a>&nbsp;]
+</center>
+
+<hr>
+It's sort of silly to have this little function hanging around on its own page, but it doesn't
+really fit in anywhere else all that well.  It's pretty obvious how this thing works, isn't
+it?  You start at the bottom of the stack, and print location pieces as you move to the top.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void print_stack()
+{
+   FRAME * cur;
+   for (cur = stack.next; cur != NULL; cur = cur->next) {
+      if (cur != stack.next) printf (".");
+      printf ("%s", cur->name);
+      if (cur->offset_in_parent > 0) {
+         printf ("(%d)", cur->offset_in_parent);
+      }
+   }
+   printf ("\n");
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="globals.html">Previous: Global variables: state</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk core index</a>&nbsp;]
+[&nbsp;<a href="index.html">Next: wftk core index</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

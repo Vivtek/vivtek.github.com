@@ -1,0 +1,206 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Process definition -- data</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Process definition: <code>&lt;data&gt;</code></h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/process_defn.html>process&nbsp;definition</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+(2/23/00) This is basically a total rewrite after some thought and feedback from
+Thomas Fricke.
+<p>
+Data storage is an extremely central concept to the workflow, of course.  As I get further
+into the design, it's becoming obvious that the value sheet is going to play a central role
+in defining each active process.  Each variable is represented by some value in the
+value sheet.  (And the value sheet is also the logical place to keep information about the
+state of the process, but that's a discussion for another time.)
+<p>
+A <i>value</i> is essentially a piece of text, because it's textually represented inside
+a tag in the value sheet.  A <i>type adapter</i> knows how to impose certain semantics and
+perform certain operations on the textual value.  Type adapters might include integer, money,
+time, date, string, pattern, or whatever.  They might be parameterized, so that enumerations
+could be supported.  There is quite a lot we can do with the adapter concept, without
+necessarily having to do it all at once up front.
+<p>
+We also need to be able to get to data which is stored elsewhere.  So I am introducing
+the idea of a <i>storage adapter</i> which leaves status information in the value sheet
+(whatever it needs to get to the actual data).  Storage adapters might include PostgreSQL,
+Sybase SQL Server, FileNet document management, the filesystem, the default (value sheet),
+ODBC, and so forth.  We can easily imagine adapters written to take advantage of new
+storage techniques.
+<p>
+The point of storage adapters is that storage outside the database allows interaction at
+the data level with other processes and systems.  This interaction goes both ways, so that
+we can read database information, store documents, etc.
+<p>
+OK.  In addition to simple values, I think we need at least two aggregates: the record and
+the collection.  And in fact I suspect we can get away with a single aggregate construct
+that allows us to define records <i>or</i> collections in a single construct.  But first,
+let's look at the basic <code>&lt;data&gt;</code> tag.
+<br>
+<code>
+&nbsp;&nbsp;&lt;data name="myvariable" type="integer" value="(literal value)"&gt; &lt;/data&gt;
+</code>
+<br>
+That's the definition of a simple integer, stored in the value sheet.  If we omit the "type"
+modifier, the default type is text, which is basically a string, unless the data tag has
+content, in which case it is automatically a structure.  It occurs to me that certain
+type adapters would expect a structure underpinning, so inclusion of a type other than
+"structure" doesn't automatically precluding being a structure in fact.
+<p>
+First complication, then, would be structures.<br>
+<code>
+&nbsp;&nbsp;&lt;data name="stuff" type="structure"&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;data name="field1" type="text" value="something"&gt;&lt;/data><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;data name="list"&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;list&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;data type="integer"&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/list><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;/data><br>
+&nbsp;&nbsp;&lt/data>
+</code><br>
+See where I'm going with that?  This defines a structure consisting of a named text field,
+and a named list of integers.  The length of the list of integers is obvious if the 
+storage medium is the XML value sheet: it's just the number of values in the list.  And
+if some other storage adapter is used to stash this value, then that adapter will abstract
+away how the length of the list is stored.  I really, really like this construct (probably
+because I've been mulling over a data description language for roughly five years now.)
+<p>
+The value of record fields can be accessed with the usual dotted notation, so that the text value
+above would be referred to as ${stuff.field1}.
+<p>
+I had considered taking liberties with our <code>&lt;sequence&gt;</code> tag here, since a list
+is the same sort of thing for data that a sequence is for actions.  But first, the sequence vs.
+parallel distinction doesn't seem to make sense for data, and second, there are lots of features
+of the sequence tag that don't even make sense for data.  So I introduced the <code>&lt;list></code>
+tag instead.
+<p>
+So a storage adapter will be able to represent records which are stored elsewhere.  Ideally such
+storage units would be possible to nest, so that for instance a serialized version of a
+structure could be created using one storage adapter, then that serialized object be treated
+as some raw data to be stored somewhere using another storage adapter.  This is obviously
+far out of scope of the original project, but it's a powerful idea.  I hope I'll get back
+to it before the year's out.
+<p>
+If we have a common data structure that we know we'll be reusing, we can define it with
+the <code>&lt;datastructure></code> tag as follows:<br>
+&nbsp;&nbsp;&lt;datastructure name="myrecord"&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;...<br>
+&nbsp;&nbsp;&lt/datastructure><br>
+&nbsp;&nbsp;...
+&nbsp;&nbsp;&lt;data name="myrecordvalue" type="structure:myrecord"&gt;&lt;/data><br>
+</code>
+<p>
+So how do we do storage?  Let's say something like this:<br>
+<code>
+&nbsp;&nbsp;&lt;data name="something" storage="postgres://database spec/query string"&gt;&lt;/data><br>
+</code>
+As you can see, I think the area of storage specifications needs some work.  But it's making more sense
+than it did yesterday.
+<p>
+In the case where a record or table is used from a relational database, the data structure is understood to be
+implicitly defined by the database system.  The storage adapter for that database is responsible for translating
+the database's columns into usable typed data.
+<p>
+We're still not quite done with the data tag.  We want some additional modifiers as well.
+First, the <code>format</code> modifier will specify
+a format to be used when converting the type to a string.  The format will be type-specific, of course, and will be
+passed to the adapter unmodified.  This is a little subtle, because the value <i>is</i> actually a string in storage,
+but that string needn't necessarily be human-readable.  The <code>format</code> modifier allows us to specify a
+human-readable format to be used with this value.
+<p>
+Then we'll want a <code>readonly</code> attribute which will be useful when referencing data from within a task.
+Since the data tag is used both to declare and to manipulate values, its semantics is a little fuzzy.  The
+"readonly" attribute is for references, so that the system knows to present this data to the user in connection
+with a task, but not elicit a change to it.
+<p>
+So this data stuff looks like it's coming together.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

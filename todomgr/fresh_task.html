@@ -1,0 +1,40 @@
+<html><head><title>Create new task or process</title></head>
+
+<body bgcolor=FFFFFF>
+
+To create a new task, fill in this form and submit it.  To create a new process (to which you
+can then add tasks) fill in the form below.
+
+<form action="create" method=post>
+<input type=hidden name=what value=task>
+<table border=0>
+<tr><td>Process that the task belongs to (if any)</td>
+    <td><select name=process size=1>(unresolved tag processlist)</select></td></tr>
+<tr><td>Short description of the task:</td>
+    <td><input name=description size=60></td></tr>
+<tr><td>Priority:</td>
+    <td><select name=priority size=1><option value="1">1<option value="2">2<option value="3">3</select></td></tr>
+<tr><td>Scheduled date:</td>
+    <td><input name=sched_date size=10></td></tr>
+<tr><td>Scheduled time:</td>
+    <td><input name=sched_time size=10></td></tr>
+</table>
+<input type=submit value="Create task">
+</form>
+
+<hr>
+
+Create a new process with this form.
+<form action="create" method=post>
+<input type=hidden name=what value=process>
+<table border=0>
+<tr><td>Short description of the process:</td>
+    <td><input name=title size=60></td></tr>
+<tr><td>Full description:</td>
+    <td><textarea name=description rows=10 cols=60></textarea></td></tr>
+</table>
+<input type=submit value="Create process">
+</form>
+
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Applying the wftk: Perl data processing systems</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Applying the wftk: Perl data processing systems</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+<hr>
+
+<h3>Spaghetti systems</h3>
+A system development model I follow rather often is one I think of as "spaghetti scripting".  The way this usually starts is that
+some cron or logging system delivers large amounts of data to some set of files on a Unix machine, and I start doing some simple
+grep and sed commands to answer questions I have about this data.  Two examples of this kind of system which spring to mind are
+various Web access log analysis systems, and the abuse/block tracking systems of <a href=despammed.html>Despammed.com</a> (and
+most specifically the latter, this week anyway.)
+<p>
+This kind of system starts small, but as the relationships between data sources and other entities in the system become better
+understood, I typically start writing various Perl scripts to take care of common questions.  Then the Perl scripts sprout some
+reporting features which write small text files, and often I toss in some HTML writers as well to provide overviews of system
+activity.  If things get sufficiently complex, I write some database code to do things.  The whole thing usually runs by means
+of simple commands I run from the command line or install as cron jobs.
+<p>
+Ideally, the wftk would easily support and interface with this style of system without requiring me to reform my ugly coding
+habits.  Frankly, my crufty code comes in small packages and represents observations of regularities in system data -- there's
+very little motivation for me to modify the way I work with it.  I think this is a style of programming well-known to any
+system administrator.
+<p>
+So how would the wftk help?
+<ul>
+<li>Formatting of HTML overview pages
+<li>Documentation of data sources and dataflow in system
+<li>Coordination of running of system tools
+<li>Organization of human intervention (i.e. actual workflow)
+</ul>
+
+Most interesting to me is the last of those items -- in general, this kind of system development breaks down when it becomes
+necessary to involve human beings in the decision-making process.  For example, if spam to a spamtrap address is caught, then
+this isn't enough on its own to identify the IP block as a spam origin; a human being (i.e. me) has to look at the mail which
+actually arrived and decide whether or not it was spam.  The later disposition of the IP address in question depends on this
+decision.  This kind of interaction is where a workflow toolkit would be most useful in any system, and so that's the aspect
+of wftk interaction I'm going to focus on most in this paper.
+
+<p>
+But that shouldn't be taken as an assertion that the other points are inconsequential.  Overview documents are typically ugly,
+poorly laid out, and lack Website navigation features (or are constantly outdated) simply because generating context-sensitive
+and pretty HTML in Perl scripts is sufficiently tedious that it's easy to procrastinate.  So having some nice Perl-accessible
+functions like "take this object and format it according to this page definition" would be very useful.
+
+<p>
+To get a really good idea of spaghetti scripting, let's follow the development of spamtrap processing for
+<a href=despammed.html>Despammed.com</a>, step by step.
+
+<h3>In the beginning, there was abuse</h3>
+Oddly enough, the initial motivation for this system was abuse.  Late in 2002, some joker decided to sign up for about 250
+Despammed accounts.  This sort of thing happens seldom enough that I have no particular defense against it, so I really didn't
+notice or care -- until the accounts all became the target of a great deal of spam.  Actually, over the years I've tried to attract
+spam to the filters with no luck, so I really kind of wish I knew how this guy did it -- but the problem was that the filter
+server would periodically get hammered with about 250 copies (one per account) of some random spam.  This had performance
+ramifications (a gentle way of saying it brought the server to its knees, sometimes requiring my help to get back up).  So I wrote
+some quick code to close accounts with no bounce.
+<p>
+After a few months, I got curious as to whether those accounts were still getting mail, and how often, so I included a simple logging
+feature in the filter for mails impinging on closed accounts.  Sure enough, the accounts were getting more spam than ever, and it was
+all spamhaus spam (you know -- credit card offers, Gevalia coffee makers, exciting sweepstakes opportunities, that kind of thing.)
+Reasoning that the sources of all this junk were spamhausen (i.e. companies which exist only to send spam in large quantities), I 
+concluded that I should identify the origin IP addresses and block them entirely, to avoid the inevitable filtration overhead when they
+sent to non-closed accounts; even if the spam is blocked, the filter program works hard to block it.
+<p>
+So I created a new "spamtrap" category for accounts, and wrote code to log mail received at spamtrap addresses to files identified
+by the origin IP of the mail, e.g. trap/209.23.33.49.log for example.  On the seventh day, I rested.
+
+<h3>Watching the spam pile up</h3>
+After a day had passed, I had a collection of nn.nn.nn.nn.log files to play with; each consisted of a series of spam messages
+received from the IP address in question.  It was quickly obvious that many of these companies were sending from a range of IP
+addresses.  Leaping to the conclusion that in my sample of "bad IPs" that it would be the norm that a spamhaus or spamhaus enabler
+would be sending from (most of) a block of 256 IPs (an assumption which was supported by the fact that the IPs I saw were clustering
+in such blocks), I decided to write a file for each block of the form nn.nn.nn.#.txt.  In this file, I would write the IPs I'd
+entered for the block for a certain date, after a line for the date itself.  Then I decided I'd want to record some commands in there
+to mark monitoring tasks for the block and for the owner.  That part hasn't really brought me much, as it happens, but let's look
+at a particular block file from my list.
+<pre>
+? 2003-04-17
+- 66.172.136.206 -- host: 1home206.letsroll-usa.net
+- 66.172.136.202 -- host: 1home202.letsroll-usa.net
+- 66.172.136.221 -- host: 1home221.letsroll-usa.net
+- 66.172.136.203 -- host: 1home203.letsroll-usa.net
+- 66.172.136.211 -- host: 1home211.letsroll-usa.net
+- 66.172.136.197 -- host: 1home197.letsroll-usa.net
+- 66.172.136.204 -- host: 1home204.letsroll-usa.net
+- 66.172.136.216 -- host: 1home216.letsroll-usa.net
+- 66.172.136.214 -- host: 1home214.letsroll-usa.net
+- 66.172.136.207 -- host: 1home207.letsroll-usa.net
+- 66.172.136.210 -- host: 1home210.letsroll-usa.net
+- 66.172.136.218 -- host: 1home218.letsroll-usa.net
+- 66.172.136.209 -- host: 1home209.letsroll-usa.net
+? 2003-04-18
+- 66.172.136.199 -- host: 1home199.letsroll-usa.net
+- 66.172.136.198 -- host: 1home198.letsroll-usa.net
+
+# Oy.
+
+! whois letsroll-usa.net
+? 2003-04-18
+|   Domain Name: LETSROLL-USA.NET
+|   Registrar: INTERCOSMOS MEDIA GROUP, INC. D/B/A DIRECTNIC.COM
+|   Whois Server: whois.directnic.com
+|   Referral URL: http://www.directnic.com
+|   Name Server: NS2.REMOVALPROCESS.COM
+|   Name Server: NS1.REMOVALPROCESS.COM
+|   Status: ACTIVE
+|   Updated Date: 10-apr-2003
+|   Creation Date: 10-apr-2003
+|   Expiration Date: 10-apr-2004
+|
+|
+|>>> Last update of whois database: Fri, 18 Apr 2003 05:54:17 EDT <<<
+</pre>
+
+Note that this file is somewhat idealized.  The upshot, though: this file is organized line by line.  Each line begins with a code character
+marked what it's for:
+<table>
+<tr><td>?</td><td>Date marker of IPs following, or answer following</td></tr>
+<tr><td>-</td><td>IP to block, followed by rDNS lookup of its canonical name, if any</td></tr>
+<tr><td>#</td><td>Comment line (I always build in comment lines, because I'm wordy and I like it that way.)</td></tr>
+<tr><td>!</td><td>Action taken and possibly to be taken on a regular basis.</td></tr>
+<tr><td>|</td><td>Result of such an action</td></tr>
+</table>
+
+This kind of file is very easy to manage in Perl, which was after all created in order to do line-based text processing scripts.  We simply do
+something like this:
+<pre>
+open IN, "infile.txt";
+while (&lt;IN&gt;) {
+  chomp;
+  if (/^-/) { do something }
+  elsif (/^\?/) { do something else }
+  and so on
+}
+</pre>
+
+As an example, to make things easier on myself, I whipped out a little "check" script which
+scanned such a file, found '-' lines without rDNS info, did the DNS lookups,
+and filled them in on the appropriate lines.  Then I built a "merge" script which scanned
+all block files for IPs, merged them into a single sendmail-style access file,
+copied said file to where sendmail could use it, and signalled a restart of sendmail to use the new blocklist.
+<p>
+The difference was astounding.  I quickly identified several spamhausen which had been hammering the server for weeks, sending mail to all 250
+spamtraps within a minute -- and I <i>shut them all down</i>.  My initial stab was a success, although still far too manual to allow me to
+use it often.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2003 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

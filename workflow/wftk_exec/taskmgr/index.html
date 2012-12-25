@@ -1,0 +1,123 @@
+<html>
+<head><title>wftk: Task manager, take 2</title></head>
+<body>
+<h2>wftk: Task manager</h2><hr>
+<center>
+[ <a href="wftk_taskmgr.zip">download</a> ] [ <a href="taskmgr.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discuss</a> ]
+</center>
+<p></p>
+The task manager component of the workflow toolkit is that component which deals with
+workflow as task tokens.  An attempt at a comparison of the two complementary views
+of workflow will be elsewhere, but suffice it to say that the task manager is primarily
+responsible for dealing with tasks in the database, but delegates the workflow 
+automation aspect to the core engine.  As it so happens, since the task manager works
+with tasks and process in their database-indexed forms, it's also the natural place
+to put most of the user interface to the workflow toolkit.
+<p></p>
+The task manager (or at least this version of it) is also a perfectly good application
+all by its lonesome, in which case it takes on more of a to-do list manager aspect.
+<p></p>
+The platform I'm developing this version against is <a href="/aolserver.html">AOLserver/Tcl</a>
+for a couple of reasons.  The most important of those reasons is simply that I'm pretty good at
+Tcl, so this is the quickest way to get this portion of the overall wftk system completed.
+However, the platform, while not particularly portable, has a lot to recommend it.  If you're
+not familiar with it, I encourage you to read up on it a little.  For one thing, it makes
+dealing with databases (and dealing with <i>different</i> database) extremely easy.  And it's
+also quite portable.
+<p></p>
+Obviously, there's no reason to consider the wftk permanently wedded to AOLserver/Tcl, 
+regardless of this initial implementation.  As soon as this is released, I'm starting on
+a Python/Zope integration.  At some point I'll also be looking at a Perl module, and of
+course there would be a lot to recommend an Apache module in terms of performance (given
+that most of the rest of the toolkit is C/CGI, it's always being loaded, forking
+processes, and so forth.)
+<p></p>
+The task manager component of a wftk installation must:
+<ul>
+<li>Work with the schema of the active process repository
+<li>Know when to call the wftk engine to get things done (primarily at task completion), and
+<li>Present the to-do list in any way necessary.
+</ul>
+And here's how I do it.
+<ul>
+<li> <a href="main.html">File organization of taskmgr.tcl</a>
+<li> <a href="schema.html">Database schema of the task list</a>
+<ul>
+<li> <a href="schema.html#process">Process table</a>
+<li> <a href="schema.html#task">Task table</a>
+</ul>
+<li> <a href="taskmgr_create.html">Definition of taskmgr_create</a>
+<ul>
+<li> <a href="taskmgr_create.html#freshform">Show process/task creation form</a>
+<li> <a href="taskmgr_create.html#newtask">Requesting a task for a process</a>
+<li> <a href="taskmgr_create.html#task">Create task</a>
+<li> <a href="taskmgr_create.html#newprocess">Requesting a new process</a>
+<li> <a href="taskmgr_create.html#process">Create process</a>
+</ul>
+<li> <a href="taskmgr_start.html">Definition of taskmgr_start</a>
+<ul>
+<li> <a href="taskmgr_start.html#showlist">Show list of available procdefs</a>
+<li> <a href="taskmgr_start.html#startform">Show start form for specified procdef</a>
+<li> <a href="taskmgr_start.html#start">Actually starting a new process from a procdef</a>
+</ul>
+<li> <a href="taskmgr_show.html">Definition of taskmgr_show</a>
+<ul>
+<li> <a href="taskmgr_show.html#task">Show task</a>
+<li> <a href="taskmgr_show.html#getprocess">Getting process info for task display</a>
+<li> <a href="taskmgr_show.html#getowner">Getting owner info for task/process display</a>
+<li> <a href="taskmgr_show.html#makeprioritybox">Making select box to change priority level</a>
+<li> <a href="taskmgr_show.html#process">Show process</a>
+<li> <a href="taskmgr_show.html#processlist">Listing processes</a>
+</ul>
+<li> <a href="taskmgr_overview.html">Definition of taskmgr_overview</a>
+<li> <a href="taskmgr_update.html">Definition of taskmgr_update</a>
+<ul>
+<li> <a href="taskmgr_update.html#task">Updating task record</a>
+<li> <a href="#taskcheckuser">Checking user permissions to update task</a>
+<li> <a href="taskmgr_update.html#process">Updating process record</a>
+<li> <a href="taskmgr_update.html#goback">Forwarding back to where the update started</a>
+</ul>
+<li> <a href="taskmgr_complete.html">Definition of taskmgr_complete</a>
+<li> <a href="taskmgr_reject.html">Definition of taskmgr_reject</a>
+<li> <a href="user.html">User functionality</a>
+<ul>
+<li> <a href="user.html#check">Checking authuser</a>
+</ul>
+<li> <a href="login_admin.html">Login management stuff</a>
+<ul>
+<li> <a href="login_admin.html#showlogin">Showing the current login</a>
+<li> <a href="login_admin.html#modlogin">Switching logins</a>
+</ul>
+<li> <a href="wftk_user.html">Interfacing with the wftk user module for permissions</a>
+<li> <a href="pageout.html">How I'm writing pages out</a>
+<ul>
+<li> <a href="pageout.html#handle404">Handling 404 returns</a>
+</ul>
+<li> <a href="datasheet_stuff.html">Datasheet interface</a>
+<ul>
+<li> <a href="datasheet_stuff.html#setvalue">URL handler setvalue</a>
+<li> <a href="datasheet_stuff.html#datasheet_getvalue">Definition of datasheet_getvalue</a>
+<li> <a href="datasheet_stuff.html#datasheet_showdata">Definition of datasheet_showdata</a>
+<li> <a href="datasheet_stuff.html#datasheet_setvalue">Definition of datasheet_setvalue</a>
+</ul>
+<li> <a href="wftk_interpret.html">Interpreting the results that wftk sends back</a>
+<ul>
+<li> <a href="wftk_interpret.html#task">Starting tasks</a>
+<li> <a href="wftk_interpret.html#alert">Handling notifications</a>
+<li> <a href="wftk_interpret.html#complete">Completing the process</a>
+</ul>
+<li> <a href="util.html">Miscellaneous utility functions</a>
+</ul>
+
+
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with
+<a href="http://www.vivtek.com/lpml/">LPML</a>.  Try literate programming.  You'll like it.
+</font></td></tr></table>
+</center>
+</body>
+</html>

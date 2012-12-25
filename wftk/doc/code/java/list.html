@@ -1,0 +1,109 @@
+<html><head><title>wftk-j: Modelling repmgr lists</title></head>
+<body>
+<h2>wftk-j: Modelling repmgr lists</h2>
+<center>
+[&nbsp;<a href="repository.html">Previous: wftk-j: Repository</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="entry.html">Next: Modelling list entries</a>&nbsp;]
+</center>
+
+<hr>
+The repmgr list can either be a defined system list (with an ID) or it can just be an anonymous list of entries.  In the fullness of time, we can
+give it to the repository and ask for a list of matching entries.  Thus the list is effectively a query device and the container for query results.
+The implementation of this in the C repmgr is somewhat fuzzy (as are many organically grown things), but the Java implementation doesn't have to be.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>package org.wftk;
+import java.util.Map;
+import java.util.Vector;
+public class List {
+   public Repository rep = null;
+   public String id = null;
+   public String where = null;
+   Vector keys = null;
+   Map results = null;
+   //public list_defn defn;  -- TODO: this is a logical class.
+
+   public List (Repository r) {
+      rep = r;
+   }
+   public List (Repository r, String list_id) {
+      rep = r;
+      id = list_id;
+   }
+
+   public Vector keys () { return (keys == null ? new Vector() : keys); }
+   public int count () { return (keys == null ? 0 : keys.size ()); }
+
+   void add_entry (String just_the_key) {
+      if (id.equals("_tasks") || id.equals("_todo")) {
+         Task e = new Task (rep, id, just_the_key);  // TODO: is there a more elegant way of doing this?  Could some Java guru answer this?
+         add_entry (e);
+      } else {
+         Task e = new Task (rep, id, just_the_key);
+         add_entry (e);
+      }
+   }
+   void add_entry (java.util.HashMap map) {
+      String key = (String) map.get ("key");  // TODO: "key" will work for tasks, anyway, but we'll probably want to be a little more careful.
+                                              //       Check whether map.get throws an exception for a non-existent key.  (No, it doesn't.)
+      if (key==null) key = (String) map.get ("id");
+      if (id.equals("_tasks") || id.equals("_todo")) {
+         Task e = new Task (rep, id, key);
+         e.values = map;
+         add_entry (e);
+      } else {
+         Entry e = new Entry (rep, id, key);
+         e.values = map;
+         add_entry (e);
+      }
+   }
+   void add_entry (Entry e) {
+      if (results == null) { results = new java.util.HashMap(); keys = new Vector(); }
+      results.put (e.key, e);
+      keys.add (e.key);
+   }
+   public void clear () {
+      results = null;
+      keys = null;
+   }
+
+   public Entry get (int index) {
+      return ((Entry) results.get (keys.elementAt (index))); // TODO: perhaps this is too much?  Maybe there's an ordered Map?
+   }
+   public Entry get (String key) {
+      return ((Entry) results.get (key));
+   }
+
+   public String get_key (int index) {
+      return ((String) keys.elementAt (index));
+   }
+
+   public String get_label (String key) {
+      Entry e = (Entry) get(key);
+      String l = e.get ("label");
+      if (l != null) { return l; }
+      return (key);  // TODO: construct a label using the defined label format for the list.
+   }
+
+   public String key (int index) {
+      return ((String) keys.elementAt (index));
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="repository.html">Previous: wftk-j: Repository</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="entry.html">Next: Modelling list entries</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

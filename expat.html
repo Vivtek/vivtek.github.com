@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>expat XML parser</TITLE>
+   <META NAME="description" CONTENT="A short description of the expat XML parser, with links to more in-depth features.">
+   <META NAME="Keywords" CONTENT="expat, XML parser parsing, tokenizer, xmlparse, xmltok">
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+[&nbsp;<a href=/xml/using_expat.html>tutorial</a>&nbsp;] [&nbsp;<a href=/xmltools/>example&nbsp;code</a>&nbsp;] [&nbsp;<a href=#links>links</a>&nbsp;]
+
+<center><table><tr><td>
+<h2>Topic: <u>expat</u></h2>
+</td></tr>
+
+<tr><td>
+The <code>expat</code> XML parser by James Clark is fairly small, written in C, runs on Unix or W32, and is, well, not
+very documented.  But boy, does it work great!  And it's also the meat of the Perl XML module.  I'm using it
+in the open-source workflow toolkit (among other things.)
+<p>
+The expat parser consists of two levels, like most parsers.  The low level, xmltok, is an XML <i>tokenizer</i>, meaning
+that it simply looks at the file and tosses you all the pieces which have meaning in XML.  The parser itself wraps a layer
+around that token stream which calls handlers which you write.  For a description of how expat programs are written,
+see my little article on <a href=/xml/using_expat.html>using expat</a>.
+<p>
+Under Windows, the parser and tokenizer are wrapped up in two DLLs; under Unix, you could probably make a .so or something,
+but it's just as quick to link statically.  The libraries are not horribly large.
+<p>
+The expat documentation is basically nonexistent.  There is sketchy usage information in the header files, and there is a
+sample program which prints an indented tag structure.  You can also study the code of the wf utility, which checks XML
+for well-formedness, but I haven't yet.  I have written some <a href=/xmltools/>command-line XML tools</a> which are
+basically elaborations of the sample application, and what I learned during that is basically the content of the how-to
+I mentioned above.  If and when I have motivation to use the tokenizer, I will document that level similarly.  In the meantime,
+I am in the process of <a href=/expat/api.html>documenting the expat API</a> -- it's slow going and I have a lot to do, so
+it's not done yet.  I'll keep plugging.
+<p>
+The expat parser is not a validating XML processor.  What this means is that you can use it to write an XML processor, but
+it has no smarts whatsoever about how to use a DTD to make sure that the XML it is reading conforms to the DTD.  Which is
+fine -- there are plenty of times where you simply don't have the DTD formalized, and XML is still useful.  If and when I
+write a validating XML processor on top of expat, I'll link to it.  (Might actually happen, and I'd get paid for it.  I could
+tell you the details, but then I'd have to kill you.)
+</td></tr>
+
+<tr><td>
+<a name=links>
+<center><font face=arial size=+1>LINKS</font></center></td></tr>
+
+<tr><td>
+<ul>
+<li><strong><a href=ftp://ftp.jclark.com/pub/xml/expat.zip>expat distro at Clark's site</a></strong><br>
+Go get your own copy!  This contains everything you need.
+<li><strong><a href=/linkout/www.jclark.com/xml/expatfaq.html>expat FAQ at Clark's site</a></strong><br>
+Some basic questions and answers.
+<li><strong><a href=/xmltools/>xmltools</a></strong><br>
+My handy-dandy little command-line XML toolkit.  Written with expat, and they run beautifully under W32 and Solaris, anyway.
+<li><strong><a href=/expat/api.html>The expat API</a></strong><br>
+My ongoing effort to HTMLize the API description.  It'll probably be done in another week or two.  (I said this on May 10, 2000,
+just for the record and for the sake of humor.)
+</ul>
+</td></tr>
+
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

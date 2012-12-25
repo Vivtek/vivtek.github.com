@@ -1,0 +1,65 @@
+<html><head><title>wxPyWf: wxPython tools for the wftk</title></head>
+<body>
+<h2>wxPyWf: wxPython tools for the wftk</h2>
+<center>
+[<a href="index.html">wftk-Python</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+The wxPyWf is a set of handy-dandy classes to facilitate the building of quick wxPython GUI applications
+using the tools in the wftk.  These roughly fall into two categories: those which simply use the XMLAPI
+to do XML kinds of things (like menu and dialog definers), and those which use wxPython to present
+truly workflow-specific things (like ... don't know yet.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#######################################################################################################
+#
+# The wxPyWf is a set of classes to facilitate the building of quick wxPython GUI apps using wftk.
+# More information at http://www.vivtek.com/wftk/doc/code/python
+#
+# Copyright (c) 2003, Vivtek, and released under the GPL.
+#
+#######################################################################################################
+</pre></td></tr></table>
+
+We import the wftk OO classes, and some wxPython stuff.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>import wftk
+from wxPython.wx import *
+</pre></td></tr></table>
+
+<p></p>
+First and foremost of the wxPyWf classes is the XML-defined menu.  I'm departing from the norm in
+my GUI design tools here, to a certain extent, in that menu events do not directly invoke a handling
+procedure; rather, each menu event is used to construct a command, which is then handed off to a
+command-line interface handler (a CLI object).  This has some awfully nice consequences: we can build
+macros rather easily, we can log all actions taken by the user, and we can share a common CLI between
+GUI and server-side code.
+<p></p>
+I'm not sure whether it will make sense for dialogs to work in the same way; I rather think that
+a dialog will allow the construction of a repmgr list object instead.  That list object may then
+be used to specify an action, but it may be used in some other way instead -- and of course it may
+have absolutely arbitrarily complex structure.  The dialog generalizes rather well to the notion of
+a wizard, so I think this is a solid way to go.
+<p></p>
+Anyway, each class defined in this package is on its own documentation page.  Follow any of the
+links below to learn more.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="wxpywf_menu.html">wxPyWf: menu class</a></i>
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

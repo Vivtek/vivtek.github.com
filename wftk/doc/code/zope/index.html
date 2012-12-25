@@ -1,0 +1,37 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: Working with Zoper</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>wftk: Working with Zope</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+<hr>
+
+The <a href="http://www.zope.org/">Zope</a> integration, like most front-end integrations, consists
+essentially of three parts.  First, there is the basic exposure of wftk functionality to the Zope
+environment.  This part's easy, because it's just the <a href="../python/index.html">Python wrapper</a>.
+Second, there is the Zope machinery which integrates that functionality prettily with Zope; this is
+not much more than a moderately complex Zope product, and it has yet to be implemented.  The third
+part exposes <i>Zope</i> functionality to the <i>wftk</i>, and is likewise unimplemented -- in fact,
+I'm not entirely sure what will be required, when it comes down to it.  I know several things will
+be necessary, however.  First, we'll want the ability to define repository manager lists on the ZODB.
+This will allow any object in Zope to be accessed by wftk, and thus controlled by wftk.  This will be
+a list adaptor.  Second, there must be ways to call Zope functions from within workflow procdefs, and
+this will be a combination of an action adaptor and a query adaptor.  As these details firm up, this
+will be the place to find out more.
+
+<p>
+
+Currently, I have a possible sponsor for the Zope integration work.  That means that Zope integration
+is taking a much higher priority than it has to date.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2002 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>

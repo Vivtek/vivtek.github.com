@@ -1,0 +1,40 @@
+<html><head><title>wftk core library: Dealing with procdef repositories</title></head>
+<body>
+<h2>Dealing with procdef repositories</h2>
+<center>
+[&nbsp;<a href="wftk_dsrep.html">Previous: Dealing with datasheet repositories</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Next: wftk core library</a>&nbsp;]
+</center>
+
+<hr>
+And here's a function to load the procdef version associated with a datasheet.  Again, it's largely a wrapper for
+an adaptor.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * wftk_procdef_load (XML * datasheet)
+{
+   WFTK_ADAPTOR * ad;
+   ad = wftk_get_adaptor (PDREP, xml_attrval (datasheet, "pdrep"));
+   if (!ad) return NULL;
+
+   return (wftk_call_adaptor (ad, "load", xml_attrval (datasheet, "procdef"), xml_attrval (datasheet, "version")));
+}
+</pre></td></tr></table>
+
+Should this sort of thing be defined in the adaptor code?  I'm no longer sure.
+
+
+
+<center>
+[&nbsp;<a href="wftk_dsrep.html">Previous: Dealing with datasheet repositories</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Next: wftk core library</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

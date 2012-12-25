@@ -1,0 +1,440 @@
+<html><head><title>wftk core library: Dealing with values</title></head>
+<body>
+<h2>Dealing with values</h2>
+<center>
+[&nbsp;<a href="wftk_request.html">Previous: Dealing with requests</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_status.html">Next: Getting and setting process status</a>&nbsp;]
+</center>
+
+<hr>
+OK, so actions may be the heart of workflow, but without data manipulation there's not much point.  The basic purpose
+of the datasheet is of course to store data, so let's see how we do it.
+<p></p>
+The basic actions we can take for a value are, of course, getting and setting it.  In wftk, there is no requirement that
+a variable be allocated before it's written.  As the namespace for a value is already automatically the process it's
+in, there is no real need to be terribly disciplined about how it's used.  So to write a named value, I simply set it.
+For convenience in C, I've provided both string and numeric versions of the data access functions, but rest assured that
+all values are stored as text variables.
+<p></p>
+In order to be able to handle null values, we provide the <code>wftk_value_isnull</code> and <code>wftk_value_makenull</code>
+functions.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * wftk_value_find (void * session, XML * datasheet, const char * name)
+{
+   char valuelocbuf[128];
+
+   if (!datasheet) return NULL;
+   sprintf (valuelocbuf, "datasheet.data[%s]", name);
+   return xml_loc (datasheet, valuelocbuf);
+} 
+XML * wftk_value_make (void * session, XML * datasheet, const char * name)
+{
+   XML * data;
+   char valuelocbuf[128];
+
+   if (!datasheet) return NULL;
+   sprintf (valuelocbuf, "datasheet.data[%s]", name);
+   data = xml_loc (datasheet, valuelocbuf);
+   if (!data) {
+      data = xml_create ("data");
+      xml_set (data, "id", name);
+      xml_append (datasheet, data);
+   }
+
+   return data;
+} 
+const char * wftk_value_get     (void * session, XML * datasheet, const char * name)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return "";
+   if (*name == '!') return _wftk_value_special (session, datasheet, name);
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return "";
+      data = wftk_call_adaptor (ad, "get", datasheet, name);
+      wftk_free_adaptor (session, ad);
+      return (xml_attrval (data, "value"));
+   }
+
+   data = wftk_value_find (session, datasheet, name);
+   if (!data) return "";
+
+   if (!strcmp (xml_attrval (data, "null"), "yes")) return "";
+
+   return (xml_attrval (data, "value"));
+}
+int    wftk_value_get_num (void * session, XML * datasheet, const char * name)
+{
+   int ret;
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return atoi (_wftk_value_special (session, datasheet, name));
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return 0;
+      data = wftk_call_adaptor (ad, "get", datasheet, name);
+      wftk_free_adaptor (session, ad);
+      ret = atoi (xml_attrval (data, "value"));
+      xml_delete (data);
+      return ret;
+   }
+
+   data = wftk_value_find (session, datasheet, name);
+   if (!data) return 0;
+
+   if (!strcmp (xml_attrval (data, "null"), "yes")) return 0;
+
+   return (atoi (xml_attrval (data, "value")));  /* TODO: types and stores. */
+}
+
+int wftk_value_isnull (void * session, XML * datasheet, const char * name)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 1; /* Null name is, well, null.  Logical, right? */
+   if (*name == '!') return 0; /* Special value is never null.  Why?  Because I say so. */
+
+   data = wftk_value_find (session, datasheet, name);
+   if (!data) return 1;
+
+   if (!strcmp (xml_attrval (data, "null"), "yes")) return 1;
+   return 0;
+}
+
+int wftk_value_set (void * session, XML * datasheet, const char * name, const char * value)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return 0;  /* Refuse to set special values. */
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return 0;
+      wftk_call_adaptor (ad, "set", datasheet, name, value);
+      wftk_free_adaptor (session, ad);
+      return 1;
+   }
+
+   data = wftk_value_make (session, datasheet, name);
+   if (!data) return 0;
+
+   if (strcmp (wftk_value_get (session, datasheet, name), value)) {
+      wftk_enactment_write (session, datasheet, data, "was", wftk_value_get (session, datasheet, name));
+      wftk_process_save (session, datasheet);
+      xml_set (data, "value", value);
+   }
+   if (!strcmp (xml_attrval (data, "null"), "yes")) xml_set (data, "null", "");
+   return 1;
+}
+int    wftk_value_set_num (void * session, XML * datasheet, const char * name, int value)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+   char valbuf[sizeof(int) * 3 + 1];
+
+   if (!name) return 0;
+   if (*name == '!') return 0;
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return 0;
+      sprintf (valbuf, "%d", value);
+      wftk_call_adaptor (ad, "set", datasheet, name, valbuf);
+      wftk_free_adaptor (session, ad);
+      return 1;
+   }
+
+   data = wftk_value_make (session, datasheet, name);
+   if (!data) return 0;
+
+   sprintf (valbuf, "%d", value);
+   if (strcmp (wftk_value_get (session, datasheet, name), valbuf)) {
+      wftk_enactment_write (session, datasheet, data, "was", wftk_value_get (session, datasheet, name));
+      wftk_process_save (session, datasheet);
+      xml_setnum (data, "value", value);
+   }
+   if (!strcmp (xml_attrval (data, "null"), "yes")) xml_set (data, "null", "");
+   return 1;
+} 
+
+int wftk_value_makenull (void * session, XML * datasheet, const char * name)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return 0; /* Refuse to set special values. */
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return 0;
+      wftk_call_adaptor (ad, "makenull", datasheet, name);
+      wftk_free_adaptor (session, ad);
+      return 1;
+   }
+
+   data = wftk_value_make (session, datasheet, name);
+   if (!data) return 0;
+   wftk_enactment_write (session, datasheet, data, "was", wftk_value_get (session, datasheet, name));
+   wftk_process_save (session, datasheet);
+   xml_set (data, "null", "yes");
+   return 1;
+}   
+</pre></td></tr></table>
+
+Besides just a plain get, we need a little value interpreter.  This is basically a <code>sprintf</code>-like affair, which
+takes a string and replaces named values in it which are marked like <code>${this}</code>.  Later we'll need boolean
+expressions and stuff, and that will also probably fall into this value area.
+<p></p>
+<code>wftk_value_interpret</code> returns the number of bytes it copied to the buffer.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int    wftk_value_interpret (void * session, XML * datasheet, const char * spec, char * buffer, int bufsize)
+{
+   int count = 0;
+   const char *value;
+   char namebuf[256]; /* TODO: replace this. */
+   int i;
+
+   bufsize--; /* Leave room for the null. */
+   while (*spec) {
+      if (spec[0] == '$' &amp;&amp; spec[1] == '{') {
+         i = 0;
+         spec += 2;
+         while (*spec &amp;&amp; *spec != '}' &amp;&amp; i < sizeof(namebuf) - 1) {
+            namebuf[i++] = *spec++;
+         }
+         if (*spec == '}') spec++;
+         namebuf[i] = '\0';
+         value = wftk_value_get (session, datasheet, namebuf);
+         while (*value &amp;&amp; bufsize) {
+            *buffer++ = *value++;
+            count++;
+            bufsize--;
+         }
+      } else {
+         *buffer++ = *spec++;
+         count++;
+         bufsize--;
+      }
+      if (!bufsize) break;
+   }
+   *buffer = '\0';
+   return count;
+}
+</pre></td></tr></table>
+
+Sometimes special values are nice.  For instance, the current time is always nice to have.  So I'm rather arbitrarily
+defining '!' to be the special-value character.  So, for instance, '!now' is the current time, in the following format:
+2001-03-19 06:07:00 AM.  This is in accordance with the <a href="http://www.iso.ch/markete/8601.pdf">ISO 8601 standard for
+date and time formats</a>.  The ISO standard suggests putting a 'T' between the date and the time, but doesn't require it,
+and I find that to be less conveniently readable to the human eye, so I'm not going to do it.  Your mileage may vary.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>const char * _wftk_value_special (void * session, XML * datasheet, const char * name)
+{
+   struct tm * timeptr;
+   time_t julian;
+   static char value[64]; /* Boy, this is dangerous.  TODO: there's gotta be a better way. */
+
+   if (!strcmp (name, "!now")) {
+      time (&amp;julian);
+      timeptr = localtime (&amp;julian);
+      sprintf (value, "%04d-%02d-%02d %02d:%02d:%02d", timeptr->tm_year + 1900, timeptr->tm_mon + 1, timeptr->tm_mday,
+                                                       timeptr->tm_hour, timeptr->tm_min, timeptr->tm_sec);
+      return (value);
+   }
+
+   return ("");
+}
+</pre></td></tr></table>
+
+There's more to wftk than plain string values.  In addition to the basic get and set, we can also set the type of a value,
+and we can determine where it's actually stored (the default is that the value is stored directly in the datasheet, but
+that might not be convenient.)  Types are defined by type adaptors, storage is defined by datastore adaptors.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int    wftk_value_settype (void * session, XML * datasheet, const char * name, const char * type)
+{
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return 0;  /* Refuse to set special values. */
+
+   if (strchr (name, ':')) return 0; /* Can't set types for alternate stores -- the answer will be aliases, later. */
+
+   data = wftk_value_make (session, datasheet, name);
+   if (!data) return 0;
+
+   xml_set (data, "type", type);
+   return 1;
+}
+int    wftk_value_define  (void * session, XML * datasheet, const char * name, const char * storage) { return 0; } /* TODO: data aliases. */
+</pre></td></tr></table>
+
+Data manipulation requires more than just setting of constant values.  For that reason, there's a calculation function
+as well, which sets a value by evaluating its argument.  There will soon be an "eval:" datasource for doing calculations, but
+that's going to have to wait until sometime post-v1.0.  Basically, <code>wftk_value_calc</code> just runs <code>wftk_value_interpret</code>
+on its incoming value and sets the named value accordingly.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int    wftk_value_calc    (void * session, XML * datasheet, const char * name, const char * value) { return 0; }
+</pre></td></tr></table>
+
+Just for ease of use, we provide HTML formatting as part of the data type adaptor.  Here's where that gets done.  Note that
+what actually gets returned is HTML-like XML, not HTML.  Use the HTML functions from the XMLAPI to write it out.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML  * wftk_value_html      (void * session, XML * datasheet, const char * name)
+{
+   XML * field;
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return (xml_createtext (_wftk_value_special (session, datasheet, name)));
+
+   if (strchr (name, ':')) {
+      ad = wftk_get_adaptor (session, DATASTORE, name);
+      if (!ad) return 0;
+      data = wftk_call_adaptor (ad, "get", datasheet, name);
+      wftk_free_adaptor (session, ad);
+      field = xml_create ("input");
+      xml_set (field, "name", name);
+      xml_set (field, "value", xml_attrval (data, "value"));
+      xml_delete (data);
+      return (field);
+   }
+
+   data = wftk_value_find (session, datasheet, name);
+   if (!data) {
+      field = xml_create ("input");
+      xml_set (field, "name", name);
+      xml_set (field, "value", "");
+      return (field);
+   }
+
+   if (*xml_attrval (data, "type")) {
+      ad = wftk_get_adaptor (session, DATATYPE, xml_attrval (data, "type"));
+      if (ad) {
+         field = wftk_call_adaptor (ad, "html", datasheet, data);
+         wftk_free_adaptor (session, ad);
+         return (field);
+      }
+   }
+
+   field = xml_create ("input");
+   xml_set (field, "name", name);
+   if (*xml_attrval (data, "size")) {
+      xml_set (field, "size", xml_attrval (data, "size"));
+   }
+   if (!strcmp (xml_attrval (data, "null"), "yes")) {
+      xml_set (field, "value", "");
+   } else {
+      xml_set (field, "value", wftk_value_get (session, datasheet, name));
+   }
+
+   return (field);
+}
+
+XML  * wftk_value_htmlblank (void * session, XML * datasheet, const char * name)
+{
+   XML * field;
+   XML * data;
+   WFTK_ADAPTOR * ad;
+
+   if (!name) return 0;
+   if (*name == '!') return (xml_createtext (_wftk_value_special (session, datasheet, name)));
+
+   if (strchr (name, ':')) {
+      field = xml_create ("input");
+      xml_set (field, "name", name);
+      xml_set (field, "value", "");
+      return (field);
+   }
+
+   data = wftk_value_find (session, datasheet, name);
+   if (!data) {
+      field = xml_create ("input");
+      xml_set (field, "name", name);
+      xml_set (field, "value", "");
+      return (field);
+   }
+
+   if (*xml_attrval (data, "type")) {
+      ad = wftk_get_adaptor (session, DATATYPE, xml_attrval (data, "type"));
+      if (ad) {
+         field = wftk_call_adaptor (ad, "htmlblank", datasheet, data);
+         wftk_free_adaptor (session, ad);
+         return (field);
+      }
+   }
+
+   field = xml_create ("input");
+   xml_set (field, "name", name);
+   if (*xml_attrval (data, "size")) {
+      xml_set (field, "size", xml_attrval (data, "size"));
+   }
+   xml_set (field, "value", "");
+
+   return (field);
+}
+</pre></td></tr></table>
+
+And finally, for inspection of a datasheet, we'll want to be able to list values and get specific information about them.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int wftk_value_list    (void * session, XML * datasheet, XML * list) {
+   int counter = 0;
+   XML * pointer = xml_firstelem (datasheet);
+   XML * value;
+
+   if (!list) return 0;
+
+   while (pointer) {
+      if (!strcmp (pointer->name, "data")) {
+         counter++;
+         value = xml_create ("data");
+         xml_set (value, "id", xml_attrval (pointer, "id"));
+         xml_set (value, "value", wftk_value_get (session, datasheet, xml_attrval (pointer, "id"))); /* OK, not the most efficient method..*/
+         xml_set (value, "type", xml_attrval (pointer, "type"));
+         xml_append (list, value);
+      }
+      pointer = xml_nextelem (pointer);
+   }
+
+   xml_setnum (list, "count", counter);
+   return counter;
+}
+
+XML  * wftk_value_info    (void * session, XML * datasheet, const char * name) { return 0; }
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_request.html">Previous: Dealing with requests</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_status.html">Next: Getting and setting process status</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

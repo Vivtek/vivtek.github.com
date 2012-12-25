@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: Overview</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table>
+<tr><td><img src=logo.png>
+<td valign=top>
+<center>
+<h3>wftk: Overview</h3>
+[ <a href=index.html>documentation home</a> ]
+</center>
+</td></tr></table>
+
+<h3>The sections of a wftk system</h3>
+A typical wftk application is built around a <i>repository</i>,
+a set of data sources and a description of their relationships.
+Each record in a repository list is potentially a workflow-enabled object,
+meaning that the system registers tasks against it which must be completed
+by human beings or by queued program code.  (Tasks are themselves stored in the _tasks list
+in the repository.)  When a task is completed, or when some other
+workflow-active event occurs in the system, then the system invokes
+a workflow interpreter on a process definition in order to find out
+what must be done next.
+<p>
+The wftk system itself is broken into two major segments of code, the <i>repository
+manager (repmgr)</i>, which manages the data objects in the system, and the
+<i>wftk core engine</i>, which manages the purely workflow aspects of system operation,
+including the interpretation of process definitions.
+Each of these major modules interacts with external systems by calling functions
+grouped into <i>adaptors</i>, which can be seen as software drivers.  Many adaptors
+are shared between the two major modules, while others have meaning only in one
+context or the other.
+<table border="1" cellpadding="5" cellspacing="0" align="center"><tr><td bgcolor="#eeeeee">
+<i>Warning</i>: This document describes the goal state of wftk.  For version 1.0, only the
+core workflow engine is included, in a "wftk-bare" mode.  The repository manager and core engine have
+not yet been integrated as shown in the diagram below; this will be happening during July 2002 or I'm
+just going to shoot myself.  (Current note: this integration didn't happen in 2002, but it's largely finished.)
+After release of wftk core v1.0, I'll be releasing repmgr v1.0.  Subsequent
+integration work will probably be released as wftk v1.5.
+</td></tr></table>
+<p>
+<img src="overvw2.png" align="left">
+Application code interacts with wftk using either the repmgr API or the wftk core API;
+however, since the repository manager itself knows how to invoke the wftk API
+in response to various
+events, a workflow-oriented system may have no need at all to invoke the wftk core API directly.
+For applications which want to do pure workflow without the overhead of repository management,
+the wftk core is carefully independent of the repmgr.  The "wftk core" is in fact the version-1.0 distribution
+of the wftk; at present the repmgr is only available via the CVS repository.
+<p>
+The repository manager adds a great deal of logic for formatting text and building Websites;
+this code can also be used to maintain other "unstructured" text using the structured data sources
+making up a repository.  There is code derived from the Wiki Wiki Web paradigm which allows
+plain text to be processed into a formatted layout, enabling content producers to ignore
+formatting completely in many cases while writing, but still preserving their ability to affect
+formatting explicitly when they need to.
+<p>
+For more information on the workflow aspect of the wftk, see the <a href="background.html">workflow
+backgrounder</a>; it's got a fairly good presentation of what workflow is and what it can do for you.
+The beginnings of a new set of application examples are in <a href="examples/index.html">the wftk
+application section</a>.  There, it should soon be more apparent what wftk really is, and note that
+many of these examples are really repository-manager examples.
+<p>
+There aren't many examples of application code yet, besides the command-line utilities wrapped around
+the repmgr and the wftk core.  There is a popup window framework coming up which talks to the
+repository manager, and there are the Python wrappers for embedding repmgr and the XMLAPI into Python
+programs (a nice combination with Zope or wxWindows).  There will be more.  For a list of the
+things I'm working on right now in wftk, see the <a href="todo.html">to-do list</a>.  For a list of
+all the things that are <i>working</i> or in process, see the <a href="code.html">code overview</a>.
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2002 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

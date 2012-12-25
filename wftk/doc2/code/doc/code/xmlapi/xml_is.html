@@ -1,0 +1,80 @@
+<html><head><title>xmlapi: xml_is: Checking an object's name</title></head>
+<body>
+<h2>xml_is: Checking an object's name</h2>
+<center>
+[&nbsp;<a href="xml_attr.html">Previous: xml_attr*: Working with attributes</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_search.html">Next: xml_search: Searching trees for elements</a>&nbsp;]
+</center>
+
+<hr>
+<i>(July 8, 2001)</i>: OK, there was <i>one</i> more reason that XML * can't just be a void *.
+Eventually, XML structure will be completely opaque to the caller.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI int xml_is (XML * xml, const char * name)
+{
+   if (!xml) return 0;
+   if (!xml->name) return 0;
+   if (!strcmp (xml->name, name)) return 1;
+   return 0;
+}
+XMLAPI int xml_is_element (XML * xml)
+{
+   if (!xml) return 0;
+   if (!xml->name) return 0;
+   return 1;
+}
+</pre></td></tr></table>
+
+<i>July 18, 2001</i>: Sheesh.  This was a dumb omission.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI const char * xml_name (XML * xml)
+{
+   if (!xml) return 0;
+   return xml->name;
+}
+</pre></td></tr></table>
+
+<i>July 23, 2001</i>: This has got to stop!
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xml_parent (XML * xml)
+{
+   if (!xml) return 0;
+   return xml->parent;  /* Null if none, guaranteed. */
+}
+</pre></td></tr></table>
+
+<i>December 15, 2001</i>: At least the binary extension is a new addition.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void * xml_getbin (XML * xml)
+{
+   if (!xml) return 0;
+   return xml->extra;
+}
+XMLAPI void xml_setbin (XML * xml, void * bin, void (*cleanup) (void *))
+{
+   if (!xml) return;
+   xml->extra = bin;
+   xml->cleanup = cleanup;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_attr.html">Previous: xml_attr*: Working with attributes</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_search.html">Next: xml_search: Searching trees for elements</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

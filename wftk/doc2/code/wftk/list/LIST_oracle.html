@@ -1,0 +1,1436 @@
+<html><head><title>LIST adaptor: Oracle</title></head>
+<body>
+<h2>LIST adaptor: oracle</h2>
+<hr>
+<p></p>
+The Oracle list adaptor, of course, allows us to install an Oracle table (or view) as a list under a repository.  Like the other RDBMS list
+adaptors, this adaptor stores and reuses a connection which it stashes in a "connection" element in the repository definition.  This adaptor
+is basically Yet Another Boilerplate Adaptor.  Nothing to see, move along.  (Most of the heavy lifting was done two years ago when I wrote the
+Oracle task index adaptor.  Naturally, post-repmgr, task index adaptors are going the way of the dodo.)
+<p></p>
+The Oracle code in this beast just consists of OCI (Oracle Call Interface) calls.  OCI is the ancient C interface.  Nobody but me uses it
+anymore.
+<p></p>
+This adaptor got started on September 1, 2003, funded by startext GmbH (as so many things this summer).  It finally reached kinda-sorta completion
+(as in, supporting select, add, update, remove) by December.
+Before it was all over, it involved a pretty basic overhaul of the whole system of organization of the RDBMS adaptor code, which was much needed,
+as I have a horrible tendency to copy code instead of abstracting it (and I always regret it.)  (But I still keep doing it.)
+The initial attack will be ignoring attachments, but attachments will later be implemented
+as blobs.  The other blob usage will be for storage of any list fields which are not directly implemented as table columns.  The way this works
+is pretty simple.  We find the list of fields to be treated as table columns, and unset them in the object we're given.  Anything that remains
+is put into the "remainder" blob as XML.  This gives us the best of both worlds: fast real-DBMS indexing for the important fields, and total
+flexibility for the rest (not to mention the rest of our non-field functionality, like workflow state, version information, and so on.)
+<p></p>
+This is how all the DBMS adaptors will eventually work, but I have yet to implement it for any.  So many to-do points, so little time.
+<p></p>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include &lt;string.h>
+#include &lt;time.h>
+#include &lt;stdlib.h>
+#include &lt;sys/types.h>
+#include &lt;sys/stat.h>
+#include &lt;io.h>
+#include &lt;errno.h>
+#include &lt;oci.h>
+#include "xmlapi.h"
+#include "xmlobj.h"
+#include "../wftk.h"
+#include "../wftk_internals.h"
+
+XML * wftk_sql_build_select (XML * list, char * key,   WFTK_SQL_FORCE_MAPPING force);
+XML * wftk_sql_build_update (XML * list, XML * object, WFTK_SQL_FORCE_MAPPING force);
+XML * wftk_sql_build_insert (XML * list, XML * object, WFTK_SQL_FORCE_MAPPING force);
+XML * wftk_sql_build_delete (XML * list, char * key,   WFTK_SQL_FORCE_MAPPING force);
+static void _LIST_oracle_force_mapping (XML * field);
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "create",
+   "destroy",
+   "add",
+   "update",
+   "delete",
+   "get",
+   "query",
+   "first",
+   "next",
+   "rewind",
+   "prev",
+   "last",
+   "attach_open",
+   "attach_write",
+   "attach_close",
+   "attach_cancel",
+   "retrieve_open",
+   "retrieve_read",
+   "retrieve_close"
+};
+
+XML * LIST_oracle_init (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_free (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_info (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_create (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_destroy (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_add (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_update (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_delete (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_get (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_query (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_first (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_next (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_rewind (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_prev (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_last (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_attach_open (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_attach_write (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_attach_close (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_attach_cancel (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_retrieve_open (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_retrieve_read (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_oracle_retrieve_close (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   LIST_oracle_init,
+   LIST_oracle_free,
+   LIST_oracle_info,
+   LIST_oracle_create,
+   LIST_oracle_destroy,
+   LIST_oracle_add,
+   LIST_oracle_update,
+   LIST_oracle_delete,
+   LIST_oracle_get,
+   LIST_oracle_query,
+   LIST_oracle_first,
+   LIST_oracle_next,
+   LIST_oracle_rewind,
+   LIST_oracle_prev,
+   LIST_oracle_last,
+   LIST_oracle_attach_open,
+   LIST_oracle_attach_write,
+   LIST_oracle_attach_close,
+   LIST_oracle_attach_cancel,
+   LIST_oracle_retrieve_open,
+   LIST_oracle_retrieve_read,
+   LIST_oracle_retrieve_close
+};
+
+static struct wftk_adaptor_info _LIST_oracle_info =
+{
+   22,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct wftk_adaptor_info * LIST_oracle_get_info ()
+{
+   return &amp; _LIST_oracle_info;
+}
+</pre></td></tr></table>
+
+The adaptor can reuse an existing database connection, which is stashed in the binary handle of a "connection" element in the repository.
+This is getting a tad baroque, perhaps...  At any rate, if such a connection element is present, and it matches the parameter, then we'll
+use it, otherwise we'll create one.  Database connections are thus (probably) not going to close until the repository is closed.  Which
+makes sense to me.
+
+<p></p>
+The connection element looks like this, assuming a "wftk" service is properly defined in tnsnames.ora:<br>
+&lt;connection storage="oracle:wftk" conn="wftk" userid="wftk" password="wftk"/&gt;<br>
+Then we can reference it like this:<br>
+&lt;list id="..." storage="oracle:wftk"/&gt;<br>
+Thus the connection starts to look a lot like a predefined alias, see?  There should naturally be some kind of security for the
+password.  I simply haven't had time to think too hard about that.  I don't know the best way to deal with it.  If you have
+ideas, tell me.
+
+<p></p>
+Initialization of an Oracle connection isn't brain surgery, but it's not trivial, either.  Oracle
+maintains a <i>lot</i> of handles.  Yikes.  But before we get embroiled with connection, let's
+define a quick little error handler that will format up a readable message in times of woe.  This
+is largely taken from the sample code in the OCI documentation, but it's jazzed up a tad to fit in.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static sb4 _LIST_oracle_builderrmsg (XML * ap, const char * message, dvoid * errhp, sword status)
+{
+   text errbuf[512];
+   sb4 errcode = 0;
+
+   switch (status)
+   {
+   case OCI_SUCCESS_WITH_INFO:
+     xml_setf (ap, "error", "%s - OCI_SUCCESS_WITH_INFO", message);
+     break;
+   case OCI_NEED_DATA:
+     xml_setf (ap, "error", "%s - OCI_NEED_DATA", message);
+     break;
+   case OCI_NO_DATA:
+     xml_setf (ap, "error", "%s - OCI_NO_DATA", message);
+     break;
+   case OCI_ERROR:
+    *errbuf = '\0';
+    (void) OCIErrorGet((dvoid *)errhp, (ub4) 1, (text *) NULL, &amp;errcode,
+                        errbuf, (ub4) sizeof(errbuf), OCI_HTYPE_ERROR);
+     xml_setf (ap, "error", "%s - Oracle error %d: %s", message, errcode, errbuf);
+     break;
+   case OCI_INVALID_HANDLE:
+     xml_setf (ap, "error", "%s - OCI_INVALID_HANDLE", message);
+     break;
+   case OCI_STILL_EXECUTING:
+     xml_setf (ap, "error", "%s - OCI_STILL_EXECUTING", message);
+     break;
+   case OCI_CONTINUE:
+     xml_setf (ap, "error", "%s - OCI_CONTINUE", message);
+     break;
+  }
+  return errcode;
+}
+</pre></td></tr></table>
+
+OK.  On with the show.  As I was saying, Oracle builds a pretty complex set of connection structures.  Since we're
+doing things in a pretty simplified way, it's not as horrible as it <i>might</i> have been, but it's still more
+complicated than the setup for ODBC.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _LIST_oracle_handles {
+   OCIEnv *envhp;
+   OCIError *errhp;
+   OCISession *authp;
+   OCIServer *srvhp;
+   OCISvcCtx *svchp;
+   int ok;
+};
+
+void LIST_oracle_cleanup (struct _LIST_oracle_handles *handles)
+{
+   if (handles) {
+      if (handles->svchp) OCISessionEnd (handles->svchp, handles->errhp, NULL, OCI_DEFAULT);
+      if (handles->srvhp) OCIServerDetach (handles->srvhp, handles->errhp, OCI_DEFAULT);
+      if (handles->envhp) OCIHandleFree((dvoid *) (handles->envhp), OCI_HTYPE_ENV);
+      
+      /* TODO: probably need OCISessionEnd(), OCIServerDetach() */
+      free (handles);
+   }
+}
+
+XML * LIST_oracle_init (WFTK_ADAPTOR * ad, va_list args)
+{
+   const char * parms;
+   char * mark;
+   XML * repository = (XML *) ad->session;
+   XML * conn;
+   sword status;
+   struct _LIST_oracle_handles *handles;
+
+   parms = xml_attrval (ad->parms, "parm");
+   if (!*parms) {
+      xml_set (ad->parms, "error", "No oracle datasource specified");
+      return NULL;
+   }
+
+   /* Find or create connection. */
+   xml_setf (repository, "scratch", "oracle:%s", parms);
+   conn = xml_search (repository, "connection", "storage", xml_attrval (repository, "scratch"));
+   if (!conn) {
+      conn = xml_create ("connection"); /* TODO: this obviously is wrong. */
+      xml_set (conn, "storage", xml_attrval (repository, "scratch"));
+      xml_setf (conn, "conn", "DSN=%s", parms);
+      xml_setf (conn, "userid", "DSN=%s", parms);
+      xml_setf (conn, "password", "DSN=%s", parms);
+      xml_append (repository, conn);
+   }
+
+   /* Is connection already made?  If not, connect. */
+   handles = (struct _LIST_oracle_handles *) xml_getbin (conn);
+   if (!handles) {
+      handles = (struct _LIST_oracle_handles *) malloc (sizeof (struct _LIST_oracle_handles));
+      if (!handles) {
+        xml_set (ad->parms, "error", "Unable to allocate binary stash.");
+        return NULL;
+      }
+      handles->envhp = 0;
+      handles->ok = 0;
+   }
+   ad->bindata = (void *) handles;
+
+   if (!handles->ok) {
+      /* OK, let's connect to this database specified. */
+      /* -- Initialize OCI and make an environment. */
+      (void) OCIInitialize((ub4) OCI_DEFAULT, 0, 0, 0, 0);
+      (void) OCIEnvInit( (OCIEnv **) &amp;(handles->envhp), OCI_DEFAULT, 0, 0);
+      (void) OCIHandleAlloc( (dvoid *) (handles->envhp), (dvoid **) &amp;(handles->errhp), OCI_HTYPE_ERROR, 0, 0);
+
+      /* -- Server and service contexts */
+      (void) OCIHandleAlloc( (dvoid *) (handles->envhp), (dvoid **) &amp;(handles->srvhp), OCI_HTYPE_SERVER, 0, 0);
+      (void) OCIHandleAlloc( (dvoid *) (handles->envhp), (dvoid **) &amp;(handles->svchp), OCI_HTYPE_SVCCTX, 0, 0);
+      (void) OCIServerAttach( handles->srvhp, handles->errhp, (text *)xml_attrval (conn, "conn"), strlen(xml_attrval (conn, "conn")), 0);
+      xml_setf (ad->parms, "spec", "oracle:%s", xml_attrval (conn, "conn")); /* For logging, really. */
+
+      /* -- Attach server to service context and allocate an authentication context. */
+      (void) OCIAttrSet( (dvoid *) (handles->svchp), OCI_HTYPE_SVCCTX, (dvoid *)(handles->srvhp), 0, OCI_ATTR_SERVER, handles->errhp);
+      (void) OCIHandleAlloc((dvoid *) (handles->envhp), (dvoid **)&amp;(handles->authp), OCI_HTYPE_SESSION, 0, 0);
+
+      /* -- Set username and password in the authentication context. */
+      (void) OCIAttrSet((dvoid *) (handles->authp), (ub4) OCI_HTYPE_SESSION,
+                     (dvoid *) xml_attrval (conn, "userid"), (ub4) strlen(xml_attrval (conn, "userid")),
+                     (ub4) OCI_ATTR_USERNAME, handles->errhp);
+      (void) OCIAttrSet((dvoid *) (handles->authp), (ub4) OCI_HTYPE_SESSION,
+                     (dvoid *) xml_attrval (conn, "password"), (ub4) strlen(xml_attrval (conn, "password")),
+                     (ub4) OCI_ATTR_PASSWORD, handles->errhp);
+
+      /* -- Start session!  Finally! */
+      if (OCI_SUCCESS != (status = OCISessionBegin ( handles->svchp, handles->errhp, handles->authp, OCI_CRED_RDBMS, OCI_DEFAULT))) {
+         _LIST_oracle_builderrmsg (ad->parms, "Unable to connect to server", (dvoid *) (handles->errhp), status);
+         free ((void *)handles);
+         ad->bindata = 0;
+         return (XML *) 0;
+      }
+
+      /* -- And stash the authorization context in the service context.  Why this doesn't happen beforehand, I don't know. */
+      (void) OCIAttrSet((dvoid *) (handles->svchp), (ub4) OCI_HTYPE_SVCCTX,
+                        (dvoid *) (handles->authp), (ub4) 0,
+                        (ub4) OCI_ATTR_SESSION, handles->errhp);
+
+
+      handles->ok = 1;
+      xml_setbin (conn, handles, LIST_oracle_cleanup);
+   }
+
+   (ad->log)(ad->session, ad, 5, "initialized");
+   return (XML *) 0;
+}
+XML * LIST_oracle_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_oracle_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "list");
+   xml_set (info, "name", "oracle");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+<p></p>
+So.  Down to business.  I'm most interested in indexing at the moment, so I'm going to start with the add/mod/del functions, then do the
+create/destroy functions (the latter easy under SQL), and only then do querying and retrieval.  So.  Let's do it.  First off let's
+define a couple of helper functions.
+<p></p>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static void sql_escaped_append (XML * s, const char * q, const char * v)  /* TODO: move to wftk_sql module. */
+{
+   char * mark;
+   if (!v) return;
+   while (mark = strchr (v, '\'')) {
+      xml_attrncat (s, q, v, mark - v);
+      xml_attrcat (s, q, "'");
+      v = mark + 1;
+   }
+   xml_attrcat (s, q, v);
+}
+</pre></td></tr></table>
+<p></p>
+So.  Down to business.  Adding is first up.  Oracle makes it easy to add something and retrieve the (auto-generated) key of the
+record you just added, using a RETURNING clause in your SQL to tell
+Oracle what you want to see returned.   To do this in the OCI, however,
+requires us to define and pass a couple of callback functions to retrieve the data, as Oracle's
+RETURNING bind mechanism is both complex and powerful.  Kinda neat mechanism, really.  I do
+like Oracle; if it were open-source I'd probably use it an awful lot.
+<p></p>
+To make this work under Oracle requires more work than it does under most other databases (MySQL, for instance, has an AUTO_INCREMENT flag on a
+table column to make sure it always gets a unique -- and incidentally, uniformly increasing -- value).  For Oracle, you have to set up a
+separate <i>sequence</i> which will be used to generate key values:
+<pre>
+CREATE SEQUENCE mykeys;
+</pre>
+The default, of course, is to start at 1 and increment by 1.  The current value of this sequence would be mykeys.currval, while the next value (careful! --
+this increments the counter!) is mykeys.nextval.  Once the sequence is created, you can use it in queries -- the danger, of course, is that you must
+use it in insert queries yourself; Oracle won't mark a field as automagically increasing.  This simply means that our adaptor has to be careful, of course,
+and also has to know the name of the sequence to be used for the key for a given list.
+<p></p>
+Anyway, when using this construct to generate key values during insertion, you have to use callbacks if you want Oracle to tell you what key it
+just generated during your query.  These callbacks are pretty easy, really.  A dynamic bind takes two callbacks; the
+"in bind" returns data to Oracle and the "out bind" receives from Oracle.  In this case, we
+don't need the in bind, so we provide a dummy.  This is taken with very little modification
+from the Oracle example code.  (And pulled in without modification two years later.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static sb4 _LIST_oracle_insert_incallback (
+                                dvoid            *ictxp,
+                                OCIBind          *bindp,
+                                ub4              iter, 
+                                ub4              index, 
+                                dvoid            **bufpp,
+                                ub4              *alenp,
+                                ub1              *piecep, 
+                                dvoid            **indpp)
+{
+   *bufpp = (dvoid *) 0;
+   *indpp = (dvoid *) 0;
+   *alenp = 0;
+   *piecep = OCI_ONE_PIECE;
+   return OCI_CONTINUE;
+}
+</pre></td></tr></table>
+
+The out bind does the actual setting of the returning parameter; it's still pretty
+straightforward.  The "octxp" parameter is an arbitrary parameter that we define during
+the bind; we'll pass in a pointer to a little struct to describe the receiving buffer.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _LIST_oracle_insert_recvbuf {
+   char * data;
+   ub4  datalen;
+   ub1  indicator;
+   ub2  rcode;
+};
+static sb4 _LIST_oracle_insert_outcallback (
+                                dvoid            *octxp,
+                                OCIBind          *bindp,
+                                ub4              iter, 
+                                ub4              index, 
+                                dvoid            **bufpp, 
+                                ub4              **alenpp,
+                                ub1              *piecep,
+                                dvoid            **indpp, 
+                                ub2              **rcodepp)
+{
+   struct _LIST_oracle_insert_recvbuf * rb = (struct _LIST_oracle_insert_recvbuf *) octxp;
+   *bufpp = (dvoid *) (rb->data);
+   *alenpp = &amp;(rb->datalen);
+   *piecep = OCI_ONE_PIECE;
+   *indpp = &amp;(rb->indicator);
+   *rcodepp = &amp;(rb->rcode);
+   return OCI_CONTINUE;
+}
+</pre></td></tr></table>
+
+So with those defined, we can go ahead with the main insert (add) function.  The callbacks are only used if we really are
+auto-generating a key.  In this case, again, we have to know what the name for our key sequence is -- by default, the adaptor defines it
+as "%s_%s", which will get replaced as "listname_keyname" -- it can be overridden with a "keygen" attribute on the field definition.
+A kind of neat keygen is "'auto' || keys.nextvalue" -- this generates keys of the form "auto1", "auto2", etc.  This is handy if we want to
+keep track of which keys are autogenerated, and which may have come from explicit sources (a point that was well-supported in the wftk
+prototype, which used auto-generated keys for process-bound tasks, and let the user specify arbitrary keys for non-process ad-hoc tasks.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static void _LIST_oracle_force_mapping (XML * field);
+
+static XML * _LIST_oracle_add (WFTK_ADAPTOR * ad, XML * list, XML * object)
+{
+   struct _LIST_oracle_handles *handles = (struct _LIST_oracle_handles *) ad->bindata;
+   OCIStmt * stmthp;
+   sword status;
+   char namebuf[64];
+   OCIBind *bindp = 0;
+   OCILobLocator *lobp;
+   struct _LIST_oracle_insert_recvbuf rb;
+   char returning[256];
+   XML * handle = NULL;
+   char * value;
+   int valuelen;
+
+
+   XML * rest_xml = NULL;
+
+
+   if (!handles) {
+      xml_set (ad->parms, "error", "Database connection not initialized.");
+      return 0;
+   }
+   if (!handles->ok) {
+      xml_set (ad->parms, "error", "Database connection not initialized.");
+      return 0;
+   }
+
+   if (OCI_SUCCESS != (status = OCIHandleAlloc ((dvoid *) (handles->envhp), (dvoid **) &amp;stmthp, OCI_HTYPE_STMT, 0, 0)))
+   {
+      xml_set (ad->parms, "error", "Unable to allocate Oracle statement handle.");
+      return 0;
+   }
+
+   /* Build the query -- note that we have to do a little Oracle-specific setup before this will work properly,
+      and then we need the RETURNING clause to get our key back, if we're letting Oracle come up with the key. */
+   xml_set (list, "_now", "SYSDATE");
+   xml_set (list, "_blob", "EMPTY_CLOB()");
+   xml_set (list, "_keygen", "%s_%s.nextval"); /* This gets filled in with the list ID and field name of any marked key column found. */
+   rest_xml = wftk_sql_build_insert (list, object, (WFTK_SQL_FORCE_MAPPING) _LIST_oracle_force_mapping);
+   if (*xml_attrval (list, "_keycol")) {
+      xml_attrcat (list, "_insert", " returning ");
+      xml_attrcat (list, "_insert", xml_attrval (list, "_keycol"));
+      xml_attrcat (list, "_insert", " into :");
+      xml_attrcat (list, "_insert", xml_attrval (list, "_keycol"));
+   }
+
+   (ad->log)(ad->session, ad, 5, xml_attrval (list, "_insert"));
+
+   OCIStmtPrepare(stmthp, handles->errhp, (text *) xml_attrval (list, "_insert"), strlen(xml_attrval (list, "_insert")),
+                  (ub4) OCI_NTV_SYNTAX, (ub4) OCI_DEFAULT);
+
+   /* Do binding as necessary. */
+   if (*xml_attrval (list, "_keycol")) {
+      sprintf (namebuf, ":%s", xml_attrval (list, "_keycol"));
+      rb.data = returning;
+      memset (returning, '\0', sizeof(returning));
+      rb.datalen = sizeof(returning);
+      rb.indicator = 0;
+      rb.rcode = 0;
+      OCIBindByName (stmthp, &amp;bindp, handles->errhp, (text*)namebuf, strlen (namebuf), (dvoid *) 0, (sword) 256, SQLT_CHR, 0, 0, 0, 0, 0, OCI_DATA_AT_EXEC);
+      OCIBindDynamic (bindp, handles->errhp, NULL, _LIST_oracle_insert_incallback, &amp;rb, _LIST_oracle_insert_outcallback);
+   }
+
+   status = OCIStmtExecute(handles->svchp, stmthp, handles->errhp, 1, 0, NULL, NULL, rest_xml ? OCI_DEFAULT : OCI_COMMIT_ON_SUCCESS);
+   if (status == 1) {
+      xml_set (ad->parms, "error", "not unique");
+   } else if (status) {
+      xml_setf (ad->parms, "error", "Oracle error %d",
+         _LIST_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status));
+      OCITransRollback (handles->svchp, handles->errhp, 0);
+   }
+
+   if (*xml_attrval (list, "_keycol")) {
+      xmlobj_set (object, list, xml_attrval (list, "_keycol"), returning);
+      xml_set (object, "key", returning);
+   }
+
+   if (rest_xml &amp;&amp; !status) { /* Get LOB locator and write XML to it, then commit. */
+      OCIDescriptorAlloc(handles->envhp, &amp;lobp, OCI_DTYPE_LOB, 0, 0);
+      xml_setf (list, "_select", "select %s from %s where %s='%s' for update",
+                                  xml_attrval (rest_xml, "field"),
+                                  xml_attrval (list, "table"),
+                                  xml_attrval (list, "_keycol"),
+                                  xml_attrval (object, "key"));
+      (ad->log)(ad->session, ad, 5, xml_attrval (list, "_select"));
+
+      OCIStmtPrepare (stmthp, handles->errhp, (text *) xml_attrval (list, "_select"), strlen (xml_attrval (list, "_select")), OCI_NTV_SYNTAX, OCI_DEFAULT);
+      OCIDefineByPos (stmthp, &amp;bindp, handles->errhp, 1, (dvoid *)&amp;lobp, 0 , SQLT_CLOB, 0, 0, 0, OCI_DEFAULT);
+
+      status = OCIStmtExecute (handles->svchp, stmthp, handles->errhp, 1, 0, NULL, NULL, OCI_DEFAULT);
+      /*OCILobEnableBuffering (handles->svchp, handles->errhp, lobp);*/
+
+      /*handle = xml_create ("attachment-handle"); -- TODO: something like this
+      xml_setbin (handle, (void *) lobp, NULL);
+
+      xml_write_general ((void *) handle, (XMLAPI_DATAWRITE) _LIST_oracle*/
+
+      xml_unset (rest_xml, "list");
+      xml_unset (rest_xml, "key");
+      xml_unset (rest_xml, "storage");
+      xml_unset (rest_xml, "field");
+      value = xml_string (rest_xml);
+      valuelen = strlen (value);
+      status = OCILobWrite(handles->svchp, handles->errhp, lobp, &amp;valuelen, 1,
+                            (dvoid *) value, valuelen, OCI_ONE_PIECE, 0, 0, 0, SQLCS_IMPLICIT);
+      (ad->log)(ad->session, ad, 6, "writing LOB");
+      if (status == OCI_SUCCESS) {
+         OCITransCommit (handles->svchp, handles->errhp, 0);
+      } else {
+         xml_setf (ad->parms, "error", "Oracle error %d writing LOB",
+            _LIST_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status));
+         OCITransRollback (handles->svchp, handles->errhp, 0);
+      }
+      OCIDescriptorFree(lobp, OCI_DTYPE_LOB);
+      free (value);
+      xml_free (rest_xml);
+   } else if (rest_xml) xml_free (rest_xml);
+
+   OCIHandleFree((dvoid *) stmthp, OCI_HTYPE_STMT);
+
+
+   return NULL;
+}
+
+XML * LIST_oracle_add (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = NULL;
+   XML * obj = NULL;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   obj = va_arg (args, XML *);
+   if (!obj) {
+      xml_set (ad->parms, "error", "No object given.");
+      return (XML *) 0;
+   }
+
+   return _LIST_oracle_add (ad, list, obj);
+}
+</pre></td></tr></table>
+
+As with all updates in wftk, if this update fails because the row is missing, then we try an insertion instead.  This makes sense if your rule is that
+all objects have keys.  Which it is.  TODO: As comforting as this feature is, it probably doesn't work if Oracle is generating new keys on insertion.  So
+really we need to fix and test that situation.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * _LIST_oracle_update (WFTK_ADAPTOR * ad, XML * list, XML * object)
+{
+   struct _LIST_oracle_handles *handles = (struct _LIST_oracle_handles *) ad->bindata;
+   OCIStmt * stmthp;
+   sword status;
+   ub4 rows;
+   OCILobLocator *lobp;
+   OCIBind *bindp = 0;
+   XML * handle = NULL;
+   char * value;
+   int valuelen;
+
+   XML * rest_xml;
+
+   if (!handles) {
+      xml_set (ad->parms, "error", "Database connection not initialized.");
+      return 0;
+   }
+   if (!handles->ok) {
+      xml_set (ad->parms, "error", "Database connection not initialized.");
+      return 0;
+   }
+
+   xml_set (list, "_now", "SYSDATE");
+   xml_set (list, "_keygen", "%s_%s.nextval"); /* This gets filled in with the list ID and field name of any marked key column found. */
+   rest_xml = wftk_sql_build_update (list, object, (WFTK_SQL_FORCE_MAPPING) _LIST_oracle_force_mapping);
+   if (*xml_attrval (list, "_error")) {
+      xml_set (ad->parms, "error", xml_attrval (list, "_error"));
+      return 0;
+   }
+
+   if (OCI_SUCCESS != (status = OCIHandleAlloc ((dvoid *) (handles->envhp), (dvoid **) &amp;stmthp, OCI_HTYPE_STMT, 0, 0)))
+   {
+      xml_set (ad->parms, "error", "Unable to allocate statement handle.");
+      return 0;
+   }
+
+   (ad->log)(ad->session, ad, 5, xml_attrval (list, "_update"));
+
+   OCIStmtPrepare(stmthp, handles->errhp, (text *) xml_attrval (list, "_update"), strlen(xml_attrval (list, "_update")),
+                  (ub4) OCI_NTV_SYNTAX, (ub4) OCI_DEFAULT);
+
+   status = OCIStmtExecute(handles->svchp, stmthp, handles->errhp, 1, 0, NULL, NULL, rest_xml ? OCI_DEFAULT : OCI_COMMIT_ON_SUCCESS);
+   if (!status) {
+      OCIAttrGet ((dvoid *)stmthp, OCI_HTYPE_STMT, &amp;rows, NULL, OCI_ATTR_ROW_COUNT, handles->errhp);
+      if (rows == 0) {
+         OCITransRollback (handles->svchp, handles->errhp, 0);
+         OCIHandleFree((dvoid *) stmthp, OCI_HTYPE_STMT);
+         return (_LIST_oracle_add (ad, list, object));
+      }
+
+      if (status) {
+         _LIST_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+         OCITransRollback (handles->svchp, handles->errhp, 0);
+      }
+   }
+
+   if (rest_xml &amp;&amp; !status) { /* Get LOB locator and write XML to it, then commit. */
+      OCIDescriptorAlloc(handles->envhp, &amp;lobp, OCI_DTYPE_LOB, 0, 0);
+      xml_setf (list, "_select", "select %s from %s where %s='%s' for update",
+                                  xml_attrval (rest_xml, "field"),
+                                  xml_attrval (list, "table"),
+                                  xml_attrval (list, "key"),
+                                  xml_attrval (object, "key"));
+      (ad->log)(ad->session, ad, 5, xml_attrval (list, "_select"));
+
+      OCIStmtPrepare (stmthp, handles->errhp, (text *) xml_attrval (list, "_select"), strlen (xml_attrval (list, "_select")), OCI_NTV_SYNTAX, OCI_DEFAULT);
+      OCIDefineByPos (stmthp, &amp;bindp, handles->errhp, 1, (dvoid *)&amp;lobp, 0 , SQLT_CLOB, 0, 0, 0, OCI_DEFAULT);
+
+      status = OCIStmtExecute (handles->svchp, stmthp, handles->errhp, 1, 0, NULL, NULL, OCI_DEFAULT);
+      /*OCILobEnableBuffering (handles->svchp, handles->errhp, lobp);*/
+
+      /*handle = xml_create ("attachment-handle"); -- TODO: something like this
+      xml_setbin (handle, (void *) lobp, NULL);
+
+      xml_write_general ((void *) handle, (XMLAPI_DATAWRITE) _LIST_oracle*/
+
+      xml_unset (rest_xml, "list");
+      xml_unset (rest_xml, "key");
+      xml_unset (rest_xml, "storage");
+      xml_unset (rest_xml, "field");
+      value = xml_string (rest_xml);
+      valuelen = strlen (value);
+      status = OCILobWrite(handles->svchp, handles->errhp, lobp, &amp;valuelen, 1,
+                            (dvoid *) value, valuelen, OCI_ONE_PIECE, 0, 0, 0, SQLCS_IMPLICIT);
+      (ad->log)(ad->session, ad, 6, "writing LOB");
+      if (status == OCI_SUCCESS) {
+         OCILobTrim (handles->svchp, handles->errhp, lobp, valuelen);
+         OCITransCommit (handles->svchp, handles->errhp, 0);
+      } else {
+         xml_setf (ad->parms, "error", "Oracle error %d writing LOB",
+            _LIST_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status));
+         OCITransRollback (handles->svchp, handles->errhp, 0);
+      }
+      OCIDescriptorFree(lobp, OCI_DTYPE_LOB);
+      free (value);
+      xml_free (rest_xml);
+   } else if (rest_xml) xml_free (rest_xml);
+
+   OCIHandleFree((dvoid *) stmthp, OCI_HTYPE_STMT);
+
+   return 0;
+}
+
+XML * LIST_oracle_update (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * obj;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   obj = va_arg (args, XML *);
+   if (!obj) {
+      xml_set (ad->parms, "error", "No object given.");
+      return (XML *) 0;
+   }
+
+   return _LIST_oracle_update (ad, list, obj);
+}
+
+static XML * _LIST_oracle_delete (WFTK_ADAPTOR * ad, XML * list, char * key)
+{
+   struct _LIST_oracle_handles *handles = (struct _LIST_oracle_handles *) ad->bindata;
+   OCIStmt * stmthp;
+   sword status;
+   ub4 rows;
+
+   if (!handles) {
+      xml_set (ad->parms, "error", "Database connection not initialized.");
+      return 0;
+   }
+   if (!handles->ok) {
+      xml_set (ad->parms, "error", "Database connection not initialized.");
+      return 0;
+   }
+
+   wftk_sql_build_delete (list, key, (WFTK_SQL_FORCE_MAPPING) _LIST_oracle_force_mapping);
+   if (*xml_attrval (list, "_error")) {
+      xml_set (ad->parms, "error", xml_attrval (list, "_error"));
+      return 0;
+   }
+
+   /* Now execute the query we just built. */
+   if (OCI_SUCCESS != (status = OCIHandleAlloc ((dvoid *) (handles->envhp), (dvoid **) &amp;stmthp, OCI_HTYPE_STMT, 0, 0)))
+   {
+      xml_set (ad->parms, "error", "Unable to allocate statement handle.");
+      return 0;
+   }
+
+   (ad->log)(ad->session, ad, 5, xml_attrval (list, "_delete"));
+
+   status = OCIStmtPrepare(stmthp, handles->errhp, (text *) xml_attrval (list, "_delete"), strlen(xml_attrval (list, "_delete")),
+                  (ub4) OCI_NTV_SYNTAX, (ub4) OCI_DEFAULT);
+
+   status = OCIStmtExecute(handles->svchp, stmthp, handles->errhp, 1, 0, NULL, NULL, OCI_COMMIT_ON_SUCCESS);
+   /*OCIAttrGet ((dvoid *)stmthp, OCI_HTYPE_STMT, &amp;rows, NULL, OCI_ATTR_ROW_COUNT, handles->errhp); TODO: cd possibly return rows deleted. */
+   if (status) {
+      _LIST_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+   }
+
+   OCIHandleFree((dvoid *) stmthp, OCI_HTYPE_STMT);
+   return 0;
+}
+
+XML * LIST_oracle_delete (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   char * key;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+   if (!key) {
+      xml_set (ad->parms, "error", "No key given.");
+      return (XML *) 0;
+   }
+
+   return _LIST_oracle_delete (ad, list, key);
+}
+</pre></td></tr></table>
+
+Next stop: queries.  Naturally, queries are where RDBMS-type list adaptors will excel.  For now, I'm 
+going to omit any support for reverse scanning of query results; iteration will simply have to work
+in the forward direction only.  Frankly, I'm not even sure if there's any reason to care.
+<p></p>
+The query in this adaptor returns all known fields, as they're just as cheap to retrieve as not to
+retrieve (or close).  A full get will also retrieve links, at least it will later.  For now, that's
+not terribly important either.
+A common configuration for a repository is going to be a relatively restricted index which keys
+content stored in a local directory.  Thus a query will ask the RDBMS index, but a get will retrieve
+the file directly.
+
+<p></p>
+Like the directory adaptor, we define a separate scanner function which is used by both query and
+iteration calls.  If the latter, the context of the iteration must be stored.  The scanner in this
+case is called "select" -- what it does is to define the query and execute it.  The query function
+will read all results and return the resulting list; the iterator functions on the other hand will
+<i>not</i> do that, but rather will simply retrieve rows when asked.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static void _LIST_oracle_force_mapping (XML * field)
+{
+   const char * id;
+   if (*xml_attrval (field, "alias")) return;
+
+   id = xml_attrval (field, "id");
+        if (!strcmp (id, "user")) xml_set (field, "alias", "wftk_user"); /* TODO: case-insensitive mapping. */
+   else if (!strcmp (id, "role")) xml_set (field, "alias", "wftk_role");
+   /* TODO: anything else? */
+
+   if (!strncmp (xml_attrval (field, "storage"), "record:", 7)) { /* TODO: this logic is maybe more universal than belongs here. */
+      xml_set (field, "alias", xml_attrval (field, "storage") + 7);
+   }
+   if (!*xml_attrval (field, "alias")) xml_set (field, "alias", xml_attrval (field, "id"));
+}
+struct _LIST_oracle_select_handles {
+   OCIStmt * stmthp;
+   char ** names;
+   char ** mapped;
+   char ** values;
+   ub4 cols;
+   sb2 * indicators;
+   ub2 * sizes;
+   OCILobLocator *lobp;
+   int rest_xml_col;
+};
+static void _LIST_oracle_cleanup (WFTK_ADAPTOR *ad, XML * list)
+{
+   ub4 counter;
+   struct _LIST_oracle_select_handles *sh = (struct _LIST_oracle_select_handles *) xml_getbin (list);
+
+   if (sh) {
+      if (sh->names) { /* 2004-03-16 -- this was just "names" at first.  Hilarity ensued. */
+         for (counter = 0; counter < sh->cols; counter++) {
+            free ((void *) sh->names[counter]);
+            free ((void *) sh->mapped[counter]);
+            free ((void *) sh->values[counter]);
+         }
+         free ((void *) sh->names);
+         free ((void *) sh->sizes);
+         free ((void *) sh->indicators);
+         free ((void *) sh->values);
+      }
+      if (sh->lobp) OCIDescriptorFree(sh->lobp, OCI_DTYPE_LOB);
+      OCIHandleFree((dvoid *) (sh->stmthp), OCI_HTYPE_STMT);
+      free (sh);
+      xml_setbin (list, NULL, NULL);
+   }
+}
+
+static void _LIST_oracle_select (WFTK_ADAPTOR * ad, XML * list, char * key) {
+   struct _LIST_oracle_handles *handles = (struct _LIST_oracle_handles *) ad->bindata;
+   struct _LIST_oracle_select_handles *sh;
+
+   sword status;
+   char namebuf[64];
+   const char *value;
+   OCIBind *bindp = 0;
+   OCIDefine *defnp = 0;
+   OCIParam * parhp;
+   ub4 counter;
+   ub4 len;
+   const char * element;
+   const char * name;
+   int rows = 0;
+   int this_col_rest_xml;
+
+   XML * field;
+
+   if (!handles) return;
+   if (!handles->ok) return;
+
+
+   /* Prepare query from incoming list (and possibly the key value we're given. */
+   wftk_sql_build_select (list, key, (WFTK_SQL_FORCE_MAPPING) _LIST_oracle_force_mapping);
+
+   /* Allocate statement handle holder. */
+   sh = (struct _LIST_oracle_select_handles *) malloc (sizeof (struct _LIST_oracle_select_handles));
+   sh->names = NULL; sh->mapped = NULL; sh->values = NULL; sh->indicators = NULL; sh->sizes = NULL;
+   sh->lobp = NULL; sh->cols = 0;
+
+   status = OCIHandleAlloc ((dvoid *) (handles->envhp), (dvoid **) &amp;(sh->stmthp), OCI_HTYPE_STMT, 0, 0);
+   if (status != OCI_SUCCESS) {
+      OCIHandleFree((dvoid *) (sh->stmthp), OCI_HTYPE_STMT);
+      free ((void *) sh);
+      return;
+   }
+
+   xml_setbin (list, sh, NULL); /* Must remember to clean up manually. */
+
+   /* Prepare and execute statement. */
+   (ad->log)(ad->session, ad, 5, xml_attrval (list, "_select"));
+   OCIStmtPrepare(sh->stmthp, handles->errhp, (text *) xml_attrval (list, "_select"), strlen(xml_attrval (list, "_select")),
+                  (ub4) OCI_NTV_SYNTAX, (ub4) OCI_DEFAULT);
+   status = OCIStmtExecute(handles->svchp, sh->stmthp, handles->errhp, 0, 0, NULL, NULL, OCI_COMMIT_ON_SUCCESS);
+   if (status) {
+      if (status != OCI_NO_DATA) { /* No rows are just no rows.  Not an error. */
+         _LIST_oracle_builderrmsg (ad->parms, "Oracle error", (dvoid *) (handles->errhp), status);
+         _LIST_oracle_cleanup (ad, list);
+         return;
+      } else {
+        (ad->log)(ad->session, ad, 7, "no data");
+      }
+   }
+
+   /* Got through that OK.  Now let's build some field binding space and bind it to the query as setup for our retrieval. */
+   OCIAttrGet((dvoid*) sh->stmthp, OCI_HTYPE_STMT, (dvoid*) &amp;(sh->cols), (ub4 *) 0, (ub4) OCI_ATTR_PARAM_COUNT, handles->errhp);
+
+   sh->names  = (char **) malloc (sh->cols * sizeof (char *));
+   sh->mapped = (char **) malloc (sh->cols * sizeof (char *));
+   sh->values = (char **) malloc (sh->cols * sizeof (char *));
+   sh->sizes  = (ub2 *)   malloc (sh->cols * sizeof (ub2));
+   sh->indicators = (sb2 *) malloc (sh->cols * sizeof (sb2));
+   sh->lobp = 0;
+   sh->rest_xml_col = -1;
+
+   for (counter = 1; counter &lt;= sh->cols; counter++) {
+      OCIParamGet(sh->stmthp, OCI_HTYPE_STMT, handles->errhp, &amp;parhp, counter);
+      len = 64;
+      this_col_rest_xml = 0;
+      sh->names[counter - 1] = (char *) malloc (len + 1);
+      sh->mapped[counter - 1] = (char *) malloc (len + 1); /* This caused me two days' frantic despair in January, 2004. */
+      OCIAttrGet((dvoid*) parhp, OCI_DTYPE_PARAM, (dvoid*) &amp;name, (ub4 *) &amp;len, (ub4) OCI_ATTR_NAME, handles->errhp);
+      if (len > 64) len = 64; /* Just in case somebody someday goes a little overboard with naming, we don't want a buffer overflow. */
+      strncpy (sh->names[counter-1], name, (size_t) len);
+      sh->names[counter-1][len] = '\0';
+      strlwr (sh->names[counter-1]);
+
+      /* Scan list spec for any fields with case-insensitively identical names which might be capitalized.  If one's found, use its capitalization. */
+      /* 6 Jan 2004: Realization: this is where we check for mappings, too. */
+      for (field = xml_firstelem (list); field; field = xml_nextelem (field)) {
+         if (xml_is (field, "field")) {
+            if (len == strlen (xml_attrval (field, "alias"))) {
+               strncpy (namebuf, xml_attrval (field, "alias"), len);
+               namebuf[len] = '\0';
+               strlwr (namebuf);
+               if (!strcmp (namebuf, sh->names[counter-1])) {
+                  if (!strcmp (xml_attrval (field, "special"), "rest_xml")) this_col_rest_xml = 1;
+                  free (sh->names[counter-1]);
+                  sh->names[counter-1] = strdup (xml_attrval (field, "id"));
+                  break;
+               }
+            }
+         }
+      }
+
+      OCIAttrGet((dvoid*) parhp, OCI_DTYPE_PARAM, (dvoid*) &amp;(sh->sizes[counter-1]), 0, OCI_ATTR_DATA_SIZE, handles->errhp);
+      if (sh->sizes[counter-1] < 32) sh->sizes[counter-1] = 32; /* Dates return 7 bytes, but expand when converted to strings. */
+      sh->values[counter - 1] = (char *) malloc (sh->sizes[counter-1] + 1);
+      /*xml_setf (ad->parms, "log", "binding %s[%d]", sh->names[counter-1], sh->sizes[counter-1]);
+      (ad->log)(ad->session, ad, 6, xml_attrval (ad->parms, "log"));*/
+      if (this_col_rest_xml &amp;&amp; !sh->lobp) {
+         xml_setf (ad->parms, "log", "binding %s as CLOB", sh->names[counter-1]);
+         (ad->log)(ad->session, ad, 6, xml_attrval (ad->parms, "log"));
+         sh->rest_xml_col = counter-1;
+         OCIDescriptorAlloc(handles->envhp, &amp;(sh->lobp), OCI_DTYPE_LOB, 0, 0);
+         OCIDefineByPos (sh->stmthp, &amp;defnp, handles->errhp, 
+                         counter, (dvoid *) &amp;(sh->lobp), 0, 
+                         SQLT_CLOB, &amp;(sh->indicators[counter-1]), 0, 0, OCI_DEFAULT);
+      } else {
+         OCIDefineByPos (sh->stmthp, &amp;defnp, handles->errhp, 
+                         counter, sh->values[counter-1], sh->sizes[counter-1] + 1, 
+                         SQLT_STR, &amp;(sh->indicators[counter-1]), 0, 0, OCI_DEFAULT);
+      }
+   }
+
+   xml_set (list, "_status", "started");
+}
+</pre></td></tr></table>
+
+Selection is only half the battle, though; we also need retrieval.
+<p></p>
+<i>March 5, 2004</i>: OK, so now we're also doing LOB retrieval, because if there is a rest_xml value, then a lot of our object may
+be in the LOB.  This will get reused for LOB attachments as well.  Our additions consist of a structure to contain handles and status,
+plus a fetch function to grab data.  Then we pass the fetch function to xml_parse_general, and voila, we're reading XML from a BLOB.
+
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _LIST_oracle_lob_structure {
+   struct _LIST_oracle_handles *handles;
+   OCILobLocator *clob;
+   ub4 offset;
+   sword status;
+};
+size_t _LIST_oracle_lob_fetch (char * buf, size_t chunk, size_t num, void * st)
+{
+   XML * error;
+   struct _LIST_oracle_lob_structure *state = (struct _LIST_oracle_lob_structure *) st;
+   ub4 value_len = 0;
+
+   state->status = OCILobRead(state->handles->svchp, state->handles->errhp, state->clob, &amp;value_len,
+                       state->offset, (dvoid *) buf, num*chunk, 0, 0, 0, SQLCS_IMPLICIT);
+
+   state->offset += value_len;
+
+   if (state->status == OCI_NEED_DATA) return num; /* There is more. */
+   if (state->status == OCI_SUCCESS) return value_len / chunk; /* Retrieved a partial piece. */
+   return 0; /* Error.  I wonder what will happen? */
+}
+</pre></td></tr></table>
+
+Now for the main retrieval function.  Retrieval takes a currently active statement handle and attempts
+to retrieve a row from it; if there is no row, it fails (and sets a flag in the list.)  Retrieval will be used for the "get" function
+as well.
+<p></p>
+Retrieval takes a flag "save_row" by which the caller indicates whether the retrieved row should be appended to the list or not.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * _LIST_oracle_retrieve (WFTK_ADAPTOR * ad, XML * list, int save_row) {
+   sword status;
+   XML * ret = NULL;
+   ub4 counter;
+   struct _LIST_oracle_lob_structure * lobst = NULL;
+
+   struct _LIST_oracle_handles *handles = (struct _LIST_oracle_handles *) ad->bindata;
+   struct _LIST_oracle_select_handles *sh = (struct _LIST_oracle_select_handles *) xml_getbin (list);
+
+   if (!handles) return (XML *) 0;
+   if (!handles->ok) return (XML *) 0;
+   if (!sh) return (XML *) 0;
+
+   status = OCIStmtFetch (sh->stmthp, handles->errhp, 1, OCI_FETCH_NEXT, OCI_DEFAULT);
+   if (status != OCI_SUCCESS) {
+      _LIST_oracle_cleanup (ad, list);
+      xml_setbin (list, NULL, NULL);
+      xml_set (list, "_status", "complete");
+      (ad->log)(ad->session, ad, 6, "done");
+      return (XML *) 0;
+   }
+   xml_set (list, "_status", "reading");
+
+   if (sh->lobp) {
+      /* Retrieve contents of LOB and parse the XML out. */
+      lobst = (struct _LIST_oracle_lob_structure *) malloc (sizeof (struct _LIST_oracle_lob_structure));
+      lobst->handles = handles;
+      lobst->clob = sh->lobp;
+      lobst->offset = 1;
+      lobst->status = 0;
+
+      ret = xml_parse_general ((void *)lobst, _LIST_oracle_lob_fetch);
+      if (xml_is (ret, "xml-error")) {
+         xml_set (ad->parms, "error", "Bad XML in rest_xml CLOB.");
+         printf ("%s\n", xml_string (ret));
+         xml_free (ret);
+         ret = NULL;
+      }
+
+      free (lobst);
+   }
+   if (!ret) {
+      ret = xml_create (*xml_attrval (list, "element") ? xml_attrval (list, "element") : "record");
+   }
+   if (save_row) xml_append (list, ret);
+
+   for (counter = 0; counter &lt; sh->cols; counter++) {
+       if (counter == sh->rest_xml_col) continue;
+       if (sh->indicators[counter] != -1) {
+           xmlobj_set (ret, list, sh->names[counter], sh->values[counter]);
+       } else {
+           xmlobj_set (ret, list, sh->names[counter], "");
+       }
+   }
+
+
+   xml_set_nodup (ret, "id", xmlobj_getkey (ret, list));
+   xml_setf (ad->parms, "log", "fetched row %s", xml_attrval (ret, "id"));
+   (ad->log)(ad->session, ad, 6, xml_attrval (ad->parms, "log"));
+
+   return ret;
+}
+</pre></td></tr></table>
+
+Now that we know how to select and retrieve, we have all the building blocks we need to define the adaptor functionality (query, iteration,
+and get.)  For this sort of usage, the list is assumed to be a <i>copy</i> of the repository's list definition, because it will be used
+to store cursor information.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_oracle_query (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * list;
+   int count = 0;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   _LIST_oracle_select (ad, list, NULL); /* NULL = no specific key. */
+
+   /* Retrieve all results. */
+   while (_LIST_oracle_retrieve (ad, list, 1)) { /* 1 = save row in list. */
+      count ++;
+   }
+
+   xml_set (list, "_status", "complete");
+
+   _LIST_oracle_cleanup (ad, list);
+
+   xml_setnum (list, "count", count);
+   return list;
+}
+</pre></td></tr></table>
+
+Iteration is the same thing, really, except that we don't save anything while iterating.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_oracle_first (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   _LIST_oracle_select (ad, list, NULL);
+
+   return _LIST_oracle_retrieve (ad, list, 0);
+}
+XML * LIST_oracle_next (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   return _LIST_oracle_retrieve (ad, list, 0);
+}
+XML * LIST_oracle_rewind (WFTK_ADAPTOR * ad, va_list args) {
+   xml_set (ad->parms, "error", "'rewind' command not supported under oracle");
+}
+XML * LIST_oracle_prev (WFTK_ADAPTOR * ad, va_list args)
+{
+   xml_set (ad->parms, "error", "'prev' command not supported under oracle");
+}
+XML * LIST_oracle_last (WFTK_ADAPTOR * ad, va_list args)
+{
+   xml_set (ad->parms, "error", "'last' command not supported under oracle");
+}
+</pre></td></tr></table>
+
+Retrieval of a single keyed record is pretty easy -- we just make a copy of the list spec as cursor,
+perform the retrieval query with the key attached, save the result, free the list copy, and return
+the result.  The result may be NULL, if the key doesn't exist, which is exactly what we want.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_oracle_get (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * list;
+   char * key;
+   XML * copy;
+   XML * ret;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+   copy = xml_copy (list);
+
+   _LIST_oracle_select (ad, copy, key);
+   ret = _LIST_oracle_retrieve (ad, copy, 0);
+
+   _LIST_oracle_cleanup (ad, copy);
+   xml_free (copy);
+
+   return ret;
+}
+</pre></td></tr></table>
+
+Creation and destruction of lists (i.e. tables) will be fairly straightforward DML -- but I'm unsure whether I should be checking for
+table existence or not.  There are a lot of potential traps as far as consistency is concerned, as a constant field may be used to allow
+lists to share a table -- but that means if one list drops/creates the table, the others are disrupted.  Likewise, there needs to be some
+sort of logic allowing lists of different structure either to share the table or at least to note that they can't.  So (since I don't
+really need this yet) I'm going to leave it for later.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_oracle_create (WFTK_ADAPTOR * ad, va_list args)
+{
+   return NULL;
+}
+XML * LIST_oracle_destroy (WFTK_ADAPTOR * ad, va_list args)
+{
+   return NULL;
+}
+</pre></td></tr></table>
+
+
+So (<i>January 12, 2002</i>) the next thing to address is attachments.  I think it's likely that handling
+attachments will be the last new thing that the list storage adaptor will have to handle itself.  At any
+rate, an attachment is a regular field value, except it is generally stored separately from the object.
+As far as storage is concerned, attachments are pretty straightforward: they're files, or something
+like files.  You open them, set their MIME types, read and write to streams, close them.
+
+<p></p>
+It's important to realize that actually telling the object where its attachment is stored is up to the repository
+manager library, <i>not</i> the adaptor.  I waffled about this a lot, but essentially the list adaptor shouldn't
+be dependent on the repmgr, so that precludes any knowledge of the structure of record objects, and so (for instance)
+to open an attachment for retrieval, the repmgr will simply give the adaptor back whatever the adaptor told it earlier
+was the "location" of the attachment.  In our case here, this is a filename local to the adaptor's controlled directory,
+but in a database it may be a unique key into a BLOB table or something.
+
+<p></p>
+TODO: all the stuff below is from localdir, of course -- needs to be written for any RDBMS at all, but Oracle, too.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_oracle_attach_open (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   char * key;
+   char * field;
+   char * filename;
+   struct stat statbuf;
+   XML * mark;
+   XML * ret;
+   FILE * file;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+   field = va_arg (args, char *);
+   filename = va_arg (args, char *);
+
+   /* If we're not given a fieldname, then we'll just scan the list definition to find the first "document"-type field. */
+   if (!field) {
+      mark = xml_search (list, "field", "type", "document");
+      if (!mark) {
+         xml_set (ad->parms, "error", "No attachment field given and no default exists.");
+         return NULL;
+      }
+      field = (char *) xml_attrval (mark, "id");
+   }
+
+   ret = xml_create ("attachment-handle");
+
+   xml_set (ret, "dir", xml_attrval (ad->parms, "basedir"));
+   if (!*xml_attrval (ad->parms, "subdir")) xml_set (ad->parms, "subdir", xml_attrval (list, "id"));
+   if (strcmp (xml_attrval (ad->parms, "subdir"), ".")) {
+      xml_attrcat (ret, "dir", xml_attrval (ad->parms, "subdir"));
+      xml_attrcat (ret, "dir", "/");
+   }
+   xml_setf (ret, "adaptor", "oracle:%s", xml_attrval (ret, "dir"));
+
+   /* If we're supplied with a filename, then that file can't already exist in our controlled
+      directory. */
+   if (filename &amp;&amp; *filename) {
+      xml_setf (ret, "location", filename);
+      xml_setf (ret, "file", "%s%s", xml_attrval (ret, "dir"), filename);
+      xml_set (ret, "tempfile", xml_attrval (ret, "file"));
+      if (stat (xml_attrval (ret, "file"), &amp;statbuf) != -1) { /* File exists already. */
+         xml_setf (ad->parms, "error", "File %s is already present.", filename);
+         xml_free (ret);
+         return NULL;
+      }
+   } else {
+      xml_setf (ret, "location", "_att_%s_%s.dat", key, field);
+      xml_setf (ret, "file", "%s%s", xml_attrval (ret, "dir"), xml_attrval (ret, "location"));
+      xml_setf (ret, "tempfile", "%s_newatt_%s_%s.dat", xml_attrval (ret, "dir"), key, field);
+   }
+
+   file = fopen (xml_attrval (ret, "file"), "w");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Unable to open file %s for writing.", xml_attrval (ret, "file"));
+      xml_free (ret);
+      return NULL;
+   }
+
+   xml_setbin (ret, file, fclose);
+   xml_set (ret, "content-type", "text/plain");
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+Writing and closing are easy -- note that when closing the attachment, we do nothing else; the repository manager wrapped around this
+adaptor will take care of writing any location information into the object for the attachment, any version-control work, or whatever
+else.  Otherwise we'd be duplicating that logic in every adaptor, which doesn't make a lot of sense.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_oracle_attach_write (WFTK_ADAPTOR * ad, va_list args) {
+   void * buffer;
+   int size, number;
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   buffer = va_arg (args, void *);
+   size = va_arg (args, int);
+   number = va_arg (args, int);
+   handle = va_arg (args, XML *);
+
+   xml_setnum (handle, "last-write", fwrite (buffer, size, number, xml_getbin(handle)));
+   return NULL;
+}
+XML * LIST_oracle_attach_cancel (WFTK_ADAPTOR * ad, va_list args) {
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   handle = va_arg (args, XML *);
+
+   fclose (xml_getbin (handle));
+   unlink (xml_attrval (handle, "tempfile"));
+   return NULL;
+}
+XML * LIST_oracle_attach_close (WFTK_ADAPTOR * ad, va_list args) {
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   handle = va_arg (args, XML *);
+
+   fclose (xml_getbin (handle));
+   rename (xml_attrval (handle, "tempfile"), xml_attrval (handle, "file"));
+   return NULL;
+}
+</pre></td></tr></table>
+
+Retrieval is easier than attachment, because we already have a filename.  The filename is stored in the object, using the attribute
+"filename" -- this reserves the content of the field element for version control or whatever else may be appropriate.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_oracle_retrieve_open (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = NULL;
+   XML * fld;
+   char * key;
+   char * field;
+   XML * mark;
+   XML * ret;
+   FILE * file;
+   WFTK_ADAPTOR * ad2;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+   fld = va_arg (args, XML *);
+
+   ret = xml_create ("attachment-handle");
+
+   xml_set (ret, "dir", xml_attrval (ad->parms, "basedir"));
+   if (!*xml_attrval (ad->parms, "subdir")) xml_set (ad->parms, "subdir", xml_attrval (list, "id"));
+   if (strcmp (xml_attrval (ad->parms, "subdir"), ".")) {
+      xml_attrcat (ret, "dir", xml_attrval (ad->parms, "subdir"));
+      xml_attrcat (ret, "dir", "/");
+   }
+   xml_setf (ret, "adaptor", "oracle:%s", xml_attrval (ret, "dir"));
+
+   if (fld) {
+      xml_set (ret, "location", xml_attrval (fld, "location"));
+   }
+   if (!*xml_attrval (ret, "location")) xml_setf (ret, "location", "_att_%s_%s.dat", key, xml_attrval (fld, "id"));
+   xml_setf (ret, "file", "%s%s", xml_attrval (ret, "dir"), xml_attrval (ret, "location"));
+
+   file = fopen (xml_attrval (ret, "file"), "r");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Unable to open file %s for reading.", xml_attrval (ret, "location"));
+      xml_free (ret);
+      return NULL;
+   }
+
+   xml_setbin (ret, file, fclose);
+   xml_set (ret, "content-type", "text/plain");
+
+   return (ret);
+}
+XML * LIST_oracle_retrieve_read (WFTK_ADAPTOR * ad, va_list args) {
+   void * buffer;
+   int size, number;
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   buffer = va_arg (args, void *);
+   size = va_arg (args, int);
+   number = va_arg (args, int);
+   handle = va_arg (args, XML *);
+
+   xml_setnum (handle, "last-read", fread (buffer, size, number, xml_getbin(handle)));
+   return NULL;
+}
+XML * LIST_oracle_retrieve_close (WFTK_ADAPTOR * ad, va_list args) {
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   handle = va_arg (args, XML *);
+
+   fclose (xml_getbin (handle));
+   return NULL;
+}
+
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,502 @@
+<html><head><title>JNI wrapper: testing class(es)</title></head>
+<body>
+<h2>JNI wrapper: testing class(es) (or: how to write a console app in Java)</h2>
+<center>
+[<a href="index.html">wftk-j</a> ] [ <a href="wrappertest.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+The wrappertest class is actually significant more as a point of departure than anything else,
+as it's the first code I wrote while putting together the build environment for the wrapper.
+Essentially, all it's going to do is to create some wftk objects, do things to them, and write
+some things to stdout.  What we do after that, I don't know.  It would be logical to look at some
+existing Java test code, I suppose.
+<p></p>
+Anyway, down to business.  Writing a console app in Java is simple: you just declare a class, and
+make sure it has a "main" method.  Then, you run it with, e.g. "java wrappertest" and you're in
+business.
+<p></p>
+In our case, the main method will call a series of individual testing methods, which will be defined
+below.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>import org.wftk.*;
+
+class wrappertest {
+   public static void main(String[] args) {
+      try {
+         System.out.println ("test_1 (create, string) - " + test_1() + "\n");
+      } catch (Exception e) {
+         System.out.println ("Exception in test_1 (create, string): " + e);
+      }
+      try {
+         System.out.println ("test_2 (attributes I) - " + test_2() + "\n");
+      } catch (Exception e) {
+         System.out.println ("Exception in test_2 (attributes I): " + e);
+      }
+      try {
+         System.out.println ("test_3 (text nodes) - " + test_3() + "\n");
+      } catch (Exception e) {
+         System.out.println ("Exception in test_3 (text nodes): " + e);
+      }
+      try {
+         System.out.println ("test_4 (append) - " + test_4() + "\n");
+      } catch (Exception e) {
+         System.out.println ("Exception in test_4 (append): " + e);
+      }
+      try {
+         System.out.println ("test_5 (parsing) - " + test_5() + "\n");
+      } catch (Exception e) {
+         System.out.println ("Exception in test_5 (parsing): " + e);
+      }
+      try {
+         System.out.println ("test_6 (loc) - " + test_6() + "\n");
+      } catch (Exception e) {
+         System.out.println ("Exception in test_6 (loc): " + e);
+      }
+      try {
+         System.out.println ("test_7 (copy, replace) - " + test_7() + "\n");
+      } catch (Exception e) {
+         System.out.println ("Exception in test_7 (copy, replace): " + e);
+      }
+
+      try {
+         System.out.println ("test_simple_soap_1 - " + test_simple_soap_1());
+      } catch (Exception e) {
+         System.out.println ("Exception in test_simple_soap_1: " + e);
+      }
+
+      try {
+         System.out.println ("test_repos_soap_1 - " + test_repos_soap_1());
+      } catch (Exception e) {
+         System.out.println ("Exception in test_repos_soap_1: " + e);
+      }
+   }
+   public static String test_1() throws Exception {
+      <i>See <a href="wrappertest.html#test_1">Basic XMLAPI functionality</a></i>
+   }
+   public static String test_2() throws Exception {
+      <i>See <a href="wrappertest.html#test_2">Basic attribute access</a></i>
+   }
+   public static String test_3() throws Exception {
+      <i>See <a href="wrappertest.html#test_3">Basic character data access</a></i>
+   }
+   public static String test_4() throws Exception {
+      <i>See <a href="wrappertest.html#test_4">Basic character data access</a></i>
+   }
+   public static String test_5() throws Exception {
+      <i>See <a href="wrappertest.html#test_5">Parsing</a></i>
+   }
+   public static String test_6() throws Exception {
+      <i>See <a href="wrappertest.html#test_6">Finding pieces of XML with xml_loc</a></i>
+   }
+   public static String test_7() throws Exception {
+      <i>See <a href="wrappertest.html#test_7">More manipulation (copy and replace)</a></i>
+   }
+   public static String test_simple_soap_1() throws Exception {
+      <i>See <a href="wrappertest.html#test_simple_soap_1">Simple SOAP client</a></i>
+   }
+   public static String test_repos_soap_1() throws Exception {
+      <i>See <a href="wrappertest.html#test_repos_soap_1">Repository SOAP client</a></i>
+   }
+}
+</pre></td></tr></table>
+
+<br><br>
+<a name="test_1">
+<i>Basic XMLAPI functionality</i><br>
+The first item on the agenda is just to ensure that our wrapper is functioning at all.  To this end,
+we create an xml object, convert it to a string, and make sure that the string we get is the one we expected.
+That's pretty easy.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>xml    xml = new xml();
+String str = "not called";
+
+xml.create ("element");
+str = xml.string ();
+xml.close();
+if ("<element/>".equals(str)) return ("ok");
+return ("fail: " + str);
+</pre></td></tr></table>
+
+This test first succeeded at 8:45 AM on Sunday, 24 August, 2003, and the next shortly thereafter.
+The wftk-j project is actually happening.
+<br><br>
+<a name="test_2">
+<i>Basic attribute access</i><br>
+Next, we test setting and getting of attribute values.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>xml     xml = new xml();
+boolean everything_ok = true;
+String  problem = "";
+String  str;
+
+xml.create ("element");
+xml.set ("attr1", "value1");
+xml.set ("attr2", "value2");
+str = xml.attrval ("attr1");
+if (!str.equals("value1")) { everything_ok=false; problem += str + " "; }
+str = xml.string ();
+if (!str.equals("<element attr1=\"value1\" attr2=\"value2\"/>")) { everything_ok=false; problem += str + " "; }
+xml.unset ("attr2");
+str = xml.string ();
+if (!str.equals("<element attr1=\"value1\"/>")) { everything_ok=false; problem += str + " "; }
+
+xml.close();
+if (everything_ok) return ("ok");
+return ("fail: " + str);
+</pre></td></tr></table>
+
+<br><br>
+<a name="test_3">
+<i>Basic character data access</i><br>
+Next, we test creation and accretion of text elements.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>xml     xml = new xml();
+boolean everything_ok = true;
+String  problem = "";
+String  str;
+
+xml.createtext ("this is a text node");
+str = xml.string ();
+if (!str.equals("this is a text node")) { everything_ok=false; problem += str + " "; }
+
+xml.textcat (" - right?");
+str = xml.string ();
+if (!str.equals("this is a text node - right?")) { everything_ok=false; problem += str + " "; }
+
+xml.close();
+if (everything_ok) return ("ok");
+return ("fail: " + str);
+</pre></td></tr></table>
+
+<br><br>
+<a name="test_4">
+<i>Basic character data access</i><br>
+Appending of elements is the last thing we need to build a parser.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>xml     xml1 = new xml();
+xml     xml2 = new xml();
+boolean everything_ok = true;
+String  problem = "";
+String  str;
+
+xml1.create ("top");
+xml2.create ("child");
+xml1.append (xml2);
+str = xml1.string ();
+if (!str.equals("&lt;top>&lt;child/>&lt;/top>")) { everything_ok=false; problem += str + " "; }
+
+xml2.close ();
+xml2.create ("child2");
+xml1.prepend (xml2);
+str = xml1.string ();
+if (!str.equals("&lt;top>&lt;child2/>&lt;child/>&lt;/top>")) { everything_ok=false; problem += str + " "; }
+
+str = xml2.string();
+if (!str.equals("&lt;child2/>")) { everything_ok=false; problem += str + " "; }
+
+xml2.close();
+str = xml1.string ();
+if (!str.equals("&lt;top>&lt;child2/>&lt;child/>&lt;/top>")) { everything_ok=false; problem += str + " "; }
+
+xml1.close();
+
+if (everything_ok) return ("ok");
+return ("fail: " + problem);
+</pre></td></tr></table>
+
+This test succeeded at 4:54 PM on August 24, 2003, after a nice walk with the family through Bonn-Endinich and some ice cream.
+Ice cream <i>always</i> helps the development effort.  In this case, it allowed me to see that the way I was closing xml objects
+was really stupid.
+<br><br>
+<a name="test_5">
+<i>Parsing</i><br>
+Parsing!  We'll test parsing in three steps.  The first is just putting child elements in the right place.  This tests tree traversal
+and handle housekeeping.  And it flushed out some nasty mistakes in those, too.  The second test includes text.  And the third adds
+attributes.  (I do it in this order, of course, because I implemented in this order, for no discernible reason.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>xml     xml = new xml();
+boolean everything_ok = true;
+String  problem = "";
+String  str;
+String  test = "<top><child><inner-child/></child><child2/></top>";
+
+try {
+   xml.parse (test);
+   str = xml.string ();
+}
+catch (Throwable e)
+{
+   str = "Exception thrown: " + e;
+}
+if (!str.equals(test)) { everything_ok=false; problem += "[a] " + str + " "; }
+xml.close();
+
+test = "<top><child>some text</child><child2>more text</child2></top>";
+try {
+   xml.parse (test);
+   str = xml.string ();
+}
+catch (Throwable e)
+{
+   str = "Exception thrown: " + e;
+}
+if (!str.equals(test)) { everything_ok=false; problem += "[b] " + str + " "; }
+xml.close();
+
+test = "<top><child attr1=\"blargh\">some text</child><child2 enc:attr2=\"more blargh\">more text</child2></top>";
+try {
+   xml.parse (test);
+   str = xml.string ();
+}
+catch (Throwable e)
+{
+   str = "Exception thrown: " + e;
+}
+if (!str.equals(test)) { everything_ok=false; problem += "[c] " + str + " "; }
+xml.close();
+
+if (everything_ok) return ("ok");
+return ("fail: " + problem);
+</pre></td></tr></table>
+
+<br><br>
+<a name="test_6">
+<i>Finding pieces of XML with xml_loc</i><br>
+<i>Sep 7, 2003</i>: To reconstruct complex XML handed off via SOAP, we need xml_loc location.  So here we are.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>xml     xml1 = new xml();
+boolean everything_ok = true;
+String  problem = "";
+String  str = "";
+String  test = "<top><child><inner-child/></child><child id=\"second\" child=\"child2\"/></top>";
+
+try {
+   xml1.parse (test);
+   str = xml1.string ();
+}
+catch (Throwable e)
+{
+   str = "Exception thrown: " + e;
+}
+
+xml xml2 = xml1.newhandle();
+xml2.to_loc (".child");
+if (!xml2.string().equals("&lt;child>&lt;inner-child/>&lt;/child>")) { everything_ok=false; problem += str + " "; }
+
+xml2.to_parent();
+xml2.to_loc (".child[second]");
+if (!xml2.attrval ("child").equals ("child2")) { everything_ok=false; problem += "[b] couldn't find second child (found " + xml2.string() + ") "; }
+
+xml2.to_parent();
+xml2.to_loc (".child(1)");
+if (!xml2.attrval ("child").equals ("child2")) { everything_ok=false; problem += "[c] couldn't find second child (found " + xml2.string() + ") "; }
+
+xml2.close ();
+xml1.close();
+
+if (everything_ok) return ("ok");
+return ("fail: " + problem);
+</pre></td></tr></table>
+
+<br><br>
+<a name="test_7">
+<i>More manipulation (copy and replace)</i><br>
+<i>Sep 8, 2003</i>: To reconstruct complex XML handed off via SOAP, we need even more stuff!
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>xml     xml1 = new xml();
+xml     xml2 = new xml();
+boolean everything_ok = true;
+String  problem = "";
+String  str = "";
+String  test = "<top><child><inner-child/></child><child id=\"second\" child=\"child2\"/></top>";
+
+try {
+   xml1.parse (test);
+   xml2.parse (test);
+}
+catch (Throwable e)
+{
+   str = "Exception thrown: " + e;
+}
+
+xml xml3 = xml1.newhandle();
+xml3.to_loc (".child");
+
+xml xml4 = xml2.newhandle();
+xml4.to_loc (".child[second]");
+
+xml3.replace (xml4);
+
+xml xml5 = xml2.new_copy();
+
+System.out.println (xml1.string());
+System.out.println (xml5.string());
+
+
+xml5.close();
+xml4.close();
+xml3.close();
+xml2.close();
+xml1.close();
+
+if (everything_ok) return ("ok");
+return ("fail: " + problem);
+</pre></td></tr></table>
+
+<br><br>
+<a name="test_simple_soap_1">
+<i>Simple SOAP client</i><br>
+This isn't part of the wrapper, but it's part of the "Java toolkit" and so here we go, testing it.  It will only work, of course,
+if the SOAP test server is running on the local machine.
+<p></p>
+<i>August 27, 2003</i>: Rewrote this a little to use the Python SOAP server as a test server.  However, since the contents of the
+test repository determine the responses, comparison with expected values fails.  Instead, we just display the returns and check that
+they're the types we expected.  At some point, I've got some nice plans for a standard set of test cases which need to get implemented.
+So many to-do points, so little time.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>String problems = "";
+boolean everything_ok = true;
+
+// TODO: "full" mode gives an error in xmlapi-j (stringcontenthtml) -- fix it, as this is kinda important.
+simple_soap ss = new simple_soap("http://localhost:8000", "get");
+ss.add_parm ("list_id", "Archivalienakzession");
+ss.add_parm ("key", "wf1");
+ss.add_parm ("mode", "edit");
+ss.call();
+if (ss.return_type !=0) { everything_ok = false; problems += "[a] return_type not 0 but " + ss.return_type; }
+System.out.println (ss.simple_value);
+System.out.println (ss.XMLResult);
+
+simple_soap ss2 = new simple_soap("http://localhost:8000", "get");
+ss2.add_parm ("list_id", "Archivalienakzession");
+ss2.add_parm ("key", "1");
+ss2.call();
+if (ss2.return_type !=2) { everything_ok = false; problems += "[b] return_type not 2 but " + ss2.return_type; }
+System.out.println (ss2.XMLResult);
+
+simple_soap ss3 = new simple_soap("http://localhost:8000", "list");
+ss3.add_parm ("list_id", "_lists");
+ss3.call();
+if (ss3.return_type !=1) { everything_ok = false; problems += "[c] return_type not 1 but " + ss3.return_type; }
+System.out.println (ss3.XMLResult);
+
+if (everything_ok) return ("ok");
+return ("failed: " + problems);
+</pre></td></tr></table>
+<br><br>
+<a name="test_repos_soap_1">
+<i>Repository SOAP client</i><br>
+OK, this segment of the test code runs some basic checks against a wftk SOAP server using the RemoteSOAPRepository implementation of Repository.
+Granted, this kind of makes the name "wrappertest" obsolete, but that's life in the fast lane.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>String problems = "";
+boolean everything_ok = true;
+
+Repository r = new RemoteSOAPRepository("http://localhost:8000");
+Entry e = r.get ("Archivalienakzession", "1");
+System.out.println (e.values());
+
+List l = r.list ("_lists");
+System.out.println (l.keys());
+List l2 = r.lists ();
+System.out.println (l2.keys() + ", which has " + l2.count() + " elements.");
+
+Entry e2 = new Entry(r, "Archivalienakzession");
+System.out.println ("New rec:\n" + e2.html_edit() + "\n\n");
+
+e2.set ("TBNR", "wftest1");
+e2.set ("LO", "ha!");
+e2.set ("SS", "n");
+e2.set ("BEISPIEL", "beispielstext hier");
+
+e2.add ();
+
+System.out.println ("added new obj '" + e2.key() + "'");
+System.out.println ("fields: " + e2.value_count() + " and keys " + e2.values() + "!");
+
+System.out.println ("Display of obj:\n" + e2.html_display() + "\n\n");
+System.out.println ("Edit of obj:\n" + e2.html_edit() + "\n\n");
+
+e2.set ("LO", "different");
+e2.update ();
+
+e2.set ("LO", "something totally else");
+System.out.println ("Value of LO: " + e2.get("LO"));
+e2.refresh ();
+System.out.println ("Value of LO: " + e2.get("LO"));
+
+l = r.tasks();
+System.out.println ("By tasks():");
+System.out.println (l.keys());
+
+for (int i = 0; i < l.count(); i++) {
+   System.out.println ("Task " + i + ": " + l.get_label(l.get_key(i)));
+}
+
+Entry e3 = r.get("_tasks", (String) l.keys().get(0));
+System.out.println ("is_task(" + e3.key() + ")? " + e3.is_task());
+System.out.println ("fields: " + e3.values());
+
+System.out.println ("display: " + e3.html_display() + "\n\n");
+
+System.out.println ("fields: " + e3.values());
+
+//e3.complete();
+
+Entry e4 = new Entry(r, "Archivalienabgabe");
+e4.set ("BEISPIEL", "mehr Beispielstext");
+
+e4.add ();
+
+System.out.println ("Key of new record: " + e4.key());
+
+l = e4.tasks();
+System.out.println ("Tasks attached to new record:");
+for (int i = 0; i < l.count(); i++) {
+   System.out.println ("Task " + i + " (" + l.get_key(i) + "): " + l.get_label(l.get_key(i)));
+}
+
+Entry e5 = e4.get_task(l.get_key(0));
+System.out.println ("fields: " + e5.values());
+
+System.out.println ("key: " + e5.key() + " (list)" + e5.list_id);
+e5.complete();
+
+if (everything_ok) return ("ok");
+return ("failed: " + problems);
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

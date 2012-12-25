@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Usage scenarios -- Closed-source software project</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Usage scenarios: Closed-source software project</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/usage_scenarios.html>usage&nbsp;scenarios</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+In contrast to open-source projects, which consist of many small changes, closed-source
+projects (in my experience) are characterized by many requests rolled into a single large
+release.  The general way this happens is as follows, really:<ol>
+<li>Users request changes or identify bugs for some time.
+<li>At some point, an analyst selects a number of change requests and says those requests
+    will make it into the next release.
+<li>The analyst creates a project plan for achieving the release.
+<li>Developers execute the project plan.
+<li>For each change completed, there are certain tasks to be done: unit test, integration
+    test, regular builds, and so forth.
+<li>After development, the new release is deployed.
+</ol>
+
+<i>(2/21/00) <a href=../process_defn/closedproj_defn.html>XML process definition here.</a></i>
+<p>
+
+
+There are two things about this scenario that differ from the previous ones so far: first,
+we're talking about several workflow processes in an integrated system, and second, the 
+step "execute the project plan" is <i>exactly</i> an ad-hoc process and beautifully
+supported by the notion of a compound process.  The cool thing being that the subprocess to
+be executed is itself a <i>deliverable</i> of an earlier step.
+<p>
+<i>Multiple workflow processes in an integrated system</i><br>
+OK, we've talked about this idea already, it's true, in the open-source usage scenario.  But
+this is a little more complicated.  For instance, one process is the bug submission process.
+The user notes a bug, somebody gets notified and checks it out, and a change request may or
+may not be created in the database.  Another is the release planning process, which is really
+the main process in this outline.  Another is the unit change approval process: the developer
+signals completion, testing is done by another department, the test plan might be changed,
+and after acceptance, that task in the subprocess "execute project plan" is considered
+complete, at which point the engine determines which task(s) come next.
+<p>
+My point in all this is that the processes must be aware of one another, must be bound to
+one another and capable of affecting one another.  A sufficient mechanism for this would be
+a set of functions available to process definitions which would provide the functions
+mentioned in the <a href=openproj.html>open-source scenario</a>.
+<p>
+<i>Ad-hoc compound processes</i><br>
+The problem here that I had originally was that the project plan is a deliverable <i>and</i>
+a subprocess definition.  But Thomas's idea of multiple repositories for scalability also
+solves this problem neatly: if the deliverable repository is made available as an alternate
+process definition repository, then it's easy to see that when it's time to execute the
+project plan, we just copy the current version of the deliverable and start executing.
+<p>
+This was originally the first of my scenarios which showed a compound process, and at the
+time it was quite mind-blowing.  Of course, Anthony had anticipated me, so now it doesn't
+look as astounding.  Ah well.
+<p>
+<i>Summary</i><br>
+<ul>
+<li>Processes exist in a system of processes.  Processes must have facilities to affect one
+    another.  (Already covered in the open-source scenario.)
+<li>The definition of a subprocess may be a deliverable of an earlier task in the current
+    process.  This is best served by allowing the deliverable repository function as a
+    "remote" process definition repository.
+</ul>
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

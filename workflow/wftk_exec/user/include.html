@@ -1,0 +1,124 @@
+<html><head><title>User module: user.h: definition of the interface</title></head>
+<body>
+<h2>user.h: definition of the interface</h2>
+<center>
+[&nbsp;<a href="index.html">Previous: The user module</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="library.html">Next: user.c: implementation</a>&nbsp;]
+</center>
+
+<hr>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifndef __USER_H_
+#define __USER_H_
+#include &lt;stdio.h>
+#include &lt;stdlib.h>
+#include "../xmlapi.h"
+</pre></td></tr></table>
+I have no idea how more sophisticated user directory models like LDAP work, so this is the
+interface which I came up with instead.  Ideally this API could use alternative implementations
+(like an LDAP module) but that will have to wait for more maturity (and time to work on it.)
+<p></p>
+In the meantime, here's what I've come up with.  First off, I'm developing this in a CGI
+prototype environment, so here's a user authentication function.  This function will take
+a single XML tag which has the CGI environment as attributes of the tag (which is how I'm
+handling the CGI environment in wftk, of course.)  It returns NULL if the user is not
+authenticated (either the user is wrong or the wrong password is given); otherwise it loads
+the user from the user repository and returns the XML structure of the user.  If NULL is
+returned, it emits a user authentication header to stdout.  Presumptuous, but it will work in
+the prototype just fine.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * user_authenticate (XML * cgi_environment, const char * realm);
+</pre></td></tr></table>
+
+Next we have some basic stuff for getting users and such.  The <code>user_exists</code>
+function simply checks the repository to see whether a named user is in there.  Then there are
+get and save functions for users.  These come in two varieties: the
+plain-vanilla just gets/saves a user, but the "auth" variety checks the current user's
+permissions to ensure that the operation is allowed.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int user_exists (const char *username);
+XML * user_get (const char * username);
+int user_save (XML * user);
+XML * user_auth_get (const char * username, XML * current_user);
+int user_auth_save (XML * user, XML * current_user);
+</pre></td></tr></table>
+
+And then the same stuff for groups.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int group_exists (const char *groupname);
+XML * group_get (const char * groupname);
+int group_save (XML * group);
+XML * group_auth_get (const char * groupname, XML * current_user);
+int group_auth_save (XML * group, XML * current_user);
+</pre></td></tr></table>
+
+We need functions to manipulate group contents: to add a user, we use
+<code>user_join</code> and to remove a user, we use <code>user_leave</code>.  Adding and
+removing objects should really be considered granting and revoking permissions, so that is
+reflected in the nomenclature.  And finally, we have functions to link and unlink groups
+to one another.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int user_join (XML * user, XML * group);
+int user_leave (XML * user, XML * group);
+int object_grant (XML * user_or_group, const char * class, const char * object, const char * permission);
+int object_revoke (XML * user_or_group, const char * class, const char * object, const char * permission);
+int group_include (XML * outgroup, XML * ingroup, const char * permission);
+int group_unlink (XML * outgroup, XML * ingroup, const char * permission);
+</pre></td></tr></table>
+
+And finally, we have a function which is basically the whole point of the exercise:
+<code>user_perm</code> queries the user's permission to a given object.  This assumes that the
+user is already loaded.  Note that in cases where user and group information is loaded and
+cached, some method will be necessary for invalidating cached permission information.  That
+can come later, of course.  We have a variant on <code>user_perm</code> called <code>user_perm_group</code>
+where we don't have an object class or name, just a group which owns it.  Otherwise it works the same.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int user_perm (XML * user, const char * class, const char * object, const char * permission);
+int user_perm_group (XML * user, const char * groupname, const char * permission);
+</pre></td></tr></table>
+
+Well, in retrospect that wasn't very final.  I also need some functionality to list objects
+and permissions.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * user_list (XML * user, const char * class, const char * object, const char * permission);
+void user_expand (XML * list_or_group);
+void user_expandall (XML * list_or_group);
+</pre></td></tr></table>
+
+<i>10/1/00</i> A quick little recursive function to find all the groups in which a user is a member.
+And the converse, too, but in two flavors: one just returns keys, the other more information than that.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void user_groups_list (XML * user, XML * holder, const char * permission);
+void group_users_list (XML * group, XML * holder, const char * permission);
+void group_users_list_detailed (XML * group, XML * holder, const char * permission);
+</pre></td></tr></table>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#endif
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="index.html">Previous: The user module</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="library.html">Next: user.c: implementation</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,210 @@
+<html><head><title>ACTION adaptor: SOAP</title></head>
+<body>
+<h2>ACTION adaptor: SOAP</h2>
+<hr>
+<p></p>
+This is the ACTION adaptor for local SOAP calls.  It allows workflow processes to do
+arbitrary "SOAP stuff", meaning among other things that you can use it to provide a
+permissions layer on any program you want to run from the command line.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdlib.h>
+#include &lt;stdarg.h>
+#include "xmlapi.h"
+#include "../wftk_session.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+There are no surprises in the now-standard admin portion of the adaptor.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "do"
+};
+
+XML * ACTION_soap_init (WFTK_ADAPTOR * ad, va_list args);
+XML * ACTION_soap_free (WFTK_ADAPTOR * ad, va_list args);
+XML * ACTION_soap_info (WFTK_ADAPTOR * ad, va_list args);
+XML * ACTION_soap_do (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   ACTION_soap_init,
+   ACTION_soap_free,
+   ACTION_soap_info,
+   ACTION_soap_do
+};
+
+static struct wftk_adaptor_info _ACTION_soap_info =
+{
+   4,
+   names,
+   vtab
+};
+struct wftk_adaptor_info * ACTION_soap_get_info ()
+{
+   return &amp; _ACTION_soap_info;
+}
+XML * ACTION_soap_init (WFTK_ADAPTOR * ad, va_list args) {
+   xml_set (ad->parms, "spec", "wftk");
+   return (XML *) 0;
+}
+XML * ACTION_soap_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * ACTION_soap_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "action");
+   xml_set (info, "name", "soap");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+<p></p>
+As with all the action adaptors, all the action happens in the "do" function.  In the
+case of the SOAP adaptor, since the heavy lifting is done by the <a href=http.html>HTTP adaptor</a>
+and libcurl, all we really have to do is to preprocess the action in order to construct
+a valid SOAP envelope to write to the POST content.  After the HTTP adaptor is called, we then
+have to deconstruct the answering XML from the remote server, and distribute data as appropriate.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * ACTION_soap_do  (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * action = (XML *) 0;
+   XML * datasheet;
+   XML * soap_body;
+   XML * soap_env;
+   XML * soap_request;
+   XML * soap_parm;
+   XML * mark;
+   char * value;
+   char * soap_str;
+   XML * http_action;
+   XML * http_content;
+   WFTK_ADAPTOR * http_ad;
+   XML * soap_return;
+   XML * result_spec;
+
+   if (args) action = va_arg (args, XML *);
+   if (!action) {
+      xml_set (ad->parms, "error", "No action given.");
+      return (XML *) 0;
+   }
+   datasheet = va_arg (args, XML *);
+
+   if (!*xml_attrval (action, "server")) {
+      xml_set (ad->parms, "error", "No server specified in action.");
+      return NULL;
+   }
+
+   http_ad = wftk_get_adaptor (ad->session, ACTION, "http");
+   if (!http_ad) {
+      xml_set (ad->parms, "error", "Unable to initialize libcurl");
+      return NULL;
+   }
+
+   /* All right, everything's hunky-dory; down to business. */
+   /* Build SOAP request. */
+   soap_env = xml_create ("SOAP-ENV:Envelope");
+   xml_set (soap_env, "SOAP-ENV:encodingStyle", "http://schemas.xmlsoap.org/soap/encoding/");
+   xml_set (soap_env, "xmlns:xsd",              "http://www.w3.org/1999/XMLSchema");
+   xml_set (soap_env, "xmlns:SOAP-ENV",         "http://schemas.xmlsoap.org/soap/envelope/");
+   xml_set (soap_env, "xmlns:xsi",              "http://www.w3.org/1999/XMLSchema-instance");
+   xml_set (soap_env, "xmlns:SOAP-ENC",         "http://schemas.xmlsoap.org/soap/encoding/");
+
+   soap_body = xml_create ("SOAP-ENV:Body");
+   xml_append_pretty (soap_env, soap_body);
+
+   soap_request = xml_create (xml_attrval (action, "function"));
+   xml_append_pretty (soap_body, soap_request);
+   xml_set (soap_request, "SOAP-ENC:root", "1");
+
+   mark = xml_firstelem (action);
+   while (mark) {
+      if (xml_is (mark, "parm")) {
+         soap_parm = xml_create (xml_attrval (mark, "name"));
+         xml_set (soap_parm, "xsi:type", *xml_attrval (mark, "xsi:type") ? xml_attrval (mark, "xsi:type") : "xsd:string");
+         if (*xml_attrval (mark, "field")) {
+            value = xmlobj_get (datasheet, NULL, xml_attrval (mark, "field"));
+         } else {
+            value = xmlobj_get_direct (mark);
+         }
+         xml_append (soap_parm, xml_createtext_nodup (value));
+
+         xml_append_pretty (soap_request, soap_parm);
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   soap_str = xml_string (soap_env);
+   xml_free (soap_env);
+
+   /* Build HTTP request. */
+   http_action = xml_create ("action");
+   xml_set (http_action, "url", xml_attrval (action, "server"));
+   xml_set (http_action, "method", "post");
+
+   http_content = xml_createtext ("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+   xml_textcat (http_content, soap_str);
+   xml_textcat (http_content, "\n");
+   mark = xml_create ("content");
+   xml_append (mark, http_content);
+   xml_append_pretty (http_action, mark);
+   free (soap_str);
+
+   /* Perform request. */
+   wftk_call_adaptor (http_ad, "do", http_action, datasheet);
+   if (!strcmp (xml_attrval (http_action, "http-retcode"), "500")) {
+      xml_set (ad->parms, "error", "Remote server experienced server error (code: 500)");
+   }
+
+
+   result_spec = xml_loc (action, ".result");
+   if (result_spec) {
+      /* Interpret results. */
+      soap_str = xml_stringcontenthtml (xml_loc (http_action, ".result"));
+      soap_return = xml_parse (soap_str);
+      free (soap_str);
+      xml_free (http_action);
+
+      soap_body = xml_firstelem (soap_return); /* TODO: do we care about multiple bodies?  At the moment, no.*/
+
+      soap_body = xml_firstelem (soap_body); /* TODO: how about multiple responses in one body?  Same answer at present. */
+
+      if (*xml_attrval (result_spec, "field")) {
+         mark = xml_firstelem (soap_body); /* First approximation: take the first value in the response and run with it. */
+         value = xml_stringcontent (mark);
+         xmlobj_set_nodup (datasheet, NULL, xml_attrval (result_spec, "field"), value);
+      }
+
+      xml_append_pretty (result_spec, xml_copy (soap_body));
+      xml_free (soap_return);
+   }
+}
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

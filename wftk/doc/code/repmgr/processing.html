@@ -1,0 +1,154 @@
+<html><head><title>Repository manager: Actions and synchronous processing</title></head>
+<body>
+<h2>Actions and synchronous processing</h2>
+<center>
+[&nbsp;<a href="xact.html">Previous: Transactions</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="notification.html">Next: Notifications</a>&nbsp;]
+</center>
+
+<hr>
+<i>(January 26, 2003)</i>:  <i>Asynchronous processing</i> is a catchall term for the following kinds of things a complete system
+should be able to do (note that support for this kind of thing requires a complete system, not just the repmgr library.)
+<ul>
+<li>Task timeouts and deadlines
+<li>Queue handling
+<li>Periodic reports
+<li>Deferred processing for publishing
+</ul>
+
+In general, the repos_process call can be thought of as supporting any daemon process which should run in a complete system and do
+work that should be done in the background while a user isn't waiting on the result.  The particular motivator for this feature is
+task timeouts, which allow limits to be placed on the time that objects may spend in particular states and will trigger automatic
+state transitions if those time limits are exceeded.  There is plenty of special logic for that one application built into this
+section.
+
+<p></p>
+
+<i>(February 15, 2004)</i>: So obviously I've done nothing with this for over a year, but it's still a good place to dump the rest
+of the stuff needed for actions, which I think will subsume the above functionality.  A queued action (or transaction) can have a
+timestamp on it; after that time it will fire if polled by a schedule processor.  So the action queue idea covers timeouts pretty
+well.  That's cool.  Of course, it means we have to explicitly create queued trigger actions for some things -- or we can understand
+trigger classes to cover other applications, in which case repos_process will probably have to do a number of queries to see what
+trigger classes might have things waiting to be done.  See?
+<p></p>
+I can't remember why I thought it was a good idea for this function to return a string instead of an XML object or just ... nothing.
+I guess if I ever get around to writing it, I'll either remember why, or change it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT char * repos_process (XML * repository, const char * list, const char * key)
+{
+   return NULL;
+}
+</pre></td></tr></table>
+
+
+Anyway, let's go ahead with the rest of the action functionality.  First, functions to perform (or queue) actions.  These functions
+take an action object, which is an object with complex and developing semantics, like, well, like everything else in the wftk.
+The first option simply takes that action object; the other also takes an object to which the action will apply.  I'm not sure which
+will end up more useful.
+<p></p>
+<i>17 Feb 2005</i> - At any rate, each of these functions merely wraps wftk_action (at least for now.)  It probably doesn't even make sense to wrap
+wftk_action instead of just calling it directly,  but I have the sneaking suspicion that I will end up considering it a good idea.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_action_do (XML * repository, XML * action)
+{
+   wftk_action (repository, action, NULL);
+   return (action);
+}
+
+WFTK_EXPORT XML * repos_action_do_object (XML * repository, XML * action, XML * object)
+{
+   wftk_action (repository, action, object);
+   return (action);
+}
+</pre></td></tr></table>
+
+And then a set of functions for determining the actions which are permitted for a user against an object, by name.  This might
+be arbitrarily complex to determine (i.e. another application of a rule engine) but in the meantime we'll do something halfway
+reasonable.  All these functions return a list of action elements, each with an "id" and a "label".
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_action_list               (XML * repository, const char * list, const char * key, const char * mode)
+{
+   return (repos_action_list_direct (repository, repos_defn (repository, list), key, mode));
+}
+WFTK_EXPORT XML * repos_action_list_direct        (XML * repository, XML *        list, const char * key, const char * mode)
+{
+   XML * object = repos_get (repository, xml_attrval (list, "id"), key);
+   XML * ret    = repos_action_list_object_direct (repository, list, object, mode);
+   if (object) xml_free (object);
+   return ret;
+}
+WFTK_EXPORT XML * repos_action_list_object        (XML * repository, const char * list, XML *     object, const char * mode)
+{
+   return (repos_action_list_object_direct (repository, repos_defn (repository, list), object, mode));
+}
+
+WFTK_EXPORT XML * repos_action_list_object_direct (XML * repository, XML *        list, XML *     object, const char * mode)
+{
+   XML * actions = xml_create ("list");
+   XML * action;
+   XML * states;
+   XML * mark;
+
+   if (!list) return (actions);
+
+   if (!object || !strcmp (mode, "new")) { 
+      action = xml_create ("action");
+      xml_set (action, "id", "add");
+      xml_setf (action, "label", "Add new %s", xml_attrval (list, "id")); /* TODO: label should be configurable. */
+      xml_append (actions, action);
+   } else {
+      /* Standard actions against object. */
+      action = xml_create ("action");
+      xml_set (action, "id", "mod");
+      xml_set (action, "label", "Update");
+      xml_append (actions, action);  /* TODO: check actual permissions, view, etc. */
+      action = xml_create ("action");
+      xml_set (action, "id", "del");
+      xml_set (action, "label", "Delete");
+      xml_append (actions, action);
+
+      /* State transitions also count as actions, of course.  We modify the name a little to avoid collisions (with a "state-" prefix). */
+      states = repos_list_choices (repository, xml_attrval (list, "id"), object, "_state");
+      for (mark = xml_firstelem (states); mark; mark = xml_nextelem (mark)) {
+         if (!*xml_attrval (mark, "selected")) {
+            action = xml_create ("action");
+            xml_set (action, "id", "state-");
+            xml_attrcat (action, "id", xml_attrval (mark, "value"));
+            xml_set_nodup (action, "label", xml_stringcontenthtml (mark));
+            xml_append (actions, action);
+         }
+      }
+      if (states) xml_free (states);
+
+      /* Completion of active, passive, and potential tasks are also all actions.  TODO: deal with these. */
+
+      /* If the object itself is a task, completion might be added here if list_choices didn't already list it.  TODO: figure that out. */
+   }
+
+   /* TODO: pass the whole list in for rule processing to determine permissibility.  God knows what that will take. */
+
+   return (actions);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xact.html">Previous: Transactions</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="notification.html">Next: Notifications</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2005, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

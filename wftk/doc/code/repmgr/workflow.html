@@ -1,0 +1,184 @@
+<html><head><title>Repository manager: Workflow</title></head>
+<body>
+<h2>Workflow</h2>
+<center>
+[&nbsp;<a href="notification.html">Previous: Notifications</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="values.html">Next: Working with object field values</a>&nbsp;]
+</center>
+
+<hr>
+<i>(January 26, 2003)</i>: Although most workflow interaction will actually be at the list access and state-change level, there are
+a couple of entry points to the API for attaching workflow and tasks to objects, and getting lists of active tasks.  It's rather important to note
+here that each of these API calls has two forms: one is a repmgr-based list-and-key addressing scheme to be used from the command
+line and in most other repmgr-based systems.  The other takes an object already retrieved, and manipulates it directly.  This, at least
+in theory, gives us the ability to run the system in a manner largely independent of a standalone repository, as long as we have
+specified a taskindex which talks to a database directly, and then we also talk to that database directly when operating workflow.
+<p></p>
+Expect this to get explicit exposure in the Python wrapper, as I have an actual interested party wanting to use the system in this way
+as a kind of Zope integration lite.  (Full Zope integration, of course, will be quite ramified.)
+
+<p></p>
+First, let's examine how we attach workflow to an object.  This is called by the object manipulation functions (repos_add, repos_mod, repos_del)
+when an "on action=" is encountered when doing something to an object.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void repos_workflow_start (XML * repository, const char * list, const char * key, XML * wf_defn, const char * wf_id)
+{
+   XML * obj = repos_get (repository, list, key);
+
+   if (obj) {
+      repos_workflow_start_direct (repository, obj, wf_defn, wf_id);
+      repos_mod (repository, list, obj, key);
+   }
+   xml_free (obj);
+}
+WFTK_EXPORT void repos_workflow_start_direct (XML * repository, XML * obj, XML * wf_defn, const char * wf_id)
+{
+   XML * adhoc;
+
+   xml_setf (obj, "repository", "list:%s", xml_attrval (obj, "list")); /* tell wftk_process_save what to do */
+
+   /* If wf_defn is supplied, we start ad-hoc workflow. */
+   if (wf_defn) {
+      adhoc = xml_create ("sequence"); /* TODO: support parallel as well?  workflow-type=, maybe */
+      xml_copyinto (adhoc, wf_defn);
+      wftk_process_adhoc (repository, obj, adhoc);
+      xml_free (adhoc);
+   }
+
+   /* If wf_id is supplied, we start a procdef from the default pdrep. */
+   if (wf_id &amp;&amp; *wf_id) {
+      wftk_process_start (repository, obj, NULL, wf_id);
+   }
+}
+</pre></td></tr></table>
+
+Task addition is analogous.  <i>October 15, 2003</i>... Appears I didn't actually implement this, which is irritating.  As I need it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void repos_task_add (XML * repository, const char * list, const char * key, XML * task_defn)
+{
+   XML * obj = repos_get (repository, list, key);
+
+   if (obj) {
+      repos_task_add_direct (repository, obj, task_defn);
+      repos_mod (repository, list, obj, key);
+   }
+   xml_free (obj);
+}
+WFTK_EXPORT void repos_task_add_direct (XML * repository, XML * obj, XML * task_defn)
+{
+
+}
+</pre></td></tr></table>
+
+<i>October 15, 2003</i>: Implementing this at last so that I can expose it via the Python SOAP adaptor.  This whole thing is getting kinda
+complicated....  Anyway, the implementation of this isn't complicated at all, as we simply call wftk_task_list to do it for us, with all its
+kooky logic.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_tasks (XML * repository, XML * tasklist, const char * list, const char * key, const char * user)
+{
+   XML * obj = repos_get (repository, list, key);
+   XML * ret;
+
+   if (obj) {
+      ret = repos_tasks_direct (repository, tasklist, obj, user);
+      xml_free (obj);
+      return (ret);
+   }
+}
+WFTK_EXPORT XML * repos_tasks_direct (XML * repository, XML * tasklist, XML * obj, const char * user)
+{
+   if (!tasklist) tasklist = xml_create ("list");
+   if (user) xml_set   (tasklist, "userid", user);
+   else      xml_unset (tasklist, "userid");
+
+   wftk_task_list (repository, tasklist, obj);
+   return (tasklist);
+}
+</pre></td></tr></table>
+
+<i>October 15, 2003</i>: Actually, it turns out we'll also need repos_task_get, which retrieves a task given its parent object and its local id.
+This initially will only cover indexed tasks (i.e. no potential ones or such) because it's just going to front for the taskindex after building
+the appropriate key.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_task_get (XML * repository, const char * list, const char * key, const char * local_key)
+{
+   char * list_id;
+   char * task_key;
+   XML * task;
+
+   list_id = strdup (list);
+   xmlobj_fixkey (list_id);
+   task_key = xml_string_format ("%s~%s~%s", list_id, key, local_key);
+
+   repos_log (repository, 5, 2, NULL, "repmgr", "repos_task_get: getting task %s", task_key);
+   task = repos_get (repository, "_tasks", task_key);
+
+   free (task_key);
+   free (list_id);
+
+   return (task);
+}
+WFTK_EXPORT XML * repos_task_get_direct (XML * repository, XML * obj, const char * local_key)
+{
+   return (repos_task_get (repository, xml_attrval (obj, "list"), xml_attrval (obj, "key"), local_key)); /* TODO: look for potentials n stuff. */
+}
+</pre></td></tr></table>
+
+<i>17 Nov 2004</i>: a recurring pattern: starting workflow for a particular action.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int repos_workflow_action_taken (XML * repository, XML * list, XML * object, const char * action)
+{
+   int workflow_started = 0;
+   XML * mark;
+
+   /* Workflow specs may be multiple, and may be in either the object or the list definition.  Let's look at the object first, then the list. */
+   mark = xml_search (object, "on", "action", action);
+   while (mark) {
+      workflow_started = 1;
+      repos_workflow_start_direct (repository, object, *xml_attrval (mark, "procdef") ? NULL : mark, xml_attrval (mark, "procdef"));
+      mark = xml_search_next (object, mark, "on", "action", action);
+   }
+
+   /* Now the list. */
+   if (!strcmp (action, "add")) {
+      if (*xml_attrval (list, "workflow")) { /* Special abbreviation for convenience. */
+         workflow_started = 1;
+         repos_workflow_start_direct (repository, object, NULL, xml_attrval (list, "workflow"));
+      }
+   }
+   mark = xml_search (list, "on", "action", action); /* TODO: shouldn't this be restricted to top level? */
+   while (mark) {
+      workflow_started = 1;
+      repos_workflow_start_direct (repository, object, *xml_attrval (mark, "procdef") ? NULL : mark, xml_attrval (mark, "procdef"));
+      mark = xml_search_next (list, mark, "on", "action", action);
+   }
+
+   return workflow_started;
+}
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="notification.html">Previous: Notifications</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="values.html">Next: Working with object field values</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2005, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,170 @@
+<html><head><title>Repository manager: Working with individual objects as reports</title></head>
+<body>
+<h2>Working with individual objects as reports</h2>
+<center>
+[&nbsp;<a href="objects.html">Previous: Working with individual objects</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="retrieval.html">Next: Data retrieval and display</a>&nbsp;]
+</center>
+
+<hr>
+<i>(August 31, 2002)</i>: This is a tasty little addition to the API, but if you look closely, there's really not a lot of basically
+new functionality here.  A <i>report</i> is simply an object, but the reporting API gives us a programmatic way to deal with such
+objects much more conveniently.  A report object is opened with repos_report_start, at which point it gets a slot in the current
+repository session <i>in memory</i>.  No change is made to the list itself until the report is closed (the report may also be canceled,
+in which case nothing happens at all.)  Anything at all may be done with the report object, and once it's closed, any normal publishing
+processes may get invoked.  A very convenient repos_report_log can format a string into a line in the <i>report content</i>, which is
+simply a special plain-text field in the object.
+<p></p>
+This is quite handy for logging of publishing or problems in the repmgr itself.  The motivation for this is actually exactly that --
+I need organized logging for some debugging, and simultaneously I have some other repmgr-oriented work that could greatly benefit from a
+more transparent audit trail, and so logging is on my mind today.
+<p></p>
+Starting a report is nothing more exciting than building a handle for it in the current repository structure.  Note that subsequent
+access to the report is by name, not by pointer; that's one thing that makes this new API so handy.  If you happen to call a logging
+call with a name for which no report has been opened, no action occurs.  Very safe.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   repos_report_start  (XML * repository, const char * list, const char * name)
+{
+   XML * rep;
+   XML * obj;
+
+   if (!name) name = list;
+   if (!name) return 1;
+   rep = xml_locf (repository, ".report[%s]", name);
+   if (rep) return 1;
+
+   rep = xml_create ("report");
+   xml_set (rep, "id", name);
+   xml_append (repository, rep);
+
+   obj = xml_create ("record");
+   xml_set (obj, "list", list);
+   repos_mark_time (obj, "start");
+   xml_setbin (rep, obj, (XML_SETBIN_FREE_FN *) xml_free);
+
+   return 0;
+}
+WFTK_EXPORT int   repos_report_close  (XML * repository, const char * report)
+{
+   XML * rep;
+   XML * obj;
+
+   rep = xml_locf (repository, ".report[%s]", report);
+   if (!rep) return 1;
+
+   obj = xml_getbin (rep);
+   xml_unset (obj, "content");
+   xml_setbin (rep, NULL, NULL);
+   xml_delete (rep);
+
+   repos_add (repository, xml_attrval (obj, "list"), obj);
+   xml_delete (obj);
+
+   return 0;
+}
+WFTK_EXPORT int   repos_report_cancel (XML * repository, const char * report)
+{
+   XML * rep;
+
+   rep = xml_locf (repository, ".report[%s]", report);
+   if (!rep) return 1;
+
+   xml_delete (rep);
+   return 0;
+}
+WFTK_EXPORT XML * repos_report_getobj (XML * repository, const char * report)
+{
+   XML * rep;
+
+   rep = xml_locf (repository, ".report[%s]", report);
+   if (!rep) return NULL;
+   return (xml_getbin (rep));
+}
+</pre></td></tr></table>
+
+The only kind of neat thing remaining is thus our report logging function.  I'm pumped about this.  Transparency is on its way!
+Ideally, at some point the logging content field might really be an alias for an actual logging file.  That is, we could treat
+a field as having a separate storage area.  But I don't want to have to write all that just to get my reporting function working,
+so I'll just do a little handwaving to the effect that it should be possible.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   repos_report_log    (XML * repository, const char * report, const char * format, ...)
+{
+   XML * rep;
+   XML * obj;
+   const char * content;
+   XML * list;
+   XML * mark;
+
+   va_list args;
+   char * colon;
+   char * strarg;
+   int intarg;
+   char numbuf[sizeof (int) * 3 + 1];
+
+   rep = xml_locf (repository, ".report[%s]", report);
+   if (!rep) return 1;
+
+   obj = xml_getbin (rep);
+   if (!obj) return 1;
+
+   content = xml_attrval (obj, "content");
+   if (!*content) {
+      list = repos_defn (repository, xml_attrval (obj, "list"));
+      if (list) {
+         mark = xml_search (list, "field", "special", "content");
+         xml_set (obj, "content", xml_attrval (mark, "id"));
+         content = xml_attrval (obj, "content");
+      }
+      if (!*content) {
+         xml_set (obj, "content", "content");
+         content = xml_attrval (obj, "content");
+      }
+   }
+   mark = xmlobj_field (obj, NULL, content);
+
+   va_start (args, format);
+   while (colon = strchr (format, '%')) {
+      xml_attrncat (mark, "value", format, colon-format);
+      format = colon;
+      format ++;
+      switch (*format) {
+         case 's':
+            strarg = va_arg (args, char *);
+            xml_attrcat (mark, "value", strarg);
+            break;
+         case 'd':
+            intarg = va_arg (args, int);
+            sprintf (numbuf, "%d", intarg);
+            xml_attrcat (mark, "value", numbuf);
+            break;
+         default:
+            xml_attrncat (mark, "value", format, 1);
+            break;
+      }
+      format ++;
+   }
+   va_end (args);
+
+   xml_attrcat (mark, "value", format);
+   xml_attrcat (mark, "value", "\n");
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="objects.html">Previous: Working with individual objects</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="retrieval.html">Next: Data retrieval and display</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

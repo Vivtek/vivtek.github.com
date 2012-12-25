@@ -1,0 +1,58 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Interface writer's guide</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Interfacing the wftk with other systems</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+<hr>
+
+<h3>Interfacing with wftk</h3>
+There are two categories of interface to the wftk: there are ways to <i>invoke</i> the wftk functionality,
+and there are ways to <i>be invoked</i> by the wftk engine.  The former category of module I usually
+call a <i>wrapper</i>, while functionality to allow the wftk engine to talk to other systems is collected
+in <i>adaptors</i>.  Each type of interaction needed by a workflow system is an <i>adaptor class</i>.
+I've called the adaptor mechanism a "poor man's ActiveX" elsewhere, because I've always liked the
+idea of ActiveX (even back when it was called OLE): the idea is that you implement an object once, then
+you have binary compatibility with it which persists over version changes.
+<p>
+At any rate, a full wftk system is going to be a wrapper (and may use one or more established wrapper
+libraries), and is going to make use of various adaptors.  If you have moderately unique needs, you
+will probably end up writing an adaptor, thus this section of the document will largely be concerned
+with how adaptors work.
+<p>
+As with most of the wftk documentation, this isn't complete.  However, here is what I hope to have in
+this section:
+<ul>
+<li>Overview of the adaptor mechanism
+<li>Documentation of the various adaptor classes
+<li>Descriptions of already complete interfaces<ul>
+    <li>ODBC database adaptor
+    <li>Oracle database adaptor
+    <li>SMTP notification adaptor
+    </ul>
+</ul>
+
+<h3>Overview of the adaptor mechanism</h3>
+The wftk is intended to do workflow-y kinds of things in whatever system you have.  In order to make
+that work, nearly every system dependency that wftk has is split out into one or more <i>adaptors</i>.
+An adaptor presents a unified API to wftk and identifies individual functions using string names.
+It's not the most efficient way of doing things, perhaps, compared to the traditional C approach, but
+it's simple to manage and simple to write to.  It's kind of like letting a bare minimum of scripting
+languages into the C paradigm.
+<p>
+At any rate, I need to flesh this out with examples, but for the time being, look at some of the
+implementations in the source directory.
+
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

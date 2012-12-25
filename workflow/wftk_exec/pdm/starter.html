@@ -1,0 +1,97 @@
+<html><head><title>WFTK PDM: starter: Displaying a process start form</title></head>
+<body>
+<h2>starter: Displaying a process start form</h2>
+<center>
+[&nbsp;<a href="checkin.html">Previous: checkin: Declaring a new 'canonical' version</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The procdef manager</a>&nbsp;]
+[&nbsp;<a href="datasheet.html">Next: datasheet: Generating a blank datasheet</a>&nbsp;]
+</center>
+
+<hr>
+The start form generator is pretty straightforward.  Given a procdef identifier, we load the
+procdef item file first and find the current version of the definition.  Then we load that
+definition and get some pertinent information, mostly the data items it needs to get started,
+but also a title.  We return our data on stdout in line-based format; the first line is the
+title of the process, the second is the current version, and each subsequent line is a data
+item, formatted as a table row.
+<p></p>
+In retrospect, this functionality belongs in the wftk core engine rather than here, but it's
+here now and I can still see some merit it doing things this way around.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="checkout.html#load_item">Loading an item file</a></i>
+sprintf (sbuf, "%s%s_%s.xml", PROCESS_DEFINITION_REPOSITORY, xml_attrval (query, "item"), xml_attrval (item, "ver"));
+file = fopen (sbuf, "r");
+if (!file) {
+   sprintf (sbuf, "Unable to open procdef version file %s.\n", sbuf);
+   complain();
+}
+
+version = xml_read (file);
+fclose (file);
+
+if (!version) {
+   sprintf (sbuf, "Corrupt version file %s.\n", sbuf);
+   complain();
+}
+
+if (strcmp (xml_attrval (version, "name"), "")) {
+   printf ("%s\n", xml_attrval (version, "name"));
+} else {
+   printf ("%s\n", argv[2]);
+}
+printf ("%s\n", xml_attrval (item, "ver"));
+
+xml = xml_firstelem (version);
+while (xml) {
+   if (!strcmp (xml->name, "data")) {
+      <i>See <a href="starter.html#handle_data">Handling formatting of data items</a></i>
+   } else if (!strcmp (xml->name, "sequence")) {
+      break;
+   } else if (!strcmp (xml->name, "parallel")) {
+      break;
+   } else if (!strcmp (xml->name, "task")) {
+      break;
+   }
+
+   xml = xml_nextelem (xml);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="handle_data">
+<i>Handling formatting of data items</i><br>
+A starter data item is one which we encounter before encountering some action (really before
+encountering anything that can block.)  When we find one, we need to emit a line of HTML table
+which will format it.  How we do that depends on its type.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>printf ("&lt;tr>&lt;td>%s&lt;/td>\n", xml_attrval (xml, "name"));
+printf ("&lt;td>");
+if (!strcmp (xml_attrval (xml, "type"), "text")) {
+   printf ("&lt;textarea name=\"%s\" rows=5 cols=30>", xml_attrval (xml, "name"));
+   xml_writecontent (stdout, xml);
+   printf ("&lt;/textarea>\n");
+} else {
+   printf ("&lt;input name=\"%s\" value=\"", xml_attrval (xml, "name"));
+   xml_writecontent (stdout, xml);
+   printf ("\">\n");
+}
+printf ("&lt;/td>&lt;/tr>\n");
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="checkin.html">Previous: checkin: Declaring a new 'canonical' version</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href="datasheet.html">Next: datasheet: Generating a blank datasheet</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

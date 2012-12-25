@@ -1,0 +1,226 @@
+<html><head><title>lpml alpha: Tangle: write code output</title><style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style></head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Tangle: write code output</div>
+<center>
+[&nbsp;<a href="scan.html">Previous: Initial scan</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: LPML alpha</a>&nbsp;]
+[&nbsp;<a href="weave.html">Next: Weave: Write documentation pages</a>&nbsp;]
+</center>
+
+<hr>
+The tangle step is really pretty easy.  What we do in this step is use the <code>$pieces</code>
+hash we populated during the scan step to generate code.  We insert items in other items by
+using the <code>&lt;insert&gt;</code> tag.
+<p></p>
+Since our coding language is XML, we can't use the character '<code>&lt;</code>' explicitly
+in our code.  Irritating, but that's one of the tiny little disadvantages of using XML, and it's
+offset by so many advantages that living with it isn't so hard.  All we do is use
+'<code>[[</code>' instead (hard-coded in this version, soon to be specifiable.)  So the tangle
+step also takes care of substituting our '<code>&lt;</code>' back in.
+<p></p>
+Tangle is inherently recursive.  I'm dumbly following the whole recursive structure in a
+depth-first manner; the smarter thing would be to cache items as they're tangled in case of
+reuse (then I wouldn't have to retangle that item).  Since I'm working with small files here,
+that probably isn't worth the effort, so I'm not going into it.
+<p></p>
+Note also that since Perl can define subroutines right in the middle of the rest of the code,
+I found it more natural simply to include the recursive routine here right in the middle of
+things, instead of packing it off into some subroutine block.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="tangle.html#tangle_one">Definition of 'tangle_one' subroutine</a></i>
+foreach $obj (@objects) {
+   open OUT, ">$obj";
+   tangle_one ($starter{$obj});
+   close OUT;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="tangle_one">
+<i>Definition of 'tangle_one' subroutine</i><br>
+The tangle procedure is recursive, and writes out the tangled output to the object file.
+Among other things, it needs to convert special characters to their literal equivalents;
+special characters are those, like &lt; and &amp;, which XML doesn't allow anywhere but in
+meaningful positions.  These replacements occur right at the bottom.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub tangle_one {
+   my $item = shift;
+   foreach $_ (split /\n/, $pieces{$item}) {
+      if (/(&lt;insert .*>)/i)
+      {
+         $tag = $1;
+         $tag =~ s/^&lt;insert\s+//i;
+         $attr = "";
+         %thisobject = (name => '');
+         foreach $piece (split /"/, $tag) {
+            if ($attr eq '') {
+               $attr = $piece;
+               $attr =~ s/^\s*//;
+               $attr =~ s/\s*=\s*$//;
+            } else {
+               $thisobject{$attr} = $piece;
+               $attr = '';
+            }
+         }
+         if ($thisobject{name} =~ /^\./) {
+            $thisobject{name} = $item . $thisobject{name};
+         }
+         if ($thisobject{name} eq '') {
+            print STDERR "$. : Item to be inserted not named.\n";
+            next;
+         }
+         tangle_one ($thisobject{name});
+         next;
+      }
+
+      s/\[\[/&lt;/g;
+      s/#\^7/&amp;/g;
+      s/#\^lt#/&lt;/g;
+      print OUT "$_\n";
+   }
+}
+
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="scan.html">Previous: Initial scan</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href="weave.html">Next: Weave: Write documentation pages</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2006, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body></html>

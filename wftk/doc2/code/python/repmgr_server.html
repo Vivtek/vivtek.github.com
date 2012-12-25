@@ -1,0 +1,208 @@
+<html><head><title>Repmgr server: Medusa-based server front-end</title></head>
+<body>
+<h2>Repmgr server: Medusa-based server front-end</h2>
+<center>
+[<a href="index.html">wftk-Python</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre># A repmgr wrapper for Medusa based on the unholy union of the Medusa chat server and
+# the repmgr command-line interpreter written in C.  The command structure and protocol
+# are identical to that of the C interpreter, allowing the repmgr library to front for
+# a Medusa server.  Clever, eh?
+#
+# The really scary part is that the core of Medusa, the asyncore module which does all
+# the asynchronous socket work, is now a part of the standard Python distro.  That means
+# that this beast here works just fine out of the box with standard Python.  That rocks.
+#
+# One could (and I hope to) take the Medusa abstract filesystem and HTTP modules and
+# build a more convenient graphical interface to the same server.
+#
+
+import string
+from xmlapi import *
+import repmgr
+
+import socket
+import asyncore
+import asynchat
+import types
+
+
+class repmgr_channel (asynchat.async_chat):
+
+	def __init__ (self, server, sock, addr):
+		asynchat.async_chat.__init__ (self, sock)
+		self.server = server
+		self.addr = addr
+		self.set_terminator ('\r\n')
+		self.data = ''
+		self.repository = server.start_repos
+		if self.repository is not None:
+			self.repos = xml_read (self.repository)
+                        repmgr.open (self.repos)
+		else:
+			self.repos = None
+		self.command = None
+		self.data_until = ''
+
+		self.push ("repmgr v1.0 (Medusa) listening: type 'help' for help.\n++done++\n")
+
+	def collect_incoming_data (self, data):
+		self.data = self.data + data
+
+	def found_terminator (self):
+		line = self.data
+		self.data = ''
+		if self.command is None:
+			args = string.split(line)
+			cmd = args[0]
+			self.handle_command (cmd, args[1:])
+
+	def handle_command (self, command, args):
+		name = 'cmd_%s' % command
+		if hasattr (self, name):
+			# make sure it's a method...
+			method = getattr (self, name)
+			if type(method) == type(self.handle_command):
+				#try:
+					method (args)
+				#except:
+				#	self.push ('400: Internal error (contact admin) ++done++\n')
+			else:
+				self.push ('-010: Unknown command: %s ++done++\n' % command)
+		else:
+			self.push ('-100: Unknown command: %s ++done++\n' % command)
+
+	def cmd_bye (self, args):
+		self.server.push_line (self, 'terminated')
+		self.push ('Ciao ragazzo!\n+++done+++\n')
+		self.close_when_done()
+
+	def cmd_help (self, args):
+		self.push ("repmgr v1.0 (Medusa) (c) 2002, Vivtek, under GPL.\n");
+		self.push ("-----------------------------------\n");
+		self.push ("See http://www.vivtek.com/wftk/repmgr/ for more information.\n");
+		self.push ("\n");
+		self.push ("publish                     : Activate all non-notification publishers and pages\n");
+		self.push ("publish [list]              : Activate all non-notification publishers for list\n");
+		self.push ("publish [list] [key]        : Publish single object\n");
+		self.push ("make                        : Publish all *pages* (pulls data)\n");
+		self.push ("make    [page]              : Publish a single page (pulls data)\n");
+		self.push ("add     [list] [file]       : Add object from file (use '-' to indicate stdin)\n");
+		self.push ("del     [list] [key]        : Delete named object\n");
+		self.push ("mod     [list] [file]       : Modify object from file (may duplicate key) (use '-' to indicate stdin)\n");
+		self.push ("mod     [list] [file] [key] : Modify if key known (safer) (use '-' to indicate stdin)\n");
+		self.push ("changed [list] [key]        : Log and publish object added or changed behind the scenes\n");
+		self.push ("diff    [list] [key] [file] : Check difference between object and file\n");
+		self.push ("list    [list]              : List keys for objects\n");
+		self.push ("changes [date]              : List changed lists since date (date in ISO format, e.g. 2001-12-13T11:12:52\n");
+		self.push ("changes [date] [list]       : List changes to a list since date\n");
+		self.push ("get     [list] [key]        : Retrieve XML object\n");
+		self.push ("edit    [list] [key]        : Retrieve XML object as HTML form\n");
+		self.push ("display [list] [key]        : Retrieve XML object as HTML display\n");
+		self.push ("form    [list]              : Build empty form for list\n");
+		self.push ("defn    [list]              : Retrieve XML structure definition\n");
+		self.push ("define  [list]              : Write new XML structure definition\n");
+		self.push ("push    [list] [remote]     : Push modifications to remote list\n");
+		self.push ("push_all[list] [remote]     : Push all data to remote list\n");
+		self.push ("pull    [list] [remote]     : Pull modifications from remote list\n");
+		self.push ("pull_all[list] [remote]     : Pull all data from remote list\n");
+		self.push ("synch   [list] [remote]     : Pull modificiations, then push\n");
+		self.push ("submit  [list] [file]       : Create object using file contents for primary attachment ('-' for stdin)\n");
+		self.push ("store   [list] [fname] [file]: Same, but specifying a local storage filename\n");
+		self.push ("attach  [list] [key] [fld] [file]: Writes attachment to a given field of an existing object\n");
+		self.push ("retrieve[list] [key] [fld] [file]: Retrieves an attachment's content\n");
+		self.push ("checkout[list] [key] [fld]  : Same, but marks the version for update\n");
+		self.push ("getver  [list] [key] [fld]  : Retrieves version level of a field\n");
+		self.push ("time                        : Show server's local time\n");
+		self.push ("++done++\n\n");
+
+	def cmd_list (self, args):
+		if (len(args) < 1):
+			list = repmgr.list (self.repos)
+		else:
+			list = repmgr.list (self.repos, args[0])
+
+		self.push ('+100: OK, data follows.  %d key(s) found.\n' % len(list))
+		for key in list:
+			self.push (' %s\n' % key)
+		self.push ('+000: OK ++done++\n')
+
+	def handle_close (self):
+		self.close()
+
+	def close (self):
+		del self.server.channels[self]
+		asynchat.async_chat.close (self)
+
+	def get_repository (self):
+		if self.repository is not None:
+			return self.repository
+		else:
+			return 'not loaded'
+
+class repmgr_server (asyncore.dispatcher):
+
+	SERVER_IDENT = 'Repository Manager Server'
+
+	channel_class = repmgr_channel
+
+	spy = 1
+
+	def __init__ (self, ip='', port=4239, repository=None):
+		self.port = port
+		self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
+		self.bind ((ip, port))
+		self.start_repos=repository
+		print '%s started on port %d' % (self.SERVER_IDENT, port)
+		self.listen (5)
+		self.channels = {}
+		self.count = 0
+
+	def handle_accept (self):
+		conn, addr = self.accept()
+		self.count = self.count + 1
+		print 'client #%d - %s:%d' % (self.count, addr[0], addr[1])
+		self.channels[self.channel_class (self, conn, addr)] = 1
+
+	def push_line (self, from_channel, line):
+		repository = from_channel.get_repository()
+		#if self.spy:
+		#	print '%s: %s' % (repository, line)
+
+	def writable (self):
+		return 0
+
+if __name__ == '__main__':
+	import sys
+
+	if len(sys.argv) > 1:
+		port = string.atoi (sys.argv[1])
+		if (len(sys.argv)) > 2:
+			repos = sys.argv[2]
+		else:
+			repos = None
+	else:
+		port = 4239
+		repos = None
+
+	s = repmgr_server ('', port, repos)
+	asyncore.loop()
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

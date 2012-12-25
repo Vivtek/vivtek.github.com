@@ -1,0 +1,250 @@
+<html><head><title>wftk context handling: wftk adaptor code</title></head>
+<body>
+<h2>wftk adaptor code</h2>
+<center>
+[&nbsp;<a href="wftk_config.html">Previous: wftk configuration module</a>&nbsp;]
+[&nbsp;<a href="wftk_session.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_session.html">Next: wftk context handling</a>&nbsp;]
+</center>
+
+<hr>
+The adaptor mechanism is what I often call (with gender-specific flair) a "poor man's ActiveX".  I've always liked that
+whole ActiveX concept of interchangeable modules, even way back when it was still called OLE.  Neat idea.  And since I
+incorporated it into wftk, I find that it makes a lot of things very simple to address.  Yeah, I suppose it's just a very
+simplified object-orientation knockoff, but I like it.
+<p></p>
+The whole thing is really pretty dumb.  An API consists of a table of functions, a table of names of the
+functions, and the number of entries in each table.  Each function takes a vararg list of parameters, and returns an
+XML pointer.  There is no error checking done by the adaptor management code, but the adaptor should do some.
+<p></p>
+So.  We've got two main functions to define: <code>wftk_get_adaptor</code> retrieves a pointer to an adaptor structure
+by type and name.  The type is an integer defined at compile-time.  The other function, <code>wftk_call_adaptor</code>,
+naturally provides a call interface for functions in the API.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="wftk_adaptors.html#wftk_get_adaptor">wftk_get_adaptor(): building an adaptor</a></i>
+<i>See <a href="wftk_adaptors.html#wftk_free_adaptor">wftk_free_adaptor(): disposing of an adaptor</a></i>
+<i>See <a href="wftk_adaptors.html#wftk_call_adaptor">wftk_call_adaptor(): calling an adaptor function</a></i>
+</pre></td></tr></table>
+Then we have another set of similar calls which deal in multiple adaptors.  Adaptor lists are used for notification-like
+services such as mail; a configuration may specify multiple notification targets for various events.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="wftk_adaptors.html#wftk_get_adaptorlist">wftk_get_adaptorlist(): getting a list of default listeners</a></i>
+<i>See <a href="wftk_adaptors.html#wftk_free_adaptorlist">wftk_free_adaptorlist(): freeing an adaptor list</a></i>
+<i>See <a href="wftk_adaptors.html#wftk_call_adaptorlist">wftk_call_adaptorlist(): shotgun notification</a></i>
+</pre></td></tr></table>
+
+<p></p>
+The way this works is that each type of adaptor has a list of function names that drivers implement.  Each driver has
+a list of functions implementing those names.  When the calling program calls <code>wftk_get_adaptor</code>, it first
+determines the type of adaptor (using the type number), then splits the specifier on a colon to get the name of the
+driver to use.  Anything after that optional colon is passed to the initialization function to build into the arbitrary
+parameters (which are of course an in-memory XML structure.  I'm really getting attached to that data structure.)
+
+<p></p>
+How the actual drivers are found and initialized is up to the config module; statically-linked modules must be specified
+using the lookup callback, and DLLs (and hopefully later .so if I ever figure all that out) are found by inspection of the
+filesystem.  See above for details.
+<br><br>
+<a name="wftk_get_adaptor">
+<i>wftk_get_adaptor(): building an adaptor</i><br>
+Building an adaptor instance is not a lot more than asking the config module for the pointer, then filling in the
+details.  For more information on configuration modules, see the standard module implementation.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT WFTK_ADAPTOR * wftk_get_adaptor (XML * session, int adaptor_class, const char * adaptor_descriptor)
+{
+   const char * mark;
+   WFTK_ADAPTOR * ad;
+   WFTK_ADAPTOR_LIST * list;
+
+   WFTK_SESSION * sess = wftk_session_init (session);
+
+   /* Maybe we've already got this adaptor in our list? */
+   if (session) {
+      list = sess->ads;
+      while (list) {
+         if (list->ad->num == adaptor_class) {
+            if (!adaptor_descriptor) return (list->ad);
+            if (!strcmp (adaptor_descriptor, xml_attrval (list->ad->parms, "spec"))) return (list->ad);
+         }
+         list = list->next;
+      }
+   }
+
+   /* Ask the config module for the initial setup.  If this is an unknown adaptor name, nothing's alloc'd and we return. */
+   if (adaptor_descriptor) {
+      for (mark = adaptor_descriptor; *mark &amp;&amp; *mark != ':'; mark++);
+      ad = wftk_config_get_adaptor (session, adaptor_class, adaptor_descriptor, mark - adaptor_descriptor);
+   } else {
+
+      ad = wftk_config_get_adaptor (session, adaptor_class, NULL, 0);
+   }
+   if (!ad) return ((WFTK_ADAPTOR *) 0);
+
+   /* Get the parms structure started.  The adaptor initializer will take it from here. */
+   ad->parms = xml_create ("parms");
+   if (adaptor_descriptor) {
+      if (*mark) mark++;
+      xml_set (ad->parms, "parm", mark);
+   }
+
+   /* Call the initializer. */
+   xml_set (ad->parms, "error", "");
+   (ad->vtab[0]) (ad, (va_list) 0);
+   if (*xml_attrval (ad->parms, "error")) {
+      wftk_config_debug_message ('A', "[%d]init: %s", adaptor_class, xml_attrval (ad->parms, "error")); /* TODO: not optimal */
+      xml_free (ad->parms);
+      free (ad);
+      return ((WFTK_ADAPTOR *) 0);
+   }
+
+   /* Add the new adaptor to the list. */
+   if (session) {
+      list = malloc (sizeof (WFTK_ADAPTOR_LIST));
+      list->next = sess->ads;
+      list->ad = ad;
+      sess->ads = list;
+   }
+
+   /* Return the initialized adaptor. */
+   return (ad);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="wftk_free_adaptor">
+<i>wftk_free_adaptor(): disposing of an adaptor</i><br>
+Once we're done with an adaptor, we have to free it.  No free lunch in C.  The only exception
+is that if a valid session is passed in, we won't free the adaptor because it's presumed to
+be stashed in the session (this means that if NULL is passed in, we <i>do</i> free.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void wftk_free_adaptor (XML * session, WFTK_ADAPTOR * ad)
+{
+   if (session) return;
+
+   (ad->vtab[1]) (ad, (va_list) 0);  /* Let the adaptor do whatever it needs to do in order to clean up. */
+   xml_free (ad->parms);
+   free (ad);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="wftk_call_adaptor">
+<i>wftk_call_adaptor(): calling an adaptor function</i><br>
+The calling of an adaptor, once it's found, is absurdly simple.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * wftk_call_adaptor (WFTK_ADAPTOR * ad, const char * function, ...)
+{
+   va_list argptr;
+   XML * retval;
+   int func;
+
+   if (!ad) return (XML *) 0;
+
+   for (func = 0; func &lt; ad->nfuncs; func++) {
+      if (!strcmp (function, ad->names[func])) break;
+   }
+   if (func == ad->nfuncs) {
+      wftk_config_debug_message ('A', "[%d]%s: function '%s' unknown", ad->num, xml_attrval (ad->parms, "spec"), function);
+      return ((XML *) 0);
+   }
+
+   xml_set (ad->parms, "error", "");
+
+   va_start (argptr, function);
+   retval = (ad->vtab[func]) (ad, argptr);
+   va_end (argptr);
+
+   if (*xml_attrval (ad->parms, "error")) {
+      wftk_config_debug_message ('A', "[%d]%s:%s - %s", ad->num, xml_attrval (ad->parms, "spec"), function, xml_attrval (ad->parms, "error"));
+   }
+   return (retval);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="wftk_get_adaptorlist">
+<i>wftk_get_adaptorlist(): getting a list of default listeners</i><br>
+This is pretty easy, as the config module and get_adaptor do most of the work.  Well, actually all the work.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT WFTK_ADAPTORLIST * wftk_get_adaptorlist (XML * session, int adaptorclass)
+{
+   return (wftk_config_get_adaptorlist (session, adaptorclass));
+}
+</pre></td></tr></table>
+<br><br>
+<a name="wftk_free_adaptorlist">
+<i>wftk_free_adaptorlist(): freeing an adaptor list</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void wftk_free_adaptorlist (XML * session, WFTK_ADAPTORLIST * list)
+{
+   int i;
+   if (!list) return;
+
+   for (i=0; i &lt; list->count; i++) {
+      wftk_free_adaptor (session, list->ads[i]);
+   }
+
+   free (list);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="wftk_call_adaptorlist">
+<i>wftk_call_adaptorlist(): shotgun notification</i><br>
+Calling a list of adaptors isn't too hard, either; we just iterate down the list and send the stuff out.  If we get
+XML return values, we free them all.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int wftk_call_adaptorlist (WFTK_ADAPTORLIST * list, const char * function, ...)
+{
+   va_list argptr;
+   int i;
+   XML * retval;
+   int func;
+
+   if (!list) return 0;
+
+   va_start (argptr, function);
+
+   for (i=0; i &lt; list->count; i++) {
+      if (!(list->ads[i])) continue;
+      for (func = 0; func &lt; list->ads[i]->nfuncs; func++) {
+         if (!strcmp (function, list->ads[i]->names[func])) break;
+      }
+      if (func == list->ads[i]->nfuncs) {
+         wftk_config_debug_message ('A', "[%d]%s: function '%s' unknown", list->ads[i]->num, xml_attrval (list->ads[i]->parms, "spec"), function);
+      } else {
+         xml_set (list->ads[i]->parms, "error", "");
+
+         retval = (list->ads[i]->vtab[func]) (list->ads[i], argptr);
+
+         if (*xml_attrval (list->ads[i]->parms, "error")) {
+            wftk_config_debug_message ('A', "[%d]%s:%s - %s", list->ads[i]->num, xml_attrval (list->ads[i]->parms, "spec"), function, xml_attrval (list->ads[i]->parms, "error"));
+         }
+         if (retval) xml_free (retval);
+      }
+   }
+
+   va_end (argptr);
+
+   return (1);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_config.html">Previous: wftk configuration module</a>&nbsp;]
+[&nbsp;<a href="wftk_session.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_session.html">Next: wftk context handling</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

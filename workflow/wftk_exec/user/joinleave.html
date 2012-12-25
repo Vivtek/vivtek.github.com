@@ -1,0 +1,252 @@
+<html><head><title>User module: Adding and removing users and things from groups</title></head>
+<body>
+<h2>Adding and removing users and things from groups</h2>
+<center>
+[&nbsp;<a href="getsave.html">Previous: Loading and saving users and groups</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="auth.html">Next: Authentication in a CGI environment</a>&nbsp;]
+</center>
+
+<hr>
+These are simply some extremely simple wrappers around the xmlapi functionality used to
+make the specified changes.
+<br><br>
+<a name="user_join">
+<i>user_join()</i><br>
+When a user joins a group, then a link is made in both directions.  Just in case the join
+is redundant (in either direction) we scan both user and group for membership before appending
+the link.
+<p></p>
+Note that this only affects structures in memory; the calling app has to know when to save
+both structures back to the repository.  Note further that there is absolutely no locking going
+on here.  Eventually we might want to address this issue in some way (otherwise it will
+eventually cause us to wish that we had already addressed it...)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int user_join (XML * user, XML * group)
+{
+   XML * child;
+   child = xml_firstelem (group);
+   while (child) {
+      if (!strcmp (child->name, "user"))
+         if (!strcmp (xml_attrval (child, "name"), xml_attrval (user, "name")))
+            goto ensure_group;
+      child = xml_nextelem (child);
+   }
+   child = xml_create ("user");
+   xml_set (child, "name", xml_attrval (user, "name"));
+   xml_append (group, child);
+
+ensure_group:
+   child = xml_firstelem (user);
+   while (child) {
+      if (!strcmp (child->name, "group"))
+         if (!strcmp (xml_attrval (child, "name"), xml_attrval (group, "name")))
+            return 0;
+      child = xml_nextelem (child);
+   }
+   child = xml_create ("group");
+   xml_set (child, "name", xml_attrval (group, "name"));
+   xml_append (user, child);
+
+   return 0;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="user_leave">
+<i>user_leave()</i><br>
+When a user <i>leaves</i> a group, then, the links in both directions must be removed.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int user_leave (XML * user, XML * group)
+{
+   XML * child;
+
+   child = xml_firstelem (group);
+   while (child) {
+      if (!strcmp (child->name, "user")) {
+         if (!strcmp (xml_attrval (child, "name"), xml_attrval (user, "name"))) {
+            xml_delete (child);
+            child = xml_firstelem (group);
+         }
+      }
+      child = xml_nextelem (child);
+   }
+
+   child = xml_firstelem (user);
+   while (child) {
+      if (!strcmp (child->name, "group")) {
+         if (!strcmp (xml_attrval (child, "name"), xml_attrval (group, "name"))) {
+            xml_delete (child);
+            child = xml_firstelem (user);
+         }
+      }
+      child = xml_nextelem (child);
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="object_grant">
+<i>object_grant()</i><br>
+Permission granting is an easier task, since object inclusion only goes one way (there is
+no object repository; groups know that they hold objects, but the objects have to ask.)
+<p></p>
+Note that we don't really care whether we're given a user or a group to add the permission
+to; they work the same way, and the xmlapi doesn't care.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int object_grant (XML * user_or_group, const char * class, const char * object, const char * permission)
+{
+   XML * child;
+   child = xml_firstelem (user_or_group);
+   while (child) {
+      if (!strcmp (child->name, "object"))
+         if (!strcmp (xml_attrval (child, "class"), class) &amp;&amp;
+             !strcmp (xml_attrval (child, "object"), object) &amp;&amp;
+             !strcmp (xml_attrval (child, "permission"), permission))
+            return 0;
+      child = xml_nextelem (child);
+   }
+   child = xml_create ("object");
+   xml_set (child, "class", class);
+   xml_set (child, "object", object);
+   xml_set (child, "permission", permission);
+   xml_append (user_or_group, child);
+   return 0;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="object_revoke">
+<i>object_revoke()</i><br>
+Revocation is a little different.  If a NULL is passed in for object or for permission, it matches
+anything.  (You can't do the same for classes.  Sorry.)
+<p></p>
+Revocation is <i>not</i> recursive.  That is, if I revoke viewer privilege for a user, one of
+the user's group memberships might still result in viewer privileges.  I'm not sure if this
+is a bug or a feature, but it is at least documented.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int object_revoke (XML * user_or_group, const char * class, const char * object, const char * permission)
+{
+   XML * child;
+   int ok;
+   child = xml_firstelem (user_or_group);
+   while (child) {
+      if (!strcmp (child->name, "object") &amp;&amp;
+          !strcmp (xml_attrval (child, "class"), class)) {
+         ok = 0;
+         if (!object) ok = 1;
+         if (!ok) if (!strcmp (xml_attrval (child, "object"), object)) ok = 1;
+         if (ok) {
+            ok = 0;
+            if (!permission) ok = 1;
+            if (!ok) if (!strcmp (xml_attrval (child, "permission"), permission)) ok = 1;
+            if (ok) {
+               xml_delete (child);
+               child = xml_firstelem (user_or_group);
+            }
+         }
+      }
+      child = xml_nextelem (child);
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="group_include">
+<i>group_include()</i><br>
+Group links are also two-way, and are decorated with the permission level being granted to the
+containing group.  So these functions kind of combine the complexity of the other functions
+above.
+<p></p>
+Group inclusion
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int group_include (XML * outgroup, XML * ingroup, const char * permission)
+{
+   XML * child;
+   child = xml_firstelem (outgroup);
+   while (child) {
+      if (!strcmp (child->name, "group-include"))
+         if (!strcmp (xml_attrval (child, "name"), xml_attrval (ingroup, "name")) &amp;&amp;
+             !strcmp (xml_attrval (child, "permission"), permission))
+            goto ensure_ingroup;
+      child = xml_nextelem (child);
+   }
+   child = xml_create ("group-include");
+   xml_set (child, "name", xml_attrval (ingroup, "name"));
+   xml_set (child, "permission", permission);
+   xml_append (outgroup, child);
+
+ensure_ingroup:
+   child = xml_firstelem (ingroup);
+   while (child) {
+      if (!strcmp (child->name, "group-included-by"))
+         if (!strcmp (xml_attrval (child, "name"), xml_attrval (outgroup, "name")) &amp;&amp;
+             !strcmp (xml_attrval (child, "permission"), permission))
+            return 0;
+      child = xml_nextelem (child);
+   }
+   child = xml_create ("group-included-by");
+   xml_set (child, "name", xml_attrval (outgroup, "name"));
+   xml_set (child, "permission", permission);
+   xml_append (ingroup, child);
+
+   return 0;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="group_unlink">
+<i>group_unlink()</i><br>
+As with <code>object_revoke</code> above, 
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int group_unlink (XML * outgroup, XML * ingroup, const char * permission)
+{
+   XML * child;
+   int ok;
+   child = xml_firstelem (outgroup);
+   while (child) {
+      if (!strcmp (child->name, "group-include") &amp;&amp;
+          !strcmp (xml_attrval (child, "name"), xml_attrval (ingroup, "name"))) {
+         ok = 0;
+         if (!permission) ok = 1;
+         if (!ok) if (!strcmp (xml_attrval (child, "permission"), permission)) ok = 1;
+         if (ok) {
+            xml_delete (child);
+            child = xml_firstelem (outgroup);
+         }
+      }
+      child = xml_nextelem (child);
+   }
+
+   child = xml_firstelem (ingroup);
+   while (child) {
+      if (!strcmp (child->name, "group-included-by") &amp;&amp;
+          !strcmp (xml_attrval (child, "name"), xml_attrval (outgroup, "name"))) {
+         ok = 0;
+         if (!permission) ok = 1;
+         if (!ok) if (!strcmp (xml_attrval (child, "permission"), permission)) ok = 1;
+         if (ok) {
+            xml_delete (child);
+            child = xml_firstelem (ingroup);
+         }
+      }
+      child = xml_nextelem (child);
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="getsave.html">Previous: Loading and saving users and groups</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="auth.html">Next: Authentication in a CGI environment</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,133 @@
+<html><head><title>PyPop: Python Popup UI framework</title></head>
+<body>
+<h2>PyPop: Python Popup UI framework</h2>
+<center>
+[<a href="index.html">wftk-Python</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+My first stab at a <a href="../popup/index.html">simple popup IM-type UI for wftk</a> was based on wxWindows and kind of
+bogged down in the fact that I hadn't really thought the whole data management question through (which led to the
+<a href="../repmgr/index.html">repository manager</a> in the first place) and also the fact that C++ is just not something
+I use every day, whereas Python is starting to be, thanks to wxPython (which makes GUI work <i>so</i> easy to do!)
+<p></p>
+So I thought maybe I could jumpstart development of a workable wftk front-end by moving into Python for prototyping;
+my goal with the C++ compiled popup UI is that hopefully it'll be possible to cram an entire popup client with configuration
+onto a floppy diskette -- that would be very cool.  Python is far too heavy to make that work, but Python is attractive
+for other reasons (for instance, you can easily imagine custom Python code being a repository list itself, allowing the
+repository to remote-configure and remote-upgrade its clients.  That'd be a powerful feature!)
+<p></p>
+(Note as of 2006: what the hell is a floppy disk?)  (Sigh...)
+<p></p>
+But one way or the other, I think having a quick popup UI will help me focus on needed functionality for the wftk system as
+a whole, and motivate wider acceptance as well.  I think it'll be a useful addition to the toolkit.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#######################################################################################################
+#
+# This is a Python GUI framework for the wftk.
+#
+# Copyright (c) 2003-2006, Vivtek, and released under the GPL.
+#
+#######################################################################################################
+</pre></td></tr></table>
+
+<p></p>
+We import the wftk OO wrapper, the wxPyWf library of handy wftk/wx UI tools, the command handler for repositories,
+and of course wxPython itself.
+This presentation is a pretty reasonable overview of the structure of a wxPython program in general.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>import wftk
+import wxpywf
+import string
+from wxPython.wx import *
+
+</pre></td></tr></table>
+
+The popup framework accepts a definition file for the application to be run, as argv[1].  Let's read it in and parse it (it's XML, of course).
+TODO: this should actually probably be treated as the repository definition, and loaded as such.  We can deal with the details later.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>d = open (sys.argv[1])
+defn = wftk.xml (d.read())
+d.close()
+</pre></td></tr></table>
+
+
+
+Now we're down to the actual, you know, <i>program</i>.  The core of any wxPython program is at least one class implementing the frame object.
+This class provides a central
+place to hang all the windows stuff, defines menus and event handlers, and so forth.  The "stock program" consists of a
+single such frame class, along with a bunch of handling code, dialog builders/handlers, and so on.
+
+<p></p>
+The structure of a wxPyWf program, however, deviates somewhat from the norm.  Instead of providing different handler
+functions for each menu entry (which is normal), wxPyWf menus are instead given command-line handlers, which they then
+call directly to handle menu events.  That makes the frame class a whole lot simpler under wxPyWf.
+
+<p></p>
+For pypop, most of the logic of the program is thus in two places: first, the startup, where we build the menu structure
+for the repository being displayed; and second, a small CLI module which handles commands like "open" and "exit".
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class main_window(wxpywf.frame):
+    def __init__(self, parent, id, dialog):
+        wxpywf.frame.__init__(self, parent, defn, dialog)
+
+</pre></td></tr></table>
+
+Most of the bulk of the actual framework program is thus likely to be opening and scoping out the repository definition, along with
+construction of the menu.
+
+<p></p>
+At any rate, we continue by defining and calling an application object:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class App(wxApp):
+    def OnInit(self):
+        if defn['mode'] == '': defn['mode'] = 'frame'
+        starter = defn.search (defn['mode'], 'id', defn[defn['mode']])
+        cli_list = []
+        #for c in defn.elements():
+        #   if c.is_a('commands') and c['python'] != '':
+        #      try:
+        #         import c['python']
+        #         cli_list = cli_list + [c['python'].cli(None)]
+        #      except:
+        #         wxpywf.notify_user ("Attempt to load command line definition %s failed." % c['python'])
+        if starter:
+           frame = main_window(None, defn, starter)
+           self.SetTopWindow(frame)
+           return true
+        else:
+           wxpywf.notify_user ("Starting %s '%s' undefined.  Cannot start." % (defn['mode'], defn[defn['mode']]))
+           return false
+
+app = App(0)
+app.MainLoop()
+</pre></td></tr></table>
+And that, in a nutshell, is a wxPython program.
+
+<p>
+A note on dynamic loading: see http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/223972 -- describes how to
+load modules dynamically at runtime based on the configuration file.  Useful schtuff.  But more than I want to handle
+right now.  TODO: this.
+</p>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2002-2006, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

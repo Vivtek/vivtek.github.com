@@ -1,0 +1,47 @@
+<html><head><title>lpml alpha: Script file structure</title></head><body><h2>Script file structure</h2><center>[&nbsp;<a href="changelog.html">Previous: Change log and further ideas</a>&nbsp;][&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;][&nbsp;<a href="scan.html">Next: Initial scan</a>&nbsp;]</center><hr>This is the overall layout of the file, and indeed of most single-file Perl scripts.  As such,
+it will serve as a useful pattern someday when this project gets to the point where patterns
+are explicitly supported. 
+<p></p>
+I don't know how other people write Perl scripts, but I start out by processing the input, so
+I can quit early if there's already a problem.  Then globals and subroutine declaration (in
+most of my larger pieces, of course, I eschew globals and I put subroutines into separate
+files.)  Then the meat of the code, which executes the following basic algorithm: <ul>
+<li>Scan<br>
+The initial scan reads the file and creates a list of items keyed by name.  Each item's
+information includes its label (for printing into the documentation) and its initial text
+pieces (for tangling.)  Note that some pieces concatenate onto <i>other</i> items than the
+one they're in; in this case, the label may not even be known before the first text piece
+is added, but that won't stop us, we're Perl.
+<li>Tangle<br>
+Once the scan is complete, we have all the information we need to generate the text targets
+defined by this file.  (That's tangling.)  So we get that task out of the way.  The other
+reason that tangle goes first is that in a later version than this, the tangle will accumulate
+index data which will be used during the weave phase (where documentation is generated.)
+<li>Weave<br>
+The weave step generates the bulk of the documentation, one page per item, by name.
+The <code>&lt;insert&gt;</code> tag is replaced by the label of its item, suitably formatted.
+Text pieces are formatted as code blocks. 
+<li>Write index<br>
+Finally, we write the index page or pages.  This version of the process only defines a single
+index page; we'll probably want more control later.
+</ul>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#!/usr/local/bin/perl
+# This is the lpml alpha Perl script.
+# Copyright (c) 2000 Vivtek.  All rights reserved except those explicitly granted
+# under the GNU Public License.
+# http://www.vivtek.com/lpml/lpml_alpha/index.html for more information.
+
+<i>See <a href="process_args.html">Process arguments and open source file</a></i>
+
+
+<i>See <a href="scan.html">Initial scan</a></i>
+<i>See <a href="tangle.html">Tangle: write code output</a></i>
+<i>See <a href="write_index.html">Write index page</a></i>
+<i>See <a href="weave.html">Weave: Write documentation pages</a></i>
+
+<i>See <a href="clean_up.html">Clean up afterwards</a></i>
+</pre></td></tr></table>
+<center>[&nbsp;<a href="changelog.html">Previous: Change log and further ideas</a>&nbsp;][&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;][&nbsp;<a href="scan.html">Next: Initial scan</a>&nbsp;]<br><br><hr width="75%"><table width="75%"><tr><td><font size="-1">This code and documentation are released under the terms of the GNU license.  They areadditionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitlygranted under the terms of the GNU license.</font></td></tr></table></center></body></html>

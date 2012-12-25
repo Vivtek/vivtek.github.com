@@ -1,0 +1,98 @@
+<html><head><title>xmlapi: xml_write: Writing XML data to disk</title></head>
+<body>
+<h2>xml_write: Writing XML data to disk</h2>
+<center>
+[&nbsp;<a href="main.html">Previous: Functions except for xml_read</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_prepend.html">Next: xml_prepend: Inserting elements</a>&nbsp;]
+</center>
+
+<hr>
+Writing the contents of one of our XML structures out into a file is simple.  We've got two
+different variants on this function; one writes the entire element (<code>xml_write</code>)
+and the other writes just the content of the element (<code>xml_writecontent</code>).
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void xml_write (FILE * file, XML * xml)
+{
+   ATTR * attr;
+   ELEMENTLIST * list;
+</pre></td></tr></table>
+
+First, if the element we're working on is plain text, we just write it out.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   if (xml->name == NULL) {
+      fprintf (file, "%s", xml->attrs->value);
+      return;
+   }
+</pre></td></tr></table>
+
+It's a regular element, so we open the element and write the name.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   fprintf (file, "&lt;%s", xml->name);
+   attr = xml->attrs;
+   while (attr != NULL) {
+      fprintf (file, " %s=\"%s\"", attr->name, attr->value);
+      attr = attr->next;
+   }
+</pre></td></tr></table>
+
+If the element has no children (this includes text), then we close the tag as an empty tag,
+and we're finished.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   if (xml->children == NULL) {
+      fprintf (file, "/>");
+      return;
+   } else  fprintf (file, ">");
+</pre></td></tr></table>
+
+Otherwise we track down the list of children and write each of them, recursively.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   xml_writecontent (file, xml);
+</pre></td></tr></table>
+
+And finally, if there were children, then we need to close the tag with the full close.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   fprintf (file, "&lt;/%s>", xml->name);
+}
+</pre></td></tr></table>
+
+The weakness of this function currently is that in the absence of plain text there will never
+be a line break.  Not good -- but I don't see a good algorithm for doing it better while
+ruling out the possibility of inserting line breaks where they'll be errors.
+<p></p>
+Let's go ahead and define our xml_writecontent.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void xml_writecontent (FILE * file, XML * xml)
+{
+   ELEMENTLIST * list;
+
+   list = xml->children;
+   while (list) {
+      xml_write (file, list->element);
+      list = list->next;
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="main.html">Previous: Functions except for xml_read</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_prepend.html">Next: xml_prepend: Inserting elements</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

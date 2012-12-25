@@ -1,0 +1,144 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk: users</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk: working with users</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="index.html">wftk programmer's guide home</a> ]
+<hr>
+
+<h3>Users</h3>
+This part of the API deals with <i>users in processes</i>.  The wftk itself doesn't know or care about
+particular user information, except that it can look up things like email for notifications.  A user
+for the wftk core engine is just a string, a userid.  So the list of users, for instance, is just
+a list of userids registered as involved with a process, not a list of the users in the directory.
+<p>
+Similarly, the <code>wftk_user_add</code> does <i>not</i> add a user to the directory; it involves a
+user with the process named.  If the user is in the directory known to wftk (by, yes, a user adaptor)
+then some contact information from the directory will be copied to the process for reporting.  The
+directory is considered authoritative when actually using any of the contact information (in case it's
+changed.)
+<p>
+If you need to add a user to the directory, then you need to talk to the directory directly, not to
+the wftk.  The standard localxml file-based user directory is just a set of XML files (like everything
+else in the wftk).  At the moment there is no more involved interface than simply editing those files
+by hand, but it will be easy to go back and write some interfaces.
+<p>
+At this point, no indexing is done of involvement.  There is no good way to generate a list of processes
+given a userid.  That will have to be fixed at some point.
+<p>
+<h3>Functions</h3>
+<pre>
+int    wftk_user_list     (void * session, XML * datasheet, XML * list);
+int    wftk_user_add      (void * session, XML * datasheet, XML * user);
+XML  * wftk_user_retrieve (void * session, XML * datasheet, const char * userid);
+int    wftk_user_update   (void * session, XML * datasheet, XML * user);
+int    wftk_user_remove   (void * session, XML * datasheet, const char * userid);
+int    wftk_user_synch    (void * session, XML * user);
+int    wftk_user_auth     (void * session, XML * user, const char * password);
+</pre>
+
+<h3>Details</h3>
+
+<a name="wftk_user_list"></a>
+<font size=+1>wftk_user_list</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet,</code><br>
+<code>XML * list</code>
+</blockquote>
+
+Lists users involved in a given process.  Returns the latest known contact information for each
+user (in attributes on the result elements).  Doesn't ask the user directory for new information;
+if you want up-to-date information, use <a href="#wftk_user_synch">wftk_user_synch</a> on the
+result element.
+
+<br><br>
+
+<a name="wftk_user_add"></a>
+<font size=+1>wftk_user_add</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet,</code><br>
+<code>XML * user</code>
+</blockquote>
+
+Adds the given user as an involved user in the given process.
+
+<br><br>
+
+<a name="wftk_user_retrieve"></a>
+<font size=+1>wftk_user_retrieve</font> returns <code>XML *</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet,</code><br>
+<code>const char * userid</code>
+</blockquote>
+
+Retrieves last known information about the named involved user.  Again, use <a href="#wftk_user_synch">wftk_user_synch</a>
+on the result if you want up-to-date information from the directory.
+
+<br><br>
+
+<a name="wftk_user_update"></a>
+<font size=+1>wftk_user_update</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet,</code><br>
+<code>XML * user</code>
+</blockquote>
+
+Updates the involved user.
+
+<br><br>
+
+<a name="wftk_user_remove"></a>
+<font size=+1>wftk_user_remove</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet,</code><br>
+<code>const char * userid</code>
+</blockquote>
+
+Removes the named user from involvement in the process.  This doesn't actually remove the
+user from <i>all</i> involvement, as tasks, requests, and roles may still be assigned.  I
+can't decide whether that's consistent or not.
+
+<br><br>
+
+<a name="wftk_user_synch"></a>
+<font size=+1>wftk_user_synch</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * user</code>
+</blockquote>
+
+Asks the user directory for fresh information about the specified user.
+
+<br><br>
+
+<a name="wftk_user_add"></a>
+<font size=+1>wftk_user_auth</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet,</code><br>
+<code>XML * user</code>,<br>
+<code>const char * password</code>
+</blockquote>
+
+Checks the given password for authorization against the given user.  The user directory
+adaptor takes care of this, actually.
+
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

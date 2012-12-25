@@ -1,0 +1,321 @@
+<head>
+<title>wftk tutorial - 01 "Brief" introduction to the workflow toolkit</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk tutorial - 01 "Brief" introduction to the workflow toolkit</div>
+
+
+<p><a name="__index__"></a></p>
+<!-- INDEX BEGIN -->
+
+	<ul>
+
+		<li><a href="#the_repository">01 The repository</a></li>
+		<li><a href="#data_organization">02 Data organization and document management</a></li>
+		<li><a href="#actions_and_events">03 Actions and events</a></li>
+		<li><a href="#users__groups__and_permissions">04 Actors: users, groups, and permissions</a></li>
+		<li><a href="#processes_and_tasks">05 Processes and tasks</a></li>
+		<li><a href="#procedure_definitions_and_roles">06 Procedure definitions and roles</a></li>
+		<li><a href="#statebased_workflow__state_machines_">07 State-based workflow (state machines)</a></li>
+		<li><a href="#taskbased_workflow__procedural_workflow_">08 Task-based workflow (procedural workflow)</a></li>
+		<li><a href="#task_management">09 Task management</a></li>
+		<li><a href="#conclusion__that_wasn_t_so_hard__was_it_now">Conclusion: that wasn't so hard, was it now?</a></li>
+	</ul>
+For a complete listing of all headings and subheadings in this tutorial, <a href="index.html">see the master index</a>.
+<!-- INDEX END -->
+
+<hr />
+<p></p>
+<p>The wftk is an open-source workflow toolkit.  The fact that it is a toolkit means that it attempts to be all things workflow-related
+to all people; it doesn't mandate a particular approach -- instead, it attempts to add some semantics to whatever it is you've already got on hand,
+so you can organize it on a workflow basis.  A "workflow basis" means that specific tasks for human beings are built into your processes.  Since
+human beings are notoriously slow and unpredictable when it comes to scheduling, workflow is an essentially asynchronous framework.</p>
+<p>This section is a brief description of the terminology and functionality of the wftk.  It doesn't look brief, because there's a lot of ground to
+cover.  Each section covers a subset of the terms and functionality provided by the wftk, and links to a separate chapter of this tutorial.</p>
+<p>The individual chapters contain separate sections devoted to each concept or functionality provided, and each of those sections is automatically
+generated from the POD documentation in the unit tests.  So the example code in each of those sections is pretty darned close to tested, working
+code.  At some stage I will work on better organization for POD-vs-actual code, with luck permitting me to generate both the unit test and the
+example code from the same source, so they'll be identical.  But for now, at least putting them into the same files guarantees some semblance
+of similarity.</p>
+<p>
+</p>
+
+<h2><a name="the_repository">01 The repository</a></h2>
+
+<p>In the wftk, every set of processes runs in a <strong>repository</strong>, and the <strong>Workflow::wftk</strong> object itself embodies a session against that
+repository.  Since the repository is the central object underlying the entire wftk, there is no separate chapter devoted to its documentation; instead,
+you will simply see example code for working with the repository throughout this tutorial.</p>
+<p>Some background explanation is still in order, however.  Each repository has a
+working directory (by default), where a configuration file resides.  The subdirectories of that working directory may contain various scripts and
+modules which can extend the basic system, and other subdirectories may be used for arbitrary data storage.  The main directory itself may also be
+used for the storage of arbitrary files.</p>
+<p>The repository may itself be an instance of a repository type; if so, its type must be defined in another directory specified as its type definition.
+This is especially useful for single-process repositories (projects), where the project type can be thought of as an application.</p>
+<p>
+</p>
+<h2><a name="data_organization">02 Data organization and document management</a></h2>
+<p>
+The repository is first and foremost an organizational structure for <strong>data</strong>.  Data comes in <strong>lists</strong>.  Each list is represented by a
+<strong>Workflow::wftk::Data</strong> object, and the individual modules which implement that API represent any data source as a list of <strong>entries</strong> indexed by unique
+keys.  A list is thus effectively a hash, and can in fact be tied as a hash if that's the way you like to work.  Lists may be defined and named
+in your repository configuration file, or may be configured and created on the fly (a query against a named list, for instance, is a dynamically created
+query which resides in your current session).</p>
+<p>An entry in a list, once retrieved, is a Workflow::wftk::Record.  A record is also a hash, but one which may have multiple values for any given
+field.  It may contain file attachments.  It may contain references to other records or lists of records
+elsewhere in the repository.  Actions taken against it may be logged,
+and it may maintain version control, depending on how its list is defined in the repository.</p>
+<p>The <strong>DBD::wftk</strong> DBI driver allows you to use SQL against lists in the repository, and in fact you can just use <strong>DBD::wftk</strong> exclusively if that's
+what floats your boat, entirely ignoring all the rest of this and trusting the wftk to do the right workflow-y thing at the right time.</p>
+<p>In addition to more prosaic values in record fields, the wftk can also attach arbitrary <strong>documents</strong> to any record, allowing document
+management to be implemented with whatever infrastructure you happen to have, and may store <strong>historical data</strong> about actions and events.</p>
+<p>For more information on data manipulation, <a href="02-data.html">see Chapter 02: Data</a>.
+<p>
+</p>
+<h2><a name="actions_and_events">03 Actions and events</a></h2>
+<p>
+The worfklow system also uses <strong>actions</strong> (using Workflow::wftk::Action objects) within the data universe of the repository.  Actions may
+modify objects in lists, they may add or delete objects, they may send outgoing notifications or publications, or they may do any other arbitrary
+thing, since they are, in fact, arbitrary.  Yes, generic Perl code can be written as an event handler.</p>
+<p><strong>Events</strong> may occur in the repository, triggered by any number of external occurrences, such as incoming mail or Web accesses.  Events may add objects
+or trigger actions.  Lists are defined in such a way that any list action taken against them is an event, and may thus trigger an action.
+An event has the same internal structure as a generic object.</p>
+<p>The distinction between actions and events is that events are more structured.  An event is a structured input to the system, while an action
+is a more or less structured action taken by an actor.  Actions are almost always triggered by events, though, so conceptually the line may be
+rather blurry, especially since all actions taken are logged, and the log entry is itself an event.</p>
+<p>For more information on actions and events, <a href="03-actions.html">see Chapter 03: Actions and events</a>.</p>
+<p>
+</p>
+<h2><a name="users__groups__and_permissions">04 Actors: users, groups, and permissions</a></h2>
+<p>
+Actions are taken by <strong>actors</strong>, and so the wftk provides
+two special types of object, <strong>users</strong> and <strong>groups</strong>.  They aren't that special -- the user is simply represented as a generic object in an
+arbitrary list, but the system expects a few fields to be defined (mostly the contact information).  The group is simply a hierarchical mechanism
+allowing users to be group, groups to be grouped, and so on.  It, too, can be stored in any list which can handle lists of values.</p>
+<p>The repository defines some special functions to deal with the user and group lists, however: chief among those is testing whether a given username
+is within a given group.</p>
+<p>One special type of action is a calculation, given a userid and an action, whether that action is permitted.  The results are ``yes'', in which case the
+action may be taken, ``no'', in which case the action will be denied, or anything else, in which case the result is the name of a process which should
+be started to determine the permissibility of the action.  Note that, since data updates may be packaged together as actions, this results in a handy
+system for collaborative data maintenance of heterogeneous data.  Outstanding data modification actions are special pending actions, in that they
+can be used as views on repository data, allowing a virtual data sandbox to be constructed while the change is still pending.</p>
+<p>A special type of actor is a <strong>bot</strong>, which is a "virtual user" representing automated action.  This doesn't make much sense until
+tasks are defined in Chapter 06, though.</p>
+<p>For more information on users, groups, and permissions, <a href="04-actors.html">see Chapter 04: Users, groups, and permissions</a>.</p>
+<p>
+</p>
+<h2><a name="processes_and_tasks">05 Processes and tasks</a></h2>
+<p>
+Two more special types of object are <strong>processes</strong> and <strong>tasks</strong>.  These are the components of ad-hoc workflow, and provide
+some richer semantics.  A process represents ``something the system
+is doing'', and serves as the central organizational point of workflow action in the system.  All actions taken against the process are logged in
+its enactment.
+The process also has a status, which is an arbitrary (short) string.
+By convention, the status ``complete'' has the special meaning of deactivating the process.
+Remember that, due to the fact that the process is an object, it may also contain file attachments and arbitrary values and references to other data.
+This is essentially the entire reason for Chapter 2: we want a variety of ways of representing data so that we have a variety of ways of representing
+processes.</p>
+<p>A special case of the process, briefly mentioned earlier, is the <strong>project</strong>, where the repository is itself the single and sole process in the system
+defined (unless its tasks are themselves processes, and thus subprojects).  In this case, the project/repository is a directory, the contents of
+which are automatically considered file attachments.</p>
+<p>In contrast to the process, which represents the duties of the system as a whole, the <strong>task</strong> represents ``something an actor needs to do,''
+where an actor may be a program or a human.  Ad-hoc tasks may be created in a process at any time.  If there are no workflows active in a process
+(thus implying the automatic addition of tasks later), the completion of the last task in a process also completes the process.  Thus an ad-hoc set
+of tasks represents a checklist, itself already a very useful workflow construct and the most basic of workflow configurations.</p>
+<p>A task may itself be a process.  Storage for this structure may be arranged in different ways, but conceptually they all boil down to this: the task
+list is effectively hierarchical.</p>
+<p>All actions taken against processes -- particularly task completion, but not just that -- are logged in the process.  In workflow parlance, the
+action log for a process is its <i>enactment</i>.  The formalization and generalization of the enactments for a group of processes may be
+stored as a procedure.</p>
+<p>For more information on processes and tasks, <a href="05-tasks.html">see Chapter 05: Processes and tasks</a>.</p>
+<p>
+</p>
+<h2><a name="procedure_definitions_and_roles">06 Standardization: procedure definitions and roles</a></h2>
+<p>
+Structure may be imposed on a process by assigning it one (or more) procedure definitions or <strong>procdef</strong>s.  Procdefs are stored in a procdef list;
+generally, of course, you'll only want to have one procedure per process, but you're not restricted to it, especially given that exceptions can trigger
+additional procedures against a process to resolve various problems not covered by the default or standard procedure.</p>
+<p>Since a repository may have a repository type, procdefs can be retrieved either from a list defined in the current repository, or from a list defined
+in the repository type.  This comes in handy for system-wide definition of procedures.</p>
+<p>The procdef may define <strong>roles</strong>.  Roles have no independent existence in the system; instead, a role is always defined in terms of the procdef
+in which it appears.  A role may be filled by any specific user, group, or list of users and/or groups.  (You can think of it as a local variable of
+type "user/group".)  The procdef may specify actions which can be
+taken to effect state transitions, and those actions can be restricted to the specified users and/or groups.  Once assigned to a user in a given process,
+a role is normally held by that user going forward.  Roles can be delegated or specifically assigned to groups, and assignments can be revoked.  A role
+can also be specified as floating, so that the assignment doesn't take place.</p>
+<p>For more information on procedures and roles, <a href="06-procedures.html">see Chapter 06: Procedures and roles</a>.</p>
+<p>
+</p>
+<h2><a name="statebased_workflow__state_machines_">07 State-based workflow (state machines)</a></h2>
+<p>
+Recall that the process has a status.  The first level of true workflow is the <strong>state machine</strong>.  In a state machine, we define a list of status values,
+and describe the actions which can be taken in the process to move its status from one to the next.  The outgoing state transitions are thus now a set
+of ``afforded actions'' which can be presented in a user interface -- but remember that we don't have to have such a visible user interface in order to
+talk about workflow; the events which trigger state transitions can just as well be any other event defined, such as incoming email or what have you.</p>
+<p>To define a state machine, we have to activate a simple workflow against the process.  The workflow procedure definition (procdef) may either simply
+be given explicitly in XML form, or it may be retrieved from a given list.  If retrieved from a list, the list should be version-controlled, because
+the procdef will be repeated retrieved from it; if the definition changes in the meantime, results will be undefined.  (A process upgrade definition 
+would definitely be a Nice Feature at some later date.)</p>
+<p>For more information on state machines and state-based workflow, <a href="07-state-machines.html">see Chapter 07: State-based workflow</a>.</p>
+<p>
+</p>
+<h2><a name="taskbased_workflow__procedural_workflow_">08 Task-based workflow (procedural workflow)</a></h2>
+<p>
+Remember tasks?  A task is not an action; the completion of a task, however, is.  A <strong>task</strong> is a specific assignment of a user or role to complete
+an action at some later date.  So far, the only mechanism presented for the introduction of tasks into a process has been simply to add one as an ad-hoc
+task.  The next level of complexity of workflow is to extend our state transitions to include arbitrary action structures.  The constructs used to do
+this are best described elsewhere, but they can effectively include any processing at all, and that processing can involve the creation of tasks.</p>
+<p>When used this way, the state transition, once initiated by means of an event, proceeds until a task is created which the system can't handle
+synchronously.  The process blocks on that task, and there it will wait until some other session completes the task, at which point it will proceed
+where it left off.  This is procedural workflow, and there are a number of formalisms for expressing the procedures in question.</p>
+<p>For more information on procedural workflow, <a href="08-workflow.html">see Chapter 08: Procedural workflow</a>.</p>
+<p>
+</p>
+<h2><a name="task_management">09 Task management</a></h2>
+<p>
+A task can be an entire working environment.  When working on a task, a user could be presented with a running application, for instance, and be asked
+to perform specific editing tasks, then check the task off when done -- weeks or months later.  In such a long-running task, it is very useful to be
+able to work with subtasks, invoke workflow; in short, to handle the entire task as the project it is.  The idea of a workflow toolkit is to make that
+easy to do, relatively simple to audit and trace, and possible to duplicate.  If a specific set of actions are used to complete a task, for instance,
+that list can be saved as a procdef -- even just as a checklist -- to complete that task the next time.</p>
+<p>Tasks, as they are created, are indexed by the repository into a <strong>task list</strong>.  Since different kinds of tasks may be stored in different places, the
+actual task list is a virtual structure, but let's imagine that it is set up to be indexed into a single place (which is usually how it's done anyway).
+All the active tasks in a repository, over all the processes, are thus available in that list (let's just assume it's a MySQL table).  Some of the tasks
+are assigned to specific users, some are just available to roles (users or groups) for self-assignment, but they're all there.  That task list in the
+repository is an overall to-do list which is itself a useful organizational tool.  So the repository also provides scheduling tools for working with
+it.</p>
+<p>For more information on task management, <a href="09-task-management.html">see Chapter 09: Task management</a>.</p>
+<p>
+</p>
+<h2><a name="conclusion__that_wasn_t_so_hard__was_it_now">Conclusion: that wasn't so hard, was it now?</a></h2>
+<p>
+And that, my friends, is an open-source workflow toolkit, my personal white whale.  It's taken me nine years and counting to figure this out.
+Entire economies rise and fall while I'm working on it; I've transitioned my entire livelihood to a new industry once.  I'm not done yet, but
+I'm getting there.  Moving to Perl is probably the smartest thing I've done yet.  This stuff takes forever to do in C (meaning it never gets done).</p>
+<p>
+</p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>
+

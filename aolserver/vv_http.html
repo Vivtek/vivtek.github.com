@@ -1,0 +1,256 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>AOLserver -- HTTP client</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>AOLserver</u> -- HTTP client</h2>
+[&nbsp;<a href=/aolserver.html>AOLserver index</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+<table width=75%><tr><td>
+<font face=arial size=-1>
+Our HTTP client is a replacement for ns_httpget and some of the ancillary
+functions like ns_urlencode.  It is a complete HTTP client with some
+really nice features, and we were working on more before we found cURL, which
+is already written and does a lot more.  (Now the intention is to make cURL
+into a Tcl extension.)
+<p>
+To see a simple example of use of vv_http, take a look at the <a href="/dumbproxy.html">dumb
+proxy</a>, which is a cute little tool.
+<p>
+If you want the vv_http code, email us, because we still (still!) haven't finished our
+freebie download system.
+</font>
+</td></tr></table>
+</td></tr>
+
+<tr><td>
+<center><font face=arial size=+1>AOLSERVER HTTP CLIENT</font><br>
+</td></tr>
+
+<tr><td>
+Our HTTP client is a far more capable HTTP client than <code>ns_httpget</code> and <code>ns_httpopen</code>.
+(At least we think so.)  Eventually it'll be even better.
+<p>
+<strong>Features:</strong><ul>
+<li>GET, POST, and HEAD supported.
+<li>Complete access to headers of request and response.
+<li>Exposes parser functionality so that you can build and parse your
+own HTTP requests and responses.
+<li>User authorization.
+</ul><br>
+Features we'd like to add:<ul>
+<li>Proxy support.
+<li>https support.
+<li>Support for protocols other than HTTP (like FTP, for instance.)
+</ul>
+<p>
+<strong>History:</strong>
+<table>
+<tr><td bgcolor=#80ffff>07/06/98</td><td>Created in embryonic form for inclusion in the <a href=/aolserver/cybercash.html>CyberCash integration module for AOLserver</a>.</td></tr>
+<tr><td bgcolor=#80ffff>09/14/98</td><td>Finished up enough for the CyberCash integration module.</td></tr>
+<tr><td bgcolor=#80ffff>09/15/98</td><td>Introduced vv_urlencode and vv_urldecode.</td></tr>
+<tr><td bgcolor=#80ffff>04/24/99</td><td>Introduced vv_http_textget.</td></tr>
+<tr><td bgcolor=#80ffff>08/31/99</td><td>Introduced vv_base64_[en|de]code, and user authorization (basic schema).</td></tr>
+</table>
+<p>
+<strong>Functions</strong>
+Besides the HTTP client, this file defines some helper functions that are useful in isolation, and
+also defines a really cheap text client which serves as a very simple example of how to use the
+HTTP client.  For another example, you can see the <a href=/dumbproxy>Vivtek dumb proxy</a>, which is
+built on this HTTP client.
+<table>
+<tr><td>vv_http</td><td>The HTTP client itself.  Documented more fully below.</td></tr>
+<tr><td>vv_urlencode</td><td>Replaces ns_urlencode.  Encodes a URL the way everybody else does it (so for instance a space is a + and not a %20).</td></tr>
+<tr><td>vv_urldecode</td><td>Decodes the same.</td></tr>
+<tr><td>vv_parsequery</td><td>Parses a query string into an ns_set.  Handy little function.</td></tr>
+<tr><td>vv_textget</td><td>Given a URL, returns the textualized content of the URL.  Useful for text-based quickie apps.  Uses vv_html2text.</td></tr>
+<tr><td>vv_html2text</td><td>Extracts text from HTML.  Kind of.  It's very crude but usually useful.</td></tr>
+<tr><td>vv_base64encode</td><td>Base64-encodes a string.  And you thought this couldn't be done in Tcl!</td></tr>
+<tr><td>vv_base64decode</td><td>Base64-decodes a string.</td></tr>
+</table>
+
+<p>
+<strong>More information about vv_http itself:</strong>
+In this implementation, the HTTP request and its response are stored in
+the same object.  The object is stored in an ns_set, which is really a
+great data structure, I can't get enough of it.
+<p>
+<strong>Structure of an HTTP request:</strong><ul>
+<li>Protocol, host, and port.  E.g. http://www.vivtek.com:80
+<li>URL.                       E.g. /product/AAHT0
+<li>HTTP method.               E.g. GET
+<li>Query form, with possible repetitions.
+<li>Header values.
+</ul><p>
+<strong>Structure of an HTTP response:</strong><ul>
+<li>Reference to the request that prompted it.
+<li>Header values returned from the server.
+<li>Mime type of returned data.  (Parsed from header.)
+<li>Content length.
+<li>Content.
+<li>Response time, easy and cheap to calculate and nice to have sometimes.
+</ul>
+<p>
+Later this package or a derivative of this package should support smarter
+handling of returned HTML (i.e. at least some rudimentary parsing.)
+Right now, of course, you have ns_hrefs to get a list of links, at least.
+But it would be nice to get applets, images, and especially parse out
+forms.
+<p>
+In the HTTP request object, then, we have the following ns_set keys:<br>
+Request keys:
+<table>
+<tr><td>protocol<br>host</td><td>You can set these independently or simply write them with
+host or URL, e.g. http://www.vivtek.com:80/product/AAHT0</td></tr>
+<tr><td>port<br>url</td><td>will correctly populate protocol, host, port, and URL.</td></tr>
+<tr><td>query</td><td>a "virtual" field which translates back and forth between
+the form.* fields and URL-encoded form.</td></tr>
+<tr><td>method</td><td>GET or POST.  (Default is GET.)  You can write anything you
+want here, as long as the target server understands it.</td></tr>
+<tr><td>version</td><td>HTTP/1.0 by default; you can change it if you want.</td></tr>
+<tr><td>form.*</td><td>all the values in the form to be queried.  Again, if this
+request is a GET, you can include the form info in the URL
+and these key/value pairs will be written.</td></tr>
+<tr><td>client.*</td><td>all the header values in the request.  Some will be set for
+you by default; you can obviously examine these and change them.</td></tr>
+</table>
+<p>
+A note on protocol: for now, only http: is supported.  Sorry.  Talk to
+our buds at the Defense Department about export restrictions on
+cryptography if you want https:, but for others just wait a while and
+we'll get around to them.
+<p>
+<strong>Response keys:</strong>
+<table>
+<tr><td>server.*</td><td>all the header values returned by the server.</td></tr>
+<tr><td>type</td><td>MIME type of the content.</td></tr>
+<tr><td>retver</td><td>Returned version of the response.  Generally identical to version.</td></tr>
+<tr><td>status</td><td>Returned status code.  Usually 200.</td></tr>
+<tr><td>stattext</td><td>Text of return status message.  Just in case it's interesting.</td></tr>
+<tr><td>length</td><td>Content length.</td></tr>
+<tr><td>content</td><td>The content returned.</td></tr>
+<tr><td>time</td><td>Response time of the transaction.</td></tr>
+</table>
+
+<strong>Finally, one status key:</strong>
+<table>
+<tr><td>state</td><td>two values are permitted: "ready" and "complete",
+corresponding to whether the request has been sent or not.
+A future version of this package should implement a threaded
+model, in which a further state "processing" would be valid.
+</td></tr>
+</table>
+<p>
+<strong>Commands on HTTP request objects:</strong>
+<table>
+<tr><td>make</td><td>creates a new request with certain defaults set.</td></tr>
+<tr><td>set</td><td>sets any of the above-named values with some special processing,
+for instance for URLs and hosts and stuff.</td></tr>
+<tr><td>setform, setclient, setserver</td><td>shorthand for setting form/header values.</td></tr>
+<tr><td>setauth</td><td>given userid and password, sets the user authorization line.</td></tr>
+<tr><td>get</td><td>gets any named value.</td></tr>
+<tr><td>getform, getclient, getserver</td><td>shorthand for getting form/hdr values.</td></tr>
+<tr><td>showreq, showresp</td><td>return text values corresponding to the actual
+text sent over the network by client and server.</td></tr>
+<tr><td>parsereq, parseresp</td><td>parse said text values into the object.</td></tr>
+<tr><td>request</td><td>actually executes a request against a server.  (!)</td></tr>
+<tr><td>post</td><td>executes the request but doesn't wait for a reply.  Useful when
+posting info to a CGI which does something more important than
+the reply you get.</td></tr>
+</table>
+<p>
+Note that showreq and parsereq together provide a useful way of saving
+requests for later repeated execution.  Parseresp is used internally to
+interpret the server's response and can be useful for other purposes, too.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

@@ -1,0 +1,51 @@
+<html><head><title>Procdef manager</title></head>
+<body>
+<h2>Procdef manager</h2>
+<center>
+[ <a href="wftk_pdm.zip">download</a> ] [ <a href="pdm.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+
+<hr>
+The procdef manager manages (and edits) process definitions.  For the time being, I'm only
+implementing a local filesystem procdef repository -- but the procdef manager will almost
+certainly be the basis for a remote-serving repository.
+<p></p>
+The procdef repository, then, is a directory.  Process definitions are located in XML files
+stored in that directory; the filename of each is of the form <identifier>_<version>.xml.
+So for example, version 1 of the "chair" process is in chair_1.xml.
+<p></p>
+Versions are related to one another via an item file, which is likewise an XML file, but is
+named <identifier>.xml with no version number.  Note the possibility of a naming collision
+if your identifier has an underscore in it.  I'm not even going to worry about that right now.
+<p></p>
+Finally, the entire procdef repository is catalogued with the file <code>index.xml</code>, which
+lists all the procdefs in the repository, their current versions, and their owners.  At some
+point, we'll also have to include a permission setup.  But all in good time.
+<p></p>
+Note that the PDM is at once a document management system (in that it provides version control)
+and an editor.
+<p></p>
+Table of contents:
+<ul>
+<li> <a href="main.html">File layout</a>
+<li> <a href="list.html">list: Displaying the procdef directory</a>
+<li> <a href="starter.html">starter: Displaying a process start form</a>
+<ul>
+<li> <a href="starter.html#handle_data">Handling formatting of data items</a>
+</ul>
+<li> <a href="datasheet.html">datasheet: Generating a blank datasheet</a>
+<li> <a href="editor.html">editor: Displaying an edit form</a>
+</ul>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

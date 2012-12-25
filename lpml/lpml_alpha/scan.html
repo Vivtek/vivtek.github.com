@@ -1,0 +1,420 @@
+<html><head><title>lpml alpha: Initial scan</title><style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style></head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Initial scan</div>
+<center>
+[&nbsp;<a href="main.html">Previous: Script file structure</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: LPML alpha</a>&nbsp;]
+[&nbsp;<a href="tangle.html">Next: Tangle: write code output</a>&nbsp;]
+</center>
+
+<hr>
+The intial scan of the input file is pretty straightforward.  It simply reads everything and
+builds a list of items, keyed by name and containing their labels and their text.  The only
+weird case you have to watch out for is when a piece concatenates to an item that hasn't been
+encountered yet.  In that case, the piece is stashed anyway, then when the item <i>is</i>
+defined, if it has a text piece in it then that piece will be inserted before any text already
+collected.
+
+<p></p>
+Due to the crude nature of my current weave, I have all this in one big blob of text.  This is
+because I can't bring myself to break it onto separate pages.  And of course the other reason
+for this is that I'm still not literate-adapted; I have always tended to write code in a rather
+monolithic fashion (breaking code into subroutines to increase readability has always really
+irritated me.  I guess that's why I'm working on a literate programming system instead.)
+
+<p></p>
+One assumption I'm making here: the input file is open on INPUT.  It will have to be rewound
+before doing the weave.  Tangle won't require a further pass, because this scan step will
+gather everything we need for tangling.  First, let's set up some globals we'll be using.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>@items = ();
+@objects = ();
+@formats = ();
+$name = '';
+$piecename = '';
+$parentname = '';
+$formatname = '';
+</pre></td></tr></table>
+
+The way I'm doing this is that I'm effectively using the name of the current item, and the
+name of the item receiving the current piece, as state variables.  When we leave the element
+in each case, I reset the value to blank, so that the scanner can tell we're not in an item
+or piece respectively.
+<p></p>
+So at the end of the loop, you see the two little chunks that actually read all the interesting
+things in this pass: each line is attached to a piece if the piecename is set, or to a format
+if the formatname is set.  Obviously, the two shouldn't be set at the same time, but there's
+nothing in the code which formally precludes that.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>while (&lt;INPUT>)
+{
+   <i>See <a href="scan.html#handle_tags">Looking for tags</a></i>
+
+   if ($piecename ne '') {
+      $pieces{$piecename} .= $_;
+   }
+   if ($formatname ne '') {
+      $format{$formatname} .= $_;
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="handle_tags">
+<i>Looking for tags</i><br>
+Tag handling is pretty easy: each time we have a line, we check it for a match with one of
+the tags that we know how to handle.  This means that all LPML tags must be on lines by
+themselves, but so far that requirement hasn't been too onerous.  When I build in a real
+XML tokenizer, this whole section will look a lot different.
+<p></p>
+The tags we're looking for are <code>&lt;object&gt;</code>, <code>&lt;item&gt;</code>, and
+<code>&lt;piece&gt;</code>.  Oh, and I've just added <code>&lt;format&gt;</code>.
+<p></p>
+One of the things the tag handlers do is to set and unset various state markers.
+For instance, I terminate the <code>&lt;item&gt;</code> tag by setting the <code>$name</code>
+global to blank.  I also set the <code>$piecename</code> global to blank in case the user
+forgot to terminate the current piece.  I know that violates the principles of XML tokenization,
+but again, later we'll get into real XML tokenization and I don't want to mess with it yet.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   if (/(&lt;object .*>)/i)
+   {
+      <i>See <a href="scan.html#handle_object">Handle object tag</a></i>
+   }
+
+   if (/(&lt;item .*>)/i)
+   {
+      <i>See <a href="scan.html#handle_item">Handling item tags</a></i>
+      next;
+   }
+
+   if (/(&lt;\/item\s*>)/i) {
+      if ($name !~ /\./) { $parentname = $name; }
+      $name = '';
+      $piecename = '';
+      next;
+   }
+
+   if (/(&lt;piece.*>)/i)
+   {
+      next if $name eq ''; # Pieces are silent outside of items.
+      <i>See <a href="scan.html#handle_piece">Handle piece tag within item</a></i>
+      next;
+   }
+   if (/(&lt;\/piece\s*>)/i) {
+      $piecename = '';
+      next;
+   }
+
+   if (/(&lt;format.*>)/i)
+   {
+      <i>See <a href="scan.html#handle_format">Handle format tag</a></i>
+      next;
+   }
+   if (/(&lt;\/format\s*>)/i) {
+      $formatname = '';
+      next;
+   }
+</pre></td></tr></table>
+<br><br>
+<a name="handle_object">
+<i>Handle object tag</i><br>
+The object scanner is a little simpler than the item and piece scanners, so I'll explain it
+first.  As each line is scanned, it's checked for being an <code>&lt;object&gt;</code> tag.
+Note that this is assuming that the tag will be the only thing on the line.  I don't want to
+get into real tokenizing of the XML input, because that will be the province of the QDMT, which
+is my next four-letter vowelless acronym.  The next version of lpml will use the QDMT to tokenize
+its input.
+<p></p>
+At any rate, if the object tag is encountered, I read its attributes into the 
+<code>$thistag</code> hash.  The other handlers reuse this hash.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$tag = $1;
+$tag =~ s/^&lt;object\s+//i;
+$attr = "";
+%thistag = (name => '', language => '', item => '');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+</pre></td></tr></table>
+
+Now that we've loaded the current object's attributes, let's check the attributes for consistency.
+This is kind of a validation of the kind-of DTD.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if ($thistag{name} eq '') {
+   print STDERR "$. : Nameless object encountered.\n";
+   next;
+}
+if ($thistag{item} eq '') {
+   print STDERR "$. : Object '$thistag{item}' has no starting item.\n";
+   next;
+}
+</pre></td></tr></table>
+
+Validation complete, we'll build up a list of objects, and stash the start item of this
+particular object.  The language isn't being used yet, so we won't stash it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>@objects = (@objects, $thistag{name});
+$starter{$thistag{name}} = $thistag{item};
+</pre></td></tr></table>
+<br><br>
+<a name="handle_item">
+<i>Handling item tags</i><br>
+Handling items works pretty much the same way, except that there's more to keep track of.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$tag = $1;
+$tag =~ s/^&lt;item\s+//i;
+$attr = "";
+%thistag = (name => '', label => '', pattern => '', language => '', format => 'default');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+if ($thistag{name} eq '') {
+   print STDERR "$. : Nameless item encountered.\n";
+   next;
+}
+
+$name = $thistag{name};
+$lastchild{$name} = $name;
+$children{$name} = 0;
+if ($name !~ /\./) {
+   $parentname = '';
+   $parent{$name} = '';
+} else {
+   $parentname = $name;
+   $parentname =~ s/\..*?$//;
+   $parent{$name} = $parentname;
+   $lastchild{$parentname} = $name;
+   $children{$parentname} += 1;
+}
+
+push @items, $name;
+
+if (defined $label{$name}) {
+   print STDERR "$. : Duplicate item name '$name'.\n";
+}
+if ($thistag{label} eq '') { $thistag{label} = $name; }
+$label{$name} = $thistag{label};
+if ($parentname eq '') {
+   $url{$name} = "$name.html";
+} else {
+   $n = $name;
+   $n =~ s/^.*?\.//;
+   $url{$name} = $url{$parentname} . '#' . $n;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="handle_piece">
+<i>Handle piece tag within item</i><br>
+And finally, the <code>&lt;piece&gt;</code> tag, which is pretty analogous to 
+<code>&lt;item&gt;</code>.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$tag = $1;
+$tag =~ s/^&lt;piece\s*//i;
+$attr = "";
+%thistag = (add-to => '', language => '');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+
+$piecename = $name;
+$piecename = $thistag{'add-to'} if $thistag{'add-to'} ne '';
+</pre></td></tr></table>
+<br><br>
+<a name="handle_format">
+<i>Handle format tag</i><br>
+The <code>&lt;format&gt;</code> tag simply takes its content and stashes it into a hash, just
+like pieces.  The only attribute we care about in a format tag is its name.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$tag = $1;
+$tag =~ s/^&lt;format\s*//i;
+$attr = "";
+%thistag = (name => 'default');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+
+$formatname = $thistag{name};
+push @formats, $formatname;
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="main.html">Previous: Script file structure</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href="tangle.html">Next: Tangle: write code output</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2006, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body></html>

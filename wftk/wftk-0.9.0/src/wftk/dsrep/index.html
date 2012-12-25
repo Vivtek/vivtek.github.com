@@ -1,0 +1,72 @@
+<html><head><title>wftk core: datasheet repository adaptor</title></head>
+<body>
+<h2>wftk core: datasheet repository adaptor</h2>
+<center>
+[ <a href="../index.html">back to the core</a> ] [ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+A <i>datasheet repository adaptor</i> is responsible for interfacing with a storage system in order
+to store datasheets.  The datasheet, as far as the library is concerned, is an XML construct
+which contains the detailed state of a process, any values associated with it, and its
+enactment history.  Where those components are actually stored are irrelevant for the library;
+finding them and putting them together are the business of the datasheet repository adaptor.
+<p>
+The simplest of all possible dsrep adaptors, of course (and the one which was used for the
+prototype, again of course) is one which stores all the datasheets as explicit XML files
+in a central directory.  That's the DSREP_localxml adaptor.  Other dsrep adaptors will store
+the datasheet in a BLOB column of the process table, borrowed from a task adaptor, or what
+have you.  I'm sure each implementation of a workflow system will bring new ideas to light.
+<p>
+These are the functions exposed by a datasheet repository adaptor:
+<table>
+<tr><td><i><u>Function</i></u></td><td><i><u>Parameters</i></u></td><td><i><u>Purpose</i></u></td></tr>
+<tr bgcolor=eeeeee><td valign=top>0: init</td>
+    <td valign=top>&nbsp;</td>
+    <td>Initialize adaptor instance</td></tr>
+<tr bgcolor=ffffff><td valign=top>1: free</td>
+    <td valign=top>&nbsp;</td>
+    <td>Clean up instance before shutting down</td></tr>
+<tr bgcolor=eeeeee><td valign=top>2: info</td>
+    <td valign=top>&nbsp;</td>
+    <td>Return XML describing the adaptor</td></tr>
+<tr bgcolor=ffffff><td valign=top>3: new</td>
+    <td valign=top>Datasheet ID</td>
+    <td>Create datasheet.  Accepts NULL ID, in which case it generates a unique one.</td></tr>
+<tr bgcolor=eeeeee><td valign=top>4: load</td>
+    <td valign=top>Datasheet ID</td>
+    <td>Load datasheet into memory.  Returns datasheet.</td></tr>
+<tr bgcolor=ffffff><td valign=top>5: save</td>
+    <td valign=top>Datasheet XML structure</td>
+    <td>Save datasheet.  Note that the ID might not be unique, because we might be storing
+        or moving an existing one.  In this case, we need to fail.</td></tr>
+<tr bgcolor=eeeeee><td valign=top>6: delete</td>
+    <td valign=top>Datasheet ID</td>
+    <td>Deletes datasheet from the repository.</td></tr>
+<tr bgcolor=ffffff><td valign=top>7: archive</td>
+    <td valign=top>Datasheet ID, archive name</td>
+    <td>Archives a datasheet (removes it from the active repository and does something
+        as yet unknown with it.)</td></tr>
+</table>
+
+Individual adaptor class handlers may implement additional functions, which will then presumably
+be available to scripting engines or something.  (Who knows, at this rate, wftk will be primarily
+useful as a scripting language lingua franca.)
+
+<p>
+Implementations:<ul>
+<li><a href="DSREP_localxml.html">DSREP_localxml</a> (stores XML files in local directory)
+<li>(TO DO) DSREP_taskrep (stores BLOBs in a task repository, i.e. a database).
+</ul>
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

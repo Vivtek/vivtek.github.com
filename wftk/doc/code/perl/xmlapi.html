@@ -1,0 +1,673 @@
+<html><head><title>wftk::XML - Perl port of XMLAPI</title></head>
+<body>
+<h2>Workflow::wftk::XML -- Perl port of XMLAPI</h2>
+<center>
+[ <a href="index.html">main wftk module</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+The Workflow::wftk::XML package is a port of C's XMLAPI stuff into Perl.  It is <i>not</i> a wrapper,
+but rather a pure-Perl package suitable for framing.  This allows us to define remote repositories,
+for instance, in situations where the C libraries are not available for local use. It also sidesteps
+a whole lot of garbage collection rigamarole. The cost is that calls to local repositories will be
+slowed somewhat, since XML objects will have to be converted into C-heap objects before the call,
+and interpreted back into Perl objects afterwards.  I'm not entirely sure how much I'll curse myself
+for this decision later.  Possibly I'll need to come up with some sort of lazy evaluation of C-heap
+XMLAPI objects or ... something.  Or not.
+<p></p>
+
+<i>December 4, 2006:</i> Finally got around to integrating with a real XML parser.  That only took me,
+what, four years?  Another plus today (God, it's good to be coding again, it's like my life has restarted
+since the Democrats retook Congress) is that I ran across Win32::API, which allows easy calls to DLLs on
+Windows.  That means that under Windows I'll be able to do real wftk coding.  I'll figure out how to
+call libraries from Perl under Unix later (yes, yes, I know that's backwards, welcome to my fricking life.)
+
+<p></p>
+Let's get down to business.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#######################################################################################################
+#
+# The "Workflow::wftk::XML" module is a Perl port of the XMLAPI library, and is part of the wftk Perl wrapper:
+# http://www.vivtek.com/wftk/doc/code/perl
+#
+# Copyright (c) 2006, Vivtek, and released under the GPL, as follows:
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#######################################################################################################
+
+<i>See <a href="xmlapi.html#intro">Boilerplate and introduction</a></i>
+<i>See <a href="xmlapi.html#strings">Expressing XML as strings</a></i>
+<i>See <a href="xmlapi.html#writing">Writing XML to files</a></i>
+<i>See <a href="xmlapi.html#reading">Reading/parsing XML from files and strings</a></i>
+<i>See <a href="xmlapi.html#attrs">Working with attributes</a></i>
+<i>See <a href="xmlapi.html#subelem">Finding and iterating over subelements</a></i>
+<i>See <a href="xmlapi.html#elem">Creating and manipulating elements</a></i>
+<i>See <a href="xmlapi.html#finding">Finding pieces of XML structures</a></i>
+<i>See <a href="xmlapi.html#binary">Binary pointers</a></i>
+<i>See <a href="xmlapi.html#utf8">Working with UTF-8 encoding</a></i>
+<i>See <a href="xmlapi.html#sorting">Sorting XML pieces</a></i>
+<i>See <a href="xmlapi.html#misc">Miscellaneous stuff</a></i>
+</pre></td></tr></table>
+
+So much for the basic XMLAPI functionality.  On top of the XMLAPI is a field value manager called the xmlobj library, and that's next.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="xmlapi.html#xmlobj">Basic xmlobj functionality (get and set values)</a></i>
+<i>See <a href="xmlapi.html#xmlobj_addl">Functionality for later</a></i>
+
+1;
+__END__
+</pre></td></tr></table>
+
+And now the POD documentation.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>
+=head1 NAME
+
+Workflow::wftk::XML - stores parsed XML in a convenient format.
+
+=head1 SYNOPSIS
+
+  use Workflow::wftk::XML;
+
+=head1 DESCRIPTION
+
+The XMLAPI defines the data structures used by the C-language wftk.
+In other languages, we define the same API on some XML-derived
+datatype in order to make it easy to port wftk code from one
+language to another, and also in order to make it possible for
+wrapper languages to communicate with the wftk libraries (and with
+each other, ultimately).
+
+The XMLAPI is a large and growing collection of XML-related 
+tricks and techniques, and while there are of course plenty of
+other XML libraries nowadays, this is the one I'm used to,
+so it's the one the wftk uses for everything.  And I do mean
+everything.
+
+=head1 AUTHOR
+
+Michael Roberts, wftk@vivtek.com
+
+=cut
+</pre></td></tr></table>
+
+
+<br><br>
+<a name="intro">
+<i>Boilerplate and introduction</i><br>
+OK.  The code in this port, weirdly enough, is Perl code which <i>predates</i> the C-language library.
+In a weird twist, the C library itself started out as a port of the prototype code I was using in Perl.
+
+<p></p>
+Here's a little boilerplate to get things rolling.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>package Workflow::wftk::XML;
+
+require 5.6.0;
+require Exporter;
+require XML::Parser;
+use strict;
+use warnings;
+
+our @ISA = qw(Exporter);
+our @EXPORT = qw(xml_string xml_stringcontent xml_stringcontenthtml
+                 xml_write xml_write_UCS2LE
+                 xml_read xml_parse xml_parse_from_file
+                 xml_set xml_attrval xml_elements xml_children
+                 xml_copy xml_create xml_createinto xml_createtext
+                 xml_is xml_is_element xml_name xml_parent
+                 xml_append xml_append_pretty xml_replace_in xml_replace xml_replacecontent
+                 xml_search xml_search_first
+
+                 xmlobj_set xmlobj_get xmlobj_getkey
+                );
+
+our $VERSION = '0.01';
+</pre></td></tr></table>
+
+Now we get down to the business of actually working with XML.  We base our approach on the
+usual Perl hash reference.  Note that this is <i>not</i> an object-oriented module; eventually
+I need to port the OO scheme from Python.
+<p></p>
+The data structure is best summarized with an example: the parse of &lt;xml me="hi" something="else"/&gt; is:
+<pre>
+{
+  name =&gt; 'xml',
+  attrs =&gt; [me, something],
+  attrval =&gt; {me =&gt; 'hi',
+              something=&gt; 'else'
+              }
+  children =&gt; [],
+  elements =&gt; [],
+  parent => ''
+}
+</pre>
+<p></p>
+Pretty straightforward.  In subsequent sections we define the various pieces of the API which 
+work with this structure.  These sections correspond to the same sections in other languages;
+some don't have much use in Perl, and will be ignored, while others are simply not yet ported
+until I have a need for them.  The C libraries find much more frequent use in my daily work, so
+they have about three years' advantage in maturity.
+
+<br><br>
+<a name="strings">
+<i>Expressing XML as strings</i><br>
+I have four different functions to express XML as strings, which are used in different contexts.
+Basically, they are the product of two decisions: express the entire XML or just its content,
+and whether it should look like actual XML or HTML.  The HTML variants are not yet ported to
+Perl.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub xml_escape {
+   my $str = shift;
+
+   $str =~ s/&amp;/&amp;amp;/g;
+   $str =~ s/</&amp;lt;/g;
+   $str =~ s/>/&amp;gt;/g;
+   $str =~ s/\"/&amp;quot;/g;
+   return $str;
+}
+sub xml_string {
+   my $xml = shift;
+   return '' unless defined $xml;
+
+   my $ret = '';
+
+   return '' unless ref($xml) eq "HASH";
+   return xml_escape($$xml{content}) unless xml_is_element ($xml);
+
+   $ret .= "&lt;$$xml{name}";
+   foreach (@{$$xml{attrs}}) {
+      $ret .= " $_=\"" . xml_escape(${$$xml{attrval}}{$_}) . "\"";
+   }
+   if (!@{$$xml{children}}) {
+      $ret .= "/>";
+   } else {
+      $ret .= ">";
+      foreach (@{$$xml{children}}) {
+         $ret .= xml_string ($_);
+      }
+      $ret .= "&lt;/$$xml{name}>";
+   }
+
+   return $ret;
+}
+
+sub xml_stringcontent {
+   my $xml = shift;
+   my $ret = '';
+
+   return '' unless ref($xml) eq 'HASH';
+   return xml_escape ($$xml{content}) unless xml_is_element ($xml);
+
+   if (@{$$xml{children}}) {
+      foreach (@{$$xml{children}}) {
+         $ret .= xml_string ($_);
+      }
+   }
+
+   return $ret;
+}
+
+sub xml_stringcontenthtml {
+   my $xml = shift;
+   my $ret = xml_stringcontent ($xml);
+   $ret =~ s/&amp;lt;/</g;
+   $ret =~ s/&amp;gt;/>/g;
+   $ret =~ s/&amp;quot;/"/g;
+   $ret =~ s/&amp;amp;/&amp;/g;
+   return $ret;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="writing">
+<i>Writing XML to files</i><br>
+Since C doesn't work all that well with strings, I ended up with a lot of different functions
+in C to write XML.  Technically this section and the strings section should be merged, but
+eh, a little historical confusion is what adds spice to life.
+<p></p>
+Anyway: most of this section has not been ported to Perl.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub xml_write {
+   my $file = shift;
+   my $xml = shift;
+
+   if ($$xml{name} eq '') {
+      print $file $$xml{content};
+      return;
+   }
+
+   print $file "&lt;$$xml{name}";
+   foreach (@{$$xml{attrs}}) {
+      print $file " $_=\"${$$xml{attrval}}{$_}\"";
+   }
+   if (!@{$$xml{children}}) {
+      print $file "/>";
+   } else {
+      print $file ">";
+      foreach (@{$$xml{children}}) {
+         xml_write ($file, $_);
+      }
+      print $file "&lt;/$$xml{name}>";
+   }
+}
+</pre></td></tr></table>
+
+<i>December 4, 2006:</i> Which is just fine and dandy, but for dealing with TRADOS I need to write
+in little-endian double-byte format.  And getting that to work under Windows, in Perl, is a true pain.
+I'm wrapping it here, and may later find a better way to organize this sort of thing.  TODO: this
+function works only under Windows.  Find out (1) how to detect OS and (2) how much of this might
+come in handy under Unix.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub xml_write_UCS2LE {
+   my $fname = shift;
+   my $xml = shift;
+
+   open OUT, ">:raw:encoding(UCS-2LE):crlf:utf8", $fname;
+   print OUT "\x{FEFF}";  # This is the byte order marker; Perl would do this for us, apparently, if we hadn't
+                          # explicitly specified the UCS-2LE encoding.
+   print OUT "<?xml version='1.0'?>\n";
+   print OUT xml_string ($xml);
+   close OUT;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="reading">
+<i>Reading/parsing XML from files and strings</i><br>
+Parsing uses XML::Parse, which is an expat wrapper.  Thus we are doing the Right Thing here.
+The <i>way</i> I'm doing it, that might not be so hot.  But it seems to work, so shut up.
+<p></p>
+Here are the handlers called to handle events:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub handle_start {
+   my ($p, $el, %atts) = @_;
+   my $elem;
+   if (xml_is_element ($p->{output})) {
+      $elem = xml_create ($el);
+      xml_append ($p->{output}, $elem);
+   } else {
+      $elem = $p->{output};
+      xml_createinto ($elem, $el);
+   }
+
+   foreach my $attr (keys %atts) {
+      xml_set ($elem, $attr, $atts{$attr});
+   }
+   $p->{output} = $elem;
+}
+
+sub handle_end {
+   my ($p, $el) = @_;
+   my $parent = xml_parent ($p->{output});
+   if (xml_is_element ($parent)) { $p->{output} = $parent; }
+}
+
+sub handle_char {
+   my ($p, $str) = @_;
+   xml_append ($p->{output}, xml_createtext ($str));
+}
+</pre></td></tr></table>
+
+And now here are the functions we expose to deal with those:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub xml_read { return xml_parse (@_); }
+
+sub xml_parse {
+   my $output = {};
+   my $parser = new XML::Parser (Handlers => {Start => \&amp;handle_start,
+                                   End   => \&amp;handle_end,
+                                   Char  => \&amp;handle_char});
+   $parser->{output} = $output;
+   $parser->parse (shift (@_));
+   return $output;
+}
+
+sub xml_parse_from_file {
+   my $output = {};
+   my $parser = new XML::Parser (Handlers => {Start => \&amp;handle_start,
+                                   End   => \&amp;handle_end,
+                                   Char  => \&amp;handle_char});
+   $parser->{output} = $output;
+   $parser->parsefile (shift (@_));
+   return $output;
+}   
+</pre></td></tr></table>
+<br><br>
+<a name="attrs">
+<i>Working with attributes</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub xml_set {
+   my $elem = shift;
+   my $attr = shift;
+   push @{$$elem{attrs}}, $attr if !grep {$_ eq $attr} @{$$elem{attrs}};
+   ${$$elem{attrval}}{$attr} = shift;
+}
+
+sub xml_attrval {
+   my $elem = shift;
+   return '' unless ref($elem) eq 'HASH';
+   my $attrname = shift;
+   if (!(defined ${$$elem{attrval}}{$attrname})) { return ''; }
+   return ${$$elem{attrval}}{$attrname};
+}
+</pre></td></tr></table>
+<br><br>
+<a name="subelem">
+<i>Finding and iterating over subelements</i><br>
+Not ported: xml_first, xml_firstelem, xml_last, xml_lastelem, xml_next,
+xml_nextelem, xml_prev, xml_prevelem.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub xml_elements {
+   my $elem = shift;
+   return () unless xml_is_element ($elem);
+   return @{$$elem{elements}};
+}
+sub xml_children {
+   my $elem = shift;
+   return () unless xml_is_element ($elem);
+   return @{$$elem{children}};
+}
+</pre></td></tr></table>
+<br><br>
+<a name="elem">
+<i>Creating and manipulating elements</i><br>
+Not ported: xml_textcat, xml_delete, xml_delete_pretty, xml_copyinto,
+xml_copyattrs, xml_replacewithcontent, xml_prepend, xml_prepend_pretty,
+xml_append_pretty, xml_insertafter, xml_insertbefore.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub xml_copy {
+   my $orig = shift;
+
+   my $ret = xml_create ($$orig{name});
+   foreach (@{$$orig{attrs}}) {
+      xml_set ($ret, $_, xml_attrval ($orig, $_));
+   }
+   foreach (@{$$orig{children}}) {
+      xml_append ($ret, xml_copy ($_));
+   }
+
+   return $ret;
+}
+
+
+
+sub xml_create {
+   my $ret = {};
+   $$ret{name} = shift;
+   $$ret{parent} = '';
+   $$ret{attrs} = [];
+   $$ret{attrval} = {};
+   $$ret{children} = [];
+   $$ret{elements} = [];
+
+   return $ret;
+}
+sub xml_createinto {
+   my $ret = shift;
+   $$ret{name} = shift;
+   $$ret{parent} = '';
+   $$ret{attrs} = [];
+   $$ret{attrval} = {};
+   $$ret{children} = [];
+   $$ret{elements} = [];
+
+   return $ret;
+}
+
+sub xml_createtext {
+   my $ret = {};
+   $$ret{name} = '';
+   $$ret{content} = shift;
+   return $ret;
+}
+
+sub xml_append {
+   my ($parent, $child) = @_;
+
+   $$child{parent} = $parent;
+   push @{${$$child{parent}}{children}}, $child;
+   push @{${$$child{parent}}{elements}}, $child if $$child{name} ne '';
+}
+
+sub xml_parent {
+   my ($xml) = @_;
+   return ($$xml{parent});
+}
+
+sub xml_append_pretty {
+   my ($parent, $child) = @_;
+
+   unless (xml_elements($parent)) { xml_append ($parent, xml_createtext ("\n")); }
+   xml_append ($parent, $child);
+   xml_append ($parent, xml_createtext ("\n"));
+}
+
+sub xml_replace_in {
+   my ($parent, $child) = @_;
+
+   $$child{parent} = $parent;
+   foreach (@{$$parent{children}}) {
+      if ($$_{name} eq $$child{name}) {
+         $_ = $child;
+         return;
+      }
+   }
+   xml_append ($parent, $child);
+}
+
+sub xml_replace {
+   my ($target, $source) = @_;
+
+   my $parent = $$target{parent};
+   return unless xml_is_element($parent);
+
+   $$source{parent} = $parent;
+   foreach (@{$$parent{children}}) {
+      if ($_ == $target) {
+         $_ = $source;
+      }
+   }
+   if ($$source{name} ne '') {
+      foreach (@{$$parent{elements}}) {
+         if ($_ == $target) {
+            $_ = $source;
+         }
+      }
+   }
+}
+   
+
+sub xml_replacecontent {
+   my ($parent, $child) = @_;
+   
+   $$child{parent} = $parent;
+   $$parent{children} = [];
+   $$parent{elements} = [];
+   push @{${$$child{parent}}{children}}, $child;
+   push @{${$$child{parent}}{elements}}, $child if $$child{name} ne '';
+}
+</pre></td></tr></table>
+
+<i>2006-02-24</i> Need to organize all this in parallel to the standard API.  Someday.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub xml_is {
+   my ($elem, $name) = @_;
+
+   return ($$elem{name} eq $name);
+}
+
+sub xml_is_element {
+   my ($elem) = @_;
+
+   return 0 unless ref($elem) eq "HASH";
+   return 0 unless defined ($$elem{name});
+   return 1 if $$elem{name} ne '';
+   return 0;
+}
+
+sub xml_name {
+   my ($elem) = @_;
+
+   return ($$elem{name});
+}
+</pre></td></tr></table>
+<br><br>
+<a name="finding">
+<i>Finding pieces of XML structures</i><br>
+Not ported: xml_loc[f], xml_getloc[f].
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub xml_search {
+   my ($xml, $element, $attr, $val) = @_;
+   my @retlist = ();
+   foreach my $elem (xml_elements ($xml)) {
+      if ($$elem{name} eq $element) {
+         if (!defined($attr)) {
+            push @retlist, $elem;
+         } else {
+            push @retlist, $elem if xml_attrval ($elem, $attr) eq $val;
+         }
+      } else {
+         push @retlist, xml_search ($elem, $element, $attr, $val);
+      }
+   }
+   return @retlist;
+}
+
+sub xml_search_first {
+   my ($xml, $element, $attr, $val) = @_;
+   foreach my $elem (xml_elements ($xml)) {
+      if ($$elem{name} eq $element) {
+         if (!defined ($attr) || !defined ($val)) { # TODO: these semantics seem fishy...
+            return $elem;
+         } else {
+            return $elem if xml_attrval ($elem, $attr) eq $val;
+         }
+      } else {
+         my $ret = xml_search_first ($elem, $element, $attr, $val);
+         return $ret if $ret ne '';
+      }
+   }
+
+   return '';
+}
+</pre></td></tr></table>
+<br><br>
+<a name="binary">
+<i>Binary pointers</i><br>
+Each element in C has a binary pointer for holding onto whatever low-level
+structure seems convenient; that may be superfluous in Perl, since we already
+have each element as a hash, but it hasn't been ported, so it's moot.
+<br><br>
+<a name="utf8">
+<i>Working with UTF-8 encoding</i><br>
+Not ported.
+<br><br>
+<a name="sorting">
+<i>Sorting XML pieces</i><br>
+Not ported and not all that useful, actually.
+<br><br>
+<a name="misc">
+<i>Miscellaneous stuff</i><br>
+The only function here so far in C is xml_assemble, which assembles a full XML
+structure from a flattened reference tree such as is used in SOAP.  We'll probably
+have to port it for Repository::SOAP, and if so, I'll try to justify it more
+thoroughly then.
+<br><br>
+<a name="xmlobj">
+<i>Basic xmlobj functionality (get and set values)</i><br>
+The xmlobj structure allows us to define a record in XML and address fields in various
+convenient ways.  Most of those are not yet implemented in Perl, not until I need them.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub xmlobj_is_field {
+   my ($xml, $list, $field) = @_;
+
+   my $f = xml_search_first ($xml, $field, undef, undef);
+   return $f if $f;
+   $f = xml_search_first ($xml, 'field', 'id', $field);
+   return $f if $f;
+
+   return undef;
+}
+
+sub xmlobj_field {
+   my ($xml, $list, $field) = @_;
+
+}
+
+sub xmlobj_set {
+   my ($xml, $list, $field, $val) = @_;
+
+}
+
+sub xmlobj_get {
+   my ($xml, $list, $field) = @_;
+
+   my $fld = xmlobj_is_field ($xml, $list, $field);
+   if (!defined ($fld)) { return ''; }
+   my $val = xml_attrval ($fld, "value");
+   return $val unless defined($val) &amp;&amp; $val eq '';
+   return xml_stringcontenthtml ($fld);
+}
+
+sub xmlobj_getkey {
+   my ($xml, $list) = @_;
+
+   return '';
+}
+</pre></td></tr></table>
+<br><br>
+<a name="xmlobj_addl">
+<i>Functionality for later</i><br>
+The C library supports some additional functionality that I don't need in Perl yet.  That will be here.
+The functions are xmlobj_diff and xmlobj_patch to note and apply field changes, and xmlobj_ver and friends
+for versioning functionality.  There's an xmlobj comparison function as well, to be used for sorting.
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2006, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

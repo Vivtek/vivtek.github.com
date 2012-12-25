@@ -1,0 +1,336 @@
+<head>
+<title>wftk tutorial - (unresolved tag 02-b-title)</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk tutorial - (unresolved tag 02-b-title)</div>
+
+<p><a name="__index__"></a></p>
+<!-- INDEX BEGIN -->
+
+
+	<ul>
+
+		<li><a href="#storing_data_in_a_tabdelimited_file">Storing data in a tab-delimited file</a></li>
+		<li><a href="#specifying_the_fields_for_a_flat_file">Specifying the fields for a flat file</a></li>
+		<li><a href="#_reading_data_from_an_existing_file">(Reading data from an existing file</a></li>
+		<li><a href="#_using_the_file_adapter_for_nonfile_storage">(Using the file adapter for non-file storage</a></li>
+		<li><a href="#_repository_configuration_ii__permanently_configuring_a_storage_list_with_filelike_data_predefined">(Repository configuration II: permanently configuring a storage list with file-like data predefined</a></li>
+	</ul>
+
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<p>The last section introduced the <strong>list</strong> construct used by the wftk for encapsulating data.  Lists stored in memory are useful for intermediate results,
+and it's certainly fun to write SQL queries against lists of hashes we write on the fly -- but the real purpose of the list data structure, of course,
+is to represent data which is <strong>stored</strong> in some permanent storage location.</p>
+<p>For each type of data storage, the wftk defines a subclass of the Workflow::wftk::Data class that defines in-memory lists.  The first and simplest of
+these is one which stores data as individual tab-delimited lines in a flat file in the filesystem.  This is, appropriately enough, ``file:''.</p>
+<p>The file adapter has some different variants it can support.  For instance, it can either write a header line with the names of fields, or define
+the fields in its invocation -- either of these modes is useful in different circumstances.</p>
+<p>
+</p>
+<h2><a name="storing_data_in_a_tabdelimited_file">Storing data in a tab-delimited file</a></h2>
+<p>The basic functionality of the file adapter is <em>exactly like</em> the in-memory list -- which is, of course, the whole point of formalizing the notion
+of lists of data.  So let's run doewn through the basic operations we did for in-memory lists, and confirm that it all works.</p>
+<pre class="code">
+   use Workflow::wftk;
+
+   my $wftk = Workflow::wftk-&gt;new();
+
+   # Create a list stored in 'test1.txt' without a header line:
+   my $list = $wftk-&gt;open('mylist', '<a href="file:test1.txt">file:test1.txt</a>');
+
+   # Add a record the easy way, with a hashref.
+   my $key = $list-&gt;add ( {field1 =&gt; 'value1', field2 =&gt; 'value2'} );
+
+   # Look at the fields in the list again:
+   @fields = $list-&gt;fields();          # Returns ('field1', 'field2') now, just like a memory list.
+
+   # Let's check what we just did:
+   open IN, 'test1.txt';
+   my $line = scalar &lt;IN&gt;;
+   close IN;
+   print $line;                        # This prints &quot;value1\tvalue2\n&quot;. Note that we didn't save the
+                                       # field names to the file -- but the list object still knows them.
+
+   my $key2 = $list-&gt;add ( ['different value', 'value2'] );
+   my $key3 = $list-&gt;add ( ['third value', 'value2'] );
+
+   # Get a list of keys:
+   my @keys = $list-&gt;keys();
+
+   # Iterate through the list:
+   for (my $key = $list-&gt;first_key(); $key; $key = $list-&gt;next_key()) {
+      # ...
+   }
+
+   # Get a record:
+   $rec = $list-&gt;get($key2);
+
+   # Get a value:
+   print &quot;Value is &quot; . $rec-&gt;get('field2');
+
+   # Modify an existing record.
+   $rec-&gt;put ('field1', 'new value 1');
+   $list-&gt;mod ($key2, $rec);
+
+   # Delete a record.
+   $list-&gt;del ($key3);
+
+   # Display the contents of the list:
+   print $list-&gt;as_text;
+
+   # The print statement above will return the following:
+   # +-----+-------------+--------+
+   # | key | field1      | field2 |
+   # +-----+-------------+--------+
+   # | 1   | value1      | value2 |
+   # | 2   | new value 1 | value2 |
+   # +-----+-------------+--------+
+
+   # Display the contents of the file:
+   system 'cat test1.txt';
+
+   # That (if you're running Unix) will print this:
+   # value1   value2
+   # new value 1     value2
+</pre><p>I won't go over the command-line, SQL, DBI, or hash tying interfaces in detail here, because it would be a waste of time.  They all work
+exactly as you would expect.  We'll test some of the other interfaces in our further testing below; this subsection was just a demonstration
+that file storage really and truly works.</p>
+<p>
+</p>
+<h2><a name="specifying_the_fields_for_a_flat_file">Specifying the fields for a flat file</a></h2>
+<p>In the example above, we just created the list as an amorphous thing, and left it to the first ``put'' to define the fields for the file.  When
+working with memory files, this is often as structured as we need to be, but the point of working in the file system (besides persistence) is
+to be able to interface with other systems.  In that case, we probably need to know the list of fields in advance, and so there is a ``fields''
+parameter available for the list specifier.  We've already seen it in 02a Memory lists, but let's look at it again.</p>
+<pre class="code">
+   use Workflow::wftk;
+
+   # Create a list stored in 'test1.txt' with specified fields.
+   my $list = $wftk-&gt;open('mylist', '<a href="file:test1.txt;fields=from_value">file:test1.txt;fields=from_value</a>,to_value');
+
+   # Now we can add records without naming the fields.
+   my $key = $list-&gt;add ( ['value1', 'value2'] );
+
+   # Let's check what we just did:
+   open IN, 'test1.txt';
+   my $line = scalar &lt;IN&gt;;
+   close IN;
+   print $line;                        # This prints &quot;value1\tvalue2\n&quot;, just as expected.
+</pre><p>But what happens if we now add a new record using a hash?  If the hash keys match the existing field names, nothing is changed; but if we
+introduce a new name, will the field be added?</p>
+<pre class="code">
+   my $key2 = $list-&gt;add ( { value3 =&gt; 'different value'} );
+   @fields = $list-&gt;fields(); # =&gt; returns ('from_value', 'to_value', 'value3')
+</pre><p>It will, for the file adapter, because files are pretty flexible.  But in a case where other systems expect a certain schema, this might
+constitute an error.  In that case, you can set the <code>fixed</code> flag on the list definition, and the wftk will refuse to add fields that aren't
+already there.  It won't be an error; they'll just be ignored if you try to add them.</p>
+<pre class="code">
+   my $list2 = $wftk-&gt;open('list2', '<a href="file:test2.txt;fields=from_value">file:test2.txt;fields=from_value</a>,to_value;fixed');
+   $key = $list2-&gt;add (['value1', 'value2']);
+   $key2 = $list2-&gt;add ( { value3 =&gt; 'value3' });
+
+   @fields = $list2-&gt;fields(); # =&gt; returns ('from_value', 'to_value');
+</pre><p>And note that if we now retrieve the record just added, it's going to be very boring:</p>
+<pre class="code">
+   @fields = $list2-&gt;get($key2)-&gt;values(); # =&gt; returns ('', '');
+</pre><p>
+</p>
+<h2><a name="_reading_data_from_an_existing_file">(Reading data from an existing file</a></h2>
+<p>Flat file data storage is a convenient way to cache data casually, because it can be edited by hand, with simple scripts, or with applications
+like Excel.  Here's an example of how to generate data with a simple Perl script, then read it into a file list in the wftk.</p>
+<p>
+</p>
+<h2><a name="_using_the_file_adapter_for_nonfile_storage">(Using the file adapter for non-file storage</a></h2>
+<p>Sometimes we have tab-delimited line data that isn't actually in a file.  One choice is to write it to a file first, but does that sound like
+something I'd make you do?  No, we can persuade the file adapter to treat non-file storage like file storage.  The wftk already has a couple
+of examples; strings, streams, and fields in existing objects.  You can also write your own pretty easily, but if I put that into this tutorial
+it's going to be a little further down the road.</p>
+<p>Like files, the storage for non-files is updated when a change is made to the data.  That means, for instance, that if I bind a string to a file
+list as its storage location, then make changes to the data in that list, the string will magically change.  This is useful because I can then
+store it elsewhere at my leisure.  And of course, the same applies to data stored in the field of another record somewhere; we'll use this later
+for something I call ``data in data'', which provides sublists and references within records.</p>
+<p>A similar set of functionality is the ability to treat non-file resources as pseudofiles; for instance, we can give the list a string reference
+or an open __DATA__ section as input data (along the lines of DBD::File) and have it parse out a list for us.  With a little more care, we can
+even have the list update the data source if data is changed.
+The presence or absence of a header is given as a Boolean ``header'' parameter.  Its default is ``off''; you can turn it on by simply mentioning it
+in the ad-hoc list specification string (e.g. <code>open file:test.txt;header</code>) or by adding a line <code>+header</code> to the list definition in the
+repository configuration.  (For more on the syntax of these configuration parameters, see 02h Records.)</p>
+<p>
+</p>
+<h2><a name="_repository_configuration_ii__permanently_configuring_a_storage_list_with_filelike_data_predefined">(Repository configuration II: permanently configuring a storage list with file-like data predefined</a></h2>
+<p>Of course, the repository definition mechanism shown at the end of the last chapter also works for file lists.  And for file lists, we can
+even specify the data right in the repository definition; this is useful for relatively short, constant lists.</p>
+<p>Here is an example of using a string to specify the configuration when opening a repository session.  Note that the data for one list is
+stored in a string, and the other is loaded from a __DATA__ section.</p>
+<p>This record specification uses a <em>lot</em> of features we haven't seen before.  For the details of everything you're seeing here, you'll probably want
+to check 02-h Records, but in the meantime, just assume that everything you see is perfectly intuitive, because it is.</p>
+<pre class="code">
+   use Workflow::wftk;
+
+   my $wftk = Workflow::wftk-&gt;new(&lt;&lt;&quot;   CONF&quot;);
+       ! [mylist: list]
+       ! type: memory:load_as=file;fields=field1,field2
+       ! +readonly
+       ! load_from: DATA
+       !
+       ! [second_list: list]
+       ! type: memory
+       ! load_as: file
+       ! *fields: field1 field2 field3
+       ! description: My second list
+       ! data: &lt;&lt;EOF
+       ! AAA\t234\tyes
+       ! CCC\t123\tno
+       ! DDD\t123\tyes
+       ! EOF
+       !
+      CONF
+
+   %lists = $wftk-&gt;lists();      # Before opening anything, our list of lists
+                                 # shows us what we have defined.
+
+   $wftk-&gt;execute_sql (&quot;select mylist.field1, second_list.field3 from mylist, second_list
+                        where mylist.field2=second_list field1 order by mylist.field1&quot;);
+   print $wftk-&gt;list()-&gt;as_text;
+
+   __DATA__
+   Alice   AAA
+   Bob     BBB
+   Carla   CCC
+   Doug    DDD
+   Edith   EEE
+   Frank   FFF
+</pre><p>This defines two lists, specifies their data in two different ways, and then executes an SQL query against both of them, dumping the result
+in conveniently formatted form.  I know I'm expected to think this, but ... I love the wftk.</p>
+<p>That concludes the basic functionality for storage of data in delimited lines in a file or file-like object.  The file storage class is not intended
+to provide great performance -- it's here for convenience.  For performance, use a relational database such as MySQL (addressed in 02-d Storing Data
+in MySQL).</p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

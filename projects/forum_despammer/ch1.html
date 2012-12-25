@@ -1,0 +1,297 @@
+<html>
+<head>
+<title>Despamming the Toonbots forum</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">forum despamming</p>
+<p>[ <a href="/projects/forum_despammer">modbot</a> ]</p>
+<p>[ <a href="spam_archive/">spam archive</a> ]</p>
+<p>[ <a href="google_count.html">google count</a> ]</p>
+<p>[ <a href=todo.html>to-do list</a> ]</p>
+<p>[ <a href="despammer1.html">despammer alpha</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=todo>new task</a> ]</p>
+<p>[ <a href=archive.html>view archive</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Despamming the Toonbots forum, Chapter the First</div>
+<div class="subtitle">Extracting the preliminary results</div>
+<hr>
+<p>
+So I'm putting "despammer.pl" into the discussion directory, and the first thing I want to do is just to find the posts:
+<pre class="code">
+opendir D, ".";
+@files = grep /^\d+$/, readdir(D);
+closedir D;
+
+foreach $post (@files) {
+   print "$post\n";
+}
+</pre>
+</p>
+<p>
+This simply scans the directory and pulls out the filenames which are all numeric-only.  When I run it, I get a long list of numbers.  So
+far, so good.
+Next, I want to ignore anything older than a week.  This will make sure that I'm not fooled in case I move log files elsewhere, and
+it'll also cut down a bit on overhead (not that this will actually incur much overhead, but still: waste not, want not.)  So I add one
+line:
+<pre class="code">
+opendir D, ".";
+@files = grep /^\d+$/, readdir(D);
+closedir D;
+
+opendir D, ".";
+@files = grep /^\d+$/, readdir(D);
+closedir D;
+
+foreach $post (@files) {
+   <b>next if (-M $post > 7);</b>
+
+   print "$post\n";
+}
+</pre>
+</p>
+<p>
+Now I have a more manageable list of posts.  (19, according to "perl despammer.pl | wc".)
+</p>
+<p>
+OK.  For each post, I have a file that looks like this:
+<pre class="code">
+SUBJECT>cialis vs viagra -
+POSTER>Paydaybess
+EMAIL>
+DATE>1170330822
+EMAILNOTICES>no
+IP_ADDRESS>84.19.188.16
+PREVIOUS>6286
+NEXT>
+IMAGE>
+LINKNAME>
+LINKURL>
+&lt;P>viagra vs cialis cialis viagra vs cialis levitra viagra vs cialis drug viagra vs cialis strong viagra vs cialis effects side viag
+&lt;P>cialis vs viagra
+</pre>
+</p><p>
+Yeah, I'm pretty sure that one's spam.
+So I open the file and extract the line that starts IP_ADDRESS>, as follows:  (I don't care about the rest of the file.)
+<pre class="code">
+opendir D, ".";
+@files = grep /^\d+$/, readdir(D);
+closedir D;
+
+foreach $post (@files) {
+   next if (-M $post > 7);
+
+   open P, $post;
+   while (&lt;P>) {
+      next unless /^IP_ADDRESS>/;
+      chomp;
+      s/^IP_ADDRESS>//;
+      $ip = $_;
+      last;
+   }
+   close P;
+
+   print "$post - $ip\n";
+}
+</pre>
+Now I have an output more like this:
+<pre class="code">
+6869 - 74.131.29.150
+6908 - 63.166.111.6
+6817 - 137.110.127.65
+6917 - 84.19.188.16
+6886 - 58.15.127.29
+</pre>
+</p>
+<p>
+Fortunately, I already have scripts running hourly to pull interesting things out of the log for me, and so to look at these IPs I can
+grep those files for the IP.  If the post is more recent than an hour, I'll look at the current raw access log.  All those are in my log
+directory; the current log is <code>access.log</code> and the older ones are all in <code>meat.*</code>.  I'm just going to use a naive
+grep to get the information out, because I don't really care too much about scalability.  If I cared about scalability, I'd probably build
+this into the forum posting script itself, and just scan for each IP as it came in.  But this approach lets me try out techniques before
+doing that, and possibly disabling the forum while I tinkered in its guts.  (Again: not that this forum would kill me, but these habits
+all stem from cold-sweat-inducing incidents in my checkered past.)
+</p>
+<p>
+Let's grep.  And let's pull the subject of the post out, too, so we can keep track of what's what.
+<pre class="code">
+$logdir = "/usr/local/aolserver/servers/vivtek/modules/nslog";
+
+opendir D, ".";
+@files = grep /^\d+$/, readdir(D);
+closedir D;
+
+sub get_field {
+   my $in = shift;
+   chomp($in);
+   $in =~ s/^.*>//;
+   return $in;
+}
+
+sub extract_info {
+   chomp;
+   $line = $_;
+   ($first, $dt, $last) = split / *[\[\]] */, $line;
+   $dt =~ s/ -\d*$//;
+   ($ip, $j1, $j2) = split / +/, $first;
+   ($j1, $req, $respbw, $ref, $j2, $agent, $j3) = split / *" */, $last;
+   ($meth, $url, $protocol) = split / /, $req;
+   ($resp, $bandwidth) = split / /, $respbw;
+
+   $file = $url;
+   $file =~ s/.*\///;
+
+   $chaff = 0;
+   $chaff = 1 if $file =~ /.gif/i;
+   $chaff = 1 if $file =~ /.jpg/i;
+   $chaff = 1 if $file =~ /.js/i;
+   $chaff = 1 if $file =~ /.png/i;
+   $chaff = 1 if $file =~ /.ico/i;
+}
+
+
+foreach $post (@files) {
+   next if (-M $post > 7);
+
+   open P, $post;
+   while (&lt;P>) {
+      $ip = get_field ($_) if /^IP_ADDRESS>/;
+      $subj = get_field ($_) if /^SUBJECT>/;
+   }
+   close P;
+
+   if (-M $post > 0.1) {
+      open G, "grep -h $ip $logdir/meat.* |";
+   } else {
+      open G, "grep -h $ip $logdir/access.log |";
+   }
+   print "------------------------------------------------------------------------------------\n";
+   print "$post - $ip - $subj\n";
+   print "------------------------------------------------------------------------------------\n";
+   while (&lt;G>) {
+      extract_info();
+      print "$dt - $url - $ref\n";
+   }
+   close G;
+}
+</pre>
+</p>
+<p>
+Next: <a href="ch2.html">A look at preliminary results</a>.
+</p>
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: Background</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>wftk: Background</h2>
+<center>
+[ <a href=index.html>documentation home</a> ]
+[ <a href=configure.html>configuration</a> ]
+[ <a href=code.html>design/implementation</a> ]
+</center>
+<hr>
+
+Contents: <ul>
+<li>What's workflow?
+<li>What's the wftk?
+</ul>
+
+This document is intended to lay out the basics of what the wftk is about.  As the wftk is still in its embryonic stage,
+most of the people who will be reading this are programmers.  But you'll remember that the idea here is to have a system
+that can be used by anybody, so this document (and later versions of it) are intended to be accessible by non-geeks as well.
+If you're a non-geek, and something here doesn't make sense to you, please drop me a note at <a href="mailto:wftk@vivtek.com">wftk@vivtek.com</a>
+and I'll attempt to improve the quality of the documentation.  That applies to anything else in the wftk, too, of course,
+but especially to this background document.
+<p>
+So: <b>what's workflow?</b>  Workflow is the automatic management of tasks and processes.  In its simplest form, workflow
+is simply a notebook where you keep your to-do lists.  Those lists consist of tasks which you have to get done (or you
+have to delegate to someone else.)  The wftk <i>task manager</i> is concerned with managing your tasks -- duh.
+<p>
+As your task list grows, you find that some "tasks" are more complicated than others.  So what started as, say, build a
+house, ends up being made up of other steps, such as "find a contractor", "buy a lot", "dig a basement", and so forth.  In
+other words, those tasks have become <i>processes</i>, at least in wftk language.  A simple process is nothing more than
+a checklist of tasks which can be done in any order.  The task manager still handles these tasks, and really, this isn't
+workflow proper yet.
+<p>
+When you really get down and dirty, you start requiring that some tasks are done before others.  Some tasks don't even need to
+be done in certain circumstances.  Some of them can be done automatically.  Moreover, processes tend to collect data -- the
+name of your plumber, maybe, or the date you expect the foundation to be done.  As you get more sophisticated, you need real
+workflow, and that's what a workflow engine does for you.
+<p>
+Once you define a process, you can tell the engine, "we have a house to build" and it will automatically lay out the skeleton of
+the process for you.  As you make decisions, it will modify the list of things to be done.  If some tasks must be done before others
+can start, you will only see (and have to think about) the ones that are current.
+<p>
+Sounds great, eh?  And it is.  But (until now) it's always been rather expensive to get serious on this level.  Enter wftk.
+<p>
+So: <b>what's wftk?</b>  The wftk, or <i>open-source workflow toolkit</i> is a cheap (in fact, free) system to manage workflow.
+It is written to allow you the greatest possible flexibility in integration with your existing databases, directories, servers,
+and what have you.  Using the wftk, you can create processes via definition or simple checklist, you can assign tasks by username
+or by role in your organization (or by role in a single process).  You can delegate tasks by sending requests to people.  You can
+do "ad-hoc workflow" by inserting arbitrary process pieces into your process.  If you ask me nicely, you can do anything else that
+I haven't thought of yet.  The wftk is intended to document and enable your existing practices, not force you to conform to somebody
+else's idea of the right way to do things.
+<p>
+More later.  Ask me some questions.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

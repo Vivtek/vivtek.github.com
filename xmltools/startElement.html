@@ -1,0 +1,195 @@
+<html><head><title>xmltools: Handling elements: startElement</title></head>
+<body>
+<h2>Handling elements: startElement</h2>
+<center>
+[&nbsp;<a href="print_stack.html">Previous: Printing the current stack as a locator</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: xmltools index</a>&nbsp;]
+[&nbsp;<a href="endElement.html">Next: Handling elements: endElement</a>&nbsp;]
+</center>
+
+<hr>
+OK, now we get down to the heavy hitting.  The startElement function is long and complicated,
+and it's the first of the three handlers implemented so far (there will be more later.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void startElement(void *userData, const char *name, const char **atts)
+{
+   FRAME * newframe;
+   TAG   * scan;
+   const char  *mark;
+   int   matchoffset;
+   int   att;
+   const char  **attptr;
+   int   on;
+   int   c;
+   int   didit;
+
+   newframe = (FRAME *) malloc (sizeof (FRAME));
+   newframe->next = NULL;
+   newframe->back = top;
+   newframe->level = newframe->back->level + 1;
+   newframe->name = name;
+   newframe->subitems = NULL;
+   newframe->offset_in_parent = 0;
+   newframe->locator = NULL;
+   newframe->empty = 1;
+
+   if (stack.next == NULL) {
+      stack.next = newframe;
+      newframe->back = &amp;stack;
+   } else {
+      top->next = newframe;
+   }
+   top = newframe;
+
+   /* If parent is still empty, close its tag. */
+#ifdef XMLSNIP
+   if (!finished &amp;&amp; emit_level > -1 &amp;&amp; top->back->level - 1 + emit_matching_tag >= emit_level &amp;&amp; top->back->empty == 1) {
+#else
+#ifdef XMLREPLACE
+   if ((emit_level &lt; 0 || top->back->level + emit_matching_tag &lt;= emit_level) &amp;&amp; top->back->empty == 1) {
+#else
+   if (top->back->empty == 1) {
+#endif
+#endif
+      if (emit_tags) top->back->empty = 0;
+      if (emit_tags) printf (">");
+   }
+
+   /* Scan parent's subitems to ascertain our own offset in that list. */
+   if (top->back) {
+      scan = top->back->subitems;
+      while (scan) {
+         if (!strcmp (scan->name, name)) break;
+         scan = scan->next;
+      }
+      if (scan) {
+         scan->count++;
+      } else {
+         scan = (TAG *) malloc (sizeof (TAG));
+         scan->name = name;
+         scan->next = top->back->subitems;
+         scan->count = 0;
+         top->back->subitems = scan;
+      }
+      top->offset_in_parent = scan->count;
+   }
+
+   /* Now check parent's locator to see whether we match the next bit.
+      (A null locator means the parent isn't in the match path.) */
+   if (top->back->locator != NULL) {
+      if (!strncmp (name, top->back->locator, strlen(name))) {
+         mark = (char *) top->back->locator + strlen(name);
+         matchoffset = 0;
+         if (*mark == '(') {
+            mark++;
+            matchoffset = atoi(mark);
+            while (*mark &amp;&amp; *mark != ')') mark++;
+            if (*mark) mark++;
+         } else if (*mark == '[') {
+            mark++;
+            for (attptr = atts; *attptr &amp;&amp; strcmp (*attptr, "id"); attptr += 2);
+            if (!*attptr) for (attptr = atts; *attptr &amp;&amp; strcmp (*attptr, "name"); attptr += 2);
+            *attptr++;
+            if (!strncmp (*attptr, mark, strlen(*attptr))) {
+               mark += strlen(*attptr);
+               if (*mark == ']') {
+                  matchoffset = top->offset_in_parent;
+                  mark++;
+               }
+            }
+            
+         }
+         if ((*mark == '\0' || *mark == ' ') &amp;&amp; top->offset_in_parent == matchoffset) {
+            /* Ding, ding! */
+            emit_level = top->level;
+            if (emit_locator) print_stack();
+            emit_level = top->level;
+         } else if (*mark == '.' &amp;&amp; top->offset_in_parent == matchoffset) {
+            top->locator = mark+1;
+         }
+      }
+   }
+
+#ifdef XMLINSERT
+   if (top->level == emit_level &amp;&amp; !strcmp (insertwhere, "before")) {
+      while (!feof(stdin)) { c = getchar(); if (!feof(stdin)) putchar(c); }
+      emit_level = -1;
+   }
+#endif
+
+   /* Emit tag. */
+#ifdef XMLSNIP
+   if (!finished &amp;&amp; emit_level > -1 &amp;&amp; top->level - 1 + emit_matching_tag >= emit_level) {
+#else
+#ifdef XMLREPLACE
+   if (emit_level &lt; 0 || top->level + emit_matching_tag &lt;= emit_level) {
+#else
+   if (1) {
+#endif
+#endif
+      if (emit_tags) {
+         printf ("&lt;%s", name);
+         #ifdef XMLSET
+         mark = NULL; finished = 0;
+         #endif
+         for (att=0, on=1; atts[att]; att++) {
+            if (on) printf (" %s", atts[att]);
+            #ifdef XMLSET
+            if (on &amp;&amp; !strcmp (atts[att], setattr) &amp;&amp; top->level == emit_level) {
+               mark = atts[att];
+            }
+            if (!on &amp;&amp; mark != NULL &amp;&amp; top->level == emit_level) {
+               printf ("=\"%s\"", setvalue);
+               mark = NULL;
+               finished = 1;
+            } else
+            #endif
+            if (!on) printf ("=\"%s\"", atts[att]);
+            on = !on;
+         }
+         #ifdef XMLSET
+         if (!finished &amp;&amp; top->level == emit_level)
+            printf (" %s=\"%s\"", setattr, setvalue);
+         #endif
+      }
+   }
+
+#ifdef XMLSET
+   emit_level = -1;
+   finished = 0;
+#endif
+
+#ifdef XMLREPLACE
+   if (emit_level == top->level) {
+      top->empty = 0;
+      if (emit_tags &amp;&amp; !emit_matching_tag) printf (">");
+      while (!feof(stdin)) { c = getchar(); if (!feof(stdin)) putchar(c); }
+   }
+#endif
+
+#ifdef XMLINSERT
+   if (top->level == emit_level &amp;&amp; !strcmp (insertwhere, "beforecontent")) {
+      top->empty = 0;
+      if (emit_tags &amp;&amp; emit_matching_tag) printf (">");
+      while (!feof(stdin)) { c = getchar(); if (!feof(stdin)) putchar(c); }
+      emit_level = -1;
+   }
+#endif
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="print_stack.html">Previous: Printing the current stack as a locator</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: xmltools index</a>&nbsp;]
+[&nbsp;<a href="endElement.html">Next: Handling elements: endElement</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

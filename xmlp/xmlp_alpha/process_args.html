@@ -1,0 +1,46 @@
+<html><head><title>xmlp alpha: Process arguments and open source file</title></head>
+<body>
+<h2>Process arguments and open source file</h2>
+<center>
+[&nbsp;<a href=write_index.html>Previous: Write index page</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: xmlp alpha</a>&nbsp;]
+[&nbsp;<a href=clean_up.html>Next: Clean up afterwards</a>&nbsp;]
+</center>
+
+<hr>
+Finally, now that we have the good stuff out of the way, we're ready to talk about how we
+open our input file.  The scan and weave steps expect input in the INPUT file handle.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (@ARGV != 1) {
+   print STDERR "Usage: $0 &lt;filename>\n";
+   exit 1;
+}
+open INPUT, $ARGV[0] or die "Can't open file '$ARGV[0]'\n";
+
+$format_html = $ARGV[0];
+$format_html =~ s/\.xml$/_format.html/i;
+$index_html = $ARGV[0];
+$index_html =~ s/\.xml$/_index.html/i;
+</pre></td></tr></table>
+
+And after all is said and done, we'll want to clean all this up, too.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<i>Add the following to "Clean up afterwards"</i><br>
+<pre>close INPUT;
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href=write_index.html>Previous: Write index page</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: xmlp alpha</a>&nbsp;]
+[&nbsp;<a href=clean_up.html>Next: Clean up afterwards</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

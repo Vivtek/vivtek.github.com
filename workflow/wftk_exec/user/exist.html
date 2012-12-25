@@ -1,0 +1,63 @@
+<html><head><title>User module: Checking for existence of users and groups</title></head>
+<body>
+<h2>Checking for existence of users and groups</h2>
+<center>
+[&nbsp;<a href="library.html">Previous: user.c: implementation</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="getsave.html">Next: Loading and saving users and groups</a>&nbsp;]
+</center>
+
+<hr>
+In this implementation, anyway, checking for the existence of a user or a group is as simple
+as checking the repository directory for the named file.
+<br><br>
+<a name="user">
+<i>user_exists()</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int user_exists(const char * user)
+{
+   char buf[1024];
+   FILE * file;
+   sprintf (buf, "%s%s", USER_REPOSITORY, user);
+   file = fopen (buf, "r");
+   if (file) {
+      fclose (file);
+      return 1;
+   }
+   return 0;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="group">
+<i>group_exists()</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int group_exists(const char * group)
+{
+   char buf[1024];
+   FILE * file;
+   sprintf (buf, "%s%s", GROUP_REPOSITORY, group);
+   file = fopen (buf, "r");
+   if (file) {
+      fclose (file);
+      return 1;
+   }
+   return 0;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="library.html">Previous: user.c: implementation</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="getsave.html">Next: Loading and saving users and groups</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

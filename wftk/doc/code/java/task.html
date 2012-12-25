@@ -1,0 +1,43 @@
+<html><head><title>wftk-j: Modelling tasks</title></head>
+<body>
+<h2>wftk-j: Modelling tasks</h2>
+<center>
+[&nbsp;<a href="entry.html">Previous: Modelling list entries</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="user.html">Next: Users in the system</a>&nbsp;]
+</center>
+
+<hr>
+A task, as far as the client is concerned, is an entry with a little extra functionality.  We can construct a blank Task object and then
+add it to the system as an ad-hoc task, assign it to a user, or assign it as an ad-hoc task to an existing process (Entry object).
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>package org.wftk;
+public class Task extends Entry {
+   public Task (Repository r, String list, String key_in) {
+      rep = r;
+      list_id = list;
+      key = key_in;
+   }
+
+   public boolean is_task() { return true; }
+   public void complete () {
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="entry.html">Previous: Modelling list entries</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="user.html">Next: Users in the system</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,266 @@
+<html><head><title>Task manager: Definition of taskmgr_create</title></head>
+<body>
+<h2>Definition of taskmgr_create</h2>
+<center>
+[&nbsp;<a href="schema.html">Previous: Database schema of the task list</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="taskmgr_start.html">Next: Definition of taskmgr_start</a>&nbsp;]
+</center>
+
+<hr>
+The <code>/create</code> URL is used both to present a form for task creation, and actual
+creation of the task.  It also handles the same thing for processes.
+<p>
+Before we do anything else, we need to get a database handle and check the authorized user.
+This is pretty straightforward.  Note that in AOLserver/Tcl the <code>ns_db</code>
+command connects us with the excellent DB interface.  The DB interface opens and
+manages a pool of connections, and we simply select one (or more) when needed.  When the
+HTTP transaction terminates, the connections are returned to the pool.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>global taskmgr_pool
+set db [ns_db gethandle $taskmgr_pool]
+<i>See <a href="user.html#check">Checking authuser</a></i>
+</pre></td></tr></table>
+
+The next thing to do is to check the form input.  In AOLserver/Tcl, this is done for you
+before your proc is ever called (contrast with the irritation of having to do it yourself in
+CGI.  Yes, I know there are libraries.)  All kinds of information is available with the
+<code>ns_conn</code> command.  The form in question is query string information (preparsed)
+for GETs, and content body information (also preparsed) for POSTs.  It's returned as an
+<code>ns_set</code> datastructure which does pretty much what Perl hashes do.
+<p>
+If the form is blank, we know we're not actually creating
+anything, so we present the creation form.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set form [ns_conn form $conn]
+if {$form == ""} {
+  <i>See <a href="taskmgr_create.html#freshform">Show process/task creation form</a></i>
+  return
+}
+</pre></td></tr></table>
+
+If the form isn't blank, then we have to create either a process or a task.  Which?  (If neither,
+let's return a nasty error message for the script kiddy trying to crack into the system.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if {[ns_set get $form what] == "task"} {
+  if ![string compare [ns_set get $form description] ""] {
+    <i>See <a href="taskmgr_create.html#newtask">Requesting a task for a process</a></i>
+  } else {
+    <i>See <a href="taskmgr_create.html#task">Create task</a></i>
+  }
+} elseif {[ns_set get $form what] == "process"} {
+  if ![string compare [ns_set get $form title] ""] {
+    <i>See <a href="taskmgr_create.html#newprocess">Requesting a new process</a></i>
+  } else {
+    <i>See <a href="taskmgr_create.html#process">Create process</a></i>
+  }
+} else {
+  set tags(title) "Invalid create request"
+  set tags(body) "
+To create a task, use &lt;code>what=task&lt;/code>; for a process use &lt;code>what=process&lt;/code>.
+You entered &lt;code>what=[ns_set get $form what]&lt;/code>."
+
+  taskmgr_pageout $conn message.html
+}
+
+</pre></td></tr></table>
+
+And that's it.  Oh.  Still haven't covered any details.
+<br><br>
+<a name="freshform">
+<i>Show process/task creation form</i><br>
+The display of a form is pretty straightforward.  AOLserver/Tcl provides the
+<code>ns_return</code> function (among a couple of others) to perform this task.  While
+we can obviously use a string and embed all the HTML right in the code here, I don't like
+that style.  I nearly always use a template HTML file which I can then modify appropriately
+with code.  Using that mechanism here means essentially copying the HTML file and writing it
+out, so this begs the question of why we put it into this code in the first place instead of
+simply directing the user to the HTML page directly.  Simple: we want a list of existing
+projects to show up in the task creation form, and that happens in this code  and is made
+ready in the tag <code>[&#35;#projectlist##]</code>.
+
+<p>
+This all makes use of the function <code>taskmgr_pageout</code>, which will be defined later.
+(If I were using a more mature literate programming tool, 
+a link could automagically be inserted.  Unfortunately that's not the case.)
+
+The query I'm using to grab processes is overly simplistic.  I'm not using user information yet.
+I'll revisit this piece later so that the system will be multiuser.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set row [ns_db select $db "select * from process"]
+set tags(processlist) "&lt;option value=\"\">Select a process if applicable\n"
+while {[ns_db getrow $db $row]} {
+   append tags(processlist) "&lt;option value=\"[ns_set get $row id]\">[ns_set get $row title]\n"
+}
+taskmgr_pageout $conn fresh_task.html
+
+</pre></td></tr></table>
+
+<br><br>
+<a name="newtask">
+<i>Requesting a task for a process</i><br>
+If we know the process we're attaching a task to, then we have another form to use.  We have
+to get some information about the project (basically its title) and we provide a list of
+users to make the request of.  (The current user is the default.)  We also need to check
+the user's permission level to make sure he/she may add tasks to the process.
+<p>
+First, if no process is involved (i.e. this is a standalone task) then we'll just present
+the form and go on.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set process [ns_set get $form process]
+if ![string compare "" $process] {
+   return [taskmgr_pageout $conn newtasknoproc.html]
+} 
+</pre></td></tr></table>
+
+Now let's get info about the process and make sure it exists.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set tags(process) $process
+set prow [ns_db select $db "select * from process where id='[sql_safe_string $process]'"]
+if ![ns_db getrow $db $prow] {
+   set tags(title) "Can't create task for nonexistent process"
+   set tags(body) "The process code you entered (<code>$process</code>) can't be found in the database."
+   return [taskmgr_pageout $conn message.html]
+}
+set tags(title) [ns_set get $prow title]
+</pre></td></tr></table>
+
+Next, let's check the user's permission level and ensure that it's sufficient.  Since the 
+permission may come through any keyword, we have to check all the keywords for the process.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if {[string compare $user [ns_set get $prow owner]] &amp;&amp; ![perms_check $user [ns_set get $prow groupown] taskadd]} {
+   set tags(body) "You don't have sufficient privileges to request tasks for &lt;i>$tags(title)&lt;/i>"
+   set tags(title) "Insufficent privilege"
+   return [taskmgr_pageout $conn message.html]
+}
+</pre></td></tr></table>
+
+OK, let's build our list of users of which we can make requests, and put up the form.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set tags(userlist) "&lt;option value=\"$user\">Select a requestee here\n"
+append tags(userlist) [perms_userselect [ns_set get $prow groupown] own]
+ 
+taskmgr_pageout $conn newtask.html
+</pre></td></tr></table>
+
+<br><br>
+<a name="task">
+<i>Create task</i><br>
+Once we've presented the form and the user has filled it in, we come to the task creation
+routine.
+The first thing is to build a task ID.  We want to make sure it's unique;
+in AOLserver/Tcl a useful way of
+doing that is to use the connection handle (which is a string, this is Tcl after all) and the
+current time.  The <code>now</code> function is one I use a lot; its definition is in the
+utility section.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set task $conn[now tag]
+</pre></td></tr></table>
+
+Next, we build our SQL statement to create the task requested and execute that statement.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set fields [list id status created]
+set values [list '$task' 'active' '[now]']
+foreach field {process description priority sched_date sched_time} {
+   if {[ns_set find $form $field] == -1} { continue }
+   if {[ns_set get $form $field] == ""} { continue }
+
+   lappend fields $field
+   if {$field == "priority"} {
+      lappend values [ns_set get $form $field]
+   } else {
+      lappend values "'[sql_safe_string [ns_set get $form $field]]'"
+   }
+}
+
+if {[lsearch $fields owner] == -1} {
+   lappend fields owner
+   lappend values "'[sql_safe_string $user]'"
+}
+
+set query "insert into task ("
+append query [join $fields ", "]
+append query ") values ("
+append query [join $values ", "]
+append query ")"
+
+ns_db dml $db $query
+
+ns_returnredirect $conn show?task=$task
+</pre></td></tr></table>
+
+And that's it.  Our task is created.  Notice that instead of doing any display here, I'm just
+returning a redirect so that all task display is concentrated into one area.
+<br><br>
+<a name="newprocess">
+<i>Requesting a new process</i><br>
+This is no more than presenting the form.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>return [taskmgr_pageout $conn newprocess.html]
+</pre></td></tr></table>
+<br><br>
+<a name="process">
+<i>Create process</i><br>
+Creating a process is almost identical to creation of a task.  The fields are different, that's
+all.  And since we have no numeric fields in the process record, we don't need that special
+logic to avoid putting quotes around the priority field that we needed in the task record.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set process $conn[now tag]
+set fields [list id status started]
+set values [list '$process' 'pending' '[now]']
+foreach field {title description} {
+   if {[ns_set find $form $field] == -1} { continue }
+   if {[ns_set get $form $field] == ""} { continue }
+
+   lappend fields $field
+   lappend values "'[sql_safe_string [ns_set get $form $field]]'"
+}
+
+if {[lsearch $fields owner] == -1} {
+   lappend fields owner
+   lappend values "'[sql_safe_string $user]'"
+}
+
+set query "insert into process ("
+append query [join $fields ", "]
+append query ") values ("
+append query [join $values ", "]
+append query ")"
+
+ns_db dml $db $query
+
+ns_returnredirect $conn show?process=$process
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="schema.html">Previous: Database schema of the task list</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="taskmgr_start.html">Next: Definition of taskmgr_start</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

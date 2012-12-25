@@ -1,0 +1,308 @@
+<html><head><title>Java simple SOAP for an alternative route to wftk</title></head>
+<body>
+<h2>Java simple SOAP for an alternative route to wftk</h2>
+<center>
+[<a href="index.html">wftk-j</a> ] [ <a href="xmlobj.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+In the interests of bootstrapping ourselves into Java more quickly, Startext (in the person of Dominik Kreutz) and I decided to try running wftk as a SOAP server (see which elsewhere)
+and then write some simple SOAP access code in Java to get to it.  After all, we only needed limited functionality on the client, and that much could
+easily be wrapped up and sent off to a SOAP server.  The result is this simple_soap class, which is given a function name, a server URL, and some parameters,
+builds the corresponding SOAP request as a simple text document, sends it off, then parses the response and provides various ways of accessing the
+response data structure.  This class can then be used as the basis for an initial implementation of the wftk class schema; afterwards, we can use the
+same class schema to wrap the repmgr library in JNI, giving us the best of both worlds.  It's a pretty slick plan.
+<p></p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>// Copyright (c) 2003, Vivtek.
+//
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
+//  
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//  
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+</pre></td></tr></table>
+
+So the philosophy of this simple SOAP caller is, well, simple.  We do the absolute minimum required to do HTTP SOAP RPC calls.  Then we'll use those calls
+to do an initial implementation of some of the class schema of the wftk.  Then we'll do some application development against it, rinse, and repeat.
+Let's include some stuff.  Note we're not going to get all fancy on you here.  We use the xmlapi-j to parse and manipulate our return values, but that's
+basically the only import we use.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>package org.wftk;
+import java.net.*;
+import java.io.*;
+import java.util.Vector;
+import java.util.HashMap;
+</pre></td></tr></table>
+
+And down to the code.  To write a SOAP request, we really don't do much beyond finding out a server, a function, and parameters for that function,
+which we format as XML and toss over to a server which will actually run the function.  It really is that easy.  Then we get some XML back, which we
+have to parse.  Parsing via SAX is pretty simple, once you get past the initial learning curve.
+<p></p>
+<i>September 16, 2003</i> Added the SimpleSOAPException you see in the first line.  It's about time we got organized with exceptions instead of just
+ending up with null pointers here and there.  (You can take the horse to Java, but you can't make him use exceptions until he convinces himself
+it's stupid not to.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class SimpleSOAPException extends Exception {
+   private String desc;
+   SimpleSOAPException (String e) {
+      desc = e;
+   }
+   public String toString () { return desc; }
+}
+public class simple_soap {
+  String server;
+  String function;
+
+  public class parm {
+     public String name;
+     public String value;
+     public String type;
+     public parm (String _name, String _value)
+     {
+        name = _name;
+        value = _value;
+        type = "xsd:string";
+     }
+     public parm (String _name, String _value, String _type)
+     {
+        name = _name;
+        value = _value;
+        type = _type;
+     } 
+  }
+  Vector parms;
+
+  public simple_soap(String server_in, String function_in) {
+     server = server_in;
+     function = function_in;
+  }
+
+  public void set_server(String server_in) {
+     server = server_in;
+  }
+  public String get_server () {
+     return (server);
+  }
+
+  public void set_function (String function_in) {
+     function = function_in;
+  }
+  public String get_function () {
+     return (function);
+  }
+
+  public void clear_parms() {
+     parms = null;
+  }
+  private void init_parms() {
+     if (parms != null) return;
+     parms = new Vector();
+  }
+  public void add_parm (String p, String val) {
+     init_parms();
+     parm pm = new parm (p, val);
+     parms.add (pm);
+  }
+  public void add_parm (String p, String val, String type) {
+     init_parms();
+     parm pm = new parm (p, val, type);
+     parms.add (pm);
+  }
+
+  public void call() throws SimpleSOAPException {
+    HttpURLConnection connection;
+
+    try {
+      URL u = new URL(server);
+      URLConnection uc = u.openConnection();
+      connection = (HttpURLConnection) uc;
+      init_parms();
+
+      connection.setDoOutput(true);
+      connection.setDoInput(true);
+      connection.setRequestMethod("POST");
+      connection.setRequestProperty("SOAPAction", "dummy_action");
+    }
+    catch (Exception e) {
+      throw new SimpleSOAPException ("Can't configure connection to server '" + server + "': " + e);
+    }
+
+    try {
+      OutputStream out = connection.getOutputStream();
+      Writer wout = new OutputStreamWriter(out);
+      
+      wout.write("<?xml version='1.0'?>\r\n");  
+      wout.write("<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:xsi=\"http://www.w3.org/1999/XMLSchema-instance\" SOAP-ENV:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:xsd=\"http://www.w3.org/1999/XMLSchema\">\r\n"); 
+      wout.write("<SOAP-ENV:Body>\r\n");
+      wout.write("<" + function + " SOAP-ENC:root=\"1\">\r\n");
+      for (int i=0; i < parms.size(); i++) {
+         parm p = (parm) parms.get(i);
+         wout.write("<" + p.name + " xsi:type=\"" + p.type + "\">" + p.value + "</" + p.name + ">\r\n");
+      }
+      wout.write("</" + function + ">\r\n");
+      wout.write("</SOAP-ENV:Body>\r\n"); 
+      wout.write("</SOAP-ENV:Envelope>\r\n"); 
+      
+      wout.flush();
+      wout.close();
+    }
+    catch (Exception e) {
+      throw new SimpleSOAPException ("Can't connect to server '" + server + "' (or connection lost): " + e);
+    }
+
+    InputStream in;
+    try {
+       in = connection.getInputStream();
+    }
+    catch (Exception e) {
+       throw new SimpleSOAPException ("Problems reading from server '" + server + "': " + e);
+    }
+
+    xml reply;
+    try {
+       reply = new xml();
+       reply.parse (in);
+       in.close();
+    }
+    catch (Exception e) {
+      throw new SimpleSOAPException ("Problems parsing XML: " + e);
+    }
+
+    xml view = reply.newhandle();
+    view.to_firstelem();  // Go to Body.
+    view.to_firstelem();  // Go to first response.
+
+    // Preprocess results.
+    interpret(view, reply);
+    view.close();
+    reply.close();      
+  }
+</pre></td></tr></table>
+
+At this point, it'd be nice to have someplace to put information about the result.  So.  We'll save the <i>string</i> representation of the XML returned,
+yes, but we'll also have nicely Java-ized retrieval things as well.  Barbarian that I am, I simplify the situation by assuming that we have three
+kinds of possible return (based on extensive play with the Python test SOAP server): "simple" (which are strings and numbers), lists, and mappings.
+Lists will be stored as Java Vectors, and mappings as Java Maps, and a result_type will distinguish among these three possibilities.  And of course the
+caller can always retrieve the full reply XML as necessary, in case these simplifications are oversimplifications.  And of course in some cases they
+certainly will be: if we have nested lists, for instance.  In that case, the caller can parse the original XML returned and process it as necessary,
+and no harm done.  The idea is to provide a toolkit, not a single one-size-fits-all solution.
+<p></p>
+
+<i>September 8, 2003</i>: So for complex returns (such as lists of mappings, which happen in task lists) it turns out that SOAP automatically
+breaks the XML up into manageable pieces, flattening the return structure.  The pieces are then related with href and id parameters.  So simple_soap
+has to reconstruct the original structure recursively.  As it does so, it modifies the original return by copying the referred pieces into their
+referrers.
+
+<p></p>
+There is some danger here.  Most significantly, if the original XML has href attributes, there will be a collision (I assume).  It may turn out that
+SOAP renames these attributes or something, in which case we'll need to unrename them.  Similarly, most of our record-based returns already have id
+attributes.  The examples I've seen so far don't, so I don't know what SOAP will do with those that do.  But again, we may need to pre- or postprocess.
+<i>September 19, 2003</i>: I'm not sure this is the smartest way to handle it, but I've moved the "xml_assemble" routine into the XMLAPI.  It needs to
+be accessible from Java and C alike, so it made sense to implement it in C first.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   public String XMLResult;
+   public int return_type;
+   public String  simple_value;
+   public Vector  vector_value;
+   public HashMap map_value;
+
+   private void interpret (xml incoming, xml reply)
+   {
+
+      xml _result = incoming.newhandle();
+      _result.to_firstelem();
+
+      xml result = new xml();
+      result.assemble (_result, reply);
+
+      String rtype = result.attrval ("xsi:type");
+
+      if (rtype.startsWith ("xsd:")) { // Simple value.
+         return_type = 0;
+         simple_value = dequote(result.stringcontent());
+      } else if (rtype.endsWith ("Array")) { // Um, array value.  (May be an array of mappings.)
+         return_type = 1;
+         vector_value = new Vector();
+         result.to_firstelem();
+         while (result.nav_ok()) {
+            xml child = result.newhandle();
+            child.to_firstelem();
+            if (child.nav_ok()) {   // list of (String->String) mappings
+               return_type = 3; // *Any* mapping item makes this a list of mappings, which is probably dangerous should we end up with a mixture....
+               HashMap child_map = new HashMap();
+               while (child.nav_ok()) {
+                  child_map.put (child.name(), dequote (child.stringcontent()));
+                  child.to_nextelem();
+               }
+               vector_value.add (child_map);
+            } else {                // list of strings
+               vector_value.add (dequote(result.stringcontent()));
+            }
+            child.close();
+            result.to_nextelem();
+         }
+      } else { // Must be a String->String mapping.
+         return_type = 2;
+         map_value = new HashMap();
+         result.to_firstelem();
+         while (result.nav_ok()) {
+            map_value.put (result.name(), dequote (result.stringcontent()));
+            result.to_nextelem();
+         }
+      }
+
+      XMLResult = result.string();  // Save reconstructed result.
+
+      result.close();
+   }
+
+   public String dequote (String str) {
+      str = str.replaceAll ("&amp;lt;", "<");
+      str = str.replaceAll ("&amp;gt;", ">");
+      str = str.replaceAll ("&amp;quot;", "\"");
+      str = str.replaceAll ("&amp;amp;", "&amp;");
+
+      return (str);
+   }
+
+   public String getVectorValue (int index) {
+      if (return_type!=1) return null;
+      return ((String) vector_value.get(index));
+   }
+   public String getMapValue (String key) {
+      if (return_type==0) return simple_value;
+      if (return_type==1) return null;
+      return ((String) map_value.get(key));
+   }
+}
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

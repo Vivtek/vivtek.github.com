@@ -1,0 +1,452 @@
+<head>
+<title>wftk perl - SQL::Dialects::wftk</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk perl - SQL::Dialects::wftk</div>
+
+<p><a name="__index__"></a></p>
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<p>SQL::Dialects::wftk - Defines options for the specific keywords used by wftk's internal SQL::Statement parser.</p>
+<p>
+</p>
+<hr />
+<!-- INDEX BEGIN -->
+
+
+	<ul>
+
+		<li><a href="#get_config">get_config</a></li>
+	</ul>
+
+<hr>
+<p>Version 0.01</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   our $VERSION = '0.01';
+</pre><p>
+</p>
+<hr />
+<p>There's really very little to say about this module because you won't call it directly; instead, it's called by
+SQL::Statement to set up the parser used in wftk.</p>
+<p>It defines one function, <code>get_config</code>.</p>
+<p>
+</p>
+<h2><a name="get_config">get_config</a></h2>
+<p>No, really, I <em>love</em> Test::POD::Coverage.  Really I do!</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub get_config {
+   return &lt;&lt;EOC;
+   [VALID COMMANDS]
+   CREATE
+   DROP
+   SELECT
+   DELETE
+   INSERT
+   UPDATE
+
+   [VALID OPTIONS]
+   SELECT_MULTIPLE_TABLES
+   SELECT_AGGREGATE_FUNCTIONS
+
+   [VALID COMPARISON OPERATORS]
+=
+&lt;&gt;
+&lt;
+&lt;=
+&gt;
+&gt;=
+LIKE
+NOT LIKE
+IS
+IS NOT
+IN
+NOT IN
+BETWEEN
+NOT BETWEEN
+</pre><p>[VALID DATA TYPES]
+CHARACTER
+CHAR
+CHARACTER VARYING
+CHAR VARYING
+VARCHAR
+CHARACTER SET
+NATIONAL CHARACTER
+NATIONAL CHAR
+NCHAR
+NATIONAL CHARACTER VARYING
+NATIONAL CHAR VARYING
+NCHAR VARYING
+BIT
+BIT VARYING
+NUMERIC
+DECIMAL
+DEC
+INTEGER
+INT
+SMALLINT
+FLOAT
+REAL
+DOUBLE PRECISION
+DATE
+TIME
+TIMESTAMP
+INTERVAL</p>
+<p>[RESERVED WORDS]
+ABSOLUTE
+ACTION
+ADD
+ALL
+ALLOCATE
+ALTER
+AND
+ANY
+ARE
+AS
+ASC
+ASSERTION
+AT
+AUTHORIZATION
+AVG
+BEGIN
+BETWEEN
+BIT
+BIT_LENGTH
+BOTH
+BY
+CASCADE
+CASCADED
+CASE
+CAST
+CATALOG
+CHAR
+CHARACTER
+CHAR_LENGTH
+CHARACTER_LENGTH
+CHECK
+CLOSE
+COALESCE
+COLLATE
+COLLATION
+COLUMN
+COMMIT
+CONNECT
+CONNECTION
+CONSTRAINT
+CONSTRAINTS
+CONTINUE
+CONVERT
+CORRESPONDING
+COUNT
+CREATE
+CROSS
+CURRENT
+CURRENT_DATE
+CURRENT_TIME
+CURRENT_TIMESTAMP
+CURRENT_USER
+CURSOR
+DATE
+DAY
+DEALLOCATE
+DEC
+DECIMAL
+DECLARE
+DEFAULT
+DEFERRABLE
+DEFERRED
+DELETE
+DESC
+DESCRIBE
+DESCRIPTOR
+DIAGNOSTICS
+DISCONNECT
+DISTINCT
+DOMAIN
+DOUBLE
+DROP
+ELSE
+END
+END-EXEC
+ESCAPE
+EXCEPT
+EXCEPTION
+EXEC
+EXECUTE
+EXISTS
+EXTERNAL
+EXTRACT
+FALSE
+FETCH
+FIRST
+FLOAT
+FOR
+FOREIGN
+FOUND
+FROM
+FULL
+GET
+GLOBAL
+GO
+GOTO
+GRANT
+GROUP
+HAVING
+HOUR
+IDENTITY
+IMMEDIATE
+IN
+INDICATOR
+INITIALLY
+INNER
+INPUT
+INSENSITIVE
+INSERT
+INT
+INTEGER
+INTERSECT
+INTERVAL
+INTO
+IS
+ISOLATION
+JOIN
+LANGUAGE
+LAST
+LEADING
+LEFT
+LEVEL
+LIKE
+LOCAL
+LOWER
+MATCH
+MAX
+MIN
+MINUTE
+MODULE
+MONTH
+NAMES
+NATIONAL
+NATURAL
+NCHAR
+NEXT
+NO
+NOT
+NULL
+NULLIF
+NUMERIC
+OCTET_LENGTH
+OF
+ON
+ONLY
+OPEN
+OPTION
+OR
+ORDER
+OUTER
+OUTPUT
+OVERLAPS
+PAD
+PARTIAL
+POSITION
+PRECISION
+PREPARE
+PRESERVE
+PRIMARY
+PRIOR
+PRIVILEGES
+PROCEDURE
+PUBLIC
+READ
+REAL
+REFERENCES
+RELATIVE
+RESTRICT
+REVOKE
+RIGHT
+ROLLBACK
+ROWS
+SCHEMA
+SCROLL
+SECOND
+SECTION
+SELECT
+SESSION
+SESSION_USER
+SET
+SMALLINT
+SOME
+SPACE
+SQL
+SQLCODE
+SQLERROR
+SQLSTATE
+SUBSTRING
+SUM
+SYSTEM_USER
+TABLE
+TEMPORARY
+THEN
+TIME
+TIMESTAMP
+TIMEZONE_HOUR
+TIMEZONE_MINUTE
+TO
+TRAILING
+TRANSACTION
+TRANSLATE
+TRANSLATION
+TRIM
+TRUE
+UNION
+UNIQUE
+UNKNOWN
+UPDATE
+UPPER
+USAGE
+USER
+USING
+VALUE
+VALUES
+VARCHAR
+VARYING
+VIEW
+WHEN
+WHENEVER
+WHERE
+WITH
+WORK
+WRITE
+YEAR
+ZONE
+EOC
+}
+1;</p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

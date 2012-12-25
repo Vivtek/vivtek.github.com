@@ -1,0 +1,51 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk: notifications</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk: sending notifications</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="index.html">wftk programmer's guide home</a> ]
+<hr>
+
+<h3>Notifications</h3>
+Notifications, or alerts, are simply messages sent to users.  As with anything in the wftk, there is
+an adaptor system for alerts.  A user may specify a preferred notification modality, and that modality
+(which simply indexes a list of adaptors) will be used to send messages.  The default modality is of
+course email.  Other modalities could be database entries, pagers, or whatever suits your fancy.  This
+section of the functionality is far less mature than most of the wftk; that's why I'm being so vague.
+<p>
+<h3>Functions</h3>
+<pre>
+int wftk_notify (void * session, XML * context, XML * alert);
+</pre>
+
+<h3>Details</h3>
+
+<a name="wftk_notify"></a>
+<font size=+1>wftk_notify</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * context</code>,<br>
+<code>XML * alert</code>
+</blockquote>
+
+Sends a notification.  The notification is passed in the <i>alert</i> parameter and is rather
+complicated; the <i>context</i> parameter may be either a user XML structure (in which case the
+alert is directed to that user) or a datasheet (in which case the notification object should
+contain information about the intended recipient.)
+<br><br>
+I'll document this more completely later; to be honest, I don't expect it to be all that useful
+for external use anyway.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

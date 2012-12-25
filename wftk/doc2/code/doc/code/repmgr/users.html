@@ -1,0 +1,157 @@
+<html><head><title>Repository manager: User authentication and group membership</title></head>
+<body>
+<h2>User authentication and group membership</h2>
+<center>
+[&nbsp;<a href="retrieval.html">Previous: Data retrieval and display</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="context.html">Next: Context/user session handling</a>&nbsp;]
+</center>
+
+<hr>
+<i>(November 25, 2002)</i>: About time I got around to this.  User authentication is (natch) farmed out to adaptors.  However, how do
+we determine which adaptor?  Simple.  We have a "userbase" element in our repository definition.  If that element exists, then it
+specifies the adaptor to be used to find and work with users.  (The default is "list:_users,_groups".)  More interestingly, we can
+combine userbases if we work with several different directories.  If this is used, then we just nest userbase elements, e.g.
+<pre>
+&lt;userbase&gt;
+  &lt;userbase group="local" storage="list:"/>
+  &lt;userbase group="ldap" storage="ldap:someplace"/>
+&lt;/userbase&gt;
+<pre>
+If userbases are combined in this way, we scan the list; if a user authenticates against a userbase, we succeed, but otherwise we try the
+next userbase on the list.  I think this makes a lot of sense.  Feel free to correct me if I'm wrong.
+
+<p></p>
+TODO: note that the AUTH command to remote repositories passes a password in plaintext.  This is, by any rational account, really stupid.
+So we really need to implement some kind of digest authentication scheme or something.  Which is a hassle.  But it <i>has</i> to get done.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_user_auth (XML * repository, const char * userid, const char * password)
+{
+   WFTK_ADAPTOR * ad;
+   XML * userbase;
+   const char * storage = "list:";
+   XML * ret;
+   const char * line;
+   const char * end;
+   XML * field;
+   XML * mark;
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (sock) { /* Remote. */
+      xml_setf (sock->parms, "outgoing", "auth %s %s\n", userid, password);
+      _repos_send (sock);
+
+      line = _repos_receive (sock);
+      if (*line == '-') return NULL;
+      line = strchr (line, '\n') + 1;
+      userbase = xml_create ("t");
+      xml_set (userbase, "r", "");
+      while (line[0] != '>' || line[1] != '>') {
+         end = strchr (line, '\n');
+         if (end) {
+            xml_attrncat (userbase, "r", line, end - line + 1);
+         } else {
+            xml_attrcat (userbase, "r", line);
+            break;
+         }
+         line = end + 1;
+      }
+      ret = xml_parse (xml_attrval (userbase, "r"));
+      xml_free (userbase);
+      xml_set (sock->parms, "buffer", "");
+      return ret;
+   }
+
+   userbase = xml_loc (repository, ".userbase");
+   if (!userbase) {
+      storage = xml_attrval (userbase, "storage");
+   }
+
+   /* TODO: handling of multiple userbases. */
+   ad = wftk_get_adaptor (repository, USER, storage);
+   if (!ad) return NULL;
+
+   ret = wftk_call_adaptor (ad, "auth", userid, password);
+   wftk_free_adaptor (repository, ad);
+
+   xml_set (ret, "id", userid);
+   wftk_session_storeuser (repository, ret);
+   return ret;
+}
+</pre></td></tr></table>
+
+The other API for users is the ingroup function, which is basically identical to the authentication function.  Its purpose is to
+determine list membership for a given userid -- if successful, it returns a (possibly partially expanded) group object for the group ID
+given.  Like the user object above, this object must be freed.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_user_ingroup (XML * repository, const char * userid, const char * groupid)
+{
+   WFTK_ADAPTOR * ad;
+   XML * userbase;
+   const char * storage = "list:";
+   XML * ret;
+   const char * line;
+   const char * end;
+   XML * field;
+   XML * mark;
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (sock) { /* Remote. */
+      xml_setf (sock->parms, "outgoing", "ingroup %s %s\n", userid, groupid);
+      _repos_send (sock);
+
+      line = _repos_receive (sock);
+      if (*line == '-') return NULL;
+      line = strchr (line, '\n') + 1;
+      userbase = xml_create ("t");
+      xml_set (userbase, "r", "");
+      while (line[0] != '>' || line[1] != '>') {
+         end = strchr (line, '\n');
+         if (end) {
+            xml_attrncat (userbase, "r", line, end - line + 1);
+         } else {
+            xml_attrcat (userbase, "r", line);
+            break;
+         }
+         line = end + 1;
+      }
+      ret = xml_parse (xml_attrval (userbase, "r"));
+      xml_free (userbase);
+      xml_set (sock->parms, "buffer", "");
+      return ret;
+   }
+
+   userbase = xml_loc (repository, ".userbase");
+   if (!userbase) {
+      storage = xml_attrval (userbase, "storage");
+   }
+
+   /* TODO: handling of multiple userbases. */
+   ad = wftk_get_adaptor (repository, USER, storage);
+   if (!ad) return NULL;
+
+   ret = wftk_call_adaptor (ad, "ingroup", userid, groupid);
+   wftk_free_adaptor (repository, ad);
+
+   return ret;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="retrieval.html">Previous: Data retrieval and display</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="context.html">Next: Context/user session handling</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

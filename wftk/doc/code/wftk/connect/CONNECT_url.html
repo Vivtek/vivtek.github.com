@@ -1,0 +1,271 @@
+<html><head><title>CONNECT adaptor: url</title></head>
+<body>
+<h2>CONNECT adaptor: url</h2>
+<hr>
+<p></p>
+This is the URL connection adaptor.  A connection adaptor makes
+and manages a connection to a remote server, and passes queries along the connection.  The
+queries may or may not return replies; <i>delayed</i> queries may set up the expectation of a
+later reply to a specific listener.  Handling a delayed query is not done by the connection
+adaptor, except that the outgoing query itself is done using a connection.  Incoming answers are
+events which are handled by a <a href="../listen/index.html">LISTEN adaptor</a>.
+<p></p>
+The canonical use of a CONNECT adaptor is to provide a way for wftk (or other adaptor-using apps, such
+as the <a href="../../popup/index.html">popup UI framework</a> to post information to a remote
+server via HTTP.  The results may be useful; if so, however, the query adaptor will be the place
+where interpretation is done, and the connection adaptor simply tosses the reply back to the caller.
+Ideally the HTTP connection adaptor will preparse HTML into an appropriate XML structure, but that may
+have to wait a while.
+<p></p>
+The nice thing about this adaptor is that it's a wrapper around the
+<a href="http://curl.haxx.se/libcurl/">libcurl library</a>, so it 
+automatically supports (cut and paste from the libcurl site) "FTP, FTPS,
+HTTP, HTTPS, GOPHER, TELNET, DICT, FILE, LDAP, HTTPS
+certificates, HTTP POST, HTTP PUT, FTP uploading, kerberos, HTTP form based upload, proxies,
+cookies, user+password authentication, file transfer resume, http proxy tunneling and more!"
+In other words, I thought for about 15 minutes about writing a simple connection adaptor and
+realized this would be stupid.  For once, I didn't reinvent the wheel.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include &lt;string.h>
+#include &lt;curl.h>
+#include &lt;easy.h>
+#include &lt;types.h>
+#include "../wftk_session.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "send"
+};
+
+XML * CONNECT_url_init (WFTK_ADAPTOR * ad, va_list args);
+XML * CONNECT_url_free (WFTK_ADAPTOR * ad, va_list args);
+XML * CONNECT_url_info (WFTK_ADAPTOR * ad, va_list args);
+XML * CONNECT_url_send (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   CONNECT_url_init,
+   CONNECT_url_free,
+   CONNECT_url_info,
+   CONNECT_url_send
+};
+
+static struct wftk_adaptor_info _CONNECT_url_info =
+{
+   4,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct wftk_adaptor_info * CONNECT_url_get_info ()
+{
+   return &amp; _CONNECT_url_info;
+}
+</pre></td></tr></table>
+
+Thus concludes the communication with the config module.  Now on with the actual implementation
+of functionality.  First, the initialization of an adaptor instance.  This is pretty straightforward;
+it creates a cURL instance which persists as a handle.  If two subsequent calls are to the same
+server, cURL will automatically attempt to use persistent connections, which is pretty neat if you
+think about it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * CONNECT_url_init (WFTK_ADAPTOR * ad, va_list args) {
+   CURL * curl;
+   const char * parms;
+
+   curl_global_init (CURL_GLOBAL_ALL);
+
+   curl = curl_easy_init();
+   if (curl) {
+      ad->bindata = (void *) curl;
+   } else {
+      xml_set (ad->parms, "error", "Unable to initialize libcurl.");
+   }
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+And the corresponding call to free up the cURL instance:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * CONNECT_url_free (WFTK_ADAPTOR * ad, va_list args)
+{
+   CURL * curl = (CURL *) (ad->bindata);
+
+   if (curl) curl_easy_cleanup (curl);
+
+   curl_global_cleanup ();
+}
+</pre></td></tr></table>
+
+<p></p>
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * CONNECT_url_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "connect");
+   xml_set (info, "name", "url");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "libcurl", curl_version());
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+<p></p>
+
+So.  Down to business: we use a connection to send a query and receive its immediate result.  This initial stab (Sep. 2, 2001) is just
+going to worry about sending HTTP POST and GET requests; obviously, later we're going to get fancy with stuff like LDAP and FTP and
+God only knows what!
+<p></p>
+
+To build a query, we need to know several things: the URL to send the request to, whether to use a GET or a POST, and the individual
+data fields we'll use.  If we're working with a GET, then we have to check whether the URL already contains the '?'; if so, then some
+of the fields are already contained in the URL and we'll just tack our new ones on the end.  If not, we'll build the URL complete.
+If we're sending a POST, then libcurl will already do the right thing for us when we build our data package.
+<p></p>
+
+There will also be some additional optional information that the query can contain: user/password authentication, extra headers, and
+so forth; I'll document them as I add them, but right now I'm just going to postpone the whole thing.
+<p></p>
+
+A callback function is used to write the returning chunks of page; this callback just tacks the chunks onto a "return" attribute
+in the stash XML.  After the conversation is completed, then you could technically do something sophisticated with it, but I'm not
+going to.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int CONNECT_url_writefunction (void * data, size_t size, size_t num, void * xml) {
+   XML * stash = (XML *) xml;
+
+   xml_attrncat (stash, "return", data, size * num);
+   return size * num;
+}
+
+XML * CONNECT_url_send  (WFTK_ADAPTOR * ad, va_list args)
+{
+   CURL * curl = (CURL *) (ad->bindata);
+
+   XML * query = (XML *) 0;
+   XML * data  = (XML *) 0;
+   XML * stash;
+   XML * field;
+   char * mark;
+   char * mark2;
+   char * qmark;
+   int post = 0;
+   char * built;
+   XML * ret;
+
+   if (args) query = va_arg (args, XML *);
+   if (!query) {
+      xml_set (ad->parms, "error", "No query specified.");
+      return (XML *) 0;
+   }
+   if (args) data = va_arg (args, XML *);
+   if (!data) data = query; /* NULL data means to look at the query structure itself. */
+
+   stash = xml_create ("s");
+   xml_set (stash, "url", xml_attrval (query, "url"));
+
+   if (!strcmp (xml_attrval (query, "method"), "POST")) post = 1;
+
+   if (post) {
+      curl_easy_setopt (curl, CURLOPT_POST, 1L);
+      built = "body";
+      xml_set (stash, built, "");
+      qmark = NULL;
+   } else {
+      curl_easy_setopt (curl, CURLOPT_HTTPGET, 1L);
+      built = "url";
+      qmark = strchr (xml_attrval (stash, built), '?');
+   }
+
+   field = xml_firstelem (data);
+   while (field) {
+      if (xml_is (field, "field")) {
+         if (qmark) xml_attrcat (stash, built, "&amp;");
+         else {
+            if (!post) xml_attrcat (stash, built, "?");
+            qmark = "";
+         }
+
+         mark = curl_escape ((char *)xml_attrval (field, "name"), 0);
+         xml_attrcat (stash, built, mark);
+         free (mark);
+         xml_attrcat (stash, built, "=");
+         if (*xml_attrval (field, "value")) {
+            mark = curl_escape ((char *) xml_attrval (field, "value"), 0);
+            xml_attrcat (stash, built, mark);
+            free (mark);
+         } else {
+            mark = xml_stringcontent (field);
+            mark2 = curl_escape (mark, 0);
+            xml_attrcat (stash, built, mark2);
+            free (mark); free (mark2);
+         }
+      }
+
+      field = xml_nextelem (field);
+   }
+
+   curl_easy_setopt (curl, CURLOPT_URL, xml_attrval (stash, "url"));
+   if (post) curl_easy_setopt (curl, CURLOPT_POSTFIELDS, xml_attrval (stash, "body"));
+
+   xml_set (stash, "return", "");
+
+   curl_easy_setopt (curl, CURLOPT_WRITEFUNCTION, CONNECT_url_writefunction);
+   curl_easy_setopt (curl, CURLOPT_FILE, stash);
+
+   curl_easy_perform (curl);
+
+   ret = xml_createtext (xml_attrval (stash, "return")); /* Later we'll get fancy. */
+   xml_free (stash);
+
+   return ret;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,127 @@
+<h2>Current status</h2><br>Run: <i>Mon Aug 27 20:45:00 EST 2007
+</i><hr>
+Results of <code>uptime</code>:<pre>
+  8:45pm  up 49 days,  4:36,  1 user,  load average: 0.00, 0.00, 0.01
+
+[Mon Aug 27 19:55:01 2007]   7:55pm  up 49 days,  3:46,  1 user,  load average: 0.07, 0.05, 0.03
+[Mon Aug 27 20:00:01 2007]   8:00pm  up 49 days,  3:51,  1 user,  load average: 0.00, 0.04, 0.02
+[Mon Aug 27 20:05:04 2007]   8:05pm  up 49 days,  3:56,  1 user,  load average: 0.06, 0.19, 0.10
+[Mon Aug 27 20:10:01 2007]   8:10pm  up 49 days,  4:01,  1 user,  load average: 0.00, 0.06, 0.06
+[Mon Aug 27 20:15:01 2007]   8:15pm  up 49 days,  4:06,  1 user,  load average: 0.00, 0.03, 0.05
+[Mon Aug 27 20:20:00 2007]   8:20pm  up 49 days,  4:11,  1 user,  load average: 0.00, 0.04, 0.05
+[Mon Aug 27 20:25:01 2007]   8:25pm  up 49 days,  4:16,  1 user,  load average: 0.00, 0.01, 0.03
+[Mon Aug 27 20:30:01 2007]   8:30pm  up 49 days,  4:21,  1 user,  load average: 0.04, 0.07, 0.05
+[Mon Aug 27 20:35:00 2007]   8:35pm  up 49 days,  4:26,  1 user,  load average: 0.05, 0.08, 0.06
+[Mon Aug 27 20:40:01 2007]   8:40pm  up 49 days,  4:31,  1 user,  load average: 0.00, 0.02, 0.03
+</pre>
+<br>Vivtek simple-page response time:<pre>
+[Mon Aug 27 19:55:01 2007] 1
+[Mon Aug 27 20:00:01 2007] 1
+[Mon Aug 27 20:05:04 2007] 4
+[Mon Aug 27 20:10:01 2007] 0
+[Mon Aug 27 20:15:01 2007] 1
+[Mon Aug 27 20:20:00 2007] 0
+[Mon Aug 27 20:25:01 2007] 0
+[Mon Aug 27 20:30:01 2007] 0
+[Mon Aug 27 20:35:00 2007] 0
+[Mon Aug 27 20:40:01 2007] 0
+</pre>
+<br>Results of <code>df</code>:<pre>
+Filesystem           1k-blocks      Used Available Use% Mounted on
+/dev/sda6               381139    110632    250829  31% /
+/dev/sda1                46636      7890     36338  18% /boot
+/dev/sda3              4221968   1076376   2931128  27% /home
+none                    256464         0    256464   0% /dev/shm
+/dev/sda2             11543048  10007692    948984  92% /usr
+/dev/sda7               256667    153414     90001  64% /var
+</pre>
+<br>Results of <code>show full processlist</code>:<pre>
+Id	User	Host	db	Command	Time	State	Info
+85687	techspex	localhost	techspex	Query	0	NULL	show full processlist
+</pre>
+<br>Results of <code>ps -auxww</code>:<pre>USER       PID %CPU %MEM   VSZ  RSS TTY      STAT START   TIME COMMAND
+root         1  0.0  0.0  1412   72 ?        S    Jul09   0:20 init
+root         2  0.0  0.0     0    0 ?        SW   Jul09   0:00 [keventd]
+root         3  0.0  0.0     0    0 ?        SWN  Jul09   0:13 [ksoftirqd_CPU0]
+root         4  0.0  0.0     0    0 ?        SWN  Jul09   0:11 [ksoftirqd_CPU1]
+root         5  0.0  0.0     0    0 ?        SW   Jul09  48:01 [kswapd]
+root         6  0.0  0.0     0    0 ?        SW   Jul09   0:00 [kreclaimd]
+root         7  0.0  0.0     0    0 ?        SW   Jul09   0:01 [bdflush]
+root         8  0.0  0.0     0    0 ?        SW   Jul09   1:01 [kupdated]
+root         9  0.0  0.0     0    0 ?        SW<  Jul09   0:00 [mdrecoveryd]
+root        15  0.0  0.0     0    0 ?        SW   Jul09   0:00 [AIFd]
+root        19  0.0  0.0     0    0 ?        SW   Jul09   2:23 [kjournald]
+root       139  0.0  0.0     0    0 ?        SW   Jul09   0:00 [kjournald]
+root       140  0.0  0.0     0    0 ?        SW   Jul09   1:08 [kjournald]
+root       141  0.0  0.0     0    0 ?        SW   Jul09  29:57 [kjournald]
+root       142  0.0  0.0     0    0 ?        SW   Jul09  22:36 [kjournald]
+root       637  0.0  0.0  1472  332 ?        S    Jul09  14:10 syslogd -m 0
+root       642  0.0  0.0  1948  164 ?        S    Jul09   0:00 klogd -2
+rpc        662  0.0  0.0  1568  372 ?        S    Jul09   0:00 portmap
+rpcuser    690  0.0  0.0  1700  488 ?        S    Jul09   0:00 rpc.statd
+root       842  0.0  0.0  2668  300 ?        S    Jul09   6:05 /usr/sbin/sshd
+root       875  0.0  0.0  2264  340 ?        S    Jul09   0:14 xinetd -stayalive -reuse -pidfile /var/run/xinetd.pid
+root       946  0.0  0.0  1608  116 ?        S    Jul09   0:13 crond
+xfs        996  0.0  0.0  4256   48 ?        S    Jul09   0:00 xfs -droppriv -daemon
+daemon    1032  0.0  0.0  1444  200 ?        S    Jul09   0:00 /usr/sbin/atd
+root      1039  0.0  0.0  2240    4 ?        S    Jul09   0:00 /bin/sh /usr/bin/safe_mysqld
+mysql     1063  0.0  2.1 29948 11136 ?       S    Jul09   0:18 /usr/libexec/mysqld --basedir=/usr --datadir=/var/lib/mysql --user=mysql --pid-file=/var/run/mysqld/mysqld.pid --skip-locking
+mysql     1065  0.0  2.1 29948 11136 ?       S    Jul09   0:18 /usr/libexec/mysqld --basedir=/usr --datadir=/var/lib/mysql --user=mysql --pid-file=/var/run/mysqld/mysqld.pid --skip-locking
+mysql     1066  0.0  2.1 29948 11136 ?       S    Jul09   2:46 /usr/libexec/mysqld --basedir=/usr --datadir=/var/lib/mysql --user=mysql --pid-file=/var/run/mysqld/mysqld.pid --skip-locking
+mysql     1067  0.0  2.1 29948 11136 ?       S    Jul09   0:00 /usr/libexec/mysqld --basedir=/usr --datadir=/var/lib/mysql --user=mysql --pid-file=/var/run/mysqld/mysqld.pid --skip-locking
+root      1076  0.0  0.0  1384    4 tty1     S    Jul09   0:00 /sbin/mingetty tty1
+root      1077  0.0  0.0  1384    4 tty2     S    Jul09   0:00 /sbin/mingetty tty2
+root      1078  0.0  0.0  1384    4 tty3     S    Jul09   0:00 /sbin/mingetty tty3
+root      1079  0.0  0.0  1384    4 tty4     S    Jul09   0:00 /sbin/mingetty tty4
+root      1080  0.0  0.0  1384    4 tty5     S    Jul09   0:00 /sbin/mingetty tty5
+root      1081  0.0  0.0  1384    4 tty6     S    Jul09   0:00 /sbin/mingetty tty6
+root      1082  0.0  0.0  2164    4 ?        S    Jul09   0:00 /bin/sh /command/svscanboot
+root      1087  0.0  0.0  1420   88 ?        S    Jul09   0:02 svscan /service
+root      1088  0.0  0.0  1372   16 ?        S    Jul09   0:39 readproctitle service errors: ... exist?supervise: fatal: unable to start named/run: file does not exist?supervise: fatal: unable to start named/run: file does not exist?supervise: fatal: unable to start named/run: file does not exist?supervise: fatal: unable to start named/run: file does not exist?supervise: fatal: unable to start named/run: file does not exist?supervise: fatal: unable to start named/run: file does not exist?
+root      1089  0.0  0.0  1380   60 ?        S    Jul09   0:24 supervise named
+root      1093  0.0  0.0  1380   60 ?        S    Jul09   0:00 supervise nsd-vivtek
+root      1094  0.0  0.0  1380   60 ?        S    Jul09   0:00 supervise nsd-data
+root     14585  0.0  0.2  5328 1148 ?        S    Jul30   5:59 sendmail: accepting connections
+michael  31771  0.0  1.8 11928 9360 ?        S    Aug22   0:00 bin/nsd8x -ikt vivtek.tcl -u michael
+michael  31774  0.0  1.8 11928 9360 ?        S    Aug22   0:00 bin/nsd8x -ikt vivtek.tcl -u michael
+michael  31775  0.0  1.8 11928 9360 ?        S    Aug22   0:00 bin/nsd8x -ikt vivtek.tcl -u michael
+michael  31777  0.0  1.8 11928 9360 ?        S    Aug22   0:00 bin/nsd8x -ikt vivtek.tcl -u michael
+michael  31779  0.0  1.8 11928 9360 ?        S    Aug22   0:00 bin/nsd8x -ikt vivtek.tcl -u michael
+root     31780  0.0  0.1  2140  996 ?        S    Aug22   0:00 /bin/sh ./run
+michael  31781  0.0  6.9 39112 35860 ?       S    Aug22   0:01 bin/nsd8x -ikt data.tcl -u michael
+michael  31784  0.0  6.9 39112 35860 ?       S    Aug22   0:00 bin/nsd8x -ikt data.tcl -u michael
+michael  31785  0.0  6.9 39112 35860 ?       S    Aug22   0:00 bin/nsd8x -ikt data.tcl -u michael
+michael  31786  0.0  6.9 39112 35860 ?       S    Aug22   0:00 bin/nsd8x -ikt data.tcl -u michael
+michael  31788  0.0  1.8 11928 9360 ?        S    Aug22   0:00 bin/nsd8x -ikt vivtek.tcl -u michael
+michael  31789  0.0  1.8 11928 9360 ?        S    Aug22   0:05 bin/nsd8x -ikt vivtek.tcl -u michael
+michael  31797  0.0  6.9 39112 35860 ?       S    Aug22   0:00 bin/nsd8x -ikt data.tcl -u michael
+michael  31907  0.0  1.8 11928 9360 ?        S    Aug22   0:00 bin/nsd8x -ikt vivtek.tcl -u michael
+michael  26777  0.0  6.9 39112 35860 ?       S    Aug23   0:00 bin/nsd8x -ikt data.tcl -u michael
+michael   9343  0.0  1.8 11928 9360 ?        S    Aug23   0:00 bin/nsd8x -ikt vivtek.tcl -u michael
+michael  10061  0.0  0.7  5568 3648 ?        S    Aug23   0:00 perl /home/michael/vivtek/pages/projects/forum_despammer/google_count.pl 76.30.143.29 
+root      2797  0.0  0.3  3608 1796 ?        S    14:58   0:00 /usr/sbin/sshd
+michael   2809  0.0  0.2  2500 1340 pts/0    S    14:58   0:00 -bash
+root     30768  0.0  0.4  5744 2160 ?        S    20:23   0:00 sendmail: ./l7R69qi24413 mail.dvdkelkoo.com.: user open
+root     32176  0.0  0.3  5652 1960 ?        S    20:40   0:00 sendmail: server [66.221.34.127] cmd read
+root     32342  0.0  0.3  5652 1960 ?        S    20:43   0:00 sendmail: server [66.221.34.127] cmd read
+root     32414  0.0  0.3  5652 1960 ?        S    20:44   0:00 sendmail: server [66.221.34.127] cmd read
+michael  32427  0.2  1.8 11928 9360 ?        S    20:44   0:00 bin/nsd8x -ikt vivtek.tcl -u michael
+root     32436  0.0  0.3  5652 1960 ?        S    20:44   0:00 sendmail: server [66.221.34.127] cmd read
+root     32468  0.0  0.3  5652 1960 ?        S    20:44   0:00 sendmail: server [124.240.120.72] cmd read
+root     32475  0.0  0.3  5652 1960 ?        S    20:44   0:00 sendmail: server [66.221.34.127] child wait
+root     32476  0.0  0.3  5652 1992 ?        S    20:44   0:00 sendmail: l7S1iwi32476 [66.221.34.127]: MAIL From
+root     32479  0.0  0.1  1608  556 ?        S    20:45   0:00 CROND
+root     32480  0.0  0.1  1608  556 ?        S    20:45   0:00 CROND
+root     32481  0.0  0.1  1608  556 ?        S    20:45   0:00 CROND
+root     32482  0.0  0.3  3124 1876 ?        R    20:45   0:00 /usr/bin/perl /usr/bin/mrtg /etc/mrtg/mrtg.cfg
+root     32483  0.0  0.1  1608  556 ?        S    20:45   0:00 CROND
+michael  32484  0.0  0.2  2640 1284 ?        S    20:45   0:00 perl /home/michael/vivtek/pages/wftk/discussion/despammer.pl -s
+michael  32485  0.0  0.3  3200 1904 ?        R    20:45   0:00 perl /home/michael/vivtek/pages/toonbots/discussion/despammer.pl -s
+michael  32486  0.0  0.2  2548 1120 ?        S    20:45   0:00 perl /home/michael/check_space.pl
+michael  32491  0.0  0.1  1504  516 ?        R    20:45   0:00 grep
+root     32493  0.0  0.1  1608  556 ?        S    20:45   0:00 CROND
+michael  32498  0.0  0.1  1956  856 ?        S    20:45   0:00 /bin/sh -c perl /home/michael/monitor/scan.pl > /dev/null
+michael  32499  0.0  0.3  3912 1956 ?        R    20:45   0:00 perl /home/michael/monitor/scan.pl
+root     32501  0.0  0.0     0    0 ?        Z    20:45   0:00 [supervise <defunct>]
+michael  32503  0.0  0.1  2768  816 ?        R    20:45   0:00 ps -auxww
+</pre>

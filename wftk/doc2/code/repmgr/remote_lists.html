@@ -1,0 +1,76 @@
+<html><head><title>Repository manager: Creating and administering lists</title></head>
+<body>
+<h2>Creating and administering lists</h2>
+<center>
+[&nbsp;<a href="remote_publishing.html">Previous: Publishing objects: internals</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_iteration.html">Next: Iterating across list contents</a>&nbsp;]
+</center>
+
+<hr>
+Here, we start to get into some functions which have actually been written.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   FN_NAME(repos_create)  (XML * repository, const char * list)
+{
+   return 0;
+}
+WFTK_EXPORT int   FN_NAME(repos_drop)    (XML * repository, const char * list)
+{
+   return 0;
+}
+</pre></td></tr></table>
+
+Well, not those two, obviously.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * FN_NAME(repos_defn)    (XML * repository, const char * list_id)
+{
+   return NULL;
+}
+</pre></td></tr></table>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * FN_NAME(repos_list_choices) (XML * repository, const char *list_id, XML * obj, const char *field)
+{
+   XML * choices = NULL;
+
+   return choices;
+}
+</pre></td></tr></table>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * FN_NAME(repos_form)    (XML * repository, const char * list_id, const char * key, const char * mode)
+{
+   return NULL;
+}
+</pre></td></tr></table>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   FN_NAME(repos_define)  (XML * repository, const char * list, XML * defn)
+{
+   return 0;
+}
+</pre></td></tr></table>
+
+Well, wait, maybe I jumped the gun... Next page: some stuff which has been written.
+
+
+
+<center>
+[&nbsp;<a href="remote_publishing.html">Previous: Publishing objects: internals</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_iteration.html">Next: Iterating across list contents</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

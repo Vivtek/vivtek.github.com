@@ -1,0 +1,229 @@
+<html><head><title>Task manager: Database schema of the task list</title></head>
+<body>
+<h2>Database schema of the task list</h2>
+<center>
+[&nbsp;<a href="main.html">Previous: File organization of taskmgr.tcl</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="taskmgr_create.html">Next: Definition of taskmgr_create</a>&nbsp;]
+</center>
+
+<hr>
+The task list is wftk's <i>active process repository</i>.  It consists of two tables; one
+defines projects, the other tasks.  My epiphany about the relationship of wftk to a general
+task management tool came when I realized that tasks can exist without projects perfectly
+well.
+<p>
+This schema works on PostgreSQL.  Nothing fancy, and I'm omitting DBA details like indexing
+and the like; I just want to define the fields we'll need.  Let's call our tables "process"
+and "task", yeah, those are fairly descriptive.  Translation of this schema to other SQL
+dialects should be relatively straightforward, as most of the fields are just character data
+anyway (one of the things I like about PostgreSQL is that I don't have to feel guilty
+about text fields, or pretend that I can project meaningful size boundaries onto them.)
+<p>
+So here are the tables we'll be defining,  just the process table and the task table.  In the
+prototype there was also a user table and a kind of overcomplex keyword and permission system,
+but that has been replaced by the wftk user module in this implementation.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>create table process (
+<i>See <a href="schema.html#process">Process table</a></i>
+);
+
+create table task (
+<i>See <a href="schema.html#task">Task table</a></i>
+);
+
+</pre></td></tr></table>
+
+The schema I'm presenting here is meant to implement the necessary fields for wftk and those
+for this to-do manager.  The nice thing about SQL, of course, is that properly written SQL
+interface code can deal with views onto the data (so that you can tack other stuff onto whatever
+table you like and things won't break.)  Don't feel overly constrained by these definitions.
+(This is turning into my mantra: don't feel constrained by any of my coding decisions!)
+<br><br>
+<a name="process">
+<i>Process table</i><br>
+The process table will actually not be used very heavily for to-do management.  The only place
+we care about this table will be in the overview, when we'll use it to group tasks by process
+(or "project").  Nevertheless, this presentation is also an implementation of the wftk
+active process repository, so let's take a look at what we'll need in there.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>id text,
+owner text,
+groupown text,
+title text,
+description text,
+started timestamp,
+parent_process text,
+parent_task text,
+definition text,
+datasheet text,
+status text
+
+</pre></td></tr></table>
+
+OK, let's run down the list and I'll tell you what each of those is for.
+<ul>
+<b><li> owner</b>: the user who owns the process.<br>
+There are two basic ways that processes get created; either the wftk engine creates them when
+a definition is activated, or a user creates a process manually using the task manager.  In
+the latter case, the user's id is used as "owner"; in the former, we'll see what makes sense.
+In some cases, it makes sense for the initiating user to be the owner, but if a process is
+initiated anonymously (say, in response to an HTTP form submission) then the owner of the
+process definition will probably be used.  We'll see what makes sense later.
+
+<b><li> groupown</b>: the group which has access to the process.<br>
+This can be blank, in which case everybody will be able to see the process.  Otherwise,
+only users with some permission level to the named group will be able to see the process
+in lists.
+
+<br>
+<b><li> title, description</b>: short and long description of the project for reporting.<br>
+For a manual process, these are obvious.  For a wftk-initiated process, they may be superfluous.
+Again, only banging on a prototype will answer that question.  Certainly we'll need a title
+in place in order for the to-do manager and other UI components to have something to display.
+I certainly don't want to have to retrieve the definitions of all active processes in order
+to create an activity report, for instance.
+
+<br>
+<b><li> started</b>: date the process was created.<br>
+Enough said.  Obviously applies to both categories of process.
+
+<br>
+<b><li> parent_process, parent_task</b>: parent information.<br>
+If this is a subprocess, then it might require different handling.  Certainly when it completes,
+then its parent task must also be completed.  The task ID would logically be unique, but I
+have a nasty habit of programming defensively.
+
+<br>
+<b><li> definition</b>: location (URL, presumably) of the process definition.<br>
+This is only meaningful in the context of wftk, of course.  The process definition is used by
+the wftk core engine to determine what comes next when a task is completed or rejected.
+
+<br>
+<b><li> datasheet</b>: location of the datasheet for the process.<br>
+The datasheet module is of course a wftk module -- but could be used quite nicely independently
+of wftk.  It's a place to stash data associated with a process.  (Note that the task also has
+a datasheet location.  By default these locations will be identical.)
+
+<br>
+<b><li> status</b>: state of the process.<br>
+I guess pending, active, completed, aborted would be logical states.  Anybody have any
+suggestions?
+</ul>
+
+<br><br>
+<a name="task">
+<i>Task table</i><br>
+The task table is similarly overloaded.  I think I'm getting somewhat carried away about
+everything I want to attach to tasks, but this will do for a first run.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>id text,
+process text,
+status text,
+owner text,
+description text,
+role text,
+queue text,
+created timestamp,
+sched_date date,
+sched_time time,
+priority smallint,
+complete timestamp,
+datasheet text,
+subprocess text
+
+</pre></td></tr></table>
+
+These are as follows.
+<ul>
+<b><li> process</b>: the ID of the process this task belongs to (if any).<br>
+If the user has manually created a task with the to-do manager, then there needn't be any
+process associated at all.  For manual tasks, the process is effectively nothing more than an
+organizational mechanism (i.e. it's there for the description fields and to group on.)
+
+<br>
+<b><li> status</b>: the status of the task.<br>
+Pending, active, complete, rejected, and request.  A
+ "pending" task is one which has been added by the
+wftk engine, but is either not yet assigned to a user or has simply not yet been activated.  If
+I have a pending task already assigned to me, then I can see it in my to-do list, and can set
+scheduling information for it.  I just can't actually complete it until it's active.  If the 
+status is "request", this is a manually created task which another user has created for me.
+I can either reject it or accept it; if accepted, the task becomes active.
+
+<br>
+<b><li> owner</b>: the user assigned to the task.<br>
+In the case of a manually created task, this is the person who created the task.  If I create
+a task for another user, that is really not a task, but a request -- the cleanest way to 
+implement this would be to provide a new status "request".  Then the request would have to have
+attached data to describe it, and that would require a datasheet module, but that's life in the
+big city.  In the case of a task which has not yet been assigned, "owner" will be blank and
+"role" and/or "queue" will be filled in instead.
+
+<br>
+<b><li> description</b>: a short description of the task.<br>
+In the case of a manual entry, the user simply types in some description of the task.  For
+wftk usage, the engine will create a description based on particulars of the task.
+
+<br>
+<b><li> role</b>: the process role associated with the task.<br>
+This has meaning only in the wftk process; it's the role in the process definition which the
+user will be fulfilling during this task.  The chief reason to have it here is to facilitate
+reassignment should the task be rejected.
+
+<br>
+<b><li> queue</b>: the queue on which the task resides.<br>
+For queueing of tasks and requests.  This is still rather inchoate but I just have the
+intuition that I'm going to need it.  It's not used by wftk.
+
+<br>
+<b><li> created</b>: the date the task was created.<br>
+Useful for implementing queues.  Not needed by wftk.
+
+<br>
+<b><li> sched_date, sched_time</b>: date and time of scheduled start.<br>
+This is completely ignored by wftk.  It's used for reporting and for organization of the
+individual's to-do lists.  Also makes it nice for representing appointments as tasks.
+
+<br>
+<b><li> priority</b><br>
+This is where I'm not sure if I'm getting out of control with feeping creaturism.  I think that
+this will be necessary, at least for implementation of priority queues, and also for individual
+to-do list organization, but I'm not sure where the line should be drawn.
+
+<br>
+<b><li> completed</b>: date of completion.
+
+<br>
+<b><li> datasheet</b>: link into datasheet.<br>
+This is the location where values associated with the task (or request) are stored.  This will
+all make sense later, I promise.  Since this module isn't implemented yet, though, there's not
+a lot of point in pontificating.
+
+<br>
+<b><li> subprocess</b>: subprocess ID.<br>
+If this task is being implemented by a subprocess, then the ID of that subprocess is here.
+
+</ul>
+
+
+
+
+<center>
+[&nbsp;<a href="main.html">Previous: File organization of taskmgr.tcl</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="taskmgr_create.html">Next: Definition of taskmgr_create</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,249 @@
+<html><head><title>Task manager: Datasheet interface</title></head>
+<body>
+<h2>Datasheet interface</h2>
+<center>
+[&nbsp;<a href="pageout.html">Previous: How I'm writing pages out</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="wftk_interpret.html">Next: Interpreting the results that wftk sends back</a>&nbsp;]
+</center>
+
+<hr>
+For working with datasheets, I'm defining two procedures: <code>datasheet_getvalue</code>
+goes to the datasheet associated with a process and retrieves a data value, and 
+<code>datasheet_setvalue</code> sets the named value.  (And of course does other XML
+maintenance, like create the file if necessary.)
+<p>
+These functions will be used in the task/process show and update functions.
+<p>
+There are two global settings we'll need:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>
+<i>See <a href="datasheet_stuff.html#datasheet_getvalue">Definition of datasheet_getvalue</a></i>
+<i>See <a href="datasheet_stuff.html#datasheet_setvalue">Definition of datasheet_setvalue</a></i>
+</pre></td></tr></table>
+
+These functions, by the way, are based on my
+<a href="http://www.vivtek.com/xmltools/">command-line XML utilities</a> to simplify the
+Tcl end.  The xmltools are written on James Clark's
+<a href="http://www.vivtek.com/expat.html">expat</a>, a nice, solid XML parser.
+
+<p>
+These functions are in turn called by <code>datasheet_showdata</code>, which, given a process
+ID and optional task ID, iterates down the list of data to display data attached to the
+named task or to the process if the task is not supplied.  The same function is used to
+generate either an editing form or a simple static view.  The output is organized into
+table rows of two columns; this output is assumed to be assigned to a tag, so that the
+table element itself will be supplied elsewhere (usually on the format page.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="datasheet_stuff.html#datasheet_showdata">Definition of datasheet_showdata</a></i>
+</pre></td></tr></table>
+
+<p>
+In addition to the basic functions, I'm defining one URL handler, setvalue; setvalue will
+take a process and task ID and information about the value or values, and create it or replace
+it using <code>datasheet_setvalue</code>.  The corresponding use of
+<code>datasheet_getvalue</code> is kind of here and there throughout the show screens.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>ns_register_proc GET  $taskmgr_root/setvalue setvalue
+ns_register_proc POST $taskmgr_root/setvalue setvalue
+<i>See <a href="datasheet_stuff.html#setvalue">URL handler setvalue</a></i>
+</pre></td></tr></table>
+<br><br>
+<a name="setvalue">
+<i>URL handler setvalue</i><br>
+This proc handles value setting operations by making calls to <code>datasheet_setvalue</code>.
+Obviously this isn't the most efficient way of handling things, but it works, and it's
+extremely modular, so it should be easy to maintain.  In the interests of scalability, we'll
+want to investigate more integrated approaches to datasheet maintenance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc setvalue {conn ignore} {
+   set form [ns_conn form $conn]
+   if {$form == ""} { 
+      set tags(title) "No parameters given"
+      set tags(body) "You can't set a value without giving the value."
+      return [taskmgr_pageout $conn message.html]
+   }
+   set process [ns_set get $form process]
+   set task [ns_set get $form task]
+   set newname [ns_set get $form newname]
+   if [string compare "" $newname] {
+      datasheet_setvalue $process $task $newname [ns_set get $form type] ""
+      return [ns_returnredirect $conn [ns_set get $form back]
+   }
+
+   set size [ns_set size $form]
+   for {set i 0} {$i < $size} {incr i} {
+      if {-1 < [lsearch {process task back newname type} [ns_set key $form $i]]} { continue }
+
+      datasheet_setvalue $process $task [ns_set key $form $i] "" [ns_set value $form $i]
+   }
+   return [ns_returnredirect $conn [ns_set get $form back]]
+}
+</pre></td></tr></table>
+<br><br>
+<a name="datasheet_getvalue">
+<i>Definition of datasheet_getvalue</i><br>
+The getvalue procedure must not only retrieve the value, but format it as an appropriate
+field as well so that we can include it into a form for update.  The <code>active</code>
+parameter governs whether the caller wants a form field or just a value; the return
+from the proc is a list consisting of name, type, and the value or field insert.
+<p></p>
+I have the feeling that paragraph didn't make a lot of sense, so I'll probably come back
+and rewrite it later.
+<p></p>
+At any rate, the data values attached to a task or directly to the process are accessed
+not by name, but by number.  This allows a form to be built by scanning up until a blank
+return.  The return value is a list consisting of the data item's: id, type, value, the
+HTML needed to edit the value, and a full list of attributes attached to the element.
+<p></p>
+Note the gyrations required to detect an empty data element (i.e. a data value with a
+value of the empty string.)  Sheesh.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc datasheet_getvalue {process task number {active 0}} {
+   global taskmgr_datasheets
+   set datasheet "$taskmgr_datasheets/$process"
+   if ![file exists $datasheet] return ""
+
+   set loc datasheet
+   if [string compare $task ""] { append loc ".task\[$task\]" }
+   append loc ".data($number)"
+
+   set data [exec ${wftk_home}xmltools/xmlsnip $loc $datasheet]
+   if {0 == [regexp ^&lt;(\[^&lt;\]*)> $data tag bits]} { return "" }
+   if  [string match */ $bits] {
+      set data ""
+      regsub /$ $bits "" bits
+   } else {
+      regsub ^&lt;\[^&lt;\]*> $data "" data
+      regsub &lt;\[^>\]*>$ $data "" data
+   }
+   set fields [list]
+   set id ""
+   set type ""
+   set bits [split [join [lrange [split $bits] 1 end]] =]
+   set name [lindex $bits 0]
+   foreach bit [lrange $bits 1 end] {
+      set bit [split $bit \"]
+      lappend fields [list $name [lindex $bit 1]]
+      switch $name {
+         id { set id [lindex $bit 1] }
+         type { set type [lindex $bit 1] }
+      }
+      set name [string trim [lindex $bit 2]]
+   }
+   switch $type {
+      string { set html "&lt;input name=\"$id\" value=\"$data\">" }
+      text { set html "&lt;textarea name=\"$id\" rows=5 cols=40>$data&lt;/textarea>" }
+      default { set html "&lt;input name=\"$id\" value=\"$data\">" }
+   }
+   return [list $id $type $data $html $fields]
+}
+</pre></td></tr></table>
+<br><br>
+<a name="datasheet_showdata">
+<i>Definition of datasheet_showdata</i><br>
+The <code>datasheet_showdata</code> is used from the task and process screens to build the
+form necessary to edit attached data (or simply to view it otherwise).  If the action is
+<code>edit</code>, then it needs the <code>back</code> parameter to give to the setvalue
+URL handler as a redirect target.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc datasheet_showdata {action back process task} {
+   set retval ""
+   set i 0
+
+   while (1) {
+      set d [datasheet_getvalue $process $task $i]
+      incr i
+      if ![string compare "" [lindex $d 0]] { break }
+      if {$action == "edit"} {
+         append retval "&lt;tr>&lt;td>[lindex $d 0]:&lt;/td>&lt;td>[lindex $d 3]&lt;/td>&lt;/tr>\n"
+      } else {
+         append retval "&lt;tr>&lt;td>[lindex $d 0]:&lt;/td>&lt;td>[lindex $d 2]&lt;/td>&lt;/tr>\n"
+      }
+   }
+
+   if {$action == "edit" &amp;&amp; $retval != ""} {
+      set retval "&lt;form action=setvalue method=post>\n$retval"
+      append retval "&lt;input type=hidden name=process value=\"$process\">\n"
+      append retval "&lt;input type=hidden name=task value=\"$task\">\n"
+      append retval "&lt;input type=hidden name=back value=\"$back\">\n"
+      append retval "&lt;tr>&lt;td colspan=2>&lt;center>"
+      append retval "&lt;input type=submit value=\"Update values\">&lt;/center>&lt;/td>&lt;/tr>\n"
+      append retval "&lt;/form>\n"
+   }
+
+   return $retval
+}
+</pre></td></tr></table>
+<br><br>
+<a name="datasheet_setvalue">
+<i>Definition of datasheet_setvalue</i><br>
+To set the value, we have to<ul>
+<li>Make sure there's a file there
+<li>If this is a task value, make sure the task has an entry in the datasheet
+<li>Make sure there's a value there
+<li>Finally, replace (or insert) the value.
+</ul>
+Not too onerous, eh?
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc datasheet_setvalue {process task name type value} {
+   if ![string compare "" $process] { return }
+   regsub -all "\"" $name ' name
+   global taskmgr_datasheets
+   set datasheet "$taskmgr_datasheets/$process"
+   set loc datasheet
+   if [string compare $task ""] { append loc ".task\[$task\]" }
+
+   if ![file exists $datasheet] {
+      exec ${wftk_home}xmltools/xmlcreate datasheet > $datasheet
+   }
+   if [string compare $task ""] {
+      set taskloc [exec ${wftk_home}xmltools/xmlsnip -otl datasheet.task\[$task\] $datasheet]
+      if ![string compare $taskloc ""] {
+         exec mv $datasheet $datasheet.~
+         set pipe [open "|${wftk_home}xmltools/xmlinsert aftercontent datasheet $datasheet.~ > $datasheet" w]
+         puts $pipe "<task id=\"$task\">"
+         puts $pipe "</task>"
+         close $pipe
+      }
+   }
+   set dataloc [exec ${wftk_home}xmltools/xmlsnip -otl $loc.data\[$name\] $datasheet]
+   if [string compare $dataloc ""] {
+      exec mv $datasheet $datasheet.~
+      regsub -all " " $name "\\ " n
+      set cmd "|${wftk_home}xmltools/xmlreplace -m $loc.data\[$n\] $datasheet.~ > $datasheet"
+      set pipe [open $cmd w]
+      puts -nonewline $pipe $value
+      close $pipe
+   } else {
+      exec mv $datasheet $datasheet.~
+      set cmd "|${wftk_home}xmltools/xmlinsert aftercontent $loc $datasheet.~ > $datasheet"
+      set pipe [open $cmd w]
+      puts $pipe "<data id=\"$name\" type=\"$type\">$value</data>"
+      close $pipe
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="pageout.html">Previous: How I'm writing pages out</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="wftk_interpret.html">Next: Interpreting the results that wftk sends back</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

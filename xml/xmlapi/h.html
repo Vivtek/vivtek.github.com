@@ -1,0 +1,92 @@
+<html><head><title>xmlapi: Definitions</title></head>
+<body>
+<h2>Definitions</h2>
+<center>
+[&nbsp;<a href="index.html">Previous: index</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="main.html">Next: Functions except for xml_read</a>&nbsp;]
+</center>
+
+<hr>
+I define three basic datastructures for dealing with XML: the element, the attribute, and the
+element list.  Each of these has a <code>struct</code> definition (<code>_element</code>,
+<code>_attr</code>, and <code>_list</code> respectively) and a pointer typedef (<code>XML</code>,
+<code>ATTR</code>, and <code>ELEMENTLIST</code>).  My apologies that the names don't match up,
+but it makes sense to me: the <code>struct</code> names reflect a lower-level appreciation
+for what the objects are, while the typedefs relect a higher-level view of what they're to be
+used for.  Yeah.  Anyway, that's my left-brain rationalization for an essentially right-brained
+nomenclature.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>typedef struct _element XML;
+typedef struct _attr ATTR;
+typedef struct _list ELEMENTLIST;
+
+struct _element {
+   char * name;
+   ATTR * attrs;
+   XML * parent;
+   ELEMENTLIST * children;
+};
+
+struct _attr {
+   char * name;
+   char * value;
+   ATTR * next;
+};
+
+struct _list {
+   XML * element;
+   ELEMENTLIST * next;
+   ELEMENTLIST * prev;
+};
+</pre></td></tr></table>
+
+Those datastructures suffice to represent an XML file in memory, semi-efficiently (although
+hash lookup for element and attribute names will be a nice feature at some later date) and
+completely.  To work with those, I'm building up quite a little menagerie of functions, which
+are as follows:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void xml_write (FILE * file, XML * xml);
+void xml_writecontent (FILE * file, XML * xml);
+void xml_prepend (XML * parent, XML * child);
+void xml_append (XML * parent, XML * child);
+XML * xml_loc (XML * start, const char * loc);
+void xml_getloc (XML * xml, char *loc, int len);
+void xml_set (XML * xml, const char * name, const char * value);
+void xml_setnum (XML * xml, const char *attr, int number);
+const char * xml_attrval (XML * element,const char * name);
+int xml_attrvalnum (XML * element,const char * name);
+XML * xml_create (const char * name);
+XML * xml_createtext (const char * value);
+XML * xml_createtextlen (const char * value, int len);
+void xml_free (XML * xml);
+void xml_delete(XML * piece);
+XML * xml_first (XML * xml);
+XML * xml_firstelem (XML * xml);
+XML * xml_last (XML * xml);
+XML * xml_lastelem (XML * xml);
+XML * xml_next (XML * xml);
+XML * xml_nextelem (XML * xml);
+XML * xml_prev (XML * xml);
+XML * xml_prevelem (XML * xml);
+XML * xml_read (FILE * file);
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="index.html">Previous: index</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="main.html">Next: Functions except for xml_read</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,232 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Vivtek -- Electronic Commerce Services</TITLE>
+
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<center><h2><u>Electronic Commerce Services</u></h2></center></td></tr>
+
+<tr><td>
+So.  You're interested in a little more detail.  That's good.  This page is still under
+development (as are most of our pages) so if you have any questions at all, please ask them by
+<a href=mailto:tech@vivtek.com?subject=Question%20about%20ecomm>emailing us with whatever
+concerns you have.</a>  We will certainly answer; we will also try to change the page to make things
+a little clearer.
+<p>
+That said, what kind of details are we going to write about?  Well, first, let's get some words
+straight.  In the process of an order, there are three people involved: the <i>customer</i>, the
+<i>merchant</i> and the <i>supplier</i>.  The customer is pretty obvious.  The merchant is the person
+or company who maintains the Web presence (i.e. the catalog pages) and who takes payment for the
+order.  And the supplier is the person or company who actually ships product.  In many cases, the
+merchant and the supplier will be one and the same, but not always, especially in business-to-business
+commerce.
+
+<ul>
+<li><a href=#anatomy>Anatomy of an order</a>: How does the customer relate to the order server?
+<li><a href=#merchant>Merchant services</a>: How does the merchant relate to the order server?
+<li><a href=#supplier>Supplier services</a>: How about the supplier?
+</ul>
+<p>
+</td></tr>
+
+<tr><td><a name=anatomy><center><br><font face=arial size=+1>ANATOMY OF AN ORDER</font></center></td></tr>
+<tr><td>
+A customer first meets our ecomm by looking at a catalog page.  A catalog page is simply an HTML
+page, located anywhere at all on the Web.  The catalog page contains an order form which has
+an action something like "http://www.vivtek.com/joesgrill/add-order", a number of input fields 
+for quantities, and a submit button.  In that action URL, the "joesgrill" part is the tag of the
+merchant to whom the order is going.  When the form is submitted, some item or items are added
+to the customer's current order (shopping cart) at Joe's Grill.
+<p>
+All subsequent work with that
+order will happen at the Vivtek site; Joe's Grill simply has catalog pages.  However, Joe's site
+could, of course, put the order into a frame, so that the customer would never see www.vivtek.com
+at all.  All the pages used in the order server are customizable by the merchant, so that the look
+of all ecommerce can be integrated into the look of the merchant's site.  If you want more
+customization than we currently provide, we can do that.  One of the benefits of
+subscribing to our service instead of buying an out-of-box solution is that the original
+coders of the software are working with you.  And it really is cheaper.
+<p>
+Anyway, once something has been added to the current order, the order summary form appears.  This page
+lists the items currently in the shopping cart, and provides a place for the customer to enter
+contact information (or to sign on if returning), payment information, and shipping information
+if the product or products being sold require shipping.  At this point, the customer can place
+the order or shop further and place the order later.
+<p>
+Once the customer is ready to check out, they click on the "Check out" button.  The order server
+checks all the information entered and presents a summary of the order, which details the total amount
+due, how the customer wants to pay, where the shipment should go, and so forth.
+<p>
+At this point also,
+if payment should be by credit card and the number isn't known, a field will appear for entry.  For this
+reason, the summary page is presented via SSL, in other words, it is encrypted coming and going so that
+no-one can read the credit card information while it is in transit over the Internet.  This is
+fairly straightforward, but many ISPs charge an additional fee for SSL services, and in this case
+it all takes place on our server, not the merchant's.
+<p>
+Once everything is OK, the customer clicks on the confirmation button, and the order is officially placed.
+<p>
+Order placement sends a summary email to the customer and to the merchant.  If the merchant is
+using <a href="/cybercash.html">CyberCash</a> and the customer is paying by credit card, then the transaction is performed on
+<a href="/cybercash.html">CyberCash</a> and the results checked.  If there is a problem, the customer is alerted and has a chance
+either to go ahead and let the merchant resolve the difficulty, or offer some other form of payment.
+If payment clears, then the supplier is also notified (if the supplier and the merchant are the
+same email address, then only one email gets sent.)  Otherwise, the supplier won't be notified until
+the merchant officially clears payment by hand.
+<p>
+As a part of the confirmation email, the customer gets a URL which links to the status screen for the
+order.  On the order status screen, you can see whether the order, or some items, have been shipped,
+and if the supplier has entered tracking information, then you can see that there, too.  If payment
+has yet to clear, that is also indicated.  And of course, the customer also gets a customer service
+page from which contact information can be changed, payment and shipping preferences entered or
+changed, order history can be investigated, and so forth.
+</td></tr>
+
+<tr><td><a name=merchant><center><br><font face=arial size=+1>MERCHANT SERVICES</font></center></td></tr>
+<tr><td>
+Now the customer has placed an order, the ball is in the merchant's court.  An email is sent to the
+merchant to inform them of the order.  (We can integrate with your existing systems more completely,
+but email is the default notification and it's easy to understand.)  The email contains a list of the
+items ordered, warns the merchant if payment hasn't been cleared automatically, and includes a link
+to the merchant's order summary.  The summary shows the order and contains links to the customer's
+information, an email link to the customer, and transaction information if payment has cleared.
+<p>
+If payment hasn't cleared, then the merchant needs to take care of it.  This can mean several things.
+If the customer wants to mail payment, then the merchant will clear the payment when it arrives.
+If the merchant isn't using <a href="/cybercash.html">CyberCash</a> to clear credit cards, then that can be done manually and
+the payment marked as cleared.  One way or another, the supplier isn't notified of the order until
+payment has cleared.
+<p>
+The merchant has access to a complete list of orders online, a list of all customers who have placed
+orders online, and can optionally set up accounts so that selected customers may place orders
+which will automatically be cleared (up to an optional credit limit).  In the case of accounts,
+the merchant then invoices on whatever basis works for merchant and customer.  As far as the
+commerce platform is concerned, it's all done.
+<p>
+The merchant can also maintain basic information online (such as mailing address for payments and
+the email address that order notifications should go to.)  And at some point we want to include
+online catalog management functionality.  We're still working on that; so far setup has been
+easy enough that we haven't really had a real need for online management.
+</td></tr>
+
+<tr><td><a name=supplier><center><br><font face=arial size=+1>SUPPLIER SERVICES</font></center></td></tr>
+<tr><td>
+Once payment has cleared, it is up to the supplier to complete the order.  Again, the supplier may
+be the merchant, but for the purposes of setup and configuration we separate the two functions,
+and there are many cases where the online merchant will distribute products for several suppliers.
+<p>
+The supplier receives an email when an order is ready to fulfill.  (As mentioned above, we can
+integrate with your existing systems if necessary, but email is the default notification and is
+easy to understand.)  The email contains a list of items provided by that supplier (a given merchant
+may represent multiple suppliers and so a given order may contain items from several suppliers.  Each
+supplier sees only their own items.)  It also shows the shipping address and contains a link to
+the order summary for the supplier.
+<p>
+The order summary page for each supplier is a very important page, because it is here that shipping
+information is entered.  For each line item, the supplier can mark the item shipped on a particular
+date, with a particular shipper and tracking number.  The tracking numbers will be made available
+to the customer automatically, which can save you a lot of trouble!  And when each item is marked
+as shipped, the customer is notified.  The order also has a link to the customer's email on it,
+so that if any further information is required, it is easy to obtain.
+<p>
+The supplier also has access to a number of services besides this, including a list of orders
+still to be marked as shipped, the ability to change contact information online, and some
+catalog management functionality.
+</td></tr>
+
+
+<tr><td><center><br><font face=arial size=+1>ASK SOME QUESTIONS</font></center></td></tr>
+<tr><td>
+<a href=mailto:tech@vivtek.com?subject=Question%20about%20ecomm>Click here to ask a question.</a>
+Really.  It's the best way for us to improve this information.  Go ahead.
+<a href=mailto:tech@vivtek.com?subject=Question%20about%20ecomm>Ask.</a>
+
+
+</table>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

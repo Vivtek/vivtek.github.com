@@ -1,0 +1,162 @@
+<html><head><title>Repository manager: Iterating across list contents</title></head>
+<body>
+<h2>Iterating across list contents</h2>
+<center>
+[&nbsp;<a href="remote_lists.html">Previous: Creating and administering lists</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_objects.html">Next: Working with individual objects</a>&nbsp;]
+</center>
+
+<hr>
+OK, <i>here</i> is some code which has been written already.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * FN_NAME(repos_list) (XML * repository, XML * list)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+   XML * copy;
+   const char * line;
+   const char * end;
+   char * key;
+   int count = 0;
+
+   if (!sock) return NULL;
+
+      xml_setf (sock->parms, "outgoing", "list %s\n", xml_attrval (list, "id"));
+      _repos_send (sock);
+      line = _repos_receive (sock);
+      if (*line == '-') {
+         xml_set (list, "error-state", line + 6);
+         return (list);
+      }
+      line = strchr (line, '\n') + 1;
+      while (*line == ' ') {
+         count++;
+         copy = xml_create ("record");
+         end = strchr (line, '\n');
+         if (!end) break;
+         xml_set (copy, "id", "");
+         xml_attrncat (copy, "id", line + 1, end - line - 1);
+         xml_append (list, copy);
+         line = end + 1;
+      }
+      xml_setnum (list, "count", count);
+      xml_set (sock->parms, "buffer", "");
+      return list;
+}
+/* TODO: make this work again... (it being inherently more scalable.) */
+WFTK_EXPORT XML * FN_NAME(repos_list_first) (XML * repository, XML * list)
+{
+   return NULL;
+}
+WFTK_EXPORT XML * FN_NAME(repos_list_next) (XML * repository, XML * list)
+{
+   return NULL;
+}
+</pre></td></tr></table>
+
+The change log is a special set of lists defined implicitly by the repository manager.  At some point it'll be adaptor-based, but
+for the time being its requirements outstrip the list adaptor I have (LIST_localdir), so right now it's pretty hard-wired.  The
+change log reader (repos_changes) works in two modes.  The first looks for which lists have been changed since a given date.  It
+returns a list of lists with change timestamps.  The second looks for changes to a specific list after the given date, and it
+returns a list of record keys with timestamp, action taken (add, mod, or del), and the userid of the person who made the change.
+This userid is actually the first occurrence of userid in the repository manager, and really it needn't be a userid -- essentially
+it indexes a list of change sources or something.  Could be people, could be programs or reasons or organizations or webpages or whatever
+makes sense, I suppose.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * FN_NAME(repos_changes) (XML * repository, XML * list, const char * date, const char * list_id)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+   XML * record;
+   char line[1024];
+   char datecopy[32];
+   int  count;
+   char * end;
+   char * mark;
+   char * mark2;
+
+   if (!sock) return NULL;
+
+      memset (datecopy, '\0', 32);
+      strncpy (datecopy, date, 31);
+      if (strlen (datecopy) > 10) datecopy[10] = 'T';
+      xml_setf (sock->parms, "outgoing", "changes %s %s\n", datecopy, list_id);
+      _repos_send (sock);
+      mark = (char *) _repos_receive (sock);
+      if (*mark == '-') {
+         xml_set (list, "error-state", mark + 6);
+         return (list);
+      }
+      mark = strchr (mark, '\n') + 1;
+      while (*mark == ' ') {
+         count++;
+         record = xml_create ("record");
+         end = strchr (mark, '\n');
+         if (!end) break;
+         strncpy (line, mark + 1, end - mark);
+         line[end - mark] = '\0';
+
+         mark = line;
+         mark2 = strchr (mark, '\t');
+         if (mark2) *mark2 = '\0';
+         xml_set (record, "action", mark);
+         if (mark2) {
+            mark = mark2 + 1;
+            mark2 = strchr (mark, '\t');
+            if (mark2) *mark2 = '\0';
+            xml_set (record, "time", mark);
+            if (mark2) {
+               mark = mark2 + 1;
+               mark2 = strchr (mark, '\t');
+               if (mark2) *mark2 = '\0';
+               xml_set (record, "user", mark);
+               if (mark2) {
+                  mark = mark2 + 1;
+                  mark2 = strchr (mark, '\n');
+                  if (mark2) *mark2 = '\0';
+                  xml_set (record, "id", mark);
+               }
+            }
+         }
+
+         xml_append (list, record);
+
+         mark = end + 1;
+      }
+      xml_setnum (list, "count", count);
+      xml_set (sock->parms, "buffer", "");
+
+
+   return list;
+}
+</pre></td></tr></table>
+
+<i>(December 22, 2001):</i> The snapshot feature is a nifty little thing for integration with external datasources -- it asks the adaptor
+for a snapshot of the list, then it compares this snapshot with the last snapshot it stored (if any).  If changes are detected, and note
+that by using a current file date or a checksum we can detect modifications, then all the changes are logged and published.  This is a
+handy way to mark changes for synching to a remote repository, too.  (Note January 8, 2002: I haven't actually written this, though.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * FN_NAME(repos_snapshot) (XML * repository, const char * list_id)
+{
+
+}
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="remote_lists.html">Previous: Creating and administering lists</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_objects.html">Next: Working with individual objects</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

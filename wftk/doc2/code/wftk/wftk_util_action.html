@@ -1,0 +1,64 @@
+<html><head><title>wftk command-line utility: action: Performing actions with possible deferment</title></head>
+<body>
+<h2>action: Performing actions with possible deferment</h2>
+<center>
+[&nbsp;<a href="wftk_util_user.html">Previous: Working with users</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Next: wftk command-line utility</a>&nbsp;]
+</center>
+
+<hr>
+One of the features of wftk which I think will make it easiest to integrate it with other systems is its ability to
+encapsulate actions, either executing them, denying them, or deferring them with an approval process started.
+Besides providing an underlying permissions mechanism for things like checking in new process definitions, the action
+facility will be an excellent and very natural way to automate typical website actions or scripts.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 1) {
+   file = stdin;
+} else {
+   file = fopen (argv[argp], "r");
+   if (!file) {
+      printf ("Unable to open action definition file '%s' for reading.\n", argv[argp]);
+      exit (1);
+   }
+}
+
+action = xml_read (file);
+if (argsleft > 0) fclose (file);
+if (!action) {
+   printf ("Unable to read action -- was your XML valid?\n");
+   exit (1);
+}
+
+wftk_action (session, action, NULL);
+if (!strcmp (xml_attrval (action, "status"), "error")) {
+   printf ("Error while attempting action.\n");
+} else if (!strcmp (xml_attrval (action, "status"), "ok")) {
+   printf ("Action taken.\n");
+} else if (!strcmp (xml_attrval (action, "status"), "no")) {
+   if (!*xml_attrval (action, "status.reason")) {
+      printf ("Action denied.\n");
+   } else {
+      printf ("Action denied: %s\n", xml_attrval (action, "status.reason"));
+   }
+} else {
+   printf ("Action deferred pending approval.\nRepository %s\nProcess %s\n", xml_attrval (action, "dsrep"), xml_attrval (action, "process"));
+}
+
+
+
+
+<center>
+[&nbsp;<a href="wftk_util_user.html">Previous: Working with users</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Next: wftk command-line utility</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

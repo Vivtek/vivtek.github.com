@@ -1,0 +1,408 @@
+<html><head><title>Repository manager: CGI interface</title></head>
+<body>
+<h2>Repository manager: CGI interface</h2>
+<center>
+[<a href="index.html">repmgr home</a> ] 
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+The <a href="index.html">repository manager</a> is the data handling portion of the wftk open-source workflow toolkit.
+It organizes <i>objects</i> (sometimes I call them <i>entries</i>) into <i>lists</i>.  Such a collection of lists is
+called a <i>repository</i>.  An additional feature of a repository is that it may have a Web view; the layout of this
+site is the other half of the repository manager's functionality.  Pages are organized into a site map, and publishing
+links are established between lists and pages; when data is changes, static pages can be written to the Website, and
+those pages can be served up very quickly and easily.
+<p></p>
+All this functionality works rather well behind the scenes with the repmgr's command-line interface, but when it comes
+to adding and editing data, the command-line interface offers no particularly good solution, unless you genuinely
+enjoy typing long XML object files without any backspace.  Thus a Web interface is a very handy addition to the toolkit;
+this CGI interface is the first such front end.
+<p></p>
+Since the repmgr already has a lot of HTML-formatting functionality built in, the CGI interface is designed to be
+integrated right into the Website it manages.  This means that pages can be formatted in the same way as the overall site
+with no need to duplicate the formatting work between different systems.  Moreover, since the repmgr is integrated with
+the overall wftk workflow system, it is very easy to set up a system to allow anonymous users (or non-anonymous users) to
+submit entries to lists, subject to an approval process involving responsible administrators.  This is a powerful feature,
+and a quick-and-easy CGI interface to it means you can set up interactive Websites very easily.  (Caveat: this is still
+alpha-quality software.  So by "very easily" I may well mean something you don't find very easy.  Give it some time, though,
+and it <i>will</i> be very easy.)
+<p></p>
+The CGI interface needn't provide the same level of functionality as the command-line interface.  At first, all I really
+want to do is to provide facilities to display blank forms and add new objects, display edit forms and modify existing
+objects, list objects, and delete objects.  And even listing objects will be the second phase of development -- the minimal
+level of functionality will rely on a functioning display Website to provide navigation for the editing scripts.
+<p></p>
+So.  Down to business.  First order of the day is to include our repmgr and CGI functionality, and get the CGI environment.
+I'm using my <a href="../xmlapi/xmlcgi.html">XMLCGI interface</a> to collect CGI environment information;
+what a blast from the past!  I haven't looked at it for
+two years or so, since I wrote it to support the prototype procdef editor.  (Note that the procdef editor will soon be revived,
+based on the repository management functionality now finally working.)  This framework below can be seen as the canonical
+framework for any CGI program.
+In the spirit of coming up with a universal template, I'm trying to build it as generally as possible.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include "repmgr.h"
+#include "../xmlapi/xmlcgi.h"
+
+XML * cgi;
+XML * env;
+XML * query;
+
+XML * headers; /* TODO: in case I decide to build a general CGI framework, this would be useful. */
+XML * retval = NULL;
+
+<i>See <a href="repmgr_cgi.html#globals">Global variable definitions</a></i>
+
+int handle_error (const char * message);
+int main(int argc, char* argv[]) {
+   cgi = xmlcgi_init();
+   env = xml_loc (cgi, ".environment");
+   query = xml_loc (cgi, ".query");
+
+   xml_set (cgi, "mimetype", "text/html");
+
+   <i>See <a href="repmgr_cgi.html#openrepos">Opening the repository definition</a></i>
+   <i>See <a href="repmgr_cgi.html#userauth">Authenticating the user</a></i>
+   <i>See <a href="repmgr_cgi.html#process">Figuring out what to do</a></i>
+
+   if (*xml_attrval (cgi, "redirect")) printf ("Location: %s\n", xml_attrval (cgi, "redirect"));
+   printf ("Content-type: %s\n\n", xml_attrval (cgi, "mimetype"));
+   if (retval) {
+      xml_writehtml (stdout, retval);
+      printf ("\n\n");
+   } else {
+      printf ("&lt;h2>No result from script&lt;/h2>&lt;hr>No result was returned from this script.\n"); /* TODO: configuration value. */
+   }
+
+   printf ("&lt;br>&lt;br>&lt;hr width=30%%>&lt;font size=-1 color=gray>&lt;center>Site managed brilliantly with &lt;a href=http://www.vivtek.com/wftk/doc/code/repmgr/repmgr_cgi.html>repmgr CGI front end&lt;/a>&lt;/center>&lt;/font>\n\n");
+
+   xml_free (cgi);
+   return 0;
+}
+
+<i>See <a href="repmgr_cgi.html#handle_error">Handling error display</a></i>
+</pre></td></tr></table>
+<br><br>
+<a name="globals">
+<i>Global variable definitions</i><br>
+Here are the global variables used by the rest of the program.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>FILE * file;
+XML * repos = NULL;
+XML * list;
+XML * layout;
+XML * form;
+XML * defn;
+XML * obj;
+XML * mark;
+const char * username;
+const char * mode;
+</pre></td></tr></table>
+<br><br>
+<a name="openrepos">
+<i>Opening the repository definition</i><br>
+The first order of business is of course to open the repository definition so that we can do everything else in the context of the
+repository.  This is much simpler than in the case of the command-line interface, because there's no particularly nice way to pass
+in command-line flags to a CGI flag.  So we just open the current directory's copy of site.opm.  No muss, no fuss.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>file = fopen ("site.opm", "r");
+if (!file) {
+   return handle_error ("No site definition file was found.  Please notify the site administrator.");
+}
+repos = xml_read (file);
+if (!repos) {
+   return handle_error ("The site definition file is corrupt.  Please notify the site administrator.");
+}
+repos_open (repos, NULL, "cgi");
+</pre></td></tr></table>
+<br><br>
+<a name="userauth">
+<i>Authenticating the user</i><br>
+This is going to be to-do for a little while.  The repository manager library doesn't yet really have user-auth functions, and
+it'd be silly to implement it twice.  Naturally, the wftk core has the user adaptor class, but I haven't looked at it in repmgr yet.
+<p></p>
+The first level of authentication will be a browser-level authentication; soon after that, however, I'll look at creating user
+sessions in the repository, which will be indexed via cookie.  Then we can store authentication information in the session and skip
+the browser authentication dialog, which typically confuses most naive users a great deal.
+<p></p>
+The zeroth level of authentication will simply be to leave it to the webserver; in this case we can just look at the auth information
+coming in in the CGI headers.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>username = xml_attrval (env, "REMOTE_USER");
+list = repos_defn (repos, "_users");
+if (list) {
+   /* Here's where we'll do repmgr-local user authentication. TODO: do it. */
+}
+</pre></td></tr></table>
+<br><br>
+<a name="process">
+<i>Figuring out what to do</i><br>
+Before we can do anything, we have to figure out what it is we want to do.  This is governed by the "mode" variable.  The default
+mode is probably going to be "list" -- but since the list handler is going to be in the second phase, we'll just not do a whole
+lot in the absence of a mode.
+<p></p>
+Useful modes (actions) will be as follows.  In general, GET will be used for retrieval of information, and POST will be used wherever
+a change to data is being proposed.  This allows a blanket user authentication to be imposed by the webserver itself in simple
+installations, and lets us gain some control over our data even if we haven't implemented any user authentication in the repository
+itself.  These modes are roughly in order of priority of development.
+<p></p>
+
+<table>
+<tr><td><b>Mode</b></td><td><b>Meth</td></td><td><b>Action</b></td></tr>
+<tr><td>new</td><td>GET</td><td>Presents blank HTML form for adding an object</td></tr>
+<tr><td>add</td><td>POST</td><td>Adds an object from said blank form</td></tr>
+<tr><td>edit</td><td>GET</td><td>Presents a filled HTML form for editing an object</td></tr>
+<tr><td>copy</td><td>GET</td><td>Presents a filled HTML form for copying an object</td></tr>
+<tr><td>mod</td><td>POST</td><td>Edits an existing object using form input</td></tr>
+<tr><td>del</td><td>POST</td><td>Deletes an object</td></tr>
+<tr><td>list</td><td>GET</td><td>Lists keys from a given list</td></tr>
+<tr><td>info</td><td>GET</td><td>Gets installation information or a set editor home page.</td></tr>
+<tr><td>attach</td><td>POST</td><td>Uploads file attachment</td></tr>
+<tr><td>retrieve</td><td>GET</td><td>Downloads file attachment</td></tr>
+<tr><td>checkout</td><td>POST?</td><td>Downloads for modification (i.e. locks the attachment)</td></tr>
+<tr><td>search?</td><td>GET</td><td>Search objects -- I've got some pretty detailed plans for searching</td></tr>
+</table>
+
+And I suppose we'll take it further from there.  It's pretty obvious that the document-management aspects of the CGI interface will
+be pretty exciting stuff.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>mode = xml_attrval (query, "mode");
+if (!*mode) mode = "info";
+
+       if (!strcmp (mode, "new")) {
+   <i>See <a href="repmgr_cgi.html#new">Displaying a blank form</a></i>
+} else if (!strcmp (mode, "add")) {
+   <i>See <a href="repmgr_cgi.html#add">Adding an object from form input</a></i>
+} else if (!strcmp (mode, "edit")) {
+   <i>See <a href="repmgr_cgi.html#edit">Displaying a filled form for edit</a></i>
+} else if (!strcmp (mode, "copy")) {
+   <i>See <a href="repmgr_cgi.html#copy">Displaying a filled form for adding</a></i>
+} else if (!strcmp (mode, "mod")) {
+   <i>See <a href="repmgr_cgi.html#mod">Updating object content from form input</a></i>
+} else if (!strcmp (mode, "del")) {
+   <i>See <a href="repmgr_cgi.html#del">Deleting an object</a></i>
+} else if (!strcmp (mode, "list")) {
+   <i>See <a href="repmgr_cgi.html#list">Listing the members of a list</a></i>
+} else {
+   xml_setf (cgi, "error", "Mode '%s' not supported.\n", mode);
+   return handle_error (xml_attrval (cgi, "error"));
+}
+</pre></td></tr></table>
+<br><br>
+<a name="new">
+<i>Displaying a blank form</i><br>
+The "new" mode requires a list name.  If it doesn't get one, it throws an error.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!*xml_attrval (query, "list")) { return handle_error ("No list specified in 'new' mode."); }
+
+form = repos_form (repos, xml_attrval (query, "list"), NULL, "new");
+if (!form) {
+   xml_setf (env, "error", "List '%s' is not defined in the system.", xml_attrval (query, "list"));
+   handle_error (xml_attrval (env, "error"));
+}
+
+/* Build form for output. */
+retval = xml_create ("form");
+xml_setf (retval, "action", "repmgr.cgi?mode=add&amp;list=%s", xml_attrval (query, "list")); /* TODO: parametrize the URL */
+xml_set (retval, "method", "POST");
+if (xml_search (form, "input", "type", "file")) xml_set (retval, "enctype", "multipart/form-data");
+xml_append_pretty (retval, form);
+form = xml_create ("input");
+xml_set (form, "type", "submit");
+xml_set (form, "value", "Add object"); /* TODO: decorate with label of object. */
+xml_append_pretty (retval, xml_create ("br"));
+xml_append_pretty (retval, form);
+</pre></td></tr></table>
+<br><br>
+<a name="edit">
+<i>Displaying a filled form for edit</i><br>
+Posting an edit form is almost exactly identical to posting an add form, except that we require a key.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!*xml_attrval (query, "list")) { return handle_error ("No list specified in 'edit' mode."); }
+if (!*xml_attrval (query, "key")) { return handle_error ("No key specified in 'edit' mode."); }
+
+form = repos_form (repos, xml_attrval (query, "list"), xml_attrval (query, "key"), "edit");
+if (!form) {
+   xml_setf (env, "error", "Key '%s' in list '%s' can't be found.", xml_attrval (query, "key"), xml_attrval (query, "list"));
+   handle_error (xml_attrval (env, "error"));
+}
+
+/* Build form for output. */
+retval = xml_create ("form");
+xml_setf (retval, "action", "repmgr.cgi?mode=mod&amp;list=%s&amp;key=%s", xml_attrval (query, "list"), xml_attrval (query, "key")); /* TODO: parametrize. */
+xml_set (retval, "method", "POST");
+xml_append_pretty (retval, form);
+if (xml_search (form, "input", "type", "file")) xml_set (retval, "enctype", "multipart/form-data");
+form = xml_create ("input");
+xml_set (form, "type", "submit");
+xml_set (form, "value", "Modify object"); /* TODO: decorate with label of object. */
+xml_append_pretty (retval, xml_create ("br"));
+xml_append_pretty (retval, form);
+</pre></td></tr></table>
+<br><br>
+<a name="copy">
+<i>Displaying a filled form for adding</i><br>
+And then copying an object is basically identical to editing it, except that the URL on the form is different.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!*xml_attrval (query, "list")) { return handle_error ("No list specified in 'copy' mode."); }
+if (!*xml_attrval (query, "key")) { return handle_error ("No key specified in 'copy' mode."); }
+
+form = repos_form (repos, xml_attrval (query, "list"), xml_attrval (query, "key"), "edit");
+if (!form) {
+   xml_setf (env, "error", "Key '%s' in list '%s' can't be found.", xml_attrval (query, "key"), xml_attrval (query, "list"));
+   handle_error (xml_attrval (env, "error"));
+}
+
+/* Build form for output. */
+retval = xml_create ("form");
+xml_setf (retval, "action", "repmgr.cgi?mode=add&amp;list=%s", xml_attrval (query, "list")); /* TODO: parametrize the URL */
+xml_set (retval, "method", "POST");
+xml_append_pretty (retval, form);
+if (xml_search (form, "input", "type", "file")) xml_set (retval, "enctype", "multipart/form-data");
+form = xml_create ("input");
+xml_set (form, "type", "submit");
+xml_set (form, "value", "Add object"); /* TODO: decorate with label of object. */
+xml_append_pretty (retval, xml_create ("br"));
+xml_append_pretty (retval, form);
+</pre></td></tr></table>
+<br><br>
+<a name="add">
+<i>Adding an object from form input</i><br>
+When adding, we're processing an HTTP POST, meaning that our data is on stdin.  After adding, we want to return a page which makes
+sense -- probably the processed added object makes the most sense, working on the assumption that the CGI interface is integrated with
+the published site.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!*xml_attrval (query, "list")) { return handle_error ("No list specified in 'add' mode."); }
+
+defn = repos_defn (repos, xml_attrval (query, "list"));
+if (!defn) {
+   xml_setf (cgi, "error", "List '%s' undefined.", xml_attrval (query, "list"));
+   return (handle_error (xml_attrval (cgi, "error")));
+}
+obj = xmlcgi_readstdin (cgi, defn);
+
+repos_add (repos, xml_attrval (query, "list"), obj);
+
+mark = xml_search (repos, "page", "displays", xml_attrval (query, "list"));
+if (mark) {
+   xml_set (cgi, "redirect", xml_attrval (mark, "page"));
+} else {
+   xml_setf (cgi, "redirect", "repmgr.cgi?mode=list&amp;list=%s", xml_attrval (query, "list"));
+}
+
+retval = xml_parse ("&lt;h2>Change made&lt;/h2>Your addition was made.  The server should redirect you to the main list page.");
+</pre></td></tr></table>
+<br><br>
+<a name="mod">
+<i>Updating object content from form input</i><br>
+Again, editing looks a whole lot like adding.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!*xml_attrval (query, "list")) { return handle_error ("No list specified in 'add' mode."); }
+
+defn = repos_defn (repos, xml_attrval (query, "list"));
+if (!defn) {
+   xml_setf (cgi, "error", "List '%s' undefined.", xml_attrval (query, "list"));
+   return (handle_error (xml_attrval (cgi, "error")));
+}
+obj = xmlcgi_readstdin (cgi, defn);
+
+repos_merge (repos, xml_attrval (query, "list"), obj, xml_attrval (query, "key"));
+
+mark = xml_search (repos, "page", "displays", xml_attrval (query, "list"));
+if (mark) {
+   xml_set (cgi, "redirect", xml_attrval (mark, "page"));
+} else {
+   xml_setf (cgi, "redirect", "repmgr.cgi?mode=list&amp;list=%s", xml_attrval (query, "list"));
+}
+
+retval = xml_parse ("&lt;h2>Change made&lt;/h2>Your modification was made.  The server should redirect you to the main list page.");
+</pre></td></tr></table>
+<br><br>
+<a name="del">
+<i>Deleting an object</i><br>
+<br><br>
+<a name="list">
+<i>Listing the members of a list</i><br>
+Now, OK, granted this doesn't scale well.  I'm going to want to punt once I get something that needs to scale.  But the
+full "list" command lists keys under the command line; under CGI it should naturally link to editors, and have deletion
+checkboxes.  Later, as we expand into workflow, there may be other status changers than just deletion.  We'll burn those
+bridges when we come to them.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>defn = repos_defn (repos, xml_attrval (query, "list"));
+if (!defn) {
+   xml_setf (cgi, "error", "List '%s' undefined.", xml_attrval (query, "list"));
+   return (handle_error (xml_attrval (cgi, "error")));
+}
+
+list = xml_create ("list");
+xml_set (list, "id", xml_attrval (query, "list"));
+repos_list (repos, list);
+
+</pre></td></tr></table>
+The scalable solution will be to specify a search object framework for lists which require it; this framework will then present
+a search object edit form as the initial list presentation.
+<br><br>
+<a name="handle_error">
+<i>Handling error display</i><br>
+Error handling is somewhat complicated by the fact that one of the error situations we have to handle is the absence of a
+repository, meaning that we have to make up a layout whole cloth.
+<p></p>
+If there is an "_error" page defined, handle_error will use that layout to generate the error page; otherwise, the default
+layout is used and the error message, properly formatted, is filled in for the "content" field.
+<p></p>
+TODO: implement this with layout.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int handle_error (const char * message) {
+   printf ("Content-type: text/html\n\n");
+   printf ("&lt;html>&lt;head>&lt;title>Error&lt;/title>&lt;/head>\n");
+   printf ("&lt;body>&lt;h2>Error&lt;/h2>&lt;hr>%s&lt;/body>&lt;/html>\n", message);
+
+   return 0;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="todo">
+<i>Taking it further</i><br>
+There is plenty of stuff that the CGI interface (or any interface) should do to make the repository manager a really powerful tool.
+Please feel free to <a href="mailto:wftk@vivtek.com">suggest some features</a>.  As I get more ideas, I'll include them here.
+The current rough to-do list is in something like this order:
+<ul>
+<li>Repmgr-based user authentication using _user list.  (Note that this list serves as an interface for the user adaptor, so that
+plugging OpenLDAP in will be a fairly high priority.)
+<li>Session-based authentication using _sessions list.
+<li>"List" and "info" modes.
+<li>Document management facilities.  Having a useful interface will also make it easier for me to further develop said facilities.
+</ul>
+<p></p>
+Note that ports of the CGI interface to other environments are not the same as features, but they are interesting ideas for further
+development.  Some Web environments which should be supported will be: AOLserver, Zope, PHP, Perl/CGI using "use Workflow;", and
+so forth.
+
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

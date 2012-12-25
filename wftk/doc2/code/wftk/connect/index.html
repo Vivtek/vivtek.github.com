@@ -1,0 +1,46 @@
+<html><head><title>wftk core: server connection adaptor</title></head>
+<body>
+<h2>wftk core: server connection adaptor</h2>
+<center>
+[ <a href="../index.html">back to the core</a> ] [ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+A <i>server connection adaptor</i> creates and manages connections to external servers.  These
+connections will be used by QUERY adaptors.  At some point, database connections may well be
+moved over here, but at the moment the canonical connection adaptor is the HTML post adaptor, which
+will be used to query EuroDicAutom and also notify external servers that we exist.
+<p>
+These are the functions exposed by a server connection adaptor:
+<table>
+<tr><td><i><u>Function</i></u></td><td><i><u>Parameters</i></u></td><td><i><u>Purpose</i></u></td></tr>
+<tr bgcolor=eeeeee><td valign=top>0: init</td>
+    <td valign=top>&nbsp;</td>
+    <td>Initialize adaptor instance</td></tr>
+<tr bgcolor=ffffff><td valign=top>1: free</td>
+    <td valign=top>&nbsp;</td>
+    <td>Clean up instance before shutting down</td></tr>
+<tr bgcolor=eeeeee><td valign=top>2: info</td>
+    <td valign=top>&nbsp;</td>
+    <td>Return XML describing the adaptor</td></tr>
+<tr bgcolor=ffffff><td valign-top>3: send</td>
+    <td valign=top>XML * query<br>XML * data (optionally separate)</td>
+    <td>Send the given query to the server; return the reply.  If the query is a delayable query, this may simply return a NULL and model the reply as an event.</td></tr>
+</table>
+
+<p>
+Implementations:<ul>
+<li><a href="CONNECT_url.html">CONNECT_url</a> (connects to a server via anything that libcurl supports; this is a <i>really impressive list</i> of protocols.)
+</ul>
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

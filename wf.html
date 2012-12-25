@@ -1,0 +1,177 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: Open-source workflow toolkit</TITLE>
+   <META NAME="description" CONTENT="wftk will be a workflow toolkit including components to define processes as well as an engine to run and track active processes.">
+   <META NAME="Keywords" CONTENT="workflow, open source, wftk">
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td colspan=2>
+<center><h2><u>wftk</u>: Open-source workflow toolkit</h2>
+[&nbsp;<a href=#news>what's&nbsp;new</a>&nbsp;] [&nbsp;<a href=#project>project</a>&nbsp;]
+[&nbsp;<a href=#usage>usage&nbsp;scenarios</a>&nbsp;]
+</center></td></tr>
+
+<tr><td colspan=2>
+<center><table width=60%><tr><td><font face=arial>
+This project will provide an open-source alternative to the 40-odd proprietary workflow systems available on the commercial
+market.  Instead of laying down 50 large on an organizational tool, Joe Average will be able to use it to organize his
+fishing trip.  You'll be able to use it to organize the publishing activities of a corporate website.  And the guys who were
+thinking of laying down 50 large will think again.</font>
+</td></tr></table>
+</center>
+</td></tr>
+
+<tr><td valign=top>
+<center>
+<a name=news>
+<font face=arial><b>STATUS / NEWS</b></font>
+</td><td>
+<table cellpadding=0 cellspacing=0>
+ <tr>
+  <td valign=top>
+   <i>17 Jan 2000</i>
+  </td><td>
+   Creating this page, researching the workflow industry, and laying out <a href=#usage>usage scenarios</a> for typical workflow applications.
+   As I figure out more of the industry, I'll start filling in a workflow topic.  I'll link to it when I start that page.
+  </td>
+ </tr>
+ <tr><td colspan=2>&nbsp;</td></tr>
+</table>
+</td></tr>
+
+<tr><td valign=top>
+<center>
+<a name=project>
+<font face=arial><p><b>PROJECT</b></font><br>
+<a href=/linkout/www.sourcexchange.com><img src=/images/sXc.jpg border=0></a>
+</td><td>
+  Now this is just plain cool.  wftk is an open-source project funded by 
+  <a href=/linkout/www.galacticmarketing.com>Galactic Marketing</a> through 
+  <a href=/linkout/www.sourcexchange.com>SourceXchange</a>.
+  SourceXchange is a new organization devoted to kicking off open-source projects by finding corporate sponsors.  So far,
+  speaking for myself, it seems to be working.  Actually, as of 17 Jan 2000, there is one complete project and four
+  active ones including this one, so it really <i>is</i> working.  It's an exciting concept.  Go look.
+  <p>
+  (1/17/00) As for wftk itself, the project will provide a workflow engine and at least one client for defining process classes.
+  Planned platform will be C (maybe Perl) for the server, running via adapter as any one of a number of component types
+  under AOLserver or IIS.  Initial coding will be for CGI and maybe an ActiveX object.  I'll see about that last.
+  XML will be used for definition
+  of process classes and for storage of process values for active processes.  The DTD for process classes is one of the
+  early deliverables for the project, and I've already got some good plans but I'm concentrating on the usage scenarios
+  first.
+  The database will be configurable via adapter;
+  initial code will include PostgreSQL and MS SQLServer.  Document management will be configurable via adapter;
+  initial coding will include the Unix and NT filesystems and FileNet Panagon.
+  <p>
+  This is an ambitious project.  Yeah, I'm getting paid.  But your support and encouragement will go a long way towards
+  helping me get through this.  This will be a sweet solution for a vast number of applications.  Join in!
+  <p>&nbsp;
+</td></tr>
+
+<tr><td valign=top>
+<center>
+<a name=usage>
+<font face=arial><p><b>USAGE SCENARIOS</b></font>
+</td><td>
+  (1/17/00) This is the currently active phase of the project.  At this point, I'm just trying to define what it is we're actually
+  doing.  The usage scenarios should be of great help.  Each one consists of a brief description of the process being
+  modelled, an attempt at a RAD (Role-Action Diagram) and/or PERT (Program Evaluation and Review Technique) chart, and then
+  some musings about what variables might be defined for the process, what deliverables result from each task to be included
+  in the final package, and so forth.  It's all pretty raw.  I'd appreciate comments.  Usage scenarios done or planned:<ul>
+  <li>Purchase of a chair by corporate peon, ahem, pe<i>rs</i>on.  Excuse me.
+  <li>Organization of a trade show.
+  <li>Open-source software project management.
+  <li>Closed-source software project management.
+  <li>E-commerce order placement.
+  <li>The SourceXchange process.
+  </ul>
+  Each of these usage scenarios will be modelled as a business process in the next phase of this project.
+</td></tr>
+
+</table>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

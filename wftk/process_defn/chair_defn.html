@@ -1,0 +1,225 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Process definition example -- chair purchase</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Process definition example -- chair purchase</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/process_defn.html>process&nbsp;definition</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+This is an example definition of the process in the <a href=../usage/chair.html>chair
+purchase scenario</a>.  Wish me luck.
+
+<pre>
+
+&lt;?xml version="1.0"?>
+
+&lt;<b>workflow</b> name="Purchase request" author="Michael: michael@vivtek.com">
+  &lt;<b>role</b> name="Supervisor">&lt;/role>
+  &lt;<b>role</b> name="Purchasing">&lt;/role>
+  &lt;<b>role</b> name="Accounting">&lt;/role>
+  &lt;<b>role</b> name="Receiving">&lt;/role>
+
+  &lt;<b>data</b> name="Product requested" type="text">&lt;/data>
+  &lt;<b>data</b> name="Reason for request" type="text">&lt;/data>
+  &lt;<b>data</b> name="Requester's email" type="text">&lt;/data>
+
+  &lt;<b>sequence</b>>
+    &lt;<b>task</b> label="Approval" role="Supervisor">
+      &lt;<b>data</b> name="Approval code" type="text">&lt;/data>
+      &lt;!-- You know, something like an HTML select box would be appropriate here. --&gt;
+    &lt;/task>
+
+    &lt;<b>if</b> expr="${Approval code} == 'No'">
+      &lt;<b>situation</b> name="Request rejected">&lt;/situation>
+    &lt;/if>
+
+    &lt;<b>task</b> label="Order item" role="Purchasing">
+      &lt;<b>data</b> name="Purchasing record" type="text">&lt;/data>
+    &lt;/task>
+
+    &lt;<b>alert</b> type="email" to="${Requester's email}">
+      Your request for the purchase of ${Product requested} has been approved and the
+      order was placed.  The purchasing record is ${Purchasing record} if you need to
+      contact Purchasing for inquiries.
+    &lt;/alert>
+
+    &lt;<b>alert</b> type="role" to="Accounting">
+      An order for ${Product requested} has been placed.
+    &lt;/alert>
+
+    &lt;<b>alert</b> type="role" to="Receiving">
+      An order for ${Product requested} has been placed.  Expect delivery.
+    &lt;/alert>
+
+    &lt;<b>parallel</b>>
+      &lt;<b>sequence</b>>
+        &lt;<b>task</b> label="Receive ${Product requested}" role="Receiving">&lt;/task>
+        &lt;<b>alert</b> type="email" to="${Requester's email}">
+          Your requested ${Product requested} has arrived.
+        &lt;/alert>
+      &lt;/sequence>
+
+      &lt;<b>task</b> label="File invoice" role="Accounting">
+        &lt;<b>data</b> name="Invoice number" type="text">&lt;/data>
+      &lt;/task>
+    &lt;/parallel>
+
+    &lt;<b>task</b> label="Pay invoice" role="Accounting">&lt;/task>
+    &lt;<b>alert</b> type="role" to="Purchasing">
+      The purchase has been paid.
+    &lt;/alert>
+  &lt;/sequence>
+
+  &lt;<b>handle</b> situation="Request rejected">
+    &lt;<b>alert</b> type="email" to="${Requester's email}">
+      Your request for ${Product requested} has been rejected by your supervisor.
+    &lt;/alert>
+  &lt;/handle>
+&lt;/workflow>
+</pre>
+
+So let's talk about this.  I pretty much just sat down and hacked this out, making up
+syntax as I went.  Let's talk about the parts I made up, and the parts that I already had
+planned.<ul>
+
+<b><li>Variable interpolation</b><br>
+You'll notice the syntax I used for using variable values: ${variable name}.  This is
+borrowed from Tcl and Perl; I found that without assuming accessibility to variable values
+I really couldn't even express this simple scenario.  So regardless of what other scripty
+kinds of things we need to be able to do, we certainly need to be able to insert the
+values of variables into strings.  I use this mostly in the text for alerts, but also for
+the "to" value for alerts which go back to the requester.
+
+<b><li>Role alert</b><br>
+The alert type="role" is something which seemed natural.  Messages to role queues should
+be handled, uh, well, not sure yet.  If a purchasing clerk has already been assigned, then
+it's probably logical that that person would receive a role alert.  This is another area
+where actual usage of the prototype system will help us make sense of things.
+
+<b><li>Use of situation to break sequence</b><br>
+To my surprise, the situation tag just seemed completely intuitive in the case shown here.
+So maybe the situation concept is a good cover for exceptions.  I guess a couple more example
+process definitions will shed light on that question.
+
+<b><li>Exclusion of supplier from system</b><br>
+When I originally drew the diagram in the original chair scenario, it seemed logical to
+include the supplier in order to make the flow easier to see.  But when writing this
+definition, it seemed illogical to include the supplier in the internal roles, as the supplier
+will obviously be another company (and that seemed to be the reaction of the group to the
+original diagram, too...)  At any rate, I had to include another task for Accounting in
+order to make it all make sense.  So this definition doesn't quite correspond to the diagram.
+Ah well.  We pick up the pieces and get on with life, right?
+
+<b><li>Parallel block</b><br>
+Note the use of a parallel block for the two tasks receiving something back from the
+supplier (the chair and the invoice).  This parallelism reflects the fact that we <i>don't
+know</i> what we'll get first.  So both tasks have to be active in order for them to be
+fulfillable.  Since receipt of the chair is supposed to alert the requester, there's a
+sequence nested within that block.  (If the alert simply followed the receipt task, then
+the alert would fire as soon as the chair was ordered.  Which is not what we want.)
+
+<b><li>Implicit situation?</b><br>
+It would seem that if a task is rejected, that an implicit situation is generated which breaks
+the chain of events.  I guess by saying that I'm also buying into the idea of exception-as-situation.
+The question is, how should such a situation be named?  How should a handler be written,
+given that a single handler would logically be written to handle rejection at any one of
+several steps?  This question needs some more thought.  But the problem with handling
+rejection as a situation is that we've got no way to get the process back on track should
+the rejection be cleared up.  Messy.
+</ul>
+
+Anyway, I found this a pretty intuitive way to represent what I perceived to be the
+original workflow.  Of course, most people using this system won't compose the XML by
+hand, but if it's easy to represent a workflow with this setup, then tools will also be
+relatively easy to write.
+
+Onwards.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

@@ -1,0 +1,317 @@
+<html><head><title>Repository manager: Macro processing</title></head>
+<body>
+<h2>Macro processing</h2>
+<center>
+[&nbsp;<a href="publishing.html">Previous: Publishing objects: internals</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="lists.html">Next: Creating and administering lists</a>&nbsp;]
+</center>
+
+<hr>
+Macro resolution covers a <i>whole</i> lot of ground; a macro is defined in the repository by inserting it into the page structure.
+When a page searches for values, it can then find that macro (by id) by searching in its parent, then the parent's parent, and so
+forth until it reaches the top of the repository.  A macro is selected by tool name ("nav" is a navigation macro, for instance),
+and the resolver is given the repository, the page it's being resolved in, the macro definition itself (which may reference an
+external file), and the name of the value which it's resolving.
+<p></p>
+Macros will include the navbar tool, simple value definition (an area name, for instance), file inclusion, and probably many other
+things.  Navbars are the most complex at this point.
+<p></p>
+The result of a macro resolution is <i>text</i>, not XML.  This text may contain any XML special characters needed, so that macros
+can define arbitrary HTML.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>char * _repos_macro_tool_nav (XML * repository, XML * page, XML * object, XML * defn);
+char * _repos_macro_resolve (XML * repository, XML * page, XML * object, XML * macro, const char * value)
+{
+   char * result;
+   FILE * file;
+   XML * defn = NULL;
+
+   if (!*xml_attrval (macro, "tool") || !strcmp (xml_attrval (macro, "tool"), "value")) {
+      if (!*xml_attrval (macro, "value")) {
+         return (strdup (xml_attrval (macro, "value")));
+      }
+      return xml_stringcontenthtml (macro);
+   }
+
+   if (!strcmp (xml_attrval (macro, "tool"), "include")) {
+      if (!*xml_attrval (macro, "defn")) {
+         file = _repos_fopen (repository, xml_attrval (macro, "defn"), "r");
+         if (file) {
+            /* Read the file into a string. */
+            defn = xml_create ("scratch");
+            xml_read_attr (defn, "scratch", file);
+            result = strdup (xml_attrval (defn, "scratch"));
+            fclose (file);
+            xml_free (defn);
+            return (result);
+         }
+      }
+      return (strdup (""));
+   }
+
+   if (!strcmp (xml_attrval (macro, "tool"), "nav")) {
+      if (*xml_attrval (macro, "defn")) {
+         file = _repos_fopen (repository, xml_attrval (macro, "defn"), "r");
+         if (file) {
+            defn = xml_parse_general (file, (XMLAPI_DATARETRIEVE) fread);
+            fclose (file);
+            if (xml_is (defn, "xml-error")) {
+               xml_free (defn);
+               defn = NULL;
+            }
+         }
+      }
+      return _repos_macro_tool_nav (repository, page, object, defn ? defn : macro);
+   }
+
+   return (strdup (""));
+}
+</pre></td></tr></table>
+
+So let's define how navbar construction works.  First, our navbar definition language is structured pretty much like the
+template language.  We have nav:level, nav:list and nav:type elements; a nav:level element selects a set of navbar definitions
+based on the level of the page in its hierarchy, a nav:list iterates through the pages at the current level, and nav:type checks
+for selection and other attributes of the page.  This is a great improvement over representing everything as a set of templates,
+which is what the predecessor code to the repository manager did.  It was messy indeed, since it had to be very general.
+<p></p>
+Once we get inside the nav element structure, we can use template application to continue.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _repos_macro_tool_nav_express_level (XML * result,
+                                          XML * repository, XML * page, XML * object,
+                                          XML * template,
+                                          int curlevel, int pagelevel);
+void _repos_macro_tool_nav_express (XML * result,
+                                    XML * repository, XML * page, XML * object,
+                                    XML * master, XML * template,
+                                    int curlevel, int pagelevel);
+char * _repos_macro_tool_nav (XML * repository, XML * page, XML * object, XML * defn)
+{
+   XML * mark;
+   XML * result;
+   XML * nav;
+   int level;
+   char * res;
+
+   /* Find page in hierarchy. */
+   level = 1;
+   mark = xml_parent (page);
+   while (mark &amp;&amp; mark != repository) {
+      level ++;
+      mark = xml_parent (mark);
+   }
+
+   result = xml_create ("nav");
+   _repos_macro_tool_nav_express_level (result, repository, page, object, defn, 1, level); /* This bit is recursive. */
+
+   res = xml_stringcontenthtml (result);
+   xml_free (result);
+
+   return (res);
+}
+</pre></td></tr></table>
+
+Now let's look at the recursive definition of navbar expression.  To express an element, we look at its type: if a nav: element
+we call the appropriate handler, if a template: element we call template expression, and if anything else we just copy it and
+express its children.  This works pretty much the same as plain-vanilla template expression, and really it's quite the illustration
+of the power of XML when working with recursive structure.  I love this stuff.
+
+<p></p>
+I find myself nearly incapable of documenting this logic.  I don't think I even understand it, not globally.  We're iterating through
+the site map, and to do that, we iterate through the navbar template.  All of this is taking place in a greater iteration through the
+site map as pages are calculated and written.  There are thus at least three different traversals of XML trees going on, and I find
+myself getting them confused on an ongoing basis.  I <i>think</i> I have it right.  But to really understand it (if indeed any mortal
+being is capable of understanding it fully) you'll just have to read the code.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _repos_macro_tool_nav_express_level (XML * result, XML * repository, XML * page, XML * object, XML * template, int curlevel, int pagelevel)
+{
+   XML * defn;
+   XML * mark;
+
+   /* Limit this whole thing to one level down from the current page. */
+   if (curlevel > pagelevel + 1) return;
+
+   /* Let's find the appropriate level expression in the nav template. */
+   defn = xml_firstelem (template);
+   while (defn &amp;&amp; xml_is (defn, "nav:level")) {
+      if (!strcmp (xml_attrval (defn, "level"), "*")) break;
+      if (atoi (xml_attrval (defn, "level")) == curlevel) break;
+      defn = xml_nextelem (defn);
+   }
+
+   /* If there is no level which matches, but we're not at the current page's level, then we increment the level and try again.
+      This might be a series of local nav bars, after all. */
+   if (!defn) {
+      _repos_macro_tool_nav_express_level (result, repository, page, object, template, curlevel + 1, pagelevel);
+      return;
+   }
+
+   /* Now we scan up to curlevel in the site tree above the current page, and generate the entries for the ancestor and all siblings
+      of the ancestor.  When we hit a nav:level element, we'll increment curlevel and call this function again. */
+   mark = xml_first (defn);
+   while (mark) {
+      _repos_macro_tool_nav_express (result, repository, page, object, template, mark, curlevel, pagelevel);
+      mark = xml_next (mark);
+   }
+}
+
+void _repos_macro_tool_nav_express_piece (XML * result,
+                                          XML * repository, XML * page, XML * origpage, XML * object,
+                                          XML * master, XML * template,
+                                          int curlevel, int pagelevel,
+                                          int selected, int parent_selected);  /* A mouthful! */
+void _repos_macro_tool_nav_express (XML * result, XML * repository, XML * page, XML * object, XML * master, XML * template, int curlevel, int pagelevel)
+{
+   XML * res;
+   XML * mark;
+   XML * mark_but_one;
+   XML * mark2;
+   int i;
+
+   if (!xml_is_element (template)) {
+      xml_append (result, xml_copy (template));
+      return;
+   }
+
+   if (!strcmp (xml_name (template), "nav:list")) {
+      /* Find the right level. */
+      if (curlevel > pagelevel) {
+         mark_but_one = NULL;
+         mark = page;
+      } else if (curlevel == pagelevel) {
+         mark_but_one = page;
+         mark = xml_parent (page);
+      } else {
+         mark_but_one = page;
+         mark = xml_parent(page);
+
+         for (i = curlevel; i &lt; pagelevel; i++) {
+            mark_but_one = xml_parent (mark_but_one);
+            mark = xml_parent (mark);
+         }
+      }
+
+      /* Iterate through it, expressing pages. */
+      mark = xml_firstelem (mark);
+      while (mark) {
+         if (xml_is (mark, "page")) {
+            mark2 = xml_first (template);
+            while (mark2) {
+               _repos_macro_tool_nav_express_piece (result, repository, mark, page, object, master, mark2, curlevel, pagelevel, mark == page, mark == mark_but_one);
+               mark2 = xml_next (mark2);
+            }
+         }
+         mark = xml_nextelem (mark);
+      }
+   } else if (!strncmp (xml_name (template), "template:", 9)) {
+      res = xml_template_apply (page, template, object, _repos_publish_getvalue);
+      mark = xml_first (res);
+      while (mark) {
+         xml_append (result, xml_copy(mark));
+         mark = xml_next (mark);
+      }
+      xml_free (res);
+   } else {
+      res = xml_create (xml_name (template));
+      xml_copyattrs (res, template);
+      mark = xml_first (template);
+      while (mark) {
+         _repos_macro_tool_nav_express (res, repository, page, object, master, mark, curlevel, pagelevel);
+         mark = xml_next (mark);
+      }
+      xml_append (result, res);
+   }
+}
+
+void _repos_macro_tool_nav_express_piece (XML * result,
+                                          XML * repository, XML * page, XML * origpage, XML * object,
+                                          XML * master, XML * template,
+                                          int curlevel, int pagelevel,
+                                          int selected, int parent_selected)
+{
+   XML * res;
+   XML * mark;
+   XML * mark_but_one;
+   XML * mark2;
+   int test;
+   int i;
+
+   if (!xml_is_element (template)) {
+      xml_append (result, xml_copy (template));
+      return;
+   }
+
+   if (!strcmp  (xml_name (template), "nav:type")) {
+      /* Determine whether we express this or not. */
+      if (!strcmp (xml_attrval (template, "test"), "selected")) {
+         test = selected;
+      } else if (!strcmp (xml_attrval (template, "test"), "unselected")) {
+         test = !selected &amp;&amp; !parent_selected;
+      } else if (!strcmp (xml_attrval (template, "test"), "parentselected")) {
+         test = parent_selected &amp;&amp; !selected;
+      } else {
+         test = *xml_attrval (page, xml_attrval (template, "test"));
+      }
+
+      if (test) {
+         res = xml_create ("nav");
+         mark = xml_first (template);
+         while (mark) {
+            _repos_macro_tool_nav_express_piece (res, repository, page, origpage, object, master, mark, curlevel, pagelevel, selected, parent_selected);
+            mark = xml_next (mark);
+         }
+         mark = xml_first (res);
+         while (mark) {
+            xml_append (result, xml_copy(mark));
+            mark = xml_next (mark);
+         }
+         xml_free (res);
+      }
+   } else if (!strcmp  (xml_name (template), "nav:level")) {
+      _repos_macro_tool_nav_express_level (result, repository, origpage, object, master, curlevel + 1, pagelevel);
+   } else if (!strncmp (xml_name (template), "template:", 9)) {
+      res = xml_template_apply (page, template, object, _repos_publish_getvalue);
+      if (xml_is_element (res)) {
+         mark = xml_first (res);
+         while (mark) {
+            xml_append (result, xml_copy(mark));
+            mark = xml_next (mark);
+         }
+         xml_free (res);
+      } else {
+         xml_append (result, res);
+      }
+   } else {
+      res = xml_create (xml_name (template));
+      xml_copyattrs (res, template);
+      mark = xml_first (template);
+      while (mark) {
+         _repos_macro_tool_nav_express_piece (res, repository, page, origpage, object, master, mark, curlevel, pagelevel, selected, parent_selected);
+         mark = xml_next (mark);
+      }
+      xml_append (result, res);
+   }
+}
+
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="publishing.html">Previous: Publishing objects: internals</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="lists.html">Next: Creating and administering lists</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

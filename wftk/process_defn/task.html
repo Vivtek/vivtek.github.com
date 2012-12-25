@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Process definition -- task</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Process definition: <code>&lt;task&gt;</code></h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/process_defn.html>process&nbsp;definition</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+Since tasks are arguably the whole point of workflow, it's not surprising that there's a
+lot to do to define a task.  But basically it boils down to these things:<ul>
+<li>The role: what class of entity is supposed to perform the task.
+<li>Process-specific values which are part of the particular task.
+<li>What values and deliverables are expected from the agent after the task is completed.
+<li>(For human agents, anyway) an HTML presentation to use for the task.
+<li>The label to attach to the task in lists.
+</ul>
+So an appropriate syntax would be something like this:<br>
+<code>
+&nbsp;&nbsp;&lt;task label="The next thing to do" role="Secretary"&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;data name="whatever"&gt;&lt;/value&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;expect type="file" name="incoming"&gt;...&lt;/data&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;some way of formatting the page<br>
+&nbsp;&nbsp;&lt;/task&gt;<br>
+</code>
+At this point I'm not going to waste time on how the formatting will be specified.  I have
+a couple of different ways that I often use, and I'll use one that feels right when I get
+into coding.  But the important things here are the <code>data</code> and the <code>expect</code>
+tags.  The <code>data</code> tag names values which are salient to this particular task, while
+the <code>expect</code> tags denote values which must be obtained from the agent when the
+task is completed.  The display of an active task must show both; in HTML format, the
+task must show the data values, and supply data entry fields for the expect values.
+<p>
+If a task is completed by email, then (somehow) the expected values must be marked in the
+email -- or more likely, email completion will only work for tasks with no expect values.
+Again, we'll see what makes sense when we start coding.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

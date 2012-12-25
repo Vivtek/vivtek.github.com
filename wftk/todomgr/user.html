@@ -1,0 +1,67 @@
+<html><head><title>To-do manager: User functionality</title></head>
+<body>
+<h2>User functionality</h2>
+<center>
+[&nbsp;<a href=todomgr_reject.html>Previous: Definition of todomgr_reject</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=login_admin.html>Next: Login management stuff</a>&nbsp;]
+</center>
+
+<hr>
+The user functionality consists of two things: the most important is of course the
+code to be executed before each function in order to cause the login box to pop up.
+This uses <code>ns_conn authuser</code> to see if a login has already been supplied; if not,
+a 401 return is used to pop the box up.
+<p>
+The other portion is of course a couple of screens for maintenance of the user table: a list,
+a user-update function, a user-add function, user delete, and a screen to be used to request
+a user ID.  (The request is anonymous and creates an inactive user record.  The record must
+then be activated by an administrator.  This would be a great place to use a workflow.)
+<br><br>
+<a name="check">
+<i>Checking authuser</i><br>
+Checking for the authuser is pretty straightforward.  This code is executed at the beginning
+of each screen.  It assumes a DB pool handle in <code>$db</code>.  If the authuser is already
+set, then we check it against the database; otherwise we set the WWW-Authenticate header to
+provide the details of our authentication request, and return a 401 status to invoke the
+login dialog.
+
+<p>
+The userid ends up in <code>$user</code> and <code>$userrow</code> is an <code>ns_set</code>
+which contains the row from the users table corresponding to that userid.  (Thus including name
+and contact information.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set user [string tolower [ns_conn authuser $conn]]
+if [string compare $user ""] {
+   if [catch {set userrow [ns_db select $db "select * from users where userid='[sql_safe_string $user]'"]} result] {
+      set tags(title) "Problem validating user"
+      set tags(body) "The database returned an error while attempting to perform signon."
+      append tags(body) "&lt;br>The error returned was: &lt;code>$result&lt;/code>"
+      return [todomgr_pageout $conn message.html 500]
+   }
+   if {![ns_db getrow $db $userrow] || \
+        [string compare [string tolower [ns_conn authpassword $conn]] \
+                        [string tolower [ns_set get $userrow password]]]} {
+      ns_set put [ns_conn outputheaders $conn WWW-Authenticate "BASIC realm=\"task list manager\""
+      return [todomgr_pageout $conn auth.html 401]
+   }
+} else {
+   ns_set put [ns_conn outputheaders $conn] WWW-Authenticate "BASIC realm=\"task list manager\""
+   return [todomgr_pageout $conn auth.html 401]
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href=todomgr_reject.html>Previous: Definition of todomgr_reject</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=login_admin.html>Next: Login management stuff</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

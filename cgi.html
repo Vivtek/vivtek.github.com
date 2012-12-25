@@ -1,0 +1,173 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>CGI</TITLE>
+   <META NAME="description" CONTENT="A short description of the CGI protocol, with some comparison to more recent active content mechanisms.">
+   <META NAME="Keywords" CONTENT="CGI, active content, Web programming, common gateway interface, Perl, C">
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>CGI</u></h2>
+</td></tr>
+
+<tr><td>
+CGI (Common Gateway Interface) was one of the first ways to write programming content for Websites.  As such, it enjoys
+nearly universal support, so I use it pretty extensively.
+<p>
+Advantages over (for instance) Tcl or ASP programming:<ul>
+
+<b><li>Universal support</b><br>
+Every server supports CGI programming.  A great deal of ready-to-use CGI code can be found for free on the internet.  Most
+ISPs also allow CGI programming (although some will restrict you to scripts that they have approved, for security and
+system stability reasons.)
+
+<b><li>Choice of languages</b><br>
+The CGI protocol is extremely general, so that programs may be written in nearly any language.  Perl is by far the most
+popular, with the result that many people think that CGI <i>means</i> Perl.  But C or Python are fine or heck, I suppose you could
+write CGI in Forth or something.
+
+</ul>
+Sounds great, eh?  Usually it is.  But disadvantages:<ul>
+<b><li>Runs in own process and establishes own database connections</b><br>
+Unlike embedded scripting languages (<a href=/asp.html>ASP scripts</a> under IIS or Tcl under AOLserver) each call to a CGI
+program requires a process to be started, run, and stopped.  On heavy sites this can add up to a lot of load for the machine.
+Worse, the process boundary means that database connections must also be established for each hit, and that can add up to
+far more load as compared to any platform which establishes database connections in advance and doles them out to embedded
+scripts.
+
+<b><li>Security risk</b><br>
+Since a CGI is an arbitrary program running with the userid of the Web server, a malicious or simply incompetent CGI
+programmer can wreak serious havoc on the system.  With careful security planning, most of this risk can be avoided, but
+it does mean that you pay ISPs extra (usually) for the ability to run arbitrary scripts.  Fortunately, a crash in a CGI
+program doesn't crash the server (unlike Apache modules), so at least you have a little win.
+</ul>
+
+So how does it work?  CGI programming is very simple.  The key is whatever your program writes to standard output gets sent
+back to the client.  The server messes with it a little along the way, if you want, but not much.  Pretty much you're just
+talking to the browser.  So the first thing you have to print is the headers of a valid response.  If you mess these up,
+most servers will really complain.  The simplest header you can write is:
+<blockquote><code>
+Content-type: text/html
+</code></blockquote>
+This marks the rest of the output as HTML, and you can usually get away with no more headers than those.
+<p>
+Input to your script comes in two ways.  Anything that's part of the request (i.e. a POST content) is on the standard input.
+And then there are lots of other things (including the URL and query part of the URL) which are in environment variables.
+(As you can see from the use of standard input and output and environment variables, the CGI interface was designed in a
+C-influenced Unix environment.)  The environment variables actually defined vary from server to server somewhat, but these
+are pretty standard:
+<table>
+<tr><td>SERVER_SOFTWARE </td><td> The software you're running under. </td></tr>
+<tr><td>SERVER_NAME </td><td> Name of the server </td></tr>
+<tr><td>GATEWAY_INTERFACE </td><td> Not sure, I never use it. </td></tr>
+<tr><td>SERVER_PROTOCOL </td><td> HTTP or HTTPS, I believe. </td></tr>
+<tr><td>SERVER_PORT </td><td> The port the request came in on. </td></tr>
+<tr><td>REQUEST_METHOD </td><td> Method (GET or PUT). </td></tr>
+
+<tr><td>HTTP_ACCEPT </td><td> Mime types the browser will accept as an answer. </td></tr>
+
+<tr><td>PATH_INFO </td><td> The path of the CGI (I believe; again, never use it.) </td></tr>
+<tr><td>PATH_TRANSLATED </td><td> The virtual path. </td></tr>
+<tr><td>SCRIPT_NAME </td><td> The name of the program itself being called. </td></tr>
+<tr><td>QUERY_STRING </td><td> The query string (everything after the '?' in the URL). </td></tr>
+<tr><td>REMOTE_HOST </td><td> Host name of the client.  (Careful: firewalls and proxies really mess this up.) </td></tr>
+<tr><td>REMOTE_ADDR </td><td> IP address of the client. </td></tr>
+<tr><td>REMOTE_USER </td><td> Remote username.  Don't depend on this being at all useful. </td></tr>
+<tr><td>AUTH_TYPE </td><td> Usually BASIC. </td></tr>
+<tr><td>HTTP_USER_AGENT </td><td> Browser identifier string. </td></tr>
+<tr><td>CONTENT_TYPE </td><td> Mime type of the browser request on standard input. </td></tr>
+<tr><td>CONTENT_LENGTH </td><td> Length of same. </td></tr>
+</table>
+
+That's all I feel like writing at the moment.  I just got more and more irritated about always having to look up those
+environment variables, so there they are.  I guess a sample CGI program would be useful, but I don't have time right now.
+
+</td></tr>
+
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

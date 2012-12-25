@@ -1,0 +1,561 @@
+<html><head><title>Custom text editor #1</title><style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style></head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">programming</p>
+<p>[ <a href="/projects/">all projects</a> ]</p>
+<p>[ <a href="/blog/">blog</a> ]</p>
+<p>[ <a href="/projects/forum_despammer/">forum despammer</a> ]</p>
+<p>[ <a href="/projects/wiki/">wiki tools</a> ]</p>
+<p>[ <a href="/projects/fantasy_names/">name generator</a> ]</p>
+<p>[ <a href="/gdbm.html">gdbm</a> ]</p>
+<p>[ <a href="/expat.html">expat</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Custom text editor #1</div>
+<p>
+This little custom text editor is a pretty simple example of a wxPython app -- I've
+been careful not to include anything else in it.  Instead, the idea is to
+provide a minimal example of something that's actually useful.
+</p><p>
+I've developed it in a <a href="http://www.vivtek.com/litprog.html">literate style</a> using
+some crude Perl I wrote back in March of 2000 and basically haven't revisited since; you can
+read the nicely formatted code here, or you can see the straight Python <a href="text_editor1.py.txt">here</a>,
+and you can download a Windows executable <a href="text_editor1.zip">here</a> to play with.
+To run the executable, you'll need to invoke it from the command line (if you just click the program,
+you'll get a snippy error message.)  The command line is thus:
+</p>
+<blockquote>
+<code>text_editor1 [name of text file]</code>
+</blockquote>
+<p>
+Since the editor will save when it quits, I recommend not playing with anything you wanted to keep unchanged.
+Heh.
+</p><p>
+So the boilerplate of such a program is pretty straightforward, and that boilerplate is
+this first section of the document.  <i>Really</i> I keep intending to put this boilerplate
+into some kind of macro so I don't have to keep copying it from old projects, but I haven't
+yet, so instead I'll just define it here.  Maybe in the context of these app-a-week
+exercises, I'll get around to rebuilding some of these tools and then I'll move this boilerplate
+out of here.  If I'm really going to be documenting a program a week, then I'll be motivated
+to make it easy on myself.
+</p><p>
+In keeping with the philosophy that this first section is boilerplate, then, I won't even
+talk about what I want the app to do until the third section, which is where I define the
+main window's class code -- that's where all the action is, so that's where I'll put my requirements.
+Fair?  I thought so.
+</p><p>
+First, we import all our libraries.  Here, these are minimal.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>import string
+import sys
+from wxPython.wx import *
+</pre></td></tr></table>
+<p>
+Next, we handle our input.  I'll put that into a separate section for convenience.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="text_editor1.html#input">Handling input</a></i>
+</pre></td></tr></table>
+<p>
+The actual program in a wxPython program, from the standpoint of the code that does things the user
+interacts with, is in the main window class definition (at least, this is the case for a single-window
+application of the kind we're defining here.)  That's <i>definitely</i> going into a separate section.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="text_editor1.html#meat">The main_window class definition</a></i>
+</pre></td></tr></table>
+
+<p>
+And the rest of the program is the infrastructure for dealing with setting up that
+main window.  Easy.  Oh, wait, my boilerplate uses one little helper function; let's define it here.
+</p>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>def notify_user (line, frame=None):
+    dlg = wxMessageDialog(frame, line, 'Text editor #1', wxOK | wxICON_INFORMATION)
+                          #wxYES_NO | wxNO_DEFAULT | wxCANCEL | wxICON_INFORMATION)
+    dlg.ShowModal()
+    dlg.Destroy()
+</pre></td></tr></table>
+<p>
+OK, the rest is pretty easy.  We define an application class which puts up the window, and we instantiate it.
+That's it.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class App(wxApp):
+    def OnInit(self):
+        frame = main_window(None, -1)
+        return true
+
+app = App(0)
+app.MainLoop()
+</pre></td></tr></table>
+And that, in a nutshell, is a wxPython program.  Later I'll roll this into some kind of reusable boilerplate.
+Eventually.
+<br><br>
+<a name="input">
+<i>Handling input</i><br>
+In this program, I'm not going to do very much at all with the input -- essentially just read the name of the file in from the
+command line into a global variable.  Which, actually, is pretty stupid, given that the command line is itself a variable, but
+at least it means we <i>could</i> do something different here if we wanted to.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>try:
+   input_filename = sys.argv[1]
+except:
+   input_filename = ''
+</pre></td></tr></table>
+<br><br>
+<a name="meat">
+<i>The main_window class definition</i><br>
+<p>
+Now we're down to the actual, you know, <i>program</i>. The task is this: I have a text file consisting of tab-delimited text
+in three columns. The first is a German phrase, the second a number which we can safely ignore for this, and the third
+is an English phrase which has been generated by a Perl script. That third starts with a question mark to denote that it is
+questionable -- and let me tell you, any machine-translated phrase generated by a script is quite questionable. Let me give
+you a couple of examples. Just two; I didn't actually save the initial translated guesses and I'm too rushed right now to reconstruct
+them. They're too wide to be comfortable in their original one-lined form, so I've broken the lines, with German, then English, etc.
+<pre>Verz&ouml;gerung Bodennaht Kontaktk&uuml;hlung schlie&szlig;en am Sackabzug
+?Delay bottom seam contact cooling close at bag takeoff
+Verz&ouml;gerung Bodennaht Kontaktk&uuml;hlung schlie&szlig;en an der &Ouml;ffnungsstation
+?Delay bottom seam contact cooling close to of the opening station
+</pre>OK.  What I <i>want</i> to appear is still pretty ugly English, but it's technical machine output and space is limited:
+<pre>Delay: close bottom seam contact cooling at bag takeoff
+Delay: close bottom seam contact cooling at the opening station
+</pre>(I've omitted the first two columns for aesthetic reasons here.) In these two samples, I've done the following:
+inserted a question mark, moved the word "close" to the beginning of its phrase, and quickly replaced "to of" with "at"
+(I could have made a better Perl script, but the point is that with the right editor, it is quicker for me to manually change
+some instances than to derive a rule to change them all, correctly, with <i>no false positives</i>).
+</p><p>
+In Word, if I highlight "close" and drag it to the new position, I end up with this:
+<pre>Delay closebottom seam contact cooling  at bag takeoff
+Delay closebottom seam contact cooling  to of the opening station</pre>
+This sucks mightily. It means I have to insert a space and take another out, by hand, and get the mouse to hit the right places
+very accurately to do so <i>or</i> move the cursor with the arrow keys.
+</p><p>
+Even worse, if I drop "close" in the middle of a word, I might end up with e.g. "Delay bot closetom seam" --
+and then I have to undo, or retype.
+</p><p>
+Over many, many drag operations this all adds up and it breaks my concentration. A very bad thing indeed. So my
+primary need for this new editor is that: mouse selection should select only words, no spaces, and a drag within the
+sentence must preserve word spacing (that is, spaces should remain around the words dropped, and no double spaces
+may be introduced.) A drop must also always preserve wordness, that is, if I drop a word in the middle of another word,
+it should insert the dropped word <i>in front of</i> the one I dropped it into.
+</p><p>
+And while I'm at it, let's throw in a couple more pretty simple requirements -- let's list them all, in fact:
+<ol>
+<li>Drag and drop of words/phrases must preserve interword spacing
+<li>Drag and drop must preserve wordness of the dropped text
+<li>The capitalization of the sentence must be preserved (initial cap)
+<li>Sentence-internal capitalization if I hit a key (e.g. F2 on a word toggles capitalization)
+<li>A single key jumps to the next uninspected phrase (using the initial question mark)
+<li>A single key on the left hand deletes the current selection
+</ol>
+That last could use a little explanation. If I use, say, F3 with my left hand to go to the next question mark, and my right hand
+is on the mouse to drag and drop words around the sentence, then I don't want to have to move either hand to hit the Del key.
+So let's define F4, next to the F3 key, as a supplemental delete. F2 toggles capitalization on the word the cursor is in.
+</p><p>
+Which brings us to the implementation.
+The core of any wxPython program is at least one class implementing the frame object.
+This class provides a central
+place to hang all the windows stuff, defines menus and event handlers, and so forth.  The "stock program" consists of a
+single such frame class, along with a bunch of handling code, dialog builders/handlers, and so on.  Most of the meat of what's on
+that window is generally one or more widgets represented by control classes, in this case the basic text editor control.
+</p><p>
+I'll set the window up in its constructor, then add a single control, the <code>wxTextCtrl</code> that gets written to <code>self.control</code>.
+(Pun intended, yes.)  Once the text control is defined, I load the file and set the font style to a fixed-aspect font,
+and set up some flags and the events we'll be handling.  Finally, I set the window to visible with <code>self.Show(true)</code>.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class main_window(wxFrame):
+    def __init__(self, parent, id, filename=input_filename):
+        h = 500
+        w = 500
+
+        wxFrame.__init__(self, parent, -1, 'Custom text editor #1', size = (w, h),
+                         style=wxDEFAULT_FRAME_STYLE|wxNO_FULL_REPAINT_ON_RESIZE)
+
+
+        # Set the filename.
+        self.textfile = filename
+        if filename == '':
+           notify_user ("Stupid user, invoke from the command line:\ntext_editor1 [text file name]")
+
+        # Create the text control, load the file, and set the font.
+        self.control = wxTextCtrl(self, 10, style=wxTE_MULTILINE|wxTE_RICH|wxHSCROLL)
+        if self.textfile != '': self.control.LoadFile (self.textfile)
+        self.control.SetStyle (0, self.control.GetLastPosition(), wxTextAttr(wxNullColour, wxNullColour, \
+                                                                             wxFont (9, wxMODERN, wxNORMAL, wxNORMAL, false)))
+
+        # Set up state variables.
+        self.typing_now = 1
+        self.selection = 0
+
+        # Define event handlers.
+        EVT_CLOSE(self, self.OnExit)
+        EVT_CHAR(self.control, self.EvtChar)
+        EVT_LEFT_UP(self.control, self.EvtLeftUp)
+        EVT_TEXT(self, 10, self.EvtText)
+
+        # Set the window to visible.
+        self.Show(true)
+
+<i>See <a href="text_editor1.html#evtchar">Handling EVT_CHAR: key pressed in the text control</a></i>
+<i>See <a href="text_editor1.html#evttext">Handling EVT_TEXT: changes to text control contents</a></i>
+<i>See <a href="text_editor1.html#evtleftup">Handling EVT_LEFT_UP: left mouse button released</a></i>
+<i>See <a href="text_editor1.html#onexit">Handling EVT_CLOSE: program exit</a></i>
+</pre></td></tr></table>
+<p>
+Let's look at our four event handlers in roughly the same order I wrote them; my first task beyond getting this up in the first place was to ensure
+that when I use the mouse to select something, only words get selected.  Then I made sure that dragging and dropping did what I wanted.  After all that,
+I came up with the key changes, so that's next.  Finally, I realized that I didn't want to do much work to save the text, so that's what happens
+on EVT_CLOSE.
+</p>
+<br><br>
+<a name="evtleftup">
+<i>Handling EVT_LEFT_UP: left mouse button released</i><br>
+<p>
+So how's this work?  Pretty simple, really: after something is selected, the left mouse button goes up, so that's the event
+to hook.  When the button goes up, the first thing is to check that the start and end of the selection are different (that we have a selection, not
+an insertion point.)  If that's true, well, you can see what we do: grab the current line of text, expand the selection to the word start before the
+selection and the word end after it, and then we're done.  The selection is also arbitrarily restricted to a single line (to simplify this code and because
+I never want to move lines around in my file.)  You can pretty much see how all that plays out in Python, below.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>    def EvtLeftUp (self, event):
+        #print self.typing_now
+        self.typing_now = 0
+        event.Skip()
+
+        # Control received only after selection modified.  But *not* during drag and drop!
+        # Exception: if long selection, click in middle, turns into insertion point -- control received before collapse
+        (start, end) = self.control.GetSelection()
+        if start != end:
+           (scol, sline) = self.control.PositionToXY(start)
+           (ecol, eline) = self.control.PositionToXY(end)
+           #print "selected %s-%s to %s-%s" % (scol, sline, ecol, eline)
+
+           # Move start to start of word.
+           line = self.control.GetLineText(sline)
+           while scol > 0 and scol < len(line) \
+                 and (string.find(string.whitespace, line[scol]) > -1 \
+                      or string.find(string.whitespace, line[scol-1]) == -1):
+              #print "%s: '%s' and '%s'" % (scol, line[scol], line[scol-1])
+              if string.find(string.whitespace, line[scol]) > -1: scol = scol + 1
+              if string.find(string.whitespace, line[scol-1]) == -1: scol = scol - 1
+
+           start = self.control.XYToPosition (scol, sline)
+
+           if eline != sline:
+              ecol = len(line)
+              eline = sline
+           else:
+              # Move end to end of word.
+              line = self.control.GetLineText(eline)
+              while ecol > 0 and ecol < len(line) \
+                    and (string.find(string.whitespace, line[ecol]) == -1 \
+                         or string.find(string.whitespace, line[ecol-1]) > -1):
+                 #print "%s: '%s' and '%s'" % (ecol, line[ecol], line[ecol-1])
+                 if string.find(string.whitespace, line[ecol-1]) > -1: ecol = ecol - 1
+                 if string.find(string.whitespace, line[ecol]) == -1: ecol = ecol + 1
+
+           end = self.control.XYToPosition (ecol, eline)
+              
+           self.control.SetSelection (start, end)
+           self.last_selection = (start, end)
+</pre></td></tr></table>
+<br><br>
+<a name="evttext">
+<i>Handling EVT_TEXT: changes to text control contents</i><br>
+<p>
+EVT_TEXT fires whenever the contents of the text control change -- probably more often than we want.  I <i>think</i> it would be
+possible to intercept the drag and drop events directly, but to do so I'd have to subclass the text control, and that's beyond the
+scope of what I want to do here.  And this solution works for my purposes.
+</p><p>
+Instead, I set a "typing_now" flag whenever a key is pressed, and I clear it whenever the left mouse button goes up.  If the
+contents change when I'm not typing, I figure it's a drop.  Close enough for government work.
+</p><p>
+This section of the program is by far the most involved, and I'm not going to explain it blow by blow, because you can figure it
+out if you're interested.  I will note that it proved easier to paste material from the Clipboard than to mess with the Replace
+method of the wxTextControl (buggy behavor on the part of wx), and so copying to the Clipboard features prominently in some of this
+code.  I'll also state that if I were to subclass <code>wxTextControl</code> to do this, I would definitely move some sections of
+this code into convenient methods.  That's better left for another week, though.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>    def EvtText (self, event):
+        if not self.typing_now:
+           (start, end) = self.control.GetSelection()
+           # Not the best drop detection.
+           if start != end:
+              # Find starting position
+              if self.last_selection[0] > start:
+                 where_started = self.last_selection[0] + end - start
+              else:
+                 where_started = self.last_selection[0]
+              (ocol, oline) = self.control.PositionToXY(where_started)
+              line = self.control.GetLineText(oline)
+
+              after_tab = false
+              if line[ocol - 1] == "\t": after_tab = true
+
+              # Remove orphaned whitespace and put selection back where it was
+              n = ocol
+              try:
+                 while string.find(string.whitespace, line[n]) > -1 and n < len(line): n = n+1
+              except:
+                 n = ocol
+                 where_started = where_started - 1
+                 ocol = ocol - 1
+              if (n != ocol):
+                 self.control.Remove(where_started, self.control.XYToPosition(n, oline))
+                 line = self.control.GetLineText(oline)
+                 if wxTheClipboard.Open():
+                    wxTheClipboard.SetData(wxTextDataObject(string.upper(line[ocol])))
+                    wxTheClipboard.Close()
+                    self.control.SetSelection(where_started, where_started+1)
+                    self.control.Paste()
+                 if where_started < start:
+                    start = start - n + ocol
+                    end = end - n + ocol
+                 self.control.SetSelection(start, end)
+
+              # Move selection to start or end of drop target word, and compensate whitespace
+              (scol, sline) = self.control.PositionToXY(start)
+              (ecol, eline) = self.control.PositionToXY(end)
+              line = self.control.GetLineText(sline)
+              dropped = line[scol:ecol]
+              if after_tab and dropped == string.capitalize(string.lower(dropped)): dropped = string.lower(dropped)
+              self.control.Remove(start, end)
+              line = self.control.GetLineText(sline)
+
+              if wxTheClipboard.Open():
+                  wxTheClipboard.SetData(wxTextDataObject(dropped))
+                  wxTheClipboard.Close()
+
+              if start < where_started: # Moved backwards; move to start of word.
+                 while scol > 0 and scol < len(line) \
+                       and (string.find(string.whitespace, line[scol]) > -1 \
+                            or string.find(string.whitespace, line[scol-1]) == -1):
+                    if string.find(string.whitespace, line[scol-1]) == -1: scol = scol - 1
+                    if string.find(string.whitespace, line[scol]) > -1: scol = scol + 1
+
+                 start = self.control.XYToPosition (scol, sline)
+                 if wxTheClipboard.Open():
+                     wxTheClipboard.SetData(wxTextDataObject(dropped + " "))
+                     wxTheClipboard.Close()
+              else:
+                 while scol > 0 and scol < len(line) - len(dropped) \
+                       and (string.find(string.whitespace, line[scol]) == -1 \
+                            or string.find(string.whitespace, line[scol-1]) > -1):
+                    if string.find(string.whitespace, line[scol]) == -1: scol = scol + 1
+                    if string.find(string.whitespace, line[scol-1]) > -1: scol = scol - 1
+
+                 start = self.control.XYToPosition (scol, sline)
+                 if wxTheClipboard.Open():
+                     wxTheClipboard.SetData(wxTextDataObject(" " + dropped))
+                     wxTheClipboard.Close()
+
+              self.control.SetInsertionPoint (start)
+              self.control.Paste ()
+
+              event.Skip()
+
+
+</pre></td></tr></table>
+<br><br>
+<a name="evtchar">
+<i>Handling EVT_CHAR: key pressed in the text control</i><br>
+<p>
+Handling the keyboard is straightforward, as you can see.  I'm only doing something special with three keys (F2 toggles the
+capitalization of the current word, F3 goes to the next tab-question-mark boundary, and F4 deletes the current selection).
+If the key struck is none of those, then I set the "typing_now" flag I mentioned earlier.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>    def EvtChar (self, event):
+        k = event.GetKeyCode()
+        if k == WXK_F3:
+           (start, end) = self.control.GetSelection()
+           (scol, sline) = self.control.PositionToXY(start)
+           line = self.control.GetLineText(sline)
+           if end - start == 1 and line[scol] == '?': sline = sline + 1
+           found = false
+           while not found:
+              line = self.control.GetLineText(sline)
+              loc = string.find (line, "\t?")
+              if loc > -1:
+                 found = true
+                 self.control.SetSelection (self.control.XYToPosition(loc+1, sline), self.control.XYToPosition(loc+2, sline))
+              else:
+                 sline = sline + 1
+        elif k == WXK_F2:
+           (start, end) = self.control.GetSelection()
+           (scol, sline) = self.control.PositionToXY(start)
+           line = self.control.GetLineText(sline)
+           while scol > 0 and scol < len(line) \
+                 and (string.find(string.whitespace, line[scol]) > -1 \
+                      or string.find(string.whitespace, line[scol-1]) == -1):
+              if string.find(string.whitespace, line[scol-1]) == -1: scol = scol - 1
+              if string.find(string.whitespace, line[scol]) > -1: scol = scol + 1
+
+           if wxTheClipboard.Open():
+              wxTheClipboard.SetData(wxTextDataObject(string.swapcase(line[scol])))
+              wxTheClipboard.Close()
+              self.control.SetSelection (self.control.XYToPosition(scol, sline), self.control.XYToPosition(scol+1, sline))
+              self.control.Paste()
+
+           self.control.SetSelection(start, end)
+
+        elif k == WXK_F4:
+           #self.control.SaveFile (self.textfile)
+           (start, end) = self.control.GetSelection()
+           self.control.Remove(start, end)
+        else:
+           self.typing_now = 1
+           self.selection = 0
+           event.Skip()
+</pre></td></tr></table>
+<br><br>
+<a name="onexit">
+<i>Handling EVT_CLOSE: program exit</i><br>
+<p>
+Finally, when the program closes I save the file.  This means if I screw up, <i>I'm sunk</i>, which is pretty poor interface design if I were going
+to release this into the wild, but since it's just a quick fix for myself, I'm happy.
+</p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>    def OnExit (self, event):
+        if self.textfile != '': self.control.SaveFile(self.textfile)
+        event.Skip()
+
+</pre></td></tr></table>
+<br><br>
+<a name="conclusion">
+<i>Conclusion</i><br>
+<p>
+And thus concludes the lecture.  I hope to do one of these roughly every week, on topics you're more than welcome to suggest at the
+<a href="http://www.thesoftwarejedi.com">Software Jedi's place</a>.
+</p>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body></html>

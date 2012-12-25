@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: Features</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>wftk: Features</h2>
+[ <a href="index.html">wftk documentation home</a> ]
+<hr>
+
+The wftk (workflow toolkit) is a collection of tools for implementation of workflow systems.  The
+central component is the wftk library, which implements the logic of workflow itself.  The features
+of the wftk are as follows:
+
+<ul>
+<li><b>Extremely flexible adaptor architecture for integration with existing systems.</b><br>
+Wherever possible, wftk interfaces with other systems using <i>adaptors</i>, simple code modules which
+encapsulate basic functionality needed to support workflow logic.  Adaptors can easily be written to
+present any kind of interaction with external systems in terms the wftk can understand.  An example
+is the database adaptor; the wftk puts all its database logic into the database adaptor, so that an
+adaptor can be written for any database.  The Oracle adaptor (included with the distribution) took
+four days to write, as an example.  Other adaptor classes are process storage, process definition
+storage, notification (emails, pagers, etc.), data types, and so forth.
+
+<li><b>Simple task delegation and request mechanism</b><br>
+The wftk works equally well with programmed tasks, ad-hoc tasks (those which have been assigned outside
+the realm of a defined procedure), requests (which turn into tasks when accepted by the requestee), and
+delegation: an assigned task may be passed to another user as a request, and the request may even be
+passed on.  This "token-based" task architecture is unusual among workflow systems.
+
+<li><b>Powerful approval/permissions API</b><br>
+The permissions module of the wftk can be used to compare a requested action against a permission
+database.  Since there is an action adaptor class, this means that you can use the wftk as a plug-in
+permissions module for any system.  The permissions structure of the wftk is unusual in that it allows
+for three levels of trust: upon submission of a request, the permissions database can approve it
+immediately (passing the action on to the system which will perform it), deny it (in which case no
+action is taken), or initiate an approval procedure.  The approval procedure can be any arbitrary
+workflow process, and the action will be taken or denied based on the outcome of the procedure.
+
+<li><b>Very portable code</b><br>
+The wftk is written in ANSI C, meaning that it is portable to any system that has a working ANSI C
+compiler.  Main development is done under Windows and Solaris.
+
+<li><b>Lightweight</b><br>
+The wftk is a rather small library, so it can run with very little resource impact on nearly any
+machine.
+
+<li><b>Transparent data representation</b><br>
+All data structures in the wftk are manipulated using the XMLAPI library; all storage is thus done in
+XML (unless you write an adaptor which uses something else.)  This means that it's very simple to
+write tools to work with the wftk's data.
+
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

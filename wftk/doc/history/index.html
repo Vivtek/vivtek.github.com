@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: History and specs</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table>
+<tr><td><img src=../logo.png>
+<td valign=top>
+<center>
+<h3>wftk: History and specs</h3>
+[ <a href=../index.html>documentation home</a> ]
+</center>
+</td></tr></table>
+
+<h3>The sordid history of the wftk</h3>
+
+<b>December, 1999</b><br>
+The wftk has been my brainchild and obsession since December of 1999, when I first ran across a proposal for an open-source workflow system on the now-defunct SourceXchange.  Since I had just lost a lucrative customer, I was looking for something to do with my time that might actually put some
+food on the table, and this fit the bill -- and in fact, it has paid off over the subsequent years, even though it's really only now getting more or
+less finished.  Well, <i>finished</i> is of course something it will never be.  But it's to the point where it's almost useful for actual intents
+and purposes.
+<p>
+<b>Spring, 2000</b><br>
+By spring, I had laid out what a workflow core engine would have to do, designed the procdef language, and written a pretty decent first cut of
+the code, along with a wrapping system in Tcl under AOLserver to provide a user interface.  It was bona fide workflow, although pretty clunky in
+practice, as it relied on a command-line processor which accepted workflow commands, and didn't talk directly to any databases.
+<p>
+<b>July, 2000</b><br>
+Dabbled in a CGI interface for the editing of procdefs, and got very bogged down in that.  An initial CGI procdef editor was
+released July 10, 2000.
+<p>
+<b>October, 2000</b><br>
+First release of the prototype.
+Galactic Marketing, the original proposer of the system, had quietly given up on me by this time, so I lost some
+momentum at this point and entered a more quiescent phase for a while.  The prototype ran only on Windows, it could talk to 
+ODBC databases but nothing else except for data stored in XML files in local directories, and consisted only of a command-line
+interface (although a Windows AOLserver task manager system existed which could use it to a certain extent.)  It was just barely a
+workflow system, but it <i>was</i> a workflow system.
+<p>
+<b>February 2001</b><br>
+I woke from a winter slumber and ported the system to Unix -- of course, on Unix it couldn't talk to any database <i>at all</i>, but
+it ran on Solaris by February (at the time I had no Linux system for testing.)
+<p>
+<b>Early 2001</b><br>
+The fine folks at Startext GmbH were crazy enough at this point to hire me to adapt wftk to their project as a general, well,
+open-source workflow toolkit.  So I did.  The crucial change was the separation of the wftk core engine into a module of its own,
+callable from the command-line interface or <i>from other programs</i>.  Of course, this had been my initial goal, but I hadn't actually
+done it.  Startext also underwrote the initial Oracle adaptor, and some other miscellaneous stuff.  And they paid!  On time!  And then
+they disappeared for a while.  But I'd gotten the bee back in my bonnet.
+<p>
+<b>July, 2001</b><br>
+The first real actual release of wftk, with Oracle and ODBC adaptors and some other neat stuff.
+<p>
+<b>August, 2001</b><br>
+Long frustrated by the inability of the wftk to handle datasources in anything like a rational manner, I started the repository
+manager from scratch, borrowing from earlier Perl work on a content management system with which I had had similar data-access
+management frustration.  Workflow per se moved solidly to the back burner for a long time.
+<p>
+<b>November, 2001</b><br>
+The repmgr module first became useful by November, talking to ODBC and MySQL databases with equal aplomb, and organizing all
+datasources into functionally equivalent "lists" -- and just barely scratching the surface of everything a data management system
+should do.  As usual.  But it worked, and as I was using it in a couple of production installations, it actually started to get
+debugged, along with the XMLAPI library it was based on.  The repository manager also included a Python wrapper (for Windows, anyway)
+which worked pretty darned well.  This started a real love affair with Python.
+<p>
+<b>January, 2002</b><br>
+Reorganized the whole wftk concept based on the repository manager.
+<p>
+<b>June, 2002</b><br>
+Released the wftk library as production, with the inclusion of state-based workflow.
+<p>
+<b>Rest of 2002</b><br>
+Let's just not talk about 2002, shall we?  I hated 2002.  I made less money month after month, and obsessed about current affairs.
+Only when
+I decided that the United States was bound and determined to shoot itself in every available foot with or without my morbid attention
+did I return to something like productivity and sanity.
+<p>
+<b>January, 2003</b><br>
+I put the repository manager into use in a CGI context for the first time, with actual usable results.  This was the beginning of a
+new head of steam for wftk.
+<p>
+<b>May, 2003</b><br>
+Started integrating the repository manager with the wftk core engine.  The more I worked on this, the harder it got, and it was starting
+to bog down in detail again, until, miracle of miracles, ...
+<p>
+<b>June, 2003</b><br>
+The fine folks at Startext GmbH came back for more!  After some problems getting the original workflow-using project off the ground,
+they were now ready to finish it -- in the meantime, wftk had moved on, <i>a lot</i>, and so had the expectations of their customer.
+So they wanted a demo program to show people just what workflow was about, and I said, "Sure, gimme a couple of days!"  They also
+needed some extensions to the wftk, like the application server adaptor and situation handling in the core engine.
+<p>
+<b>July, 2003</b><br>
+A month later, it worked -- the repmgr and wftk core engines were integrated at last, and the whole thing had a handy-dandy little
+Python GUI interface based on wxPython (my GUI platform of choice for quite some time.)
+<p>
+<b>Future</b><br>
+<a href=../todo.html>The to-do list</a> indicates how the story might continue.
+
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2000-2003 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

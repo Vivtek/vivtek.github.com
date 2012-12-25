@@ -1,0 +1,412 @@
+<html>
+<head>
+<title>Despamming the Toonbots forum</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">forum despamming</p>
+<p>[ <a href="/projects/forum_despammer">modbot</a> ]</p>
+<p>[ <a href="spam_archive/">spam archive</a> ]</p>
+<p>[ <a href="google_count.html">google count</a> ]</p>
+<p>[ <a href=todo.html>to-do list</a> ]</p>
+<p>[ <a href="despammer1.html">despammer alpha</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=todo>new task</a> ]</p>
+<p>[ <a href=archive.html>view archive</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Despamming the Toonbots forum, Chapter the Third</div>
+<div class="subtitle">Using our newfound knowledge to fight forum spam</div>
+<hr>
+<p>
+Earlier chapters: <a href="ch1.html">Extracting preliminary information<a> (we're going to extend that script with our rules and deletion)
+and <a href="ch2.html">Analysis of preliminary information</a>.  Now we'll actually do the despamming.
+</p>
+<p>
+First, we want to skip anything with no recorded access hits.  We also know that any single hit which is just a POST is spam.  These
+rules are very simple to implement, so let's rearrange the code a little to make it easier to work with (it's starting to grow) and do
+another test run.  Here's the code:
+<pre class="code">
+$logdir = "/usr/local/aolserver/servers/vivtek/modules/nslog";
+
+opendir D, ".";
+@files = grep /^\d+$/, readdir(D);
+closedir D;
+
+sub extract_post_info;
+sub extract_log_info;
+sub apply_rules;
+
+foreach $post (sort @files) {
+   next if (-M $post > 7);
+   extract_post_info();
+   extract_log_info();
+   $spammy = apply_rules();
+   if ($spammy eq 'yes') {
+      print "SPAM: $post - $subj\n"; 
+   } elsif ($spammy eq 'maybe') {
+      print "????: $post - $subj\n";
+   }
+}
+
+# ------- Applying rules ----------------------------
+sub apply_rules {
+   if ($hits == 0) { return 'no'; }
+   if ($hits == 1 &amp;&amp; $meth eq 'POST') { return 'yes'; }
+   return 'maybe';
+}
+
+# ------- Extracting post information ---------------
+sub get_field;
+sub extract_post_info {
+   open P, $post;
+   while (&lt;P>) {
+      $ip = get_field ($_) if /^IP_ADDRESS>/;
+      $subj = get_field ($_) if /^SUBJECT>/;
+   }
+   close P;
+}
+sub get_field {
+   my $in = shift;
+   chomp($in);
+   $in =~ s/^.*>//;
+   return $in;
+}
+
+# ------- Extracting log information ---------------
+sub extract_logline_info;
+sub extract_log_info {
+   if (-M $post > 0.1) {
+      open G, "grep -h $ip $logdir/meat.* |";
+   } else {
+      open G, "grep -h $ip $logdir/access.log |";
+   }
+   $hits = 0;
+   while (&lt;G>) {
+      extract_logline_info();
+      $hits += 1;
+   }
+   close G;
+}
+
+# ------- Extracting log line information ---------
+sub extract_logline_info {
+   chomp;
+   $line = $_;
+   ($first, $dt, $last) = split / *[\[\]] */, $line;
+   $dt =~ s/ -\d*$//;
+   ($ip, $j1, $j2) = split / +/, $first;
+   ($j1, $req, $respbw, $ref, $j2, $agent, $j3) = split / *" */, $last;
+   ($meth, $url, $protocol) = split / /, $req;
+   ($resp, $bandwidth) = split / /, $respbw;
+
+   $file = $url;
+   $file =~ s/.*\///;
+}
+</pre>
+<p>
+From here on out, I won't quote the entire script (it's getting unwieldy), just individual functions I'm changing.
+The output from this version is already shaping up a little:
+</p>
+<pre class="code">
+????: 6817 - Re: Eating the piece of fruit
+????: 6847 - home equity loan rate calculator
+????: 6854 - Re: Eating the piece of fruit
+????: 6856 - Re: Eating the piece of fruit
+????: 6869 - yesterday that large auto is relevant against,
+????: 6886 - samsung last month made the RAZR V3x Ferrari Chall
+????: 6888 - Re: Eating the piece of fruit
+????: 6908 - Wholesale Video Games
+????: 6917 - cialis vs viagra -
+????: 6966 - 43 - It is the greatest treatment
+????: 6967 - My Video collection :)
+SPAM: 6968 - Cool site. Thanks!!! pharmacy [url=http://hulpen.i
+????: 6969 - I - Real good treatment - 1
+????: 6971 - II - Wanna some more - 1?
+????: 6972 - Nice pornstar Nice busty babe
+????: 6973 - Computer Geeks Pick Up Lines
+????: 6974 - very usful pages about..
+????: 6975 - free hardcore sex videos
+</pre>
+<p>
+We've eliminated one post from consideration, and positively identified another.  Now we can get down to business.
+First, if there are hits to a non-forum page <i>after</i> the first hit to a forum page, we eliminate the post as
+legitimate.  To do this, we modify <code>extract_logline_info</code> as follows:
+</p>
+<pre class="code">
+sub extract_logline_info {
+   chomp;
+   $line = $_;
+   ($first, $dt, $last) = split / *[\[\]] */, $line;
+   $dt =~ s/ -\d*$//;
+   ($ip, $j1, $j2) = split / +/, $first;
+   ($j1, $req, $respbw, $ref, $j2, $agent, $j3) = split / *" */, $last;
+   ($meth, $url, $protocol) = split / /, $req;
+   ($resp, $bandwidth) = split / /, $respbw;
+
+   $file = $url;
+   $file =~ s/.*\///;
+
+   <b>$forum_post = 0;
+   $forum_post = 1 if $file =~ /^discuss.pl/;
+   $forum_post = 1 if $file =~ /^board_/;</b>
+}
+</pre>
+<p>Now we can determine boardness and non-boardness of a given profile.  If there are only board hits, we call it spam.  To do that,
+let's just count board hits and non-board hits in <code>extract_log_info</code>:</p>
+<pre class="code">
+sub extract_log_info {
+   if (-M $post > 0.1) {
+      open G, "grep -h $ip $logdir/meat.* |";
+   } else {
+      open G, "grep -h $ip $logdir/access.log |";
+   }
+   $hits = 0;
+   $content_hits = 0;
+   while (&lt;G>) {
+      extract_logline_info();
+      $hits += 1;
+      <b>$content_hits += 1 unless $forum_post;</b>
+   }
+   close G;
+}
+</pre>
+<p>And finally, let's define a rule to take advantage of this information:</p>
+<pre class="code">
+sub apply_rules {
+   if ($hits == 0) { return 'no'; }
+   if ($hits == 1 && $meth eq 'POST') { return 'yes'; }
+   <b>if ($content_hits == 0) { return 'yes'; }</b>
+   return 'maybe';
+}
+</pre>
+<p>Now we've already made significant progress!  Here's our new output:</p>
+<pre class="code">
+????: 6817 - Re: Eating the piece of fruit
+SPAM: 6847 - home equity loan rate calculator
+????: 6854 - Re: Eating the piece of fruit
+????: 6856 - Re: Eating the piece of fruit
+SPAM: 6869 - yesterday that large auto is relevant against,
+SPAM: 6886 - samsung last month made the RAZR V3x Ferrari Chall
+????: 6888 - Re: Eating the piece of fruit
+SPAM: 6908 - Wholesale Video Games
+SPAM: 6917 - cialis vs viagra -
+????: 6966 - 43 - It is the greatest treatment
+SPAM: 6967 - My Video collection :)
+SPAM: 6968 - Cool site. Thanks!!! pharmacy [url=http://hulpen.i
+????: 6969 - I - Real good treatment - 1
+SPAM: 6971 - II - Wanna some more - 1?
+SPAM: 6972 - Nice pornstar Nice busty babe
+SPAM: 6973 - Computer Geeks Pick Up Lines
+SPAM: 6974 - very usful pages about..
+SPAM: 6975 - free hardcore sex videos
+SPAM: 6978 - What to do with my collection?
+</pre>
+<p>
+Already pretty convincing!  But it's missing two spams, the two by the guy who hit the blog post before spamming.  This guy's in
+Russia, by the way, according to his IP of 81.177.26.50.  Interesting.  XRUMER is also Russian.  The Russian forum spam programmers
+seem pretty clever, and I'm sure we'll be seeing much more of them in the years to come.
+</p>
+<p>
+Let's implement our "initial content doesn't count as non-spam" rule to get this guy.  Here, I want to be careful; if content hits
+go over about two, I want to avoid filtering the post as spam, because that scenario fits a technical-question kind of person.  Not really
+a factor on this forum, but I'll be reusing this on the wftk forum as well, and in the exceedingly unlikely event that somebody
+someday stops by there again and posts something legitimate, it would be a shame to filter it out as spam.
+</p>
+<p>First, we change <code>extract_log_info</code> to record initial content hits as well as total content hits:</p>
+<pre class="code">
+   sub extract_log_info {
+   if (-M $post > 0.1) {
+      open G, "grep -h $ip $logdir/meat.* |";
+   } else {
+      open G, "grep -h $ip $logdir/access.log |";
+   }
+   $hits = 0;
+   $content_hits = 0;
+   <b>$initial_content_hits = 0;</b>
+   while (&lt;G>) {
+      extract_logline_info();
+      $hits += 1;
+      $content_hits += 1 unless $forum_post;
+      <b>$initial_content_hits += 1 unless $forum_post or $hits != $content_hits;</b>
+   }
+   close G;
+}
+</pre>
+<p>And then we add another rule:</p>
+<pre class="code">
+sub apply_rules {
+   if ($hits == 0) { return 'no'; }
+   if ($hits == 1 && $meth eq 'POST') { return 'yes'; }
+   if ($content_hits == 0) { return 'yes'; }
+   <b>if ($initial_content_hits == $content_hits && $content_hits < 3) { return 'yes'; }</b>
+   return 'maybe';
+}
+</pre>
+<p>OK?  Now we correctly identify all the spam from the last week, and don't false-positive on any legitimate posts:</p>
+<pre class="code">
+????: 6817 - Re: Eating the piece of fruit
+SPAM: 6847 - home equity loan rate calculator
+????: 6854 - Re: Eating the piece of fruit
+????: 6856 - Re: Eating the piece of fruit
+SPAM: 6869 - yesterday that large auto is relevant against,
+SPAM: 6886 - samsung last month made the RAZR V3x Ferrari Chall
+????: 6888 - Re: Eating the piece of fruit
+SPAM: 6908 - Wholesale Video Games
+SPAM: 6917 - cialis vs viagra -
+SPAM: 6966 - 43 - It is the greatest treatment
+SPAM: 6967 - My Video collection :)
+SPAM: 6968 - Cool site. Thanks!!! pharmacy [url=http://hulpen.i
+SPAM: 6969 - I - Real good treatment - 1
+SPAM: 6971 - II - Wanna some more - 1?
+SPAM: 6972 - Nice pornstar Nice busty babe
+SPAM: 6973 - Computer Geeks Pick Up Lines
+SPAM: 6974 - very usful pages about..
+SPAM: 6975 - free hardcore sex videos
+SPAM: 6976 - II - Real good treatment - 2
+SPAM: 6977 - I - Yes, this is it - 2
+SPAM: 6978 - What to do with my collection?
+</pre>
+<p>
+Finally, we want to move spam into a spam folder and, if any spam was moved, delete the message index so that it will regenerate on the
+next visit to the forum.  To do this, we modify the outer loop as follows:
+</p>
+<pre class="code">
+$spam_count = 0;
+foreach $post (sort @files) {
+   next if (-M $post > 7);
+   extract_post_info();
+   extract_log_info();
+   $spammy = apply_rules();
+   if ($spammy eq 'yes') {
+      print "SPAM: $post - $subj\n";
+      system "mv $post spam";
+      $spam_count += 1;
+   } elsif ($spammy eq 'maybe') {
+      print "????: $post - $subj\n";
+   }
+
+}
+if ($spam_count) { system "rm messages.idx"; }
+</pre>
+<p>
+And that is our preliminary forum despammer.  There are more refined things we could do, but if the problem stays as lowkey as it currently
+is, then there's no real point in spending more time on it.
+</p>
+<p>
+I hope you enjoyed our little chat.  There is <a href="ch4.html">another chapter with the full script</a>.
+</p>
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

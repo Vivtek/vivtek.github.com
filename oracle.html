@@ -1,0 +1,170 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>Oracle's OCI API</TITLE>
+   <META NAME="description" CONTENT="A short description of the Oracle Call Interface (OCI), with links to more detailed technical information, websites, and services.">
+   <META NAME="Keywords" CONTENT="Oracle database API, RDBMS">
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>Using the Oracle Call Interface</u></h2>
+[&nbsp;<a href=#features>features</a>&nbsp;] [&nbsp;<a href=#more>additional&nbsp;information</a>&nbsp;] [&nbsp;<a href=#links>links</a>&nbsp;] [&nbsp;<a href=#books>books</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+Having recently completed the first draft of the Oracle database adaptor for the <a href="http://www.vivtek.com/wftk.html">wftk</a>, I
+wanted to get some of what I learned into a little topic so I don't forget it.  First, there is a lot of chaff in and around Oracle.  I
+was struck with the sheer mass of <i>stuff</i> that the developer installation put onto my hard drive.  If you've looked at anything I've
+done, you'll note that I don't care for Java or for code bloat.  Oracle seems to be on some kind of Java code bloat crack high or something.
+<p>
+So, OK, the sarcasm is out of my system now.  I want to say that once you figure out which parts of all that are actually useful (the
+OCI: Oracle Call Interface), Oracle is pretty darned neat.  This isn't the first time I've worked with Oracle (I've done lots of Oracle
+work in Perl via the DBI interface) but it was the first time I'd even come close to exploring what it can do.  The object storage
+functionality looks sweet.  Not that I used it.  Not that I'd feel comfortable using it at all, for $40,000 a pop per Oracle installation.
+But boy, I'd like to write a comparable API on top of PostgreSQL, that I would.
+<p>
+So the title of the topic is "Using the Oracle Call Interface."  That's obviously what I ended up doing.  Oracle has all their documentation
+online at their TechNet, which is free of charge (although you do need to register to use it, which bothers me not one tiny smidgen.)  So
+in about two and a half days I was able to figure out how to translate the wftk taskindex adaptor into Oracle from its original ODBC
+beginning.  (On the way I enhanced it.  I love rewrites.)
+<p>
+What I really want to do with this topic is write down some of the gotcha's I discovered while working with OCI.  There aren't a whole lot.
+For some good sample code, you can study my adaptor implementation at the wftk site.
+<p>
+To use OCI (at least in Versions 8 and 9), you include <code>oci.h</code>.  You link with <code>oci.lib</code>.
+The other library is there for version 7 compatibility, so even though it's tempting to use something called "ociw32", you don't need it.
+<p>
+The main set of documentation for the OCI interface at TechNet is at
+<a href=/linkout/download-west.oracle.com/docs/cd/B10501_01/appdev.920/a96584/toc.htm>http://download-west.oracle.com/docs/cd/B10501_01/appdev.920/a96584/toc.htm</a>,
+or at least it is right now.  It's well-written documentation.  Besides the list of actual functions, I found
+Chapters 4 and 5 particularly illuminating and well worth reading a couple of times (after you've failed to code something correctly, these
+chapters really make sense.)
+<p>
+The sample code was a good initial help, but there were a few things that don't <i>appear</i> in the sample code.  Here are a few of my
+insights about how to make it all make sense.  You realize, of course, that this topic is mostly for <i>me</i>, the next time I have to
+write some Oracle code.  I hope it's useful for you, too.
+<ul>
+<li><b>Handles, handles, handles</b><br>Oracle allocates a whole lot of handles.  They're all managed in the environment handle, which is
+the first thing you allocate.  When you free the environment, it frees up everything associated with it, so that's nice, but setting it
+all up is a chore.  Look at the sample code, abstract away the frequent calls to <code>checkerr()</code>, and you can start to see
+what it all does.
+<li><b>NULL values are dangerous</b><br>Although the sample code doesn't show it, you need to install an "indicator" variable for each
+value you fetch from a row.  Why?  Because if you don't, and the value is NULL, it's an error.  Not a warning.  Not a blank string.  An
+error.  This was quite perturbing until I found a <a href="/linkout/technet.oracle.com/doc/server.804/a58234/basics.htm#422173">hint
+to their usage</a>.  You can also read the documentation for the <code>OCIDefineByPos()</code> function <i>very</i> carefully.
+<li><b>Fetching is <i>only</i> into defined variables</b><br>This means if you're dealing with an arbitrary query, you can look forward
+to maintaining a <code>malloc</code>'d set of buffers.
+<li><b>Getting column names</b><br>This is actually  documented pretty well, but it was so weird I just didn't understand it.  When you
+get the name of a column by doing "description" of an executed query, Oracle doesn't copy the name's <i>value</i> into the variable
+you give it.  It copies a <i>pointer</i> to the name.  Then you have to copy it somewhere yourself.  And it's not null-terminated, so
+you really do have to pay attention to that length you pass in.  (This will all make sense if you read the documentation for the <code>OCIAttrGet()</code> function.)  Got it?  Good.
+<li><b>Error messages for fun and profit</b><br>Unlike (say) Microsoft's error message documentation (you know, like "Error FILE_NOT_FOUND:
+A file was not found"), Oracle's <a href=/linkout/http://technet.oracle.com/doc/server.804/a58312/toc.htm>error message documentation</a>
+kicks serious ... um ... this isn't a webtoon topic, it's technical, right?  Seriously, their documentation is good.
+I found it to be an excellent resource.
+</ul>
+
+Well, those are what I copied out of my notes for this run.  I may write more on this the next time I use this interface.
+</td></tr>
+
+
+<tr><td>
+<a name=links>
+<center><font face=arial size=+1>LINKS</font></center></td></tr>
+
+<tr><td>
+<ul>
+<li><strong><a href=/linkout/download-west.oracle.com/docs/cd/B10501_01/appdev.920/a96584/toc.htm>Oracle's OCI manual</a></strong><br>
+Read it enough and everything will come clear.  The link may well be obsolete by the time you read it.  If so, good luck finding
+your way through Oracle's linking system.  One useful hint: start at "Documentation", not at "Product Information" -- the latter is
+whitepapers. 
+</ul>
+</td></tr>
+
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

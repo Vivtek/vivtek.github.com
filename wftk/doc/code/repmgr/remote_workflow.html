@@ -1,0 +1,79 @@
+<html><head><title>Repository manager: Workflow</title></head>
+<body>
+<h2>Workflow</h2>
+<center>
+[&nbsp;<a href="remote_processing.html">Previous: Asynchronous processing</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_repository.html">Next: Repository queries</a>&nbsp;]
+</center>
+
+<hr>
+<i>(January 26, 2003)</i>: Although most workflow interaction will actually be at the list access and state-change level, there are
+a couple of entry points to the API for attaching workflow and tasks to objects, and getting lists of active tasks.  It's rather important to note
+here that each of these API calls has two forms: one is a repmgr-based list-and-key addressing scheme to be used from the command
+line and in most other repmgr-based systems.  The other takes an object already retrieved, and manipulates it directly.  This, at least
+in theory, gives us the ability to run the system in a manner largely independent of a standalone repository, as long as we have
+specified a taskindex which talks to a database directly, and then we also talk to that database directly when operating workflow.
+<p></p>
+Expect this to get explicit exposure in the Python wrapper, as I have an actual interested party wanting to use the system in this way
+as a kind of Zope integration lite.  (Full Zope integration, of course, will be quite ramified.)
+
+<p></p>
+First, let's examine how we attach workflow to an object.  This is called by the object manipulation functions (repos_add, repos_mod, repos_del)
+when an "on action=" is encountered when doing something to an object.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void FN_NAME(repos_workflow_start) (XML * repository, const char * list, const char * key, XML * wf_defn, const char * wf_id)
+{
+}
+</pre></td></tr></table>
+
+Task addition is analogous.  <i>October 15, 2003</i>... Appears I didn't actually implement this, which is irritating.  As I need it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void FN_NAME(repos_task_add) (XML * repository, const char * list, const char * key, XML * task_defn)
+{
+
+}
+</pre></td></tr></table>
+
+<i>October 15, 2003</i>: Implementing this at last so that I can expose it via the Python SOAP adaptor.  This whole thing is getting kinda
+complicated....  Anyway, the implementation of this isn't complicated at all, as we simply call wftk_task_list to do it for us, with all its
+kooky logic.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * FN_NAME(repos_tasks) (XML * repository, XML * tasklist, const char * list, const char * key, const char * user)
+{
+   return NULL;
+}
+</pre></td></tr></table>
+
+<i>October 15, 2003</i>: Actually, it turns out we'll also need repos_task_get, which retrieves a task given its parent object and its local id.
+This initially will only cover indexed tasks (i.e. no potential ones or such) because it's just going to front for the taskindex after building
+the appropriate key.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * FN_NAME(repos_task_get) (XML * repository, const char * list, const char * key, const char * local_key)
+{
+   return (NULL);
+}
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="remote_processing.html">Previous: Asynchronous processing</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_repository.html">Next: Repository queries</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

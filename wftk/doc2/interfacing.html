@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: Features</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>wftk: Interfaces</h2>
+[ <a href="index.html">wftk documentation home</a> ]
+<hr>
+<h3>Playing well with others: interfaces to and from the wftk</h3>
+
+The whole point of a workflow <i>toolkit</i> is that it provides know-how that can be tossed into any
+arbitrary system and help you do things right without worrying about building the entire system
+from the ground up with workflow in mind.  We all have systems which deal with workflow -- an
+ideal wftk would therefore take any such system as is, and work with it to improve the workflow
+functionality.
+For that to work, of course, the wftk would have to be able to work with <i>all software in existence</i>,
+meaning I have an excuse to play with anything I want to, and still tell my wife I'm working.  That's
+pretty neat.
+<p>
+
+There are two basic ways that the wftk impinges upon other systems:
+<ul>
+<li>through <b>adaptors</b>, which enable wftk to invoke other systems
+<li>through <b>wrappers and front-ends</b>, which present wftk functionality <i>to</i> other systems.
+</ul>
+
+Any wftk system will ultimately involve both; nothing ever happens in the wftk unless
+an adaptor does it, and the wftk never does anything unless called by a wrapper or front-end.  See?
+
+<p>
+
+The "interfacing" section contains one document for each system or protocol or whatever that wftk
+can deal with, whether this is an adaptor or a wrapper.  Thus if you're interested in SOAP and web services, you
+can check the <a href="interfaces/soap.html">SOAP page</a> for information about, and links
+to, wftk smarts in the SOAP arena, and this page will include:
+<ul>
+<li>An overview of SOAP and web services
+<li>A timeline of wftk development to do with SOAP, and some random thoughts I might have had during that
+<li>A description of the SOAP adaptor and a link to its definition
+<li>A description of any SOAP-providing services built on wftk and a link to that code.
+</ul>
+
+<p>
+
+With that in mind, let's list the general types of system we intend to interact with, and the target systems
+in each of those categories.  As I write this, most of the list is going to be on the to-do list instead of
+existing as a mature codebase.  I should have a "complete" workflow system by, oh, 2015.  (Note to self: revisit this
+page in 2017 to revise estimate.)
+
+<table>
+<tr>
+<td bgcolor=eeeeee><center>By subject</center></td>
+<td bgcolor=555555 width=3>&nbsp;</td>
+<td bgcolor=eeeeee><center>Alphabetical listing</center></td>
+</tr>
+
+<tr>
+<td valign=top>
+<ul>
+<li><b>Databases and not-so-database storage mechanisms</b><br>
+  The question of data storage, of course, was the original motivation for the repository manager.  As a result of that
+  work, data can be stored in a lot of different places and still be handled as workflow-enabled "stuff".
+  <ul>
+  <li>Filesystem
+  <li>MySQL
+  <li>Oracle
+  <li>PostgreSQL
+  <li>ODBC-accessible databases
+  </ul>
+<li><b>Scripting (and not-so-scripting) languages</b><br>
+  Most of the work in this section falls into two parts: <i>wrappers</i> allow the wftk to be called
+  from a language, while <i>action adaptors</i> allow the wftk to call code written in a particular language.
+  Sometimes the question isn't the language as a code-level protocol such as COM or CORBA -- but the key
+  idea is <i>calling</i>
+  <ul>
+  <li>Python
+  <li>Perl
+  <li>Java
+  <li>C++
+  <li>.NET/C#
+  </ul>
+<li><b>Protocols, and, um, not-so-protocols</b><br>
+  There are a lot of ways in which systems already talk to one another.  The wftk should fit into this kind of
+  network with no problem.
+  <ul>
+  <li><a href=interfaces/soap.html>SOAP application servers</a>, WDSL, and so on
+  <li><a href=interfaces/curl.html>cURL and libcurl</a> support the HTTP protocol for SOAP and page retrieval.
+  <li>Web in general (CGI, page retrieval, etc.)
+  <li>Email
+  <li>WebDAV
+  </ul>
+<li><b>Process definition</b><br>
+  This section will deal with alternative ways of defining processes.
+  Ideally, you should be able to define a process in any defined language,
+  and the wftk should go its merry way and do things right.
+  As you can tell from my creative use of tenses and modes, this part
+  doesn't have any actual solutions in it yet.
+</ul>
+</td>
+<td bgcolor=555555>&nbsp;</td>
+<td valign=top>
+<a href=interfaces/curl.html>cURL</a><br>
+<a href=interfaces/curl.html>HTTP</a><br>
+<a href=interfaces/curl.html>libcurl</a><br>
+<a href=interfaces/soap.html>SOAP</a><br>
+<a href=interfaces/soap.html>Web services</a><br>
+</td>
+</tr>
+</table>
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2003 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

@@ -1,0 +1,92 @@
+<html><head><title>AOLserver/wftk e-commerce app: wftk_ecomm_calculate: calculating total values, taxes, etc.</title></head>
+<body>
+<h2>wftk_ecomm_calculate: calculating total values, taxes, etc.</h2>
+<center>
+[&nbsp;<a href="wftk_ecomm_addorder.html">Previous: wftk_ecomm_addorder: adding line items to a shopping cart order</a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm_cookie.html">Next: wftk_ecomm_cookie: set and retrieve info via cookie</a>&nbsp;]
+</center>
+
+<hr>
+Calculation of prices will at some point surely be something to build into an adaptor or do with workflow or ... something fancy, but
+for now, it's simply a matter of going through line items and totalling them up.  Along the way, we also look up the name of each
+line item and save it, and (if the item is a registration-like one, with a format) we also format the item's detail text.
+
+<p>
+Each line item ends up with the following values: part, item_name, unit_price, qty, line_price, and line_shipping.  The overall
+order ends up with: subtotal, tax, shipping, and total.  These have default formatting for order presentation, which can be overridden
+as necessary by the merchant.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc wftk_ecomm_calculate {repos order} {
+   set lines_list [wftk gethandle $order]
+   set line_item  [wftk gethandle $order]
+
+   xmlobj set $order "" subtotal "\$0.00" ; set subtotal 0.00
+   xmlobj set $order "" tax "\$0.00"      ; set tax      0.00
+   xmlobj set $order "" shipping "\$0.00" ; set shipping 0.00
+   xmlobj set $order "" total "\$0.00"    ; set total    0.00
+
+   xml loc $lines_list ".list\[lines]" $order
+   for {xml firstelem $line_item $lines_list} {[xml is_element $line_item]} {xml nextelem $line_item $line_item} {
+      set item [wftk get $repos [xmlobj get $line_item "" catalog] [xmlobj get $line_item "" part]]
+
+      xmlobj set $line_item "" item_name [ns_set get $item name]
+
+      # Get pricing and shipping, calculate line item price and shipping.
+      set pricing [ns_set get $item pricing]
+      if [string match !* $pricing] {
+         set line_price [wftk_ecomm_prettynumber [xmlobj get $line_item "" amount]]
+      } else {
+         set unit_price $pricing
+         xmlobj set $line_item "" unit_price $unit_price
+         set qty [xmlobj get $line_item "" qty]
+         set line_price [expr [wftk_ecomm_prettynumber $qty] * $unit_price]
+      }
+      xmlobj set $line_item "" line_price "\$$line_price"
+
+      set subtotal [expr $subtotal + $line_price]
+
+      # TODO: calculate shipping.  For now, I don't care.
+
+      # Get format, instantiate and store.
+      set format [ns_set get $item format]
+      if {$format != ""} {
+         xmlobj set $line_item "" format [wftk_ecomm_format $format [wftk xml2ns_set $line_item]]
+      }
+   }
+
+   # TODO: calculate tax.  For now I don't care.
+
+   set total [wftk_ecomm_prettynumber [expr $subtotal + $tax + $shipping]]
+   set subtotal [wftk_ecomm_prettynumber $subtotal]
+
+   # TODO: need to work with alternative currencies.
+   xmlobj set $order "" subtotal "\$$subtotal"
+   xmlobj set $order "" total    "\$$total"
+
+   wftk release $line_item
+   wftk release $lines_list
+}
+proc wftk_ecomm_prettynumber {num} {
+   regsub -all {^[a-zA-z!@#$%^&amp;*(),]*} $num "" num
+   if ![string match *.* $num] { append num .00 }
+   return [format %.2f $num]
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_ecomm_addorder.html">Previous: wftk_ecomm_addorder: adding line items to a shopping cart order</a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_ecomm_cookie.html">Next: wftk_ecomm_cookie: set and retrieve info via cookie</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

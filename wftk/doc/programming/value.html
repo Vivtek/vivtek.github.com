@@ -1,0 +1,219 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk: values</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk: getting and setting values</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="index.html">wftk programmer's guide home</a> ]
+<hr>
+
+<h3>Values</h3>
+Arbitrary named values may be associated with a datasheet.  In the prototype, I allowed values to be
+associated with tasks as well, but it didn't really make a lot of sense, because then you'd have to
+think about visibility and namespace issues.  So instead, each process is a namespace, and that's that.
+<p>
+In addition to the plain old get and set functions you'd expect, we've got a few extra functions.
+The value interpreter in <code>wftk_value_interpret</code> can express a format in the context of a
+function.  Dollar signs and curly brackets in the format delimit the names of values, so that the
+format
+<blockquote>
+  ${Product} request
+</blockquote>
+will resolve to "Chair request" if the named value "Product" contains the value "Chair".
+<p>
+In addition to a name and a value, a data item may have a storage and a type.  These two attributes
+tell wftk which adaptor to use in order to store the value and format HTML input fields, respectively.
+Yes, the wftk will build HTML fields for you, both in blank and filled forms (the blanks
+are used for a brand-new elicitation of a data item, whereas the filled fields are used to present
+a value for editing.)
+<p>
+<h3>Functions</h3>
+<pre>
+int    wftk_value_list      (void * session, XML * datasheet, XML * list);
+const char * wftk_value_get (void * session, XML * datasheet, const char * name);
+int    wftk_value_get_num   (void * session, XML * datasheet, const char * name);
+int    wftk_value_set       (void * session, XML * datasheet, const char * name, const char * value);
+int    wftk_value_set_num   (void * session, XML * datasheet, const char * name, int value);
+int    wftk_value_isnull    (void * session, XML * datasheet, const char * name);
+int    wftk_value_makenull  (void * session, XML * datasheet, const char * name);
+int    wftk_value_interpret (void * session, XML * datasheet, const char * spec, char * buffer, int bufsize);
+int    wftk_value_settype   (void * session, XML * datasheet, const char * name, const char * type);
+int    wftk_value_define    (void * session, XML * datasheet, const char * name, const char * storage);
+XML  * wftk_value_html      (void * session, XML * datasheet, const char * name);
+XML  * wftk_value_htmlblank (void * session, XML * datasheet, const char * name);
+</pre>
+
+<h3>Details</h3>
+<a name="wftk_value_list"></a>
+<font size=+1>wftk_value_list</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>XML * list</code>
+</blockquote>
+Like other list functions, the <code>wftk_value_list</code> function takes a list structure which is filled out by appending
+detail item descriptions to it.  In this case, the detail items are values defined in the datasheet.  At the moment, no
+filtration is done, so there's a limited utility to this function.
+
+<br><br>
+
+<a name="wftk_value_get"></a>
+<font size=+1>wftk_value_get</font> returns <code>const char *</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>const char * name</code>
+</blockquote>
+Returns a character pointer to the named value.  This pointer is constant because you <i>may not</i> change the value; use
+<a href="#wftk_value_set"><code>wftk_value_set</code></a> instead.
+
+<br><br>
+
+<a name="wftk_value_getnum"></a>
+<font size=+1>wftk_value_getnum</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>const char * name</code>
+</blockquote>
+If you know your value is numeric, you might want to skip the conversion step and use this function instead of <code>wftk_value_get</code>.
+
+<br><br>
+
+<a name="wftk_value_set"></a>
+<font size=+1>wftk_value_set</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>const char * name</code>,<br>
+<code>const char * value</code>
+</blockquote>
+Sets the named value to the given value.  Note that only simple strings are supported at the moment; eventually we'll want to be able to
+store arbitrary XML (or arrays, etc.) in datasheets, but we'll cross that bridge when we come to it.  The <code>wftk_value_set</code>
+function can't be assumed to store the value until a <a href=process.html#wftk_process_save><code>wftk_process_save</code></a> call is made;
+this allows you to make several value assignments in one batch if you're using some expensive variable storage (like a database), but it
+does force a little more overhead in coding.
+
+<br><br>
+
+<a name="wftk_value_setnum"></a>
+<font size=+1>wftk_value_setnum</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>const char * name</code>,<br>
+<code>int value</code>
+</blockquote>
+Uses the given integer value to set the named variable.  Again, it saves you a conversion step if you're working with numbers instead
+of arbitrary strings.
+
+<br><br>
+
+<a name="wftk_value_isnull"></a>
+<font size=+1>wftk_value_isnull</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>const char * name</code>
+</blockquote>
+Returns a flag as to whether the named value is NULL.  Just as in SQL, a NULL value is different from a zero or a blank string,
+and should be construed as an "I don't know" value.
+
+<br><br>
+
+<a name="wftk_value_makenull"></a>
+<font size=+1>wftk_value_makenull</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>const char * name</code>
+</blockquote>
+Forces the named value to be a NULL value.  This will persist until the next time the value is set to a non-NULL value.
+
+<br><br>
+
+<a name="wftk_value_interpret"></a>
+<font size=+1>wftk_value_interpret</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>const char * spec</code>,<br>
+<code>char * buffer</code>,<br>
+<code>int bufsize</code>
+</blockquote>
+
+Formats a string using data references from the datasheet.  All values are retrieved via
+<a href="#wftk_value_get">wftk_value_get</a> (see above), so pseudovariables and data storage
+and types are respected.  Values are retrieved by name by marking with a $ and enclosing in 
+curly braces {}.  An example was given above: <code>${Product} order</code>, if the value
+named "Product" contains the value "Chair", is interpreted to <code>Chair order</code>.  Simple.
+<br><br>
+Once the value gets to the given <i>bufsize</i>, copying stops.  Obviously, it'd be nice if we
+were to do something more flexible at some point, which would grow a buffer as needed.  Wait for
+wftk v1.1, I guess.
+
+<br><br>
+
+<a name="wftk_value_settype"></a>
+<font size=+1>wftk_value_settype</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>const char * name</code>,<br>
+<code>const char * typename</code>
+</blockquote>
+Sets the type of the named variable to the given type.  The type name references a datatype
+adaptor, of course, so you can write your own.  The type of a variable is used to format it
+as a plaintext string and is also used to build HTML to present it or elicit it.
+
+<br><br>
+
+<a name="wftk_value_define"></a>
+<font size=+1>wftk_value_define</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>const char * name</code>,<br>
+<code>const char * storage</code>
+</blockquote>
+Sets the storage location of a value.  The default is storage in the datasheet.  Again, a datastore
+adaptor is used to manage each storage type.
+
+<br><br>
+
+<a name="wftk_value_html"></a>
+<font size=+1>wftk_value_html</font> returns <code>XML *</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>const char * name</code>
+</blockquote>
+Builds an XML-ized HTML input field for a given value.  The datatype adaptor takes care of this,
+actually.  The XML in question is of the format described in the XMLAPI <a href="xmlapi/index.html#html">xml_writehtml</a>
+function (no coincidence, as you simply pass the XML <i>to</i> xml_writehtml in order to write
+the XML.)
+
+<br><br>
+
+<a name="wftk_value_htmlblank"></a>
+<font size=+1>wftk_value_htmlblank</font> returns <code>XML *</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>const char * name</code>
+</blockquote>
+Formats a blank HTML field to elicit a value for the variable in question.  Again, the datatype
+adaptor takes care of this.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

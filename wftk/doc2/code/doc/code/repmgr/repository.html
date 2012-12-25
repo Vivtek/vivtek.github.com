@@ -1,0 +1,112 @@
+<html><head><title>Repository manager: Repository queries</title></head>
+<body>
+<h2>Repository queries</h2>
+<center>
+[&nbsp;<a href="values.html">Previous: Working with object field values</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="synching.html">Next: Synching data with remote data sources</a>&nbsp;]
+</center>
+
+<hr>
+Here are collected functions which can be used to describe a repository.  The first is a layout retrieval by
+ID; if the layout is cached, it's returned immediately; otherwise, it's built from whatever files are named.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_get_layout (XML * repository, const char * layout_id)
+{
+   XML * ltop;
+   XML * layout;
+   XML * this_layout;
+   XML * replace_layout;
+   XML * layout_mark;
+   const char * replaces;
+   FILE * file;
+
+   ltop = xml_loc (repository, ".layout");
+   if (!ltop) {
+      return NULL;
+   }
+
+   if (!layout_id) layout_id = xml_attrval (ltop, "default");
+   if (!*layout_id) layout_id = xml_attrval (ltop, "default");
+
+   if (!*layout_id) layout_id = xml_attrval (ltop, "id");
+   if (!*layout_id) {
+      layout_id = "top";
+      xml_set (ltop, "id", "top");
+   }
+
+   this_layout = xml_locf (repository, ".cache.layout[%s]", layout_id);
+   if (this_layout) {
+      return (xml_copy (this_layout));
+   }
+
+   this_layout = xml_search (ltop, "layout", "id", layout_id);
+   if (!this_layout) {
+      return NULL;
+   }
+
+   layout = NULL;
+   replace_layout = NULL;
+   do {
+      if (*xml_attrval (this_layout, "defn")) {
+      file = _repos_fopen (repository, xml_attrval (this_layout, "defn"), "r");
+         if (!file) {
+            layout = xml_create ("layout-error");
+            xml_setf (layout, "error", "Named layout definition file %s can't be opened.", xml_attrval (this_layout, "defn"));
+            break;
+         }
+         layout = xml_parse_general (file, (XMLAPI_DATARETRIEVE) fread);
+         fclose (file);
+         if (xml_is (layout, "xml-error")) {
+            xml_setf (layout, "error", "Named layout definition file %s is corrupt in line %s: [%s] %s\n", xml_attrval (this_layout, "defn"), xml_attrval (layout, "line"), xml_attrval (layout, "code"), xml_attrval (layout, "message"));
+            break;
+         }
+      } else {
+         layout = xml_copy (this_layout);
+      }
+
+      if (replace_layout) {
+         layout_mark = xml_search (layout, "template:value", "id", replaces);
+         if (!layout_mark) layout_mark = xml_search (layout, "template:value", "name", replaces);
+         if (layout_mark) {
+            xml_replacewithcontent (layout_mark, replace_layout);
+         } else xml_free (replace_layout);
+         replace_layout = NULL;
+      }
+
+      if (*xml_attrval (this_layout, "replace") &amp;&amp; this_layout != ltop) {
+         replace_layout = layout;
+         replaces = xml_attrval (this_layout, "replace");
+         layout = NULL;
+         this_layout = xml_parent (this_layout);
+      }
+   } while (replace_layout);
+
+   layout_mark = xml_loc (repository, ".cache");
+   if (!layout_mark) {
+      layout_mark = xml_create ("cache");
+      xml_append (repository, layout_mark);
+   }
+
+   xml_set (layout, "id", layout_id);
+   xml_append (layout_mark, layout);
+
+   return (xml_copy (layout));
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="values.html">Previous: Working with object field values</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="synching.html">Next: Synching data with remote data sources</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

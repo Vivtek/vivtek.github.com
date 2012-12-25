@@ -1,0 +1,240 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Process definition</TITLE>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Sitemap for initial specifications and analysis</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+<i>(3/9/00)</i> - This sitemap is kind of a culmination of the analysis process, in the sense that I'm going to start
+coding a prototype now and so the analysis from here on out may actually have some grounding in reality.  So I thought it
+would be fitting to take a kind of snapshot of where our thinking is right now and archive it off into a separate little
+corner of the site.
+<p>
+<ul>
+<b><li>Usage scenarios</b>: <a href=usage_scenarios.html><code>usage_scenarios.html</code></a><br>
+   The usage scenarios were my starting point, sketching out what we expect the system to be.
+   <ul>
+   <li>Chair scenario: <a href=usage/chair.html><code>usage/chair.html</code></a>
+   <li>Trade show organization: <a href=usage/tradeshow.html><code>usage/tradeshow.html</code></a>
+   <li>Open-source project: <a href=usage/openproj.html><code>usage/openproj.html</code></a>
+   <li>Closed-source project: <a href=usage/closedproj.html><code>usage/closedproj.html</code></a>
+   <li>E-commerce transaction: <a href=usage/ecomm.html><code>usage/ecomm.html</code></a>
+   <li>SourceXchange project: <a href=usage/sxc.html><code>usage/sxc.html</code></a>
+   <li>To-do list addition: <a href=usage/todo.html><code>usage/todo.html</code></a>
+   </ul>
+<br><br>
+<b><li>System overview</b>: <a href=server_design.html><code>server_design.html</code></a><br>
+   The system overview was next, as the usage scenarios had pretty much made clear what components the system
+   must have to do its job.  The system overview has a nice picture of the whole thing.
+   <ul>
+   <li>Crude database schema: <a href=sys_overview/schema.html><code>sys_overview/schema.html</code></a>
+   </ul>
+<br><br>
+<b><li>XML DTD of process definition</b>: <a href=process_defn.html><code>process_defn.html</code></a><br>
+   Next up was the process definition in detail, and the XML structures I considered necessary to express the kinds of
+   things I was doing with the usage scenarios.  For this, I also coded the scenarios as XML.
+   <br><br>
+   <i>Pieces of the process definition explanation:</i>
+   <ul>
+   <li>Alerts: <a href=process_defn/alert.html><code>process_defn/alert.html</code></a>
+   <li>Data: <a href=process_defn/data.html><code>process_defn/data.html</code></a>
+   <li>Conditionals: <a href=process_defn/if.html><code>process_defn/if.html</code></a>
+   <li>Iteration and situations: <a href=process_defn/loop.html><code>process_defn/loop.html</code></a>
+   </ul>
+   <i>The XML DTD itself:</i>
+   <ul>
+   <li>XML DTD: <a href=process_defn/xml_dtd.html><code>process_defn/xml_dtd.html</code></a>
+   <li>Text version (i.e. the DTD without the chit-chat): <a href=process_defn/xml_dtd.txt><code>process_defn/xml_dtd.txt</code></a>
+   </ul>
+   <i>XML versions of the various usage scenarios:</i>
+   <ul>
+   <li>Chair scenario: <a href=process_defn/chair_defn.html><code>process_defn/chair_defn.html></code></a>
+   <li>Tradeshow scenario: <a href=process_defn/tradeshow_defn.html><code>process_defn/tradeshow_defn.html></code></a>
+   <li>Open-source scenario: <a href=process_defn/openproj_defn.html><code>process_defn/openproj_defn.html></code></a>
+   <li>Closed-source scenario: <a href=process_defn/closedproj_defn.html><code>process_defn/closedproj_defn.html></code></a>
+   <li>E-commerce scenario: <a href=process_defn/ecomm_defn.html><code>process_defn/ecomm_defn.html></code></a>
+   <li>SourceXchange scenario: <a href=process_defn/sxc_defn.html><code>process_defn/sxc_defn.html></code></a>
+   </ul>
+<br><br>
+<b><li>Mockup of user interface</b>: <a href=user_interface.html><code>user_interface.html</code></a><br>
+   The final piece of initial analysis was a sketch of what the (initial) user interface to the system should look like.
+   Note that the design of the system in no way restricts the user to a single interface -- any number of comprehensive
+   or specialized interfaces could coexist quite nicely.
+   <br><br>
+   The quasi-active version of the interface at the site includes a Perl-driven navigation frame; that frame simply
+   contains links to the following static pages for the purposes of navigation:
+   <ul>
+   <li>My processes
+     <ul>
+     <li>Process list: <a href=ui_mockup/process_list.html><code>ui_mockup/process_list.html</code></a>
+     <li>Completed processes: <a href=ui_mockup/process_complete.html><code>ui_mockup/process_complete.html</code></a>
+     <li>Start process: <a href=ui_mockup/process_start.html><code>ui_mockup/process_start.html</code></a>
+     <li>New process: <a href=ui_mockup/process_new.html><code>ui_mockup/process_new.html</code></a>
+     <li>Open (edit) process: <a href=ui_mockup/process_open.html><code>ui_mockup/process_open.html</code></a><br>
+         This is quite significant, as it's the outline of what the process editor will look like.  The example I sketched
+         was the chair scenario.
+         <ul>
+         <li>Overall (top): <a href=ui_mockup/process_open_chair.html><code>ui_mockup/process_open_chair.html</code></a>
+         <li>Roles: <a href=ui_mockup/process_open_chair_roles.html><code>ui_mockup/process_open_chair_roles.html</code></a>
+         <li>Data: <a href=ui_mockup/process_open_chair_data.html><code>ui_mockup/process_open_chair_data.html</code></a>
+         <li>Actions (detailed): <a href=ui_mockup/process_open_chair_actions.html><code>ui_mockup/process_open_chair_actions.html</code></a>
+         <li>Actions (no details): <a href=ui_mockup/process_open_chair_actions_overview.html><code>ui_mockup/process_open_chair_actions_overview.html</code></a>
+         </ul>
+     </ul>
+   <li>My to-do list
+     <ul>
+     <li>To-do list: <a href=ui_mockup/todo.html><code>ui_mockup/todo.html</code></a>
+     <li>To-do today: <a href=ui_mockup/todo_today.html><code>ui_mockup/todo_today.html</code></a>
+     <li>To-do calendar: <a href=ui_mockup/todo_calendar.html><code>ui_mockup/todo_calendar.html</code></a>
+     <li>Add ad-hoc entry to list: <a href=ui_mockup/todo_add.html><code>ui_mockup/todo_add.html</code></a>
+     </ul>
+   <li>Reports
+     <ul>
+     <li>Reports musings: <a href=ui_mockup/reports_overview.html><code>ui_mockup/reports_overview.html</code></a>
+     </ul>
+   <li>Administration
+     <ul>
+     <li>Preferences: <a href=ui_mockup/admin_pref.html><code>ui_mockup/admin_pref.html</code></a>
+     <li>User/group admin: <a href=ui_mockup/admin_users.html><code>ui_mockup/admin_users.html</code></a>
+     <li>Permissions: <a href=ui_mockup/admin_perms.html><code>ui_mockup/admin_perms.html</code></a>
+     <li>Global values: <a href=ui_mockup/admin_globals.html><code>ui_mockup/admin_globals.html</code></a>
+     <li>Sytem activity: <a href=ui_mockup/admin_system.html><code>ui_mockup/admin_system.html</code></a>
+     </ul>
+   </ul>
+
+</ul>
+
+</td></tr>
+</table>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

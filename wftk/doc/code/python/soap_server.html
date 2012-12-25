@@ -1,0 +1,315 @@
+<html><head><title>Python SOAP server</title></head>
+<body>
+<h2>Python SOAP Server</h2>
+<center>
+[<a href="index.html">wftk-Python</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+<i>August 26, 2003</i>:
+While building the <a href="../wftk/wftk/action/ACTION_soap.html">SOAP adaptor</a>, I first built a very simple
+SOAP test server using Python, because it turned out that SOAP using SOAP.py is <i>really, really easy</i>.
+Basically, it's so easy there's no excuse at all not to implement it -- all you have to do is define some 
+functions, register them with the SOAP server, then tell the SOAP server to serve.  And you're done.  You can
+export any Python function at all this way.  It really is exactly that easy.
+<p></p>
+Anyway, so there I was, having written the SOAP adaptor, and then Dominik asked me, "So this is a SOAP server, right?"
+No, actually it was just a SOAP client so that workflow procdefs could specify the retrieval of arbitrary information
+from Web services.  "But wouldn't it be nice if, instead of writing the whole Java JNI wrapper, we could call wftk
+from Java using a SOAP service?"  Um, yes.  Yes, it would.  But that wasn't actually what I'd done.  "But this little Python
+thing could just as well be exporting wftk functions, right?"  Well, yes.  It could.
+And so I dove into the <a href="../java/simple_soap.html">Java simple SOAP client</a>
+(which does as little as humanly possible in order to conduct a valid SOAP conversation) and
+started the whole Java approach with an abstract Repository class and RemoteSOAPRepository and LocalJNIRepository
+and the circles and arrows in four-part harmony and he stopped me right there and said, "Kid, go sit down over
+there on the Group W bench."  And so here I am, writing a Python SOAP server and getting all Arlo Guthrie on your
+kiester.  This whole month has been quite an experience.  How about some boilerplate?
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#######################################################################################################
+#
+# The Python SOAP server is a really easy way to export workflow functionality via SOAP.
+# This is just the beginning; this is where we'll also be defining some WfMC interface stuff.
+# More information at http://www.vivtek.com/wftk/doc/code/python
+#
+# Copyright (c) 2003, Vivtek, and released under the GPL, as follows:
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#######################################################################################################
+</pre></td></tr></table>
+
+The SOAP server isn't even object-oriented, it's so simple-minded.  It just consists of a few well-chosen
+functions which can be called from Java (and if that's not neat, I frankly don't know what is.)
+Heck, at this point I don't even have anything more to say.  Let's code.  The first thing we need to do
+is to import the SOAPpy library and the wftk.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>import sys
+import SOAPpy
+from xmlapi import *
+import repmgr
+import re
+</pre></td></tr></table>
+
+That done, we start up with the local repository.  This is assumed to be an XML file in the local directory;
+if none is given, we use "system.defn", which is much better than the old and faintly quaint "site.opm".
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if len(sys.argv) > 1:
+   repos = sys.argv[1]
+else:
+   repos = 'system.defn'
+
+try:
+   repository = xml_read (repos)
+except:
+   print "Unable to read system definition file '%s'." % repos
+   sys.exit (1)
+
+repmgr.open (repository, "SOAP server")
+
+</pre></td></tr></table>
+
+Once the repository is open (and maybe I want to say TODO: some error handling there) then we're on our way
+to doing some SOAP!  Let's define what we can do.  You know, I'm starting to think this should also be
+based on the CLI interface, but I just don't want to mess with it right now.
+
+<p></p>
+Anyway, get and list are both really simple, because they just take key-like information and return stuff.
+Note that at least for get I'm distinguishing retrieval modes; the simplest is the map, which returns the
+fields and their values with no regard for the complexity of the wftk record.  (I.e. no multiple values for
+fields, versions, attachments, or such.)  "Full" mode just returns the XML of the entry as a string.  There's
+probably going to be more options at some point.  This kind of thing is obvious once you realize that what you
+really need hasn't been implemented yet.
+
+<p></p>
+<i>October 15, 2003</i>: Added a "tasks" mode for retrieving the tasks attached to an object.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>def get (list_id, key, mode='map', auth=None, task_key=None):
+   if mode == 'new':
+      key = None
+   if mode == 'edit' or mode == 'new' or mode == 'display':
+      return xml_stringcontent (repmgr.form (repository, list_id, key, mode))
+
+   if task_key==None:
+      defn = repmgr.defn (repository, list_id)
+      rec = repmgr.get (repository, list_id, key)
+   else:
+      defn = repmgr.defn (repository, "_tasks")
+      rec = repmgr.task_get (repository, list_id, key, task_key)
+
+   if mode == 'full':
+      return xml_string(rec)
+
+   if mode == 'tasks':
+      ret = []
+      tasklist = xml_create ("list");
+      xml_set (tasklist, "id", "_tasks");
+      repmgr.tasks_direct (repository, rec, tasklist);
+      for t in xml_elements(tasklist):
+         rec = {}
+         rec['key'] = xml_attrval (t, 'id')
+         rec['id'] = xml_attrval (t, 'id')
+         rec['label'] = xml_attrval (t, 'label')
+         rec['user'] = xml_attrval (t, 'user')
+         rec['role'] = xml_attrval (t, 'role')
+         ret.append (rec)
+
+      return ret
+
+   # Default = 'map'
+   ret = {}
+   for f in xml_elements(rec):
+      if xml_is(f, 'field'):
+         ret[xml_attrval (f, 'id')] = xmlobj_get (rec, defn, xml_attrval (f, 'id'))
+   if task_key != None:
+      ret['key'] = xml_attrval (rec, 'key')
+   return ret
+
+def list (list_id, mode='keys', auth=None):
+   keys = repmgr.list (repository, list_id)
+   #if mode == 
+   return keys
+</pre></td></tr></table>
+
+For add, mod, and merge, we run into a new problem: how does the caller give us our data?  Again assuming a simple
+mapping model (field ids and values) for entries, I can think of two ways: the fields can be passed as separate
+parameters, or the fields can be passed as a single quoted string of some kind.  The third option might be something
+like including the entire XML of the record, either as a parameter value or as an attachment.  (I base that on having
+seen the phrase "SOAP with attachments" somewhere, but I don't know if SOAP.py already supports same.)
+
+<p></p>
+For consistency's sake, then, I'll implement all of them.  If a parameter starts with "fld_" we'll treat it as a field value;
+if a "fields" parameter is included, we'll parse it for quoted values, and if "fields_xml" is given, we'll take it to be
+the XML representation of the entry.  We'll run through those in the reverse order I just gave them, so that we can end up with
+some kind of amalgamated set of values.  How cool is <i>that</i>?  Anyway, here's a helper function to deal with this:
+
+<p></p>
+Thanks to Dominik Kreutz at startext GmbH, build_obj no longer mangles UTF-8-encoded fields.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>def build_obj (fields, fields_xml, loose_fields):
+   if fields_xml == None:
+      obj = xml_create ("record")
+   else:
+      obj = xml_parse (fields_xml.decode("utf8"))
+
+   # TODO: Handle "fields"
+
+   for k in loose_fields.keys():
+      if re.match ("^fld_", k):
+         name = k[4:]
+         xmlobj_set (obj, None, name, (loose_fields[k]).encode("latin"))
+
+   return obj
+</pre></td></tr></table>
+
+The functions which use it are add, mod, and merge.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>def add (list_id, fields=None, fields_xml=None, auth=None, **loose_fields):
+   obj = build_obj (fields, fields_xml, loose_fields)
+   repmgr.add (repository, list_id, obj)
+   return repmgr.getkey (repository, list_id, obj)
+
+def mod (list_id, key, fields=None, fields_xml=None, auth=None, **loose_fields):
+   obj = build_obj (fields, fields_xml, loose_fields)
+   repmgr.merge (repository, list_id, obj, key)
+   return repmgr.getkey (repository, list_id, obj)
+
+def merge (list_id, key, fields=None, fields_xml=None, auth=None, **loose_fields):
+   obj = build_obj (fields, fields_xml, loose_fields)
+   repmgr.merge (repository, list_id, obj, key)
+   return repmgr.getkey (repository, list_id, obj)
+</pre></td></tr></table>
+
+From a technical standpoint, of course, deletion is rather dull.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>def delete (list_id, key, auth=None):
+   ret = repmgr.delete (repository, list_id, key)
+   return ret
+</pre></td></tr></table>
+
+And then we come to tasks and todo, each of which returns a list of objects, not just a simple list of keys.  Those objects turn into a list of
+mappings on the client end.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>def tasks (auth=None):
+   ret = []
+   tasklist = xml_create ("list");
+   xml_set (tasklist, "id", "_tasks");
+   repmgr.list (repository, tasklist);
+   for t in xml_elements(tasklist):
+      rec = {}
+      for f in xml_elements(t):
+         if xml_is(f, 'field'):
+            rec[xml_attrval (f, 'id')] = xmlobj_get (t, None, xml_attrval (f, 'id'))
+      ret.append (rec)
+
+   return ret
+
+def todo (auth=None):
+   ret = []
+   tasklist = xml_create ("list");
+   xml_set (tasklist, "id", "_todo");
+   repmgr.list (repository, tasklist);
+   for t in xml_elements(tasklist):
+      rec = {}
+      for f in xml_elements(t):
+         if xml_is(f, 'field'):
+            rec[xml_attrval (f, 'id')] = xmlobj_get (t, None, xml_attrval (f, 'id'))
+      ret.append (rec)
+
+   return ret
+</pre></td></tr></table>
+
+<i>September 20, 2003</i>: getting close to useful functionality now.  Next up is authorization.  Authorization necessarily involves a session
+construct, because a client authorizes once, then receives an authorization token which can be passed back to the server on subsequent calls.  This
+authorization token will reference a session object (which isn't fully supported by repmgr yet, which is why this is just a first run at authorization.)
+The prototype of authorization will simply pass the userid back as a token; this allows us to skip the hard work on the server end and concentrate
+on getting the client to do things right.  Moreover, startext's current needs don't include secure authorization, as that will be done at the front-end
+level.
+<p></p>
+So here's the initial auth function.  Note that <i>currently</i> it is using a plaintext userid and password.  This is clearly another point to be marked
+as TODO: do some security stuff.  For instance, an MD5 hash of userid and password could be implemented, which would involve the client
+first asking for a key,
+then sending a hash in a subsequent call to auth.  These requests would use the "mode" argument to distinguish what they were doing, and the authorization
+mode could be noted in the session object in order to moderate levels of trust, or length of session validity.
+<p></p>
+Note that I've included space for an auth token in the auth call itself.  I can imagine this being used to request specific permissions, for instance,
+or to implement some kind of negotiation requiring a context.  Dunno yet, but it doesn't hurt anything to put it there.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>def auth(userid, password, mode='clear', auth=None):
+   return userid
+</pre></td></tr></table>
+
+So that was the functionality we're exposing.  Once your functions are defined,
+you can register them, and tell the server to serve, and presto!  A SOAP server!
+
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#TODO: override server definitions on command line
+server_url = xmlobj_getconf (repository, "config.soap.server", "localhost")
+server_port = int(xmlobj_getconf (repository, "config.soap.port", "8000"))
+SOAPpy.Config.debug=int(xmlobj_getconf (repository, "config.soap.debug", "0"))  # Set to '1' to see everything that happens, and I mean everything.
+
+
+server = SOAPpy.SOAPServer((server_url, server_port))
+server.registerFunction(get)
+server.registerFunction(list)
+server.registerFunction(add)
+server.registerFunction(mod)
+server.registerFunction(merge)
+server.registerFunction(delete)
+server.registerFunction(tasks)
+server.registerFunction(todo)
+server.registerFunction(auth)
+
+print "Listening on %s:%d for requests against %s" % (server_url, server_port, repos)
+if SOAPpy.Config.debug==1: print "Debug mode ON"
+
+server.serve_forever()   # TODO: maybe some error handling here.
+</pre></td></tr></table>
+
+That's it.  Welcome to SOAP.  I always thought it would be a lot harder, didn't you?
+<p></p>
+<i>September 4, 2003</i> -- When distributing Python apps, I always
+use the <a href="http://www.mcmillan-inc.com/installer_dnld.html">McMillan Installer</a> to package them up (a brilliant utility, it somehow manages
+to precompile all necessary Python, then find all DLL dependencies and magically put them into a single distribution directory for zipping.)
+One problem: SOAPpy was being naughty, and attempted to import the Utilities.py module twice.  When interpreting, Python didn't care, but in the
+Installer-frozen state, it sure did.  I wrapped the second import in a try-except and lo! it worked.  This killed most of a day.  Just so you know.
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

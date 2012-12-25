@@ -1,0 +1,67 @@
+<html><head><title>xmlapi: xml_createtext: a shortcut for plain text</title></head>
+<body>
+<h2>xml_createtext: a shortcut for plain text</h2>
+<center>
+[&nbsp;<a href="xml_create.html">Previous: xml_create: Creating an empty element</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_free.html">Next: xml_free: Cleaning up afterwards</a>&nbsp;]
+</center>
+
+<hr>
+I represent character data (plain old text) as an element with no name.  The first (nameless)
+attribute contains the text.  Instead of using xml_create to do this, then using xml_set
+to set the attribute, I'm defining a special create function for plain text chunks.
+<p></p>
+And for easy compatibility with expat, there's a version which takes a pointer and length
+instead of assuming null termination.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * xml_createtext (const char * value)
+{
+   XML * ret;
+
+   ret = (XML *) malloc (sizeof (struct _element));
+   ret->name = NULL;
+   ret->children = NULL;
+   ret->parent = NULL;
+   ret->attrs = (ATTR *) malloc (sizeof (struct _attr));
+   ret->attrs->name = NULL;
+   ret->attrs->next = NULL;
+   ret->attrs->value = (char *) malloc (strlen (value) + 1);
+   strcpy (ret->attrs->value, value);
+
+   return (ret);
+}
+XML * xml_createtextlen (const char * value, int len)
+{
+   XML * ret;
+
+   ret = (XML *) malloc (sizeof (struct _element));
+   ret->name = NULL;
+   ret->children = NULL;
+   ret->attrs = (ATTR *) malloc (sizeof (struct _attr));
+   ret->attrs->name = NULL;
+   ret->attrs->next = NULL;
+   ret->attrs->value = (char *) malloc (len + 1);
+   strncpy (ret->attrs->value, value, len);
+   ret->attrs->value[len] = '\0';
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_create.html">Previous: xml_create: Creating an empty element</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_free.html">Next: xml_free: Cleaning up afterwards</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

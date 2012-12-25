@@ -1,0 +1,247 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>AOLserver -- Date fixup for access log bug</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>AOLserver</u> -- Date fixup for access log bug</h2>
+[&nbsp;<a href=/aolserver.html>AOLserver index</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+<table width=75%><tr><td>
+<font face=arial size=-1>
+For two years I've hated this stupid bug.  The site in question has about 10,000 hits per week (excluding all graphics)
+and every few weeks AOLserver (v2.1 on Solaris) glitches the access log, transposing a couple of digits in the date,
+or leaving a couple of bytes out, or simply incrementing the year by 100 or so.  It's weird.
+<p>
+So I wouldn't care <i>that</i> much, except for two things.  First, the first-pass log analysis is done by Analog, which is
+a darned good program.  In the case where one year is a hundred years later, though, Analog gives me a bar chart of the
+entire hundred years of traffic.  Most of it's pretty empty, but the resulting Analog report, instead of the accustomed
+couple hundred K, comes out to several megabytes of download.  Not good.
+<p>
+But in the last year or so, we've need much more detailed analysis of site usage (the site is <a href=/linkout/www.techspex.com>Techspex</a>
+if you're interested; it's a largish online database).  So we've been postprocessing the logs and loading large chunks of them
+into the database and doing lots of really involved queries on them.  And to do that, I postprocess the logs into a tab-delimited
+format for mass insertion via micopy (yeah, still on Illustra).  And micopy croaks on those bad dates, some of them, meaning
+that the reports don't run automatically and I have to go change the file by hand and run them manually.
+<p>
+So I finally broke down and wrote a script to fix the logs.  And here it is.  You can also <a href=fixup_dates.txt>get a
+plaintext version here</a> for easier download if you want to use it.  Knock yourself out.  Tell me if you change it.
+</font>
+</td></tr></table>
+</td></tr>
+
+<tr><td>
+<center><font face=arial size=+1>DATE FIXUP SCRIPT</font><br>
+</td></tr>
+
+<tr><td>
+<pre>
+#!/usr/local/bin/perl
+# Copyright (c) 2000 Vivtek -- http://www.vivtek.com/aolserver/fixup_dates.html
+# Use this any way you like, but don't blame me if it doesn't work or somehow crashes your machine and burns your office
+# down.  Fix it and tell me what you did.  I don't promise you anything at all.
+</pre>
+<center><table width=40% border=1><tr><td>First, a quick little function which breaks a line into the parts
+we're interested in: the date, the time, and everything else.  The everything else goes
+into two sections, of course.</td></tr></table></center>
+<pre>
+sub crack { 
+   my ($peer, $user, $whatever, $rest) = split (/ /, shift (@_), 4);
+   my ($stamp, $stuff) = split /\]/, $rest, 2;
+   $stamp = substr($stamp, 1);
+
+   my ($d, $nont) = split / /, $stamp, 2;
+   my ($dt, $t) = split /:/, $d, 2;
+
+   return ("$peer $user $whatever [", $dt, $t, " $nont] $stuff");
+}
+
+</pre>
+<center><table width=40% border=1><tr><td>We store two previous lines' worth of info.  We're always working
+on the <i>last</i> line before the one we just read.  The idea is that we want our dates
+and times to be continuous.  If parts of the date are the same on either side of the last
+line, but different in the last line, we know the last line has a bogus date, see?
+</td></tr></table></center>
+<pre>
+$lastpre = "";
+$lastpost = "";
+$lastdt = "";
+$lastti = "";
+
+$llastpre = "";
+$llastpost = "";
+$llastdt = "";
+$llastti = "";
+
+</pre>
+<center><table width=40% border=1><tr><td>Here a little logging functionality just as a sanity check.
+Obviously you should change the location of the log file to suit your filesystem.
+</td></tr></table></center>
+<pre>
+system "date +%y/%m/%d >> /usr/local/AOLserver/web/nslog/analog_done/fixups.log";
+open LOG, ">>/usr/local/AOLserver/web/nslog/analog_done/fixups.log";
+
+$line = 0;
+
+</pre>
+<center><table width=40% border=1><tr><td>The rest is pretty obvious.  Get a line.  If there was a last line,
+process the last line and print it, then save everything for the next line.  Processing
+is just a matter of applying some tests and fixing things if the line fails.  Most of the
+tests compare the line to the lines before and after it.</td></tr></table></center>
+<pre>
+while (<>) {
+   $line ++;
+   ($pre, $dt, $ti, $post) = crack ($_);
+
+   $dateok = 0;
+   $timeok = 0;
+
+   if ($lastpre ne "") {
+      # Check time first for being a valid time
+      if (length ($lastti) < 8) {
+         print LOG "$line: time was '$lastti', replaced with '$ti'\n";
+         $lastti = $ti;
+      }
+      ($h, $m, $s) = split /:/, $lastti, 3;
+      if ($h < 0 || $h > 23 || $m < 0 || $m > 59 || $s < 0 || $s > 59) {
+         print LOG "$line: time was '$lastti', replaced with '$ti'\n";
+         $lastti = $ti; # Use the next time up as the timestamp if we've lost the real info.
+      }
+      # OK, now let's check the date.  For date checking we need *both* bracketing dates.
+      if ($llastpre ne "") {
+         if ($lastdt ne $dt) {
+            # Well, the dates differ.  They can obviously do that anyway...  But not by much.
+            ($lld, $llm, $lly) = split m'/', $llastdt, 3;
+            ($ld, $lm, $ly) = split m'/', $lastdt, 3;
+            ($d, $m, $y) = split m'/', $dt, 3;
+
+            # These three rules restore continuity in almost all cases.  If a glitch occurs
+            # right on the boundary between days, you're still screwed, but frankly with any
+            # appreciable traffic the probability is extremely low so I'm not too worried
+            # about it.  If you want to fix it, do it and tell me how.  michael@vivtek.com!
+            if ($y == $lly && $ly != $y) {
+               $ly = $y;
+            }
+            if ($d == $lld && $ld != $d) {
+               $ld = $d;
+            }
+            if ($m eq $llm && $lm ne $m) {
+               $lm = $m;
+            }
+            if ($lastdt ne "$ld/$lm/$ly") {
+               print LOG "$line: date was '$lastdt', replaced with '$ld/$lm/$ly'\n";
+               $lastdt = "$ld/$lm/$ly";
+            }
+         }
+      }
+      print "$lastpre$lastdt:$lastti$lastpost";
+   }
+
+   $llastpre = $lastpre;
+   $llastdt = $lastdt;
+   $llastti = $lastti;
+   $llastpost = $lastpost;
+
+   $lastpre = $pre;
+   $lastdt = $dt;
+   $lastti = $ti;
+   $lastpost = $post;
+}
+
+if ($lastpre ne "") { # Print the line hanging in the buffer if there was any data at all.
+   print "$lastpre$lastdt:$lastti$lastpost";
+}
+
+close LOG;
+<pre>
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+
+<h2>Edit process: request eqipment purchase</h2>
+<a href=process_open_chair.html>Top</a> | <a href=process_open_chair_roles.html>Roles</a> | <a href=process_open_chair_data.html>Data</a> | <b>Actions</b>
+<hr>
+
+<font size=+1>Actions</font> <a href=help.html>Help on this screen.</a>
+<br><a href=process_open_chair_actions.html>Show full details.</a>
+<form action=action.html method=get>
+
+<b>Sequence</b>&nbsp;&nbsp;&nbsp;&nbsp;<font size=-1>[ <a href=action.html>make parallel</a> ]</font>
+<ul>
+<b><li>Approve</b>&nbsp;&nbsp;&nbsp;&nbsp;
+By <select size=1><option value=Supervisor selected>Supervisor<option value=Purchasing>Purchasing<option value=Accounting>Accounting<option value=Receiving>Receiving</select>
+
+<b><li>if</b> Approval code is 'no'<br>
+<font size=-1>[ <a href=action.html>modify</a> ] [ <a href=action.html>delete</a> ] [ <a href=action.html>move up</a> ] [ <a href=action.html>move down</a> ]</font>
+<ul>
+<b><li>Situation:</b> Request rejected<br>
+</ul>
+
+<b><li>Order item</b>&nbsp;&nbsp;&nbsp;&nbsp;
+By <select size=1><option value=Supervisor>Supervisor<option value=Purchasing selected>Purchasing<option value=Accounting>Accounting<option value=Receiving>Receiving</select>
+
+<b><li>Alert:</b> To Requester's email
+
+<b><li>Alert:</b> To Accounting
+
+<b><li>Alert:</b> To Receiving
+
+<b><li>Parallel</b>&nbsp;&nbsp;&nbsp;&nbsp;<font size=-1>[ <a href=action.html>make sequence</a> ]</font>
+   <ul>
+   <b><li>Sequence</b>&nbsp;&nbsp;&nbsp;&nbsp;<font size=-1>[ <a href=action.html>make parallel</a> ]</font>
+      <ul>
+      <b><li>Receive ${Product requested}</b>
+         By <select size=1><option value=Supervisor>Supervisor<option value=Purchasing>Purchasing<option value=Accounting>Accounting<option value=Receiving selected>Receiving</select>
+      <b><li>Alert:</b> Email to Requester's email
+      </ul>
+   <b><li>File invoice</b>
+      By <select size=1><option value=Supervisor>Supervisor<option value=Purchasing>Purchasing<option value=Accounting selected>Accounting<option value=Receiving>Receiving</select>
+   </ul>
+
+<br>
+
+<b><li>Pay invoice</b>
+By <select size=1><option value=Supervisor>Supervisor<option value=Purchasing>Purchasing<option value=Accounting selected>Accounting<option value=Receiving>Receiving</select>
+
+<b><li>Alert:</b> To Purchasing
+
+</ul>
+
+<b>Handle situation</b> Request rejected
+<ul>
+<b><li>Alert:</b> To Requester's email
+</ul>
+
+</form>
+
+</body>
+</html>

@@ -1,0 +1,438 @@
+<html><head><title>AOLserver front-end tools</title></head>
+<body>
+<h2>AOLserver front-end tools</h2>
+<center>
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#
+# The AOLserver front-end to the wftk toolkit (wftk.tcl) is an AOLserver-specific Tcl
+# extension which organizes repository and object interactions in a convenient way.
+# More information is at http://www.vivtek.com/wftk/doc/code/aolserver/wftk/
+#
+#  Copyright (c) 2004, Vivtek.
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+ns_log notice "Registering wftk basic front-end v0.1 (c) 2004, Vivtek.  http://www.vivtek.com/wftk.html for more info."
+</pre></td></tr></table>
+
+The idea of the AOLserver front-end tools is pretty vague at this point.  On the one hand,
+Tcl should have some regular object-oriented schema along with the other OO schemas.  This
+may not be the ideal place to define it, but it's probably a good place to toss around some
+initial ideas.  On the other hand, though, I also need some standard AOLserver tools for
+working with repositories.  This is definitely the right place for that.  So...  That's
+the idea.
+
+<p></p>
+I really hate the existing Tcl wrapper for the wftk.  I never could get the whole hash-table
+thing to work right, and so the API got deformed as a result.  So the first thing I want to
+do here is to provide a better API, storing things in nsv variables so they're (1) global and
+(2) persistent.  This makes a lot of sense to me.
+
+<p></p>
+So this Tcl interface is going to be in the "wftk" command.  To get a new handle from the
+stack, we call [wftk gethandle].  To free a handle, we call [wftk release $handle].  Ideally,
+we could tie a handle to the current connection, but I don't think I can do that in Tcl alone
+and I don't want to mess with C extensions at the moment (they're hard enough when I don't have
+time pressure.)  So we'll have to live with releasing, but at least this API will be halfway
+sensible.
+
+<p></p>
+At any time, the list of open handles will be in a list in [nsv_get wftk handlelist].  The wftk
+command should at some point offer some "info" options to hide that, but we'll work that out later.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="wftk.html#initialization">Initialize stuff</a></i>
+proc wftk {command args} {
+   switch $command {
+      gethandle  {
+                   <i>See <a href="wftk.html#gethandle">Get XML handle for general use</a></i>
+                 }
+      release    {
+                   <i>See <a href="wftk.html#release">Release XML handle</a></i>
+                 }
+      repository {
+                   <i>See <a href="wftk.html#repository">Open local repository (or retrieve open repository)</a></i>
+                 }
+      ns_set2xml {
+                   <i>See <a href="wftk.html#ns_set2xml">Get new XML handle with contents defined by n_set</a></i>
+                 }
+      xml2ns_set {
+                   <i>See <a href="wftk.html#xml2ns_set">Get ns_set from xmlobj-style fields</a></i>
+                 }
+   }
+
+   set repos [wftk repository [lindex $args 0]]
+
+   switch $command {
+      list       {
+                   <i>See <a href="wftk.html#list">Retrieve list of keys</a></i>
+                 }
+      listxml    {
+                   <i>See <a href="wftk.html#listxml">Retrieve XML handle with list results</a></i>
+                 }
+      defn       {
+                   <i>See <a href="wftk.html#defn">Retrieve XML handle with list definition</a></i>
+                 }
+      get        {
+                   <i>See <a href="wftk.html#get">Get ns_set with fields of object</a></i>
+                 }
+      getxml     {
+                   <i>See <a href="wftk.html#getxml">Get XML handle containing object</a></i>
+                 }
+      add        {
+                   <i>See <a href="wftk.html#add">Add object from ns_set</a></i>
+                 }
+      addxml     {
+                   <i>See <a href="wftk.html#addxml">Add object from XML handle</a></i>
+                 }
+      mod        {
+                   <i>See <a href="wftk.html#mod">Modify object from ns_set</a></i>
+                 }
+      modxml     {
+                   <i>See <a href="wftk.html#modxml">Modify object from XML handle</a></i>
+                 }
+      del        {
+                   <i>See <a href="wftk.html#del">Delete object by key</a></i>
+                 }
+      tasks      {
+                   <i>See <a href="wftk.html#tasks">Retrieve lists of tasks in system or in object</a></i>
+                 }
+      todo       {
+                   <i>See <a href="wftk.html#todo">Retrieve list of tasks for auth user</a></i>
+                 }
+      auth       {
+                   <i>See <a href="wftk.html#auth">Get XML handle with authorized context</a></i>
+                 }
+      notify     {
+                   <i>See <a href="wftk.html#notify">Send notification</a></i>
+                 }
+   }
+}
+</pre></td></tr></table>
+
+That defined, the other half of the equation for a useful AOLserver front-end is some generic
+URL handlers which will provide a set of general-purpose repository manipulation tools.
+I'm going to switch in a new page for this:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="url_handlers.html">URL handlers for general-purpose repository interface</a></i>
+</pre></td></tr></table>
+<br><br>
+<a name="initialization">
+<i>Initialize stuff</i><br>
+There's not a lot of initialization to take care of, really.  But here it is:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>nsv_set wftk handle 0
+nsv_set wftk handles [list]
+
+nsv_set wftk critsec [ns_critsec create]
+</pre></td></tr></table>
+<br><br>
+<a name="gethandle">
+<i>Get XML handle for general use</i><br>
+This is really quite straightforward.  We have an nsv variable in which we maintain a count.  The nsv
+module automatically locks for thread-safety when using nsv_incr, so getting a unique number is easy.
+We maintain a list of valid handles.
+
+<p></p>
+The string returned here is guaranteed unique, but as you can see, it's not automatically associated
+with any XML yet.  But no worries; the XMLAPI wrapper won't freak if you try to free a fresh handle.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set handle wftk[nsv_incr wftk handle]
+nsv_lappend wftk handles $handle
+return $handle
+</pre></td></tr></table>
+<br><br>
+<a name="release">
+<i>Release XML handle</i><br>
+Once you're done with a handle, you need to free it to avoid memory leaks.  Since we're maintaining
+a list of open handles, we could monitor this periodically.  Obviously, it'd also be nice to tie
+release to the current connection or something -- but I'm pretty sure this would require a C
+component.
+
+<p></p>
+Note the sloppy error handling.  Note, actually, the utter absence of error handling.
+TODO: write error handling.  Ahem.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set handle [lindex $args 0]
+xml free $handle
+ns_critsec enter [nsv_get wftk critsec]
+set handles [nsv_get wftk handles]
+set i [lsearch -exact $handles $handle]
+if {$i >= 0} {
+   nsv_set wftk handles [lreplace $handles $i $i]
+}
+ns_critsec leave [nsv_get wftk critsec]
+return OK
+</pre></td></tr></table>
+<br><br>
+<a name="repository">
+<i>Open local repository (or retrieve open repository)</i><br>
+We identify repositories by the directory (or file) name given to open them with.  Once a
+repository is open, it can stay open until explicitly closed.  Since this means its
+definition is not reread, this is a tradeoff between preserving open connections and 
+easy development.  Caveat programmor, as always.
+
+<p></p>
+TODO: Fix utter lack of error handling. Sigh.
+
+<p></p>
+You can explicitly close a repository by releasing its handle, of course.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set reposloc [lindex $args 0]
+if {[lsearch [nsv_get wftk handles] $reposloc] > -1} { return $reposloc }
+
+if [nsv_exists wftk_repositories $reposloc] { set reposloc [nsv_get wftk_repositories $reposloc] }
+if [nsv_exists wftk repos($reposloc)] {
+   set handle [nsv_get wftk repos($reposloc)]
+   if {[lsearch [nsv_get wftk handles] $handle] > -1} {
+      return $handle
+   }
+}
+
+
+set handle [wftk gethandle]
+set r [open $reposloc r]
+xml parse $handle [read $r]
+close $r
+xml set $handle basedir [file dirname $reposloc]/
+repmgr open $handle
+nsv_set wftk repos($reposloc) $handle
+return $handle
+</pre></td></tr></table>
+<br><br>
+<a name="list">
+<i>Retrieve list of keys</i><br>
+List calls return lists of keys.  It's really just a convenient front-end
+for listxml, which retrieves a full-XML return, after which "list" simply
+gets the keys from all of them.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if {[llength $args] &lt; 1} { error "no repository given" "wftk list" }
+if {[llength $args] &lt; 2} {
+   return [repmgr list $repos] 
+} else {
+   return [repmgr list $repos [lindex $args 1]]
+}
+</pre></td></tr></table>
+<br><br>
+<a name="listxml">
+<i>Retrieve XML handle with list results</i><br>
+List calls, of course, <i>actually</i> return lists of (possibly reduced)
+records.  The listxml command returns that directly. It allocates a new
+handle to do it with.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set handle [wftk gethandle]
+xml parse $handle "<list id=\"[lindex $args 1]\"/>"
+repmgr list $repos [lindex $args 1] $handle
+return $handle
+</pre></td></tr></table>
+<br><br>
+<a name="defn">
+<i>Retrieve XML handle with list definition</i><br>
+This is easy.  For error handling on this stuff, by the way, the caller can use [xml is_element $handle] to check for the NULL
+error return.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set handle [wftk gethandle]
+repmgr defn $repos $handle [lindex $args 1]
+return $handle
+</pre></td></tr></table>
+<br><br>
+<a name="get">
+<i>Get ns_set with fields of object</i><br>
+Get, of course, is just a front for getxml, and releases the handle
+itself when finished.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set obj [eval wftk getxml $args]
+if [xml is_element $obj] {
+   set ret [wftk xml2ns_set $obj]
+   wftk release $obj
+   return $ret
+} else {
+   wftk release $obj
+   return ""
+}
+</pre></td></tr></table>
+<br><br>
+<a name="xml2ns_set">
+<i>Get ns_set from xmlobj-style fields</i><br>
+Let's go ahead and clear this up (used above).
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set hdl [wftk gethandle]
+set ret [ns_set create]
+for {xml firstelem $hdl [lindex $args 0]} {[xml is_element $hdl]} {xml nextelem $hdl $hdl} {
+   if [xml is $hdl field] {
+      ns_set put $ret [xml attrval $hdl id] [xml stringcontent $hdl]
+   }
+}
+wftk release $hdl
+return $ret
+</pre></td></tr></table>
+<br><br>
+<a name="getxml">
+<i>Get XML handle containing object</i><br>
+Getting an object is also quite simple.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set handle [wftk gethandle]
+repmgr get $repos $handle [lindex $args 1] [lindex $args 2]
+return $handle
+</pre></td></tr></table>
+<br><br>
+<a name="add">
+<i>Add object from ns_set</i><br>
+Oh, we're on a roll now.  To add an object, of course, we first
+build an XML object by scanning the ns_set, then we add it with addxml.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set handle [wftk ns_set2xml [lindex $args 2]]
+set ret [wftk addxml $repos [lindex $args 1] $handle]
+wftk release $handle
+return $ret
+</pre></td></tr></table>
+<br><br>
+<a name="ns_set2xml">
+<i>Get new XML handle with contents defined by n_set</i><br>
+This could be made fancier (like giving it the ability to reuse handles)
+but it'll get the job done.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set handle [wftk gethandle]
+xml create $handle record
+set size [ns_set size [lindex $args 0]]
+for {set i 0} {$i &lt; $size} {incr i} {
+   xmlobj set $handle "" [ns_set key [lindex $args 0] $i] [ns_set value [lindex $args 0] $i]
+}
+return $handle
+</pre></td></tr></table>
+<br><br>
+<a name="addxml">
+<i>Add object from XML handle</i><br>
+Adding XML objects, of course, interfaces directly with the repmgr.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>return [repmgr add $repos [lindex $args 1] [lindex $args 2]]
+</pre></td></tr></table>
+<br><br>
+<a name="mod">
+<i>Modify object from ns_set</i><br>
+This is a tad trickier, as we can't modify by direct replacement if we
+only look at fields to build the modified object (a great way to lose all
+workflow information!)  Instead, we merge the constructed object.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set handle [wftk ns_set2xml [lindex $args 2]]
+set ret [repmgr merge $repos [lindex $args 1] $handle [lindex $args 3]]
+wftk release $handle
+return $ret
+</pre></td></tr></table>
+<br><br>
+<a name="modxml">
+<i>Modify object from XML handle</i><br>
+And like all these, the XML version is a very thin wrapper indeed.  Here,
+we actually modify by replacement.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>return [repmgr mod $repos [lindex $args 1] [lindex $args 2] [lindex $args 3]]
+</pre></td></tr></table>
+<br><br>
+<a name="del">
+<i>Delete object by key</i><br>
+Boy, this is just too easy.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>return [repmgr del $repos [lindex $args 1] [lindex $args 2]]
+</pre></td></tr></table>
+<br><br>
+<a name="tasks">
+<i>Retrieve lists of tasks in system or in object</i><br>
+No sense implementing this until it's implemented in the C wrapper.
+<br><br>
+<a name="todo">
+<i>Retrieve list of tasks for auth user</i><br>
+This, either.
+<br><br>
+<a name="auth">
+<i>Get XML handle with authorized context</i><br>
+This... I think an "authorized context" is logically a separate entity from
+the repository itself.  I don't know yet.  Until I do, there's no sense
+implementing this, either (not that it would have a point without a "todo"
+command anyway.)
+<br><br>
+<a name="notify">
+<i>Send notification</i><br>
+<i>March 21, 2004</i> (Happy spring!): So notification is the next Big Thing I'm implementing.
+The wftk notify command can work either from a named notification or from an anonymous
+notification structure.  Hmm.  I'm not really yet sure whether it's of any use to have
+this wrapper around the basic repmgr-C wrapper, but just in case we need it later, here
+it is.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>while {[llength $args] < 7} { lappend args "" }
+set obj [lindex $args 3]
+set release_obj 0
+if [catch {
+   set obj [wftk ns_set2xml $obj]
+   set release_obj 1
+} result] {
+   ns_log notice "?? $result"
+}
+#                             list             key                   notification     to               subject
+set ret [repmgr notify $repos [lindex $args 1] [lindex $args 2] $obj [lindex $args 4] [lindex $args 5] [lindex $args 6]]
+if {$release_obj} { wftk release $obj }
+return $ret
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2003-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

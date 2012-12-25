@@ -1,0 +1,180 @@
+<html><head><title>Task manager: Definition of taskmgr_start</title></head>
+<body>
+<h2>Definition of taskmgr_start</h2>
+<center>
+[&nbsp;<a href="taskmgr_create.html">Previous: Definition of taskmgr_create</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="taskmgr_show.html">Next: Definition of taskmgr_show</a>&nbsp;]
+</center>
+
+<hr>
+The <code>/start</code> URL is used to start workflow processes.  (This is in contrast to
+ad-hoc processes, which are not managed by the workflow engine, but rather simply serve as
+a hook to hang tasks on which are then completed in arbitrary order.)
+<p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>global taskmgr_pool
+global taskmgr_home
+global wftk_home
+global pdm_ext
+set db [ns_db gethandle $taskmgr_pool]
+<i>See <a href="user.html#check">Checking authuser</a></i>
+</pre></td></tr></table>
+
+Now that that's done, we can check our form input to see what we're actually supposed to
+be doing.  If we have an input "procdef" then we should show the starter form; if we have
+"start" and "ver" then we should call pdm to create a datasheet, add the process to the
+database, and ask wftk to start the process for us.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set form [ns_conn form $conn]
+if {$form == ""} { set form [ns_set create] }
+
+if [string compare "" [ns_set get $form procdef]] {
+   <i>See <a href="taskmgr_start.html#startform">Show start form for specified procdef</a></i>
+}
+if [string compare "" [ns_set get $form start]] {
+   <i>See <a href="taskmgr_start.html#start">Actually starting a new process from a procdef</a></i>
+}
+
+<i>See <a href="taskmgr_start.html#showlist">Show list of available procdefs</a></i>
+</pre></td></tr></table>
+<br><br>
+<a name="showlist">
+<i>Show list of available procdefs</i><br>
+To get a list of procdefs that the current user may start, we have the little <code>pdmlist</code> utility in the
+PDM module.  Its output is the key and title of the process, followed by the long description terminated by a line
+"EOF".
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>global wftk_home
+set pipe [open "|${wftk_home}pdm/pdmlist $user start" "r"]
+set procdefs [split [read $pipe] "\n"]
+close $pipe
+
+set tags(list) ""
+set state 0
+
+foreach line $procdefs {
+   switch $state {
+      0 {
+         if [string compare $line ""] {
+            set line [split $line :]
+            append tags(list) "&lt;li>&lt;a href=\"start?procdef=[lindex $line 0]\">[lindex $line 1]&lt;/a>&lt;br>\n"
+            set state 1
+         }
+      }
+      1 {
+        if [string compare $line "EOF"] {
+            append tags(list) "$line\n"
+        } else {
+            set state 0
+        }
+      }
+   }
+}
+
+return [taskmgr_pageout $conn startlist.html]
+</pre></td></tr></table>
+<br><br>
+<a name="startform">
+<i>Show start form for specified procdef</i><br>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set tags(procdef) [ns_set get $form procdef]
+set pipe [open "|${wftk_home}pdm/pdm$pdm_ext starter $tags(procdef)" "r"]
+set tags(title) [gets $pipe]
+set tags(version) [gets $pipe]
+set tags(list) [read $pipe]
+close $pipe
+
+return [taskmgr_pageout $conn start.html]
+</pre></td></tr></table>
+<br><br>
+<a name="start">
+<i>Actually starting a new process from a procdef</i><br>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set process $conn[now tag]
+global taskmgr_datasheets
+set pipe [open "|${wftk_home}pdm/pdm$pdm_ext datasheet [ns_set get $form start] [ns_set get $form ver] $process" "r"]
+set datasheet [read $pipe]
+close $pipe
+
+set pipe [open "$taskmgr_datasheets/$process" "w"]
+puts $pipe $datasheet
+close $pipe
+
+set size [ns_set size $form]
+for {set i 0} {$i < $size} {incr i} {
+   if {-1 < [lsearch {start ver} [ns_set key $form $i]]} { continue }
+   datasheet_setvalue $process "" [ns_set key $form $i] "" [ns_set value $form $i]
+}
+
+set pipe [open "|${taskmgr_home}wftk start $process" "r"]
+set workflow [read $pipe]
+close $pipe
+
+set wf [split $workflow \n]
+
+set fields [list id status started]
+set values [list '$process' 'active' '[now]']
+
+lappend fields title
+set title [string range [lindex $wf 0] 2 end]
+lappend values "'[sql_safe_string $title]'"
+
+set wf [lrange $wf 2 end]
+while {![string compare "" [lindex $wf 0]]} { set wf [lrange $wf 1 end] }
+
+set desc ""
+while {[string compare EOF [lindex $wf 0]]} {
+   append desc "[lindex $wf 0]<br>"
+   set wf [lrange $wf 1 end]
+}
+set wf [lrange $wf 1 end]
+
+lappend fields description
+lappend values "'[sql_safe_string $desc]'"
+
+lappend fields owner
+lappend values "'[sql_safe_string $user]'"
+
+lappend fields definition
+set procdef "[ns_set get $form start]_[ns_set get $form ver].xml"
+lappend values "'[sql_safe_string $procdef]'"
+
+lappend fields datasheet
+lappend values "'$process'"
+
+set query "insert into process ("
+append query [join $fields ", "]
+append query ") values ("
+append query [join $values ", "]
+append query ")"
+
+ns_db dml $db $query
+
+wftk_interpret $db $process $wf
+
+return [ns_returnredirect $conn overview?process=$process]
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="taskmgr_create.html">Previous: Definition of taskmgr_create</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="taskmgr_show.html">Next: Definition of taskmgr_show</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

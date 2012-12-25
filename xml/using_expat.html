@@ -1,0 +1,169 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>XML -- How to use the expat XML parser</TITLE>
+<meta description="A tutorial about how to use the expat XML parser, with example code.">
+<meta keywords="XML parse expat tutorial how-to using">
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>XML</u> -- How to use the expat XML parser</h2>
+[&nbsp;<a href=/xml.html>XML index</a>&nbsp;] [&nbsp;<a href=/expat.html>expat index</a>&nbsp;]
+[&nbsp;<a href=/xmltools/>xmltools example code</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+<center><table width=75%><tr><td>
+<font face=arial size=-1>
+Looked at expat?  Wished you could figure out how to use it?  So did I -- but I really had to figure it out.
+The result is the <a href=/xmltools/>xmltools XML command-line utilities</a> and these few words of wisdom.
+</font>
+</td></tr></table></center>
+</td></tr>
+
+<tr><td>
+<font size=+1><i>The main parser loop</i></font><br>
+Basically, a program built on expat consists of a loop which (1) grabs a buffer full of data and (2) calls XMLParse on it.
+XMLParse takes the data plus the state saved from the last call, and calls a handler for each "XML event."  I use that
+terminology because the basic structure of these programs is so much like the Windows "event-driven programming" paradigm.
+It really sends me back, you know?
+<p>
+If you look at the sample program that Clark has provided, you'll see that basic structure.  Let's assume we're writing
+a program to read XML from stdin, just like the sample.  The <code>main()</code> function will thus look like this:
+<center><table><tr bgcolor=f0f0f0><td>
+<pre>
+int main()
+{
+  char buf[<i>convenient size</i>];
+  int len;   /* <i>len is the number of bytes in the current bufferful of data</i> */
+  int done;
+  int depth = 0;  /* <i>nothing magic about this; the sample program tracks depth to know how far to indent.</i> */
+                  /* <i>depth is thus going to be the user data for this parser.</i> */
+
+  <a href=/expat/api.html#XML_Parser>XML_Parser</a> parser = <a href=/expat/api.html#XML_ParserCreate>XML_ParserCreate</a>(NULL);
+  <a href=/expat/api.html#XML_SetUserData>XML_SetUserData</a>(parser, &depth);
+  <a href=/expat/api.html#XML_SetElementHandler>XML_SetElementHandler</a>(parser, startElement, endElement);
+  do {
+    <i>get a piece of input into the buffer</i>
+    done = <i>whether this bufferful is the last bufferful</i>
+    if (!<a href=/expat/api.html#XML_Parse>XML_Parse</a>(parser, buf, len, done)) {
+      <i>handle parse error</i>
+      return 1;
+    }
+  } while (!done);
+  <a href=/expat/api.html#XML_ParserFree>XML_ParserFree</a>(parser);
+  return 0;
+}
+</pre>
+</td></tr></table></center>
+
+This <code>main</code> is lifted whole cloth from Clark's sample program.  I've eliminated the error handling and file I/O
+to improve readability a little, as you can figure those out separately.  Here are two things to note:<ul>
+<li>XML_SetElementHandler<br>
+The XML_Set*Handler calls are where the behavior of the parser is defined.  In this case, we only care about the elements
+themselves, so we only define and install element handlers.  There is a corresponding call for each class of XML token.
+<li>Parse errors<br>
+<i>By definition</i> an XML parser stops parsing when it encounters syntactically incorrect XML.  Why?  Primarily to avoid
+the situation now extant with HTML parsers: incorrect HTML may do <i>anything</i> in one browser or the other, with the
+result that you really need to test layout under at least two browsers (you know which ones.)  Otherwise HTML which displays
+perfectly under your browser may not display at all under another.
+</ul>
+<p>
+So really, this main loop is the one you'll be using for all your expat programming.  (Take a look at the
+<a href="http://www.vivtek.com/xmltools/main.html"><i>main()</i> for xmltools</a>
+ -- it's the same, with a little decoration.)  The bulk of the programming is done in the handlers.  How you write
+your handlers depends on what you want to do.  In the case of xmltools, the handlers do the work, so that parsing is done
+on the fly.  But your application may need to parse the XML into some structure first, then do its work.
+<p>
+<font size=+1><i>Element handlers</i></font><br>
+XML_Parse, as it's parsing along the incoming data, calls an element handler each time it encounters an element.  There are
+two handlers for elements; one is called when the element begins, the other when the element ends.  Between the two calls
+there are handler calls for the various contents of the element (if any).
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

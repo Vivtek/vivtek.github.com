@@ -1,0 +1,313 @@
+<html><head><title>To-do manager: User administration screens</title></head>
+<body>
+<h2>User administration screens</h2>
+<center>
+[&nbsp;<a href=login_admin.html>Previous: Login management stuff</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=keywords.html>Next: Keyword/permission management</a>&nbsp;]
+</center>
+
+<hr>
+The user administration screens are just like any other set of screens to maintain database
+data.  They're relatively boring.  I'm putting everything into one big Tcl script just to
+keep things more or less neat; let's go ahead and register the URL.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>ns_register_proc GET $todomgr_root/user todomgr_user_admin
+ns_register_proc POST $todomgr_root/user todomgr_user_admin
+</pre></td></tr></table>
+
+OK.  So what can we do with users?  We can list them, add them, modify them, and delete them.
+So we have a parameter <code>action</code> which can take those values.  Default is "list".
+
+<p>
+Here's the overall handling function:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc todomgr_user_admin {conn ignore} {
+   set form [ns_conn form $conn]
+   if {$form == ""} {
+      set action list
+   } else {
+      set action [ns_set get $form action]
+   }
+
+   global todomgr_pool
+   set db [ns_db gethandle $todomgr_pool]
+
+   switch -- $action {
+      list {
+         <i>See <a href="user_admin.html#list">Listing users</a></i>
+         return
+      }
+      add {
+         <i>See <a href="user_admin.html#add">Adding users</a></i>
+         return
+      }
+      modify {
+         <i>See <a href="user_admin.html#modify">Modifying users</a></i>
+         return
+      }
+      delete {
+         <i>See <a href="user_admin.html#delete">Deleting users</a></i>
+         return
+      }
+   }
+
+   set tags(title) "Unknown action"
+   set tags(body) "What is this <code>$action</code> of which you speak?"
+   todomgr_pageout $conn message.html
+}
+</pre></td></tr></table>
+<br><br>
+<a name="list">
+<i>Listing users</i><br>
+Listing users is easy.  The list is only available to users of level 3, however.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="user.html#check">Checking authuser</a></i>
+if {[ns_set get $userrow permlevel] &lt; 3} {
+   set tags(title) "Insufficient privileges"
+   set tags(body) "Your permission level is lower than 3; a level of 3 is required to view the list of users.  Sorry."
+   return [todomgr_pageout $conn message.html]
+}
+
+set row [ns_db select $db "select * from users"]
+set tags(body) ""
+while {[ns_db getrow $db $row]} {
+   append tags(body) "&lt;tr>&lt;td>"
+   append tags(body) "&lt;input type=checkbox name=delete value=\""
+   append tags(body) "[ns_urlencode [ns_set get $row userid]]\">"
+   append tags(body) "&lt;a href=user?action=modify&amp;user=[ns_urlencode [ns_set get $row userid]]>"
+   append tags(body) "[ns_set get $row name] ([ns_set get $row userid])&lt;/a>&lt;/td>"
+   append tags(body) "&lt;/td>&lt;/tr>\n"
+}
+if {$tags(body) == ""} {
+   append tags(body) "&lt;i>No users found&lt;/i>"
+}
+todomgr_pageout $conn user_list.html
+</pre></td></tr></table>
+<br><br>
+<a name="add">
+<i>Adding users</i><br>
+The "add" action is used both for a blank form display and also for actual addition of
+a user.  We determine which is which by checking the query.  If <code>userid</code> is
+included, then it's a new add.  First off, we'll get the fields we're interested in out of
+the query.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set fields [list]
+set values [list]
+set userfields {userid password name email website}
+
+foreach field $userfields {
+   set value [ns_set get $form $field]
+   set tags($field) $value
+   if {$value == ""} { continue }
+   lappend fields $field
+   if {$field != "permlevel"} {
+      lappend values "'[sql_safe_string $value]'"
+   } else {
+      lappend values "$value"
+   }
+}
+</pre></td></tr></table>
+
+At this point, <code>fields</code> is a list of fields passed into the query, and
+<code>values</code> is a list of the values which correspond to those fields.  If no fields
+were supplied, then we just toss the blank form up.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if {[llength $fields] == 0} {
+   return [todomgr_pageout $conn user_add.html]
+}
+</pre></td></tr></table>
+
+But even if fields were given, there may be some problem.  For instance, there may be no
+userid -- without a userid we can't add a record at all.  So we'll complain and give the
+requester another chance.  I like to check all possible problems up front and then give the
+user a list of problems rather than simply report one at a time and then wait for the user
+to figure things out after five tries.  So I have a <code>problems</code> list.  As I run
+checks, I add problems to the list -- if the list is empty afterwards, then I have a clean
+bill of health, otherwise I can return a bullet list of things missing.  Just a nice little
+design pattern I like to use.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set problems [list]
+if ![string compare $tags(userid) ""] {
+   lappend problems "You must supply a desired userid to request a userid..."
+}
+if ![string compare $tags(password) ""] {
+   lappend problems "You must supply a password."
+}
+
+if {[llength $problems] == 0} { # got this far...
+   set row [ns_db select $db "select count(*) as ct from users where userid='[sql_safe_string $tags(userid)]'"]
+   ns_db getrow $db $row
+   if {[ns_set get $row ct] > 0} {
+      lappend problems "Sorry, the userid &lt;code>$tags(userid)&lt;/code> is taken.  Please choose something else."
+   }
+}
+
+if {[llength $problems] > 0} {
+   if {[llength $problems] == 1} {
+      set tags(message) [lindex $problems 0]
+   } else {
+      set tags(message) "&lt;ul>"
+      foreach problem $problems {
+         append tags(message) "&lt;li> $problem\n"
+      }
+      append tags(message) "&lt;/ul>"
+   }
+   return [todomgr_pageout $conn user_add.html]
+}
+
+</pre></td></tr></table>
+
+OK, so we've gotten this far with no problems.  So let's just build the query and add the
+user to the database.  All new adds come in as level-0 (inactive) users, and an admin must
+bump up the level to whatever is appropriate; this allows anonymous users to request access
+to the system.  I guess it open you to a kind of denial-of-service attack whereby an anonymous
+malicious user adds requests until your database crashes, but in that case you should probably
+put some sort of access restriction onto the whole site anyway.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>lappend fields permlevel
+lappend values 0
+
+set query "insert into users ("
+append query [join $fields ", "]
+append query ") values ("
+append query [join $values ", "]
+append query ")"
+ns_db dml $db $query
+return [ns_returnredirect $conn user?action=list]
+</pre></td></tr></table>
+<br><br>
+<a name="modify">
+<i>Modifying users</i><br>
+Modification is even easier.  What we do depends on whether we have fields or not; if we
+have no fields to be changed, then we'll just display a form with the current values.
+After a successful change, we redirect back to the list.
+<p>
+A user may modify his or her own personal data, but <i>not</i> his or her permission level,
+of course.  I'm not going to mess around with that in the display part; any attempt to modify
+permission level (unless the user is level 3) will simply softly and silently vanish away.
+<p>
+If the userid is not specified, the assumption is made that the user wants to modify his or
+her own information (i.e. <code>$userid</code> gets set to <code>$user</code>).
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="user.html#check">Checking authuser</a></i>
+set permlevel [ns_set get $userrow permlevel]
+
+set fields [list]
+set userid [ns_set get $form user]
+if {$userid == ""} { set userid $user }
+if {$permlevel &lt; 3 &amp;&amp; [string compare $userid $user]} {
+   set tags(title) "Insufficient privilege"
+   set tags(body)" Sorry, you don't have sufficient privilege to modify this user record."
+   return [todomgr_pageout $conn message.html]
+}
+
+set tags(userid) $userid
+if ![string compare $userid ""] {
+   return [ns_returnredirect $conn user?action=list]
+}
+
+foreach field {password name email permlevel website} {
+   set value [ns_set get $form $field]
+   if {$value == ""} { continue }
+   if {$field != "permlevel"} {
+      lappend fields "$field='[sql_safe_string $value]'"
+   } else {
+      if {$permlevel &lt; 3} { continue } 
+      lappend fields "$field=$value"
+   }
+}
+
+if {[llength $fields] > 0} {
+   set query "update users set "
+   append query [join $fields ", "]
+   append query " where userid='[sql_safe_string $userid]'"
+   ns_db dml $db $query
+   if [string compare $userid $user] {
+      return [ns_returnredirect $conn user?action=list]
+   } else {
+      return [ns_returnredirect $conn user?action=modify]
+   }
+}
+
+set row [ns_db select $db "select * from users where userid='[sql_safe_string $userid]'"]
+if {[ns_db getrow $db $row]} {
+   foreach field {password name email userid permlevel website} {
+      set tags($field) [ns_set get $row $field]
+   }
+   return [todomgr_pageout $conn user_mod.html]
+}
+set tags(title) "Unknown user $userid"
+todomgr_pageout $conn user_list.html
+</pre></td></tr></table>
+<br><br>
+<a name="delete">
+<i>Deleting users</i><br>
+Finally, deletion completes the four basic table operations.  Deletion is interesting in
+that it can take multiple users at once.  After deletion we pop right back to the list.
+<p>
+What <code>action=delete</code> gets in its form is simply a list of "delete" keywords with
+values equal to the various users to be deleted.  We can iterate over an <code>ns_set</code>
+in order to get all the like-named controls.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="user.html#check">Checking authuser</a></i>
+if {[ns_set get $userrow permlevel] &lt; 3} {
+   set tags(title) "Insufficient privileges"
+   set tags(body) "Your permission level is lower than 3; a level of 3 is required to delete users.  Sorry."
+   return [todomgr_pageout $conn message.html]
+}
+
+set size [ns_set size $form]
+set deletes [list]
+for {set i 0} {$i &lt; $size} {incr i} {
+   if {[string tolower [ns_set key $form $i]] == "delete"} {
+      lappend deletes "'[sql_safe_string [ns_set value $form $i]]'"
+   }
+}
+</pre></td></tr></table>
+
+Now we have the list of users to be deleted.  If any were actually listed, let's do it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if {[llength $deletes] > 0} {
+   set query "delete from users where userid="
+   append query [join $deletes " or userid="]
+   ns_db dml $db $query
+}
+</pre></td></tr></table>
+
+And now back to the list.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>return [ns_returnredirect $conn user?action=list]
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href=login_admin.html>Previous: Login management stuff</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=keywords.html>Next: Keyword/permission management</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

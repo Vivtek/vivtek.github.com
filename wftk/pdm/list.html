@@ -1,0 +1,66 @@
+<html><head><title>Project name: list: Displaying the procdef directory</title></head>
+<body>
+<h2>list: Displaying the procdef directory</h2>
+<center>
+[&nbsp;<a href="main.html">Previous: File layout</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The procdef manager</a>&nbsp;]
+[&nbsp;<a href="starter.html">Next: starter: Displaying a process start form</a>&nbsp;]
+</center>
+
+<hr>
+The <code>list</code> is the first one I'm implementing.  It simply takes a URL format
+and builds a set of &lt;li> lines, one for each procdef in the directory.  Note that at this
+moment there's no mechanism for folders, or viewing permissions, or really anything
+sophisticated at all.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sprintf (sbuf, "%s%s", PROCESS_DEFINITION_REPOSITORY, "index.xml");
+file = fopen (sbuf, "r");
+if (!file) {
+   printf ("Unable to open directory file %s\n", sbuf);
+   return (1);
+}
+
+directory = xml_read (file);
+fclose (file);
+if (!directory) {
+   printf ("Corrupt directory file.\n");
+   return (1);
+}
+
+if (argc > 2) {
+   format = argv[2];
+} else {
+   format = "edit?item=%s";
+}
+
+item = xml_firstelem (directory);
+while (item) {
+   if (!strcmp (item->name, "item")) {
+      mark = (char *) xml_attrval (item, "title");
+      if (!*mark) mark = (char *) xml_attrval (item, "id");
+      printf ("&lt;li>&lt;strong>&lt;a href=\"");
+      printf (format, xml_attrval (item, "id"));
+      printf ("\">%s&lt;/a>&lt;/strong>&lt;br>\n", mark);
+      xml_writecontent (stdout, item);
+      printf ("&lt;br>\n");
+   }
+   item = xml_nextelem (item);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="main.html">Previous: File layout</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href="starter.html">Next: starter: Displaying a process start form</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

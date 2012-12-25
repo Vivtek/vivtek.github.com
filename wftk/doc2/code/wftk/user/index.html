@@ -1,0 +1,49 @@
+<html><head><title>wftk core: user directory adaptor</title></head>
+<body>
+<h2>wftk core: user directory adaptor</h2>
+<center>
+[ <a href="../index.html">back to the core</a> ] [ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+A <i>user directory adaptor</i> is responsible for interfacing with a directory system in order to define users and groups,
+determine authorization of a user given username and password, determine group membership, and I'm not sure what else at
+the moment.
+<p>
+These are the functions exposed by a user directory adaptor:
+<table>
+<tr><td><i><u>Function</i></u></td><td><i><u>Parameters</i></u></td><td><i><u>Purpose</i></u></td></tr>
+<tr bgcolor=eeeeee><td valign=top>0: init</td>
+    <td valign=top>&nbsp;</td>
+    <td>Initialize adaptor instance</td></tr>
+<tr bgcolor=ffffff><td valign=top>1: free</td>
+    <td valign=top>&nbsp;</td>
+    <td>Clean up instance before shutting down</td></tr>
+<tr bgcolor=eeeeee><td valign=top>2: info</td>
+    <td valign=top>&nbsp;</td>
+    <td>Return XML describing the adaptor</td></tr>
+<tr bgcolor=ffffff><td valign=top>3: get</td>
+    <td valign=top>userid</td>
+    <td>Retrieve user description</td></tr>
+<tr bgcolor=eeeeee><td valign=top>4: auth</td>
+    <td valign=top>XML * user<br>password</td>
+    <td>Return user if authenticated, NULL if not.</td></tr>
+</table>
+
+<p>
+Implementations:<ul>
+<li><a href="USER_localxml.html">USER_localxml</a> (stores XML files in local directory)
+<li>(TODO) USER_ldap.html (asks an LDAP directory for user info)
+</ul>
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

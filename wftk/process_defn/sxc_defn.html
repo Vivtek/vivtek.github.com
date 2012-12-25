@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Process definition example -- SourceXchange</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Process definition example -- SourceXchange</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/process_defn.html>process&nbsp;definition</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+This is an attempt at the basic process outlined in the <a href=../usage/sxc.html>SourceXchange
+development scenario</a>.  This is probably the most complex scenario of the ones I did.
+<pre>
+&lt;?xml version="1.0"?>
+
+&lt;<b>workflow</b> name="SourceXchange project" author="Michael: michael@vivtek.com">
+  &lt;<b>role</b> name="Proposer">&lt;/role>
+  &lt;<b>role</b> name="Sponsor">&lt;/role>
+  &lt;<b>role</b> name="Reviewer">&lt;/role>
+  &lt;<b>role</b> name="SourceXchange">&lt;/role>
+
+  &lt;<b>data</b> name="SourceXchange project number" type="integer">&lt;/data>
+  &lt;<b>data</b> name="Proposing party" type="record">
+     &lt;!-- Just a thought: for non-database records, we should be able to define the record here... -->
+  &lt;/data>
+
+  &lt;<b>sequence</b>>
+     &lt;<b>task</b> label="Submit proposal" role="Proposer" agent="${Proposing party}">
+     &lt;/task>
+     &lt;<b>task</b> label="Accept proposal" role="Sponsor">
+     &lt;/task>
+     &lt;<b>parallel</b>>
+        &lt;<b>task</b> label="Plan project" role="Proposer">
+           &lt;<b>data</b> name="Detailed project plan" type="document">&lt;/data>
+        &lt;/task>
+        &lt;<b>task</b> label="Assign reviewer" role="SourceXchange">&lt;/task>
+        &lt;<b>task</b> label="Ready project record (milestones, lead, etc.)" role="SourceXchange">&lt;/task>
+     &lt;/parallel>
+     &lt;<b>start</b> name="${Detailed project plan}" location="deliverable" mode="merge" completion="Signoff">
+     &lt;/start>
+     &lt;<b>parallel</b>>
+        &lt;<b>task</b> label="Accept project" role="Sponsor">&lt;/task>
+        &lt;<b>task</b> label="Accept project" role="Reviewer">&lt;/task>
+     &lt;/parallel>
+     &lt;<b>task</b> label="Make source code available" role="SourceXchange">&lt;/task>
+  &lt;/sequence>
+
+
+  &lt;<b>subprocess</b> name="Signoff">
+    &lt;<b>data</b> name="Milestone" type="task">&lt;/data>
+    &lt;<b>if</b> expr="${Milestone.name} not like 'Milestone%'">
+      &lt;<b>data</b> name="Milestone.status" value="accept">&lt;/data>
+      &lt;<b>sequence</b>>
+        &lt;<b>parallel</b>>
+          &lt;<b>task</b> label="Accept milestone" role="Sponsor">
+            &lt;<b>data</b> name="Sponsor's answer" type="choose(accept, reject)">&lt;/data>
+          &lt;/task>
+          &lt;<b>task</b> label="Accept milestone" role="Reviewer">
+            &lt;<b>data</b> name="Reviewer's answer" type="choose(accept, reject)">&lt;/data>
+          &lt;/task>
+        &lt;/parallel>
+
+        &lt;<b>if</b> expr="${Sponsor's answer} = accept">
+          &lt;<b>data</b> name="Milestone.status" value="accept">&lt;/data>
+          &lt;<b>elseif</b> expr="${Reviewer's answer} = reject"/>
+          &lt;<b>data</b> name="Milestone.status" value="reject">&lt;/data>
+          &lt;<b>situation</b> name="Milestone dispute">&lt;<b>data</b> name="Milestone">&lt;/data>&lt;/situation>
+        &lt;/if>
+      &lt;/sequence>
+    &lt;/if>
+  &lt;/subprocess>
+
+&lt;/workflow>
+
+</pre>
+
+<p>
+<i>Milestone signoff</i><br>
+About the only really surprising thing here is the assignment of a subprocess as the
+signoff procedure for a task in the project plan.  I'm not entirely happy with the ad-hoc
+syntax I used to express this, as it feels too off-the-cuff.  As you can see, I simply used
+a modifier <code>completion=</code> and specified a subprocess.  The subprocess then expects
+as its parameter a task.  (Note the use of a "task" data type for this.  I like that.)
+<p>
+The subprocess checks its called task by name to see whether it's a milestone.  I don't
+like that either, but to impose the ability on the process design tool to decorate tasks
+with flags and things that I could check for this sort of purpose might also be a bit
+complicated.  So -- something else to think about.
+<p>
+Once the subprocess has come to a conclusion, it sets the task's status to "accept" or 
+"reject".  Again, I like this.
+<p>
+Remember that we want the ability to do this sort of thing across the board for administrative
+tasks: for any system task, we should have the ability to specify a workflow to be used to accomplish it.
+This includes things like task signoff, role assignment, user maintenance, and so on.  Using it for
+task signoff in this case, therefore, should be pretty straightforward.  I can fairly well
+guarantee I won't stick with this syntax, though.  Ugh.  I'd welcome any suggestions.  (Thomas?)
+<p>
+<i>like 'Milestone%'</i><br>
+I guess I just can no longer live without pattern-matching facilities for strings.  I've
+borrowed SQL syntax here, but it would probably make more sense to use regexp for pattern
+matching, as it's already written under GNU license and it's far more powerful.  Opinions?
+
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

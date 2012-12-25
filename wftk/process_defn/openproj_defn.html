@@ -1,0 +1,221 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Process definition example -- open source project</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Process definition example -- open source project</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/process_defn.html>process&nbsp;definition</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+This is an attempt at the basic process outlined in the <a href=../usage/openproj.html>open source software
+development scenario</a>.  Since it's the first scenario that involves workflow processes knowing about one another, there
+are some new concepts.
+
+<pre>
+&lt;?xml version="1.0"?>
+
+&lt;<b>workflow</b> name="Open source change request" author="Michael: michael@vivtek.com">
+  &lt;<b>role</b> name="Analyst">&lt;/role>
+  &lt;<b>role</b> name="Developer">&lt;/role>
+  &lt;<b>role</b> name="Tester">&lt;/role>
+  &lt;<b>role</b> name="Documentor">&lt;/role>
+
+  &lt;<b>data</b> name="Change request number" type="sequence">&lt;/data>
+  &lt;<b>data</b> name="Description" type="text">&lt;/data>
+  &lt;<b>data</b> name="Supporting documentation">
+    &lt;<b>list</b>>&lt;<b>data</b> type="document">&lt;/data>&lt;/list>
+  &lt;/data>
+  &lt;<b>data</b> name="Mailing list">&lt;<b>list</b>>&lt;<b>data</b>>&lt;/data>&lt;/list>&lt;/data>
+  &lt;!-- The mailing list starts out with just the requester's name on it -->
+
+  &lt;<b>sequence</b>>
+     &lt;<b>task</b> label="Analyze" role="Analyst">
+        &lt;<b>data</b> name="action" type="choice(ok,merge,fork)">
+           &lt;!-- Aha!  Content of a data tag could be how to elicit it! -->
+        &lt;/data>
+     &lt;/task>
+     &lt;<b>if</b> expr="${action} == 'merge'">
+        &lt;<b>situation</b> name="merge">&lt;/situation>
+        &lt;<b>elseif</b> expr="${action} == 'fork'"/>
+        &lt;<b>situation</b> name="fork">&lt;/situation>
+     &lt;/if>
+     &lt;<b>task</b> label="Develop" role="Developer">
+        &lt;<b>data</b> name="changes" type="collection(cvs)">&lt;/data>
+     &lt;/task>
+     &lt;<b>task</b> label="Test" role="Tester">
+        &lt;<b>data</b> name="test plan" type="collection(cvs)">&lt;/data>
+     &lt;/task>
+     &lt;<b>task</b> label="Document" role="Documentor">
+        &lt;<b>data</b> name="CR documentation" type="document">&lt;/data>
+        &lt;<b>data</b> name="Doc updates" type="collection(cvs)">&lt;/data>
+     &lt;/task>
+  &lt;/sequence>
+  &lt;<b>handle</b> situation="merge">
+     &lt;<b>task</b> label="Define merge" role="Analyst">
+        &lt;<b>data</b> name="mergee" type="workflow">&lt;/data>
+        &lt;<b>data</b> name="explanation" type="text">&lt;/data>
+     &lt;/task>
+     &lt;<b>alert</b> type="foreign-role" to="${mergee}:Analyst">
+        &lt;<b>data</b> name="label" type="text" value="Change request merge">&lt;/data>
+        &lt;<b>data</b> name="explanation">&lt;/data>
+        &lt;<b>data</b> name="mailing list">&lt;/data>
+     &lt;/alert>
+  &lt;/handle>
+  &lt;<b>handle</b> situation="fork">
+     &lt;<b>task</b> label="Define fork" role="Analyst">
+        &lt;<b>data</b> name="description" type="text">&lt;/data>
+        &lt;<b>data</b> name="newdescription" type="text">&lt;/data>
+        &lt;<b>data</b> name="Supporting documentation" type="collection(document)">&lt;/data>
+        &lt;<b>data</b> name="New supporting documentation" type="collection(document)">&lt;/data>
+     &lt;/task>
+     &lt;<b>start</b> name="Open source change request">
+        &lt;<b>data</b> name="description" value="${newdescription}">&lt;/data>
+        &lt;<b>data</b> name="Supporting documentation" value="${Supporting documentation}">&lt;/data>
+        &lt;<b>data</b> name="Mailing list" value="${Mailing list}">&lt;/data>
+     &lt;/start>
+     &lt;<b>resume</b>/>
+  &lt;/handle>
+&lt;/workflow>
+
+</pre>
+
+Hoo boy.  Lots of new stuff in this one.  Let's run down the list.
+<p>
+<i>All those new data types</i><br>
+I'm starting to get excited about the idea of datatype adapters.  Data type "sequence" is
+supported by many database systems: it's guaranteed to return a unique value for each
+instance.  And I thought "collection(<type>)" just makes sense.  Sure comes in handy for
+lists of mailing addresses, collections of documents (i.e. a folder), collections of things
+that don't get collected easily, like CVS entries for code changes.  (One of the things I
+hate about CVS is that you can't collect changes into logical groups.  A universal folder
+like this, though, can do that easily.  And since the value sheet for the process is itself
+an XML document, the collection is very easy to implement.)
+<p>
+So I'm getting a little more creative with data types.  I tossed in an "enum(<>)" just to
+see how it looked.  I'm not overly enamored of enum data types, but it does give it a clean
+appearance.
+<p>
+<i>&lt;resume&gt; tag, anyone?</i><br>
+I found that if I wanted to use a situation for the forking case (which seems natural to
+me) I can't, without a way to resume the sequence at the point at which the situation
+occurs.  Which is a natural extension if you ask me, and cheap enough to handle.  Anyone
+care to differ on this?
+<p>
+<i>Workflow merge</i><br>
+Initially I was thinking of a <code>&lt;merge&gt;</code> tag to merge two processes, but when I
+started thinking about that, I realized that to merge two processes, you'd have to specify exactly
+what to do to merge existing values into one, and once I seriously thought about that, it was
+obvious that it's too complicated.
+<p>
+So instead I decided to see if it makes sense to handle this as a notification to a role in the other
+process, which I called a "foreign-role" type of alert.  The recipient of this alert would have access
+to the necessary data in the current workflow (even after it's no longer active) to merge the information
+into the foreign workflow.
+<p>
+This would seem to create a sort of ad-hoc task in the foreign workflow, so we might want to think about
+treating it as a sort of task.  The whole ad-hoc task question is wide open anyway.
+<p>
+<i>Workflow start</i><br>
+As weird and complicated as merge is, though, "start" is pretty obvious.
+ start a new process, give it the name of the definition,
+and give the named data values to use.  This just plain makes sense.  As you can see, I created a new
+tag <code>&lt;start&gt;</code>
+<p>
+<i>Task specification with two collections</i><br>
+Wouldn't it be nice to be able to put up a form with two collections on it, and allow the
+user to drag and drop them back and forth?  (Or something of that nature.)  Actually, this
+isn't all that hard to do with DHTML, I've found.  Just a pleasant thought.  It'd be nice
+in this fork situation, where some of the supporting document supports one of the child
+processes, and other documents support the other.
+<p>
+Well, that's all I can think of at the moment.  I'm sure this one will spark just as much
+debate as earlier installments in the XML series.
+
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

@@ -1,0 +1,697 @@
+<html><head><title>LIST adaptor: localdir</title></head>
+<body>
+<h2>LIST adaptor: localdir</h2>
+<hr>
+<p></p>
+This is the canonical list adaptor; it stores objects as XML files in a directory in the filesystem.
+It knows (and cares) nothing about the structure of its objects.  Objects use a particular DTD which
+(in classical wftk style) I haven't documented yet.  I'll get to it as soon as I can.
+<p></p>
+
+The motivators for the list adaptor are the <a href="../../popup/index.html">popup GUI framework</a>
+and the <a href="../../repmgr/index.html">repository manager</a>.  Each makes use of lists of objects.
+The object format itself is an extension of the datasheet, so eventually there's going to be a lot
+of closure here.  Eventually.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include &lt;string.h>
+#include &lt;sys/types.h>
+#ifdef WINDOWS
+#include &lt;io.h>
+#else
+#include &lt;dirent.h>
+#endif
+#include &lt;malloc.h>
+#include "../wftk.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "create",
+   "destroy",
+   "add",
+   "update",
+   "delete",
+   "get",
+   "query",
+   "first",
+   "next",
+   "rewind",
+   "prev",
+   "last"
+};
+
+XML * LIST_localdir_init (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_localdir_free (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_localdir_info (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_localdir_create (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_localdir_destroy (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_localdir_add (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_localdir_update (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_localdir_delete (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_localdir_get (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_localdir_query (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_localdir_first (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_localdir_next (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_localdir_rewind (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_localdir_prev (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_localdir_last (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   LIST_localdir_init,
+   LIST_localdir_free,
+   LIST_localdir_info,
+   LIST_localdir_create,
+   LIST_localdir_destroy,
+   LIST_localdir_add,
+   LIST_localdir_update,
+   LIST_localdir_delete,
+   LIST_localdir_get,
+   LIST_localdir_query,
+   LIST_localdir_first,
+   LIST_localdir_next,
+   LIST_localdir_rewind,
+   LIST_localdir_prev,
+   LIST_localdir_last
+};
+
+static struct adaptor_info _LIST_localdir_info =
+{
+   15,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct adaptor_info * LIST_localdir_get_info ()
+{
+   return &amp; _LIST_localdir_info;
+}
+</pre></td></tr></table>
+
+Now, the problem with initializing the list adaptor is that the list ID is not everything we know about the list.  Ideally we
+would have the entire list definition XML here, but we don't -- we do, however, get it later, when we get down to business.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_localdir_init (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * LIST_localdir_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_localdir_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "list");
+   xml_set (info, "name", "localdir");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+<p></p>
+So.  Down to business.  The first function I want to implement is the "get" function, just because it's kind of a sanity check.
+Since there's no satisfactory way for initialization to come up with a base directory for the list, I'm going to assume that a subsequent
+call will have set the parameter "basedir" -- if it's not set, we'll assume that the current working directory is the base.
+Basically, localdir assumes that an object is stored in &lt;basedir&gt;/&lt;list&gt;/&lt;key&gt;.xml.  If this file persists in not
+existing, then NULL is returned.  Otherwise, we read the file and return its content (as an XML structure.)
+<p></p>
+Note that this provides a template for other list storage adaptors; the "get" function simply takes a key and returns XML.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_localdir_get (WFTK_ADAPTOR * ad, va_list args) {
+   XML * scratch = xml_create ("scratch");
+   XML * ret = NULL;
+   XML * list = NULL;
+   char * key;
+   FILE * file;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+
+   if (!*xml_attrval (ad->parms, "list")) xml_set (ad->parms, "list", xml_attrval (list, "id"));
+
+   xml_set (scratch, "dir", xml_attrval (ad->parms, "basedir"));
+   xml_attrcat (scratch, "dir", xml_attrval (ad->parms, "list"));
+   xml_attrcat (scratch, "dir", "/");
+   xml_attrcat (scratch, "dir", key);
+   xml_attrcat (scratch, "dir", ".xml");
+
+   file = fopen (xml_attrval (scratch, "dir"), "r");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Unable to open list item file %s", xml_attrval (scratch, "dir"));
+   } else {
+      ret = xml_parse_general (file, (XMLAPI_DATARETRIEVE) fread);
+      if (xml_is (ret, "xml-error")) {
+         xml_setf (ad->parms, "error", "XML error in line %s of list item file %s: %s", xml_attrval (ret, "line"), xml_attrval (scratch, "dir"), xml_attrval (ret, "message"));
+         xml_free (ret);
+         ret = NULL;
+      }
+   }
+
+   if (ret) xml_set (ret, "key", key);
+
+   xml_free (scratch);
+   return ret;
+}
+</pre></td></tr></table>
+
+OK.  That works fine, so now let's scan the directory for the query action, which will also be used
+for iteration.  Iteration simply does an immediate query, and returns pointers into that result set
+with calls to the iteration functions.  So for localdir you're not gaining a whole lot by using the
+iterators, but for others you will -- database queries, especially.
+<p></p>
+During iteration you still have to call 'get' to retrieve the full object.  All you can count on in
+the pointer record is just the ID -- other adaptors may do a limited query, or query the full record,
+or whatever, but localdir is minimal.
+
+<p></p>
+So here's the directory scanner.  Unfortunately, the filesystem is one place where Microsoft figured
+they could do better, so we have completely different code for Windows and for Unix.  On the other
+hand, one thing Microsoft <i>did</i> do better than dirent.h is that their directory scan function
+can filter for wildcard matches, and under Unix we have to do that part ourselves.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _LIST_localdir_scan (WFTK_ADAPTOR * ad, XML * list) {
+#ifdef WINDOWS
+   long hFile;
+   struct _finddata_t c_file;
+#else
+   DIR * dir;
+   struct dirent * entry;
+#endif
+   char * cp;
+   char * mark;
+   int  count = 0;
+   XML * scratch = xml_create ("s");
+   XML * record;
+
+   xml_set (list, "count", "0");
+   xml_replacecontent (list, NULL); /* Delete any existing contents. */
+
+   xml_set (scratch, "dir", xml_attrval (ad->parms, "basedir"));
+   xml_attrcat (scratch, "dir", xml_attrval (ad->parms, "list"));
+
+   xml_setf (scratch, "spec", "%s/*.xml", xml_attrval (scratch, "dir"), xml_attrval (list, "list"));
+#ifdef WINDOWS
+   hFile = _findfirst (xml_attrval (scratch, "spec"), &amp;c_file);
+   if (hFile < 0L) {
+#else
+   dir = opendir (xml_attrval (scratch, "dir"));
+   if (!dir) {
+#endif
+      xml_free (scratch);
+      return;
+   }
+
+#ifndef WINDOWS
+   entry = readdir (dir);
+   if (!entry) {
+      xml_free (scratch);
+      return;
+   }
+#endif
+
+   do {
+#ifndef WINDOWS
+      if (strlen (entry->d_name) < 4) continue;
+      mark = entry->d_name + strlen (entry->d_name) - 4;
+      if (strcmp (mark, ".xml")) continue;
+#endif
+
+      count++;
+      record = xml_create ("record");
+#ifdef WINDOWS
+      cp = strdup (c_file.name);
+#else
+      cp = strdup (entry->d_name);
+#endif
+      mark = strchr (cp, '.');
+      if (mark) *mark = '\0';
+      xml_setf (record, "id", "%s", cp);
+      free (cp);
+      xml_append (list, record);
+
+#ifdef WINDOWS
+   } while (-1 != _findnext (hFile, &amp;c_file));
+#else
+   } while (entry = readdir (dir));
+#endif
+
+   xml_setnum (list, "count", count);
+   xml_free (scratch);
+
+#ifdef WINDOWS
+   _findclose (hFile);
+#else
+   closedir (dir);
+#endif
+}
+</pre></td></tr></table>
+
+So let's wrap that in an adaptor command, shall we?  Addendum: I realized that the "query" command is the place to do selection and
+sorting.  I'm skipping the selection (where clause) for now, but sorting is important in the short term, so here we go.  In addition,
+although the default scan is just good for IDs, we normally want some selection of fields, meaning that the full object has to be
+loaded.  That also happens here.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_localdir_query (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * list;
+   XML * scratch;
+   XML * cur;
+   XML * ret;
+   XML * sort;
+   XML * scan;
+   FILE * file;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   if (!*xml_attrval (ad->parms, "list")) xml_set (ad->parms, "list", xml_attrval (list, "id"));
+
+   _LIST_localdir_scan (ad, list);
+
+   if (!*xml_attrval (list, "select") &amp;&amp; !*xml_attrval (list, "order") &amp;&amp; !*xml_attrval (list, "where")) return list;
+
+   /* If requested, we load the files -- note that we're not going to get sophisticated and select fields yet or anything. */
+   scratch = xml_create ("s");
+
+   xml_set (scratch, "dir", xml_attrval (ad->parms, "basedir"));
+   xml_attrcat (scratch, "dir", xml_attrval (ad->parms, "list"));
+   xml_attrcat (scratch, "dir", "/");
+
+   cur = xml_firstelem (list);
+   while (cur) {
+      xml_set (scratch, "file", xml_attrval (scratch, "dir"));
+      xml_attrcat (scratch, "file", xml_attrval (cur, "id"));
+      xml_attrcat (scratch, "file", ".xml");
+
+      file = fopen (xml_attrval (scratch, "file"), "r");
+      if (!file) {
+         cur = xml_nextelem (cur);
+         if (cur) {
+            xml_delete (xml_prevelem (cur));
+         } else {
+            xml_delete (xml_lastelem (list));
+         }
+         continue;
+      } else {
+         ret = xml_parse_general (file, (XMLAPI_DATARETRIEVE) fread);
+         if (!xml_is (ret, "xml-error")) xml_copyinto (cur, ret);
+         xml_free (ret);
+      }
+
+      if (*xml_attrval (list, "order")) {
+         scan = xml_search (cur, "field", "id", xml_attrval (list, "order"));
+         if (scan) {
+            xml_set (cur, "_sort", xml_attrval (scan, "value"));
+            if (!*xml_attrval (cur, "_sort")) {
+               xml_set (cur, "_sort", xml_stringcontent (scan));
+            }
+         }
+      }
+
+      cur = xml_nextelem (cur);
+   }
+
+   /* And now we sort the files as requested. */
+   if (*xml_attrval (list, "order")) {
+      sort = xml_create ("sort");
+      xml_set (sort, "field", "_sort");
+      xml_sort (list, sort);
+      xml_free (sort);
+   }
+
+   xml_free (scratch);
+   return list;
+}
+</pre></td></tr></table>
+
+So now we're in a position to define iteration over lists.  Both backwards and forwards are simple
+to define for this adaptor; for databases things may be more difficult to manage.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_localdir_first (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * ret;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   if (!*xml_attrval (ad->parms, "list")) xml_set (ad->parms, "list", xml_attrval (list, "id"));
+
+   _LIST_localdir_scan (ad, list);
+   xml_set (list, "cur", "");
+
+   ret = xml_firstelem (list);
+   if (ret) xml_set_nodup (list, "cur", xml_getlocbuf (ret));
+   else     xml_set (list, "cur", "EOF");
+   return (ret);
+}
+XML * LIST_localdir_next (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * cur;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   if (*xml_attrval (list, "cur")) {
+      if (!strcmp (xml_attrval (list, "cur"), "EOF")) return NULL;
+
+      cur = xml_loc (list, xml_attrval (list, "cur"));
+      if (cur) cur = xml_nextelem (cur);
+      if (cur) xml_set_nodup (list, "cur", xml_getlocbuf (cur));
+      else     xml_set (list, "cur", "EOF");
+      return (cur);
+   }
+
+   cur = xml_firstelem (list);
+   if (cur) xml_set_nodup (list, "cur", xml_getlocbuf (cur));
+   else     xml_set (list, "cur", "EOF");
+   return (cur);
+}
+XML * LIST_localdir_rewind (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   xml_set (list, "cur", "");
+}
+XML * LIST_localdir_prev (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * list;
+   XML * cur;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   if (!*xml_attrval (list, "cur")) return NULL;
+
+   if (!strcmp (xml_attrval (list, "cur"), "EOF")) {
+      cur = xml_lastelem (list);
+      if (cur) xml_set_nodup (list, "cur", xml_getlocbuf (cur));
+      else     xml_set (list, "cur", "");
+      return (cur);
+   }
+
+   cur = xml_loc (list, xml_attrval (list, "cur"));
+   if (cur) cur = xml_prevelem (cur);
+   if (cur) xml_set_nodup (list, "cur", xml_getlocbuf (cur));
+   else     xml_set (list, "cur", "");
+   return (cur);
+}
+XML * LIST_localdir_last (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * list;
+   XML * ret;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   xml_set (list, "cur", "EOF");
+
+   ret = xml_lastelem (list);
+   if (ret) xml_set_nodup (list, "cur", xml_getlocbuf (ret));
+   else     xml_set (list, "cur", "");
+   return (ret);
+}
+</pre></td></tr></table>
+
+Let's skip the create/destroy stuff for now.  I haven't figured out sequencing for everything yet.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_localdir_create (WFTK_ADAPTOR * ad, va_list args) { return 0; }
+XML * LIST_localdir_destroy (WFTK_ADAPTOR * ad, va_list args) { return 0; }
+</pre></td></tr></table>
+
+When adding an object to a list, we get a list descriptor (which serves every function) and the
+object itself.  The list descriptor includes our destination directory, possibly cryptically.  If
+no actual directory was given in our initialization, we will simply use the list ID given in the
+list descriptor.  If this directory doesn't exist, it won't be created -- that's what we have an explicit
+create for, after all.
+
+<p></p>
+If the "key" attribute is set on the object, this is used as a key; if not, then the "key" attribute of the
+list definition is checked and is assumed to name a field unless bracket notation is used, in which case a
+key value will be constructed.  Failing this, the first field in the object is taken as the key.  This
+logic applies to all three operations.  Update will check to see whether the key given in the object can still
+be reconstructed from the list definition and will delete the earlier object, <i>if</i> the list definition
+includes a key field definition!
+
+<p></p>
+Add will fail if the key already exists; update will overwrite but will not fail if the key does not exist;
+delete will likewise not fail if the key does not exist.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_localdir_add (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * obj;
+   const char * key;
+   int cleanup = 0;
+   XML * mark;
+   XML * ret;
+   XML * scratch;
+   FILE * file;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   obj = va_arg (args, XML *);
+   if (!obj) {
+      xml_set (ad->parms, "error", "No object given.");
+      return (XML *) 0;
+   }
+
+   if (!*xml_attrval (ad->parms, "list")) xml_set (ad->parms, "list", xml_attrval (list, "id"));
+
+   key = xml_attrval (obj, "key");
+   if (!*key) {
+      key = xml_attrval (list, "key");
+      if (*key) {
+         key = xml_attrval (obj, key);
+      } else {
+         mark = xml_search (obj, "field", NULL, NULL);
+         if (!mark) {
+            xml_set (ad->parms, "error", "No key can be determined.");
+            return (XML *) 0;
+         }
+         key = xml_attrval (mark, "value");
+         if (!*key) {
+            key = xml_stringcontent (mark);
+            if (!*key) {
+               free ((void *)key);
+               xml_set (ad->parms, "error", "No key can be determined.");
+               return (XML *) 0;
+            }
+            cleanup = 1;
+         }
+      }
+   }
+
+   scratch = xml_create ("s");
+   xml_set (scratch, "dir", xml_attrval (ad->parms, "basedir"));
+   xml_attrcat (scratch, "dir", xml_attrval (ad->parms, "list"));
+   xml_setf (scratch, "file", "%s/%s.xml", xml_attrval (scratch, "dir"), key);
+   if (cleanup) free ((void *)key);
+
+   file = fopen (xml_attrval (scratch, "file"), "w");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Object file %s cannot be opened for writing.", xml_attrval (scratch, "file"));
+   } else {
+      xml_write (file, obj);
+      fclose (file);
+   }
+
+   xml_free (scratch);
+   return NULL;
+}
+XML * LIST_localdir_update (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * obj;
+   const char * oldkey;
+   const char * key;
+   int cleanup = 0;
+   XML * mark;
+   XML * ret;
+   XML * scratch;
+   FILE * file;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   obj = va_arg (args, XML *);
+   if (!obj) {
+      xml_set (ad->parms, "error", "No object given.");
+      return (XML *) 0;
+   }
+
+   if (!*xml_attrval (ad->parms, "list")) xml_set (ad->parms, "list", xml_attrval (list, "id"));
+
+   oldkey = xml_attrval (obj, "key");
+
+   key = xml_attrval (list, "key");
+   if (key) {
+      mark = xml_search (obj, "field", "id", key);
+      if (mark) {
+         key = xml_attrval (mark, "value");
+         if (!*key) {
+            key = xml_stringcontent (mark);
+            if (!*key) {
+               free ((void *) key);
+               key = "";
+            } else {
+               cleanup = 1;
+            }
+         }
+      }
+   }
+
+   if (!*key) key = oldkey;
+
+   if (!*key) {
+      mark = xml_search (obj, "field", NULL, NULL);
+      if (!mark) {
+         xml_set (ad->parms, "error", "No key can be determined.");
+         return (XML *) 0;
+      } else {
+         key = xml_attrval (mark, "value");
+         if (!*key) {
+            key = xml_stringcontent (mark);
+            if (!*key) {
+               free ((void *)key);
+               xml_set (ad->parms, "error", "No key can be determined.");
+               return (XML *) 0;
+            }
+            cleanup = 1;
+         }
+      }
+   }
+
+   scratch = xml_create ("s");
+   xml_set (scratch, "dir", xml_attrval (ad->parms, "basedir"));
+   xml_attrcat (scratch, "dir", xml_attrval (ad->parms, "list"));
+   xml_setf (scratch, "file", "%s/%s.xml", xml_attrval (scratch, "dir"), key);
+
+   if (cleanup) free ((void *)key);
+
+   file = fopen (xml_attrval (scratch, "file"), "w");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Object file %s cannot be opened for writing.", xml_attrval (scratch, "file"));
+   } else {
+      xml_write (file, obj);
+      fclose (file);
+      if (*oldkey &amp;&amp; strcmp (oldkey, key)) {
+         xml_setf (scratch, "delfile", "%s/%s.xml", xml_attrval (scratch, "dir"), oldkey);
+         unlink (xml_attrval (scratch, "delfile"));
+      }
+   }
+
+   xml_free (scratch);
+   return NULL;
+}
+XML * LIST_localdir_delete (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * obj;
+   char * key;
+   int cleanup = 0;
+   XML * mark;
+   XML * ret;
+   XML * scratch;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+   if (!key) {
+      xml_set (ad->parms, "error", "No object given.");
+      return (XML *) 0;
+   }
+
+   if (!*xml_attrval (ad->parms, "list")) xml_set (ad->parms, "list", xml_attrval (list, "id"));
+
+   scratch = xml_create ("s");
+   xml_set (scratch, "dir", xml_attrval (ad->parms, "basedir"));
+   xml_attrcat (scratch, "dir", xml_attrval (ad->parms, "list"));
+   xml_setf (scratch, "file", "%s/%s.xml", xml_attrval (scratch, "dir"), key);
+   if (cleanup) free (key);
+
+   unlink (xml_attrval (scratch, "file"));
+
+   xml_free (scratch);
+   return NULL;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

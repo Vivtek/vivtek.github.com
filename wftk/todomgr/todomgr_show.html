@@ -1,0 +1,438 @@
+<html><head><title>To-do manager: Definition of todomgr_show</title></head>
+<body>
+<h2>Definition of todomgr_show</h2>
+<center>
+[&nbsp;<a href=todomgr_start.html>Previous: Definition of todomgr_start</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=todomgr_overview.html>Next: Definition of todomgr_overview</a>&nbsp;]
+</center>
+
+<hr>
+Like the create routine, the show routine is also responsible for both tasks and processes,
+and we can tell which is which by looking at the key given us (<code>task=something</code>
+versus <code>process=something</code>).  First let's get the form and complain if there is
+none.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set form [ns_conn form $conn]
+if {$form == ""} {
+   set tags(title) "Nothing to show"
+   set tags(body) "You need to select something to show."
+   return [todomgr_pageout $conn message.html]
+}
+global todomgr_pool
+set db [ns_db gethandle $todomgr_pool]
+<i>See <a href="user.html#check">Checking authuser</a></i>
+</pre></td></tr></table>
+
+OK, now let's look at the <code>back</code> parameter.  If that's there, then we're coming in
+from one of the list views and we want to offer the user the option of going back to the list
+after an update operation.  Otherwise, updates will come back here.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set back [ns_set get $form back]
+if [string compare $back ""] {
+   set tags(back) "&lt;input type=checkbox checked name=back value=\"$back\">"
+   append tags(back) "Return to list after update"
+} else {
+   set tags(back) ""
+}
+append back "[ns_conn url $conn]?[ns_conn query $conn]"
+append tags(back) "&lt;input type=hidden name=back value=\"$back\">\n"
+</pre></td></tr></table>
+
+I'm getting a little tricky there; if the box is displayed, then if it's not checked it will
+never appear in the query list for <code>update</code> and the hidden field (which directs
+<code>update</code> back here to the display) will take control.  But if the box remains checked,
+then its value will be the first in the query list, and <code>ns_set</code> will return that
+value first when queried for "back".  So <code>update</code> will return to the list instead of
+to this display screen.
+<p>
+OK, now that's out of the way, let's do some displaying.
+We can display either a task or a process, and each of those
+is shown detail below.  Here's the code we'll hang those in:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set task [ns_set get $form task]
+if {$task != ""} {
+   <i>See <a href="todomgr_show.html#task">Show task</a></i>
+   return
+}
+set process [ns_set get $form process]
+if {$process != ""} {
+   <i>See <a href="todomgr_show.html#process">Show process</a></i>
+   return
+}
+
+set tags(title) "Nothing to show"
+set tags(body) "You need to select something to show."
+todomgr_pageout $conn message.html
+</pre></td></tr></table>
+
+<br><br>
+<a name="task">
+<i>Show task</i><br>
+Showing a task (or any other single record from a database) is simple.  You just load the
+record, toss the values into tags, and express the template.  (Since there are two modes
+for task display, edit and view, there are two pageout calls.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if [catch {set row [ns_db select $db "select * from task where id='$task'"]} result] {
+   set tags(title) "Task $task unknown"
+   set tags(body) "The task ID <code>$task</code> is not in the database.  Sorry."
+   return [todomgr_pageout $conn message.html]
+}
+
+if [ns_db getrow $db $row] {
+   foreach field {process status priority owner description created sched_date sched_time} {
+      set tags($field) [ns_set get $row $field]
+   }
+   set tags(task) $task
+   if [string compare "edit" [ns_set get $form mode]] {
+      <i>See <a href="todomgr_show.html#getprocess">Getting process info for task display</a></i>
+      <i>See <a href="todomgr_show.html#getowner">Getting owner info for task/process display</a></i>
+      set tags(updatelink) ""
+      set tags(isowner) 0
+      if ![string compare $tags(owner) $user] {
+         set tags(isowner) 1
+         set tags(updatelink) "show?task=$task&amp;back=$back&amp;mode=edit"
+         set tags(backhere) "[ns_conn url $conn]?[ns_conn query $conn]"
+         set tags(taskdata) [datasheet_showdata edit $tags(backhere) $tags(processid) $task]
+      }
+      return [todomgr_pageout $conn taskhome.html]
+   } else {
+      <i>See <a href="todomgr_show.html#makeprioritybox">Making select box to change priority level</a></i>
+      <i>See <a href="todomgr_show.html#getprocess">Getting process info for task display</a></i>
+      <i>See <a href="todomgr_show.html#getowner">Getting owner info for task/process display</a></i>
+      set tags(backhere) "[ns_conn url $conn]?[ns_conn query $conn]"
+      set tags(taskdata) [datasheet_showdata view $tags(backhere) $tags(processid) $task]
+      return [todomgr_pageout $conn task.html]
+   }
+} else {
+   set tags(title) "Task $task unknown"
+   set tags(body) "The task ID <code>$task</code> is not in the database.  Sorry."
+   return [todomgr_pageout $conn message.html]
+}
+</pre></td></tr></table>
+
+That looks a little redundant, maybe; there are two different places where we apologize for a
+missing record.  The first is as an error handler, while the second is after a null return.
+This is due to a little oddity of the AOLserver PostgreSQL driver -- if a select returns no
+rows, the driver flags that as an error.  However, other drivers don't act that way, so I need
+the normal null-return error screen as well, just in case somebody is using a driver that
+works sanely.  (Or in case anybody ever fixes the PostgreSQL driver.)
+<p>
+And of course you will have noticed that I slipped in a little extra processing besides the
+standard "get the record, do the tags, return the page" list.  Let's take a look at that stuff.
+<br><br>
+<a name="getprocess">
+<i>Getting process info for task display</i><br>
+What we want from the process table depends on what process the task belongs to.  If
+it already is attached to a process, then we simply want the title of the process for
+display and a link to display that process.  If this is a manually entered task, however,
+which hasn't been attached to a
+process, then we'll present a select box for that purpose.  I envision the situation as
+this: as I'm entering tasks in my daily list, I realize that some of them group into a
+process logically, so I create the process and want to add the (already existing) tasks
+into it.  At the simplest level, then, a process is simply a group of tasks.
+<p>
+The list of processes which should appear in this list are those which the current user
+owns, plus those for which the current user has 't' permission.
+<p>
+So let's check our process ID. 
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set process [ns_set get $row process]
+set tags(processid) $process
+if {$process != ""} {
+   if [catch {set prow [ns_db select $db "select * from process where id='$process'"]} result] {
+      set tags(process) "&lt;i>Unknown process $process&lt;/i>"
+   } elseif [ns_db getrow $db $prow] {
+      set p [ns_set get $prow title]
+      set tags(process) "&lt;a href=\"overview?process=$process&amp;who=all\">"
+      append tags(process) "[ns_set get $prow title]&lt;/a>"
+   } else {
+      set tags(process) "&lt;i>Unknown process $process&lt;/i>"
+   }
+} else {
+   set    query "select id, title from process where owner='[sql_safe_string $user]' "
+   append query "union "
+   append query "select id, title from process, keyword, permission "
+   append query   "where process.id=keyword.process and keyword.keyword=permission.keyword "
+   append query   "  and permission.userid='[sql_safe_string $user]' "
+   append query   "  and flags like '%t%'"
+   append query " order by title"
+   if [catch {set prow [ns_db select $db $query]} result] {
+      set tags(process) "&lt;i>Unable to generate process list&lt;/i>"
+   } else {
+      set tags(process) "&lt;select name=process>\n"
+      append tags(process) "&lt;option value=\"\">Select a process to assign\n"
+      set lastid ""
+      while {[ns_db getrow $db $prow]} {
+         if ![string compare $lastid [ns_set get $prow id]] { continue }
+         set lastid [ns_set get $prow id]
+         append tags(process) "&lt;option value=\"[ns_set get $prow id]\">"
+         append tags(process) "[ns_set get $prow title]\n"
+      }
+      append tags(process) "&lt;/select>\n"
+   }
+}
+</pre></td></tr></table>
+
+<br><br>
+<a name="getowner">
+<i>Getting owner info for task/process display</i><br>
+Getting the owner's information is very similar to the process info, of course.  The only
+real trick is that we're going to create a tag out of it called "ownertag" which will contain
+a mailto: link and the user's ID and name.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set owner $tags(owner) 
+if {$owner != ""} {
+   if [catch {set urow [ns_db select $db "select * from users where userid='$owner'"]} result] {
+      set tags(ownertag) "&lt;i>Unknown owner $owner&lt;/i>"
+   } elseif [ns_db getrow $db $urow] {
+      if [string compare "" [ns_set get $urow email]] {
+         set tags(ownertag) "&lt;a href=\"mailto:[ns_set get $urow email]\">"
+      } else {
+         set tags(ownertag) ""
+      }
+      append tags(ownertag) $owner
+      if [string compare "" [ns_set get $urow email]] {
+         append tags(ownertag) "&lt;/a>"
+      }
+      if [string compare "" [ns_set get $urow name]] {
+         append tags(ownertag) " ([ns_set get $urow name])"
+      }
+   } else {
+      set tags(ownertag) "&lt;i>Unknown owner $owner&lt;/i>"
+   }
+}
+</pre></td></tr></table>
+
+<br><br>
+<a name="makeprioritybox">
+<i>Making select box to change priority level</i><br>
+This is pretty easy.  We have the priority level in <code>[ns_set get $row priority]</code>.
+All we have to do is to make a select box which has a couple of priority levels above that.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set tags(prioritybox) "&lt;select name=\"priority\">"
+set p [ns_set get $row priority]
+if {$p == ""} {
+   append tags(prioritybox) "&lt;option value=\"\" selected>No priority selected\n"
+   append tags(prioritybox) "&lt;option value=1>1\n"
+   append tags(prioritybox) "&lt;option value=2>2\n"
+   append tags(prioritybox) "&lt;option value=3>3\n"
+} else {
+   for {set i 1} {$i &lt; $p} {incr i} {
+      append tags(prioritybox) "&lt;option value=$i>$i\n"
+   }
+   append tags(prioritybox) "&lt;option value=$p selected>$p\n"
+   incr p
+   append tags(prioritybox) "&lt;option value=$p selected>$p\n"
+   incr p
+   append tags(prioritybox) "&lt;option value=$p selected>$p\n"
+}
+append tags(prioritybox) "&lt;/select>\n"
+</pre></td></tr></table>
+
+And that's all there is to that.
+<br><br>
+<a name="process">
+<i>Show process</i><br>
+Displaying a process really is as easy as I made it out to be above, since there are
+no particularly special things we have to do.  But of course there is one little complication;
+for processes I want to be able to get a list when I give <code>process=all</code> or 
+<code>process=mine</code>.  These lists will link to individual process pages.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if {![string compare $process all] || ![string compare $process mine]} {
+   <i>See <a href="todomgr_show.html#processlist">Listing processes</a></i>
+}
+if [catch {set row [ns_db select $db "select * from process where id='$process'"]} result] {
+   set tags(title) "Process $process unknown"
+   set tags(body) "The process ID <code>$process</code> is not in the database.  Sorry."
+   return [todomgr_pageout $conn message.html]
+}
+
+if [ns_db getrow $db $row] {
+   foreach field {title owner description started} {
+      set tags($field) [ns_set get $row $field]
+   }
+   set tags(process) $process
+   <i>See <a href="todomgr_show.html#getowner">Getting owner info for task/process display</a></i>
+   <i>See <a href="todomgr_show.html#getkeywords">Showing keywords for the process</a></i>
+   set tags(backhere) "[ns_conn url $conn]?[ns_conn query $conn]"
+   set tags(processdata) [datasheet_showdata edit $tags(backhere) $process ""]
+   return [todomgr_pageout $conn process.html]
+} else {
+   set tags(title) "Process $process unknown"
+   set tags(body) "The process ID &lt;code>$process&lt;/code> is not in the database.  Sorry."
+   return [todomgr_pageout $conn message.html]
+}
+</pre></td></tr></table>
+<br><br>
+<a name="getkeywords">
+<i>Showing keywords for the process</i><br>
+The list of keywords to present to the user depends on the user, not the process being
+shown.  All keywords to which the user has permission should appear in the list.  If the
+current user is the owner of the process, though, then even keywords to which the user
+doesn't have permission should appear in the list.  (I think this is the right way to handle
+this.  If you have more experience with security, tell me if this is reasonable.)
+<p>
+So display of keywords needs to happen in two phases.  First, we build an initial list using
+all the keywords I have access to.  Then we scan all the keywords attached to the process.
+If I own the process, then attached keywords may be added to the list; otherwise we only use
+the second query to turn on the "used" flag for each visible keyword.
+<p>
+What we build for public consumption is a list of keywords with checkboxes for each one.
+Keywords already associated with the process are checked; the others are not.  The whole
+thing ends up in the <code>keywordlist</code> tag.  If the flags for a keyword include 'p',
+then we'll additionally make the name of that keyword a link to the keyword management
+screen (so that we can assign users, see the list of processes assigned to the keyword, and
+so forth.)
+<p>
+One tricky point here: this code expects $tag(owner) to contain the owner of the project we're
+looking at.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "select * from permission where userid='[sql_safe_string $user]'"
+set mgtwords [list]
+if ![catch {set row [ns_db select $db $query]} result] {
+   while {[ns_db getrow $db $row]} {
+      set keyword([ns_set get $row keyword]) off
+      if [string match *p* [ns_set get $row flags]] { lappend mgtwords [ns_set get $row keyword] }
+   }
+}
+set query "select * from keyword where keyword.process='[sql_safe_string $process]'"
+if ![catch {set row [ns_db select $db $query]} result] {
+   if {[string tolower $user] == [string tolower $tags(owner)]} {
+      while {[ns_db getrow $db $row]} {
+         set keyword([ns_set get $row keyword]) on
+      }
+   } else {
+      while {[ns_db getrow $db $row]} {
+         if [info exists keyword([ns_set get $row keyword])] {
+            set keyword([ns_set get $row keyword]) on
+         }
+      }
+   }
+}
+</pre></td></tr></table>
+
+What we now have is an array <code>keyword</code> which has an entry for each keyword found,
+which is "off" for a keyword not associated with this project, and "on" for an associated one.
+All we have to do now is to sort the list of array keys and spit out our list.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set tags(keywordlist) ""
+foreach word [lsort [array names keyword]] {
+   append tags(keywordlist) "&lt;input type=checkbox name=\"keyword\" value=\"$word\""
+   if {$keyword($word) == "on"} { append tags(keywordlist) " checked" }
+   append tags(keywordlist) ">"
+   if {[lsearch $mgtwords $word] > -1} {
+      append tags(keywordlist) "&lt;a href=\"keywords?keyword=$word\">$word&lt;/a>"
+   } else {
+      append tags(keywordlist) $word
+   }
+   append tags(keywordlist) "&lt;br>\n"
+}
+</pre></td></tr></table>
+
+<br><br>
+<a name="processlist">
+<i>Listing processes</i><br>
+So how do we do process lists?  Pretty easy.  (Well, it was pretty easy until I started
+tossing all this permission stuff into it.)
+<p>
+If "all" is selected, then I display all processes which I own or to which I have viewing
+privileges.  If "mine" is selected (i.e. "all" isn't selected) then I display all processes
+which I own or to which I have 'p' privileges.
+<p>
+The drawback to this union is of course that I end up returning duplicate rows for processes
+which are owned by the current owner.  So I use the <code>lastid</code> variable to keep track
+of the last process I displayed, and if it comes up again I don't show it.  Ugh.  If anybody
+can think of a more elegant solution, I'm quite open to suggestions.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set tags(header) "&lt;tr bgcolor=cccccc>&lt;td>Process&lt;/td>"
+if ![string compare $process all] {
+   set tags(title) "All processes"
+   append tags(header) "&lt;td>Owner&lt;/td>"
+   set    query "select id, title, owner, status, text 'prmt' as flags from process "
+   append query   "where owner='[sql_safe_string $user]' "
+   append query "union "
+   append query "select id, title, owner, status, flags from process, keyword, permission "
+   append query   "where process.id=keyword.process and keyword.keyword=permission.keyword "
+   append query     "and permission.userid='[sql_safe_string $user]' "
+   append query "order by title"
+} else {
+   set tags(title) "My processes"
+   set    query "select id, title, owner, status, text 'prmt' as flags from process "
+   append query   "where owner='[sql_safe_string $user]' "
+   append query "union "
+   append query "select id, title, owner, status, flags from process, keyword, permission "
+   append query   "where process.id=keyword.process and keyword.keyword=permission.keyword "
+   append query     "and permission.userid='[sql_safe_string $user]'"
+   append query     "and flags like '%p%' "
+   append query "order by title"
+}
+append tags(header) "&lt;td>Status&lt;/td>&lt;/tr>"
+
+set tags(table) ""
+set rows 0
+set row [ns_db select $db $query]
+set lastid ""
+while {[ns_db getrow $db $row]} {
+   if ![string compare $lastid [ns_set get $row id]] { continue }
+   set lastid [ns_set get $row id]
+
+   append tags(table) "&lt;tr bgcolor=\""
+   if [expr $rows % 2] {
+      append tags(table) eeeeee
+   } else {
+      append tags(table) ffffff
+   }
+   append tags(table) "\">"
+   incr rows
+
+   append tags(table) "&lt;td>&lt;a href=\"overview?process=[ns_set get $row id]&amp;who=all\">"
+   append tags(table) "[ns_set get $row title]&lt;/a> "
+   if [string match *p* [ns_set get $row flags]] {
+      append tags(table) "(&lt;a href=\"show?process=[ns_set get $row id]\">modify&lt;/a>)&lt;/td>"
+   }
+
+   if [string compare $process mine] {
+      append tags(table) "&lt;td>[ns_set get $row owner]&lt;/td>"
+   }
+
+   append tags(table) "&lt;td>[ns_set get $row status]&lt;/td>&lt;/tr>\n"
+}
+if {$rows == 0} {
+   set tags(body) "&lt;tr>&lt;td colspan=3>&lt;i>No processes found&lt;/i>&lt;/td>&lt;/tr>"
+}
+
+return [todomgr_pageout $conn processlist.html]
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href=todomgr_start.html>Previous: Definition of todomgr_start</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=todomgr_overview.html>Next: Definition of todomgr_overview</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

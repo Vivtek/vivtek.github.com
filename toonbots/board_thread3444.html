@@ -1,0 +1,192 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+
+<head>
+   <title>Toonbots: a kind of daily kind of comic strip</title>
+<META NAME="description" CONTENT="An online comic strip.  Nonsense humor and automatic drawing tools.">
+<meta name="keywords" content="Web toons, Webtoons, cartoons, comics, comic strip, robots, tools, graphics software">
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">toonbots</p>
+<p>[ <a href=/toonbots/index.html>today</a> ]</p>
+<p>[ <a href=/toonbots/archive.html>archive!</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/toonbots/discuss.pl>forum</a> ]</p>
+<p>[ <a href=/toonbots/board_archive.html>forum archive</a> ]</p>
+<p>[ <a href=/toonbots/paftwj.html>jihad</a> ]</p>
+<p>[ <a href=/toonbots/spare_parts.html>misc</a> ]</p>
+<p>[ <a href=/toonbots/allyourbase.html>all your base</a> ]</p>
+<p>[ <a href=/toonbots/reviews.html>are belong to us</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2><u>Toonbots message board: Rumors of my death</u></h2>
+<center>
+
+[&nbsp;<a href="http://www.vivtek.com/toonbots/">toonbots home</a>&nbsp;]
+[&nbsp;<a href="board_archive.html">message board archive</a>&nbsp;] 
+
+[&nbsp;<a href="http://www.vivtek.com/toonbots/toon-o-matic.html">the toon-o-matic software</a>&nbsp;] [&nbsp;<a href="http://www.vivtek.com/toonbots/discuss.pl">forum</a>&nbsp;]
+</center>
+</td></tr>
+
+<tr><td>
+<table border=0 cellpadding=5><tr><td bgcolor=eeeeee>
+<strong><a href="mailto:toonbots@vivtek.com">Michael</a></strong> <i>Sat Feb  9 16:46:38 2002</i><br>
+<strong>Rumors of my death</strong>
+<P>They're exaggerated!
+<P>Anyway, last Sunday one of the server processes on my box (yes, the one which serves up Techspex.com, my most stable customer contract, at six years and counting) started ... not answering. I'd restart it, and it would go for an hour or so, then ... not answer any more. Since I'd just made some changes, I figured that was it. It wasn't (undid all of them and it still did that). So there were a couple of getting-bigger-and-maybe-pushing-it kinds of numbers here and there on the machine. Fixed them all. Didn't help.
+<P>By this point, two days had passed, with me restarting the server process every hour or so. The restart takes five minutes or so, so I didn't want to do it unless the process had actually locked up (like on a timer or something). Every time I thought I'd had it fixed, and Monday night I even was completely convinced and slept ten hours(!) -- only to get a somewhat apologetic call from the customer the next morning that, no, it wasn't fixed.
+<P>So I bit the bullet. The site (as is Vivtek) was running on AOLserver 2.1 against an Illustra database. This was cutting-edge technology in 1994, and when I got to it in late 1996, it was still pretty damned cutting edge. But AOLserver has moved on, to 3.4.2 at last count, and of course Illustra, while feature-laden, was never something you could tune or troubleshoot very well. They got bought out by Informix in '99 or so, and good riddance to'em.
+<P>My plan had been to upgrade the site to AOL3.x anyway, and switch to MySQL. Needless to say, I was anticipating this move with some serious trepidation, as there is a *lot* of code I would have to change .... but the server made the decision for me. And now it's almost done. I haven't slept much this week, but by GOD I can't let my own server push me around.
+<P>Fortunately, I had another server set up with Solaris 2.8 Intel, running AOLserver 3.2 -- that much worked. And I follow the lists, so I had a nice lead on a MySQL driver, and I'd been putzing around with MySQL anyway in preparation for a database switch.
+<P>So anyway, at Techspex we'd been wrestling with unbelievable performance problems -- due to organizational difficulties, we had been unable to address them. Now we had no choice. And now, the database queries I've already converted are ticking along at sub-second response when they used to take upwards of 10 seconds, some of them. It's flat-out eerie.
+<P>I may not have slept this week, and my customer may have been reeeeeally nervous, but damn are they happy now! MySQL rocks. Just wanted to share that with y'all. Emsworth, Tirdun, this explains why I haven't even managed to get your contributed episodes up. I had no time to do *anything* but address these issues. And now I'm going to cook me up a big batch of chili.
+
+</td></tr></table>
+<blockquote>
+<table border=0 cellpadding=5><tr><td bgcolor=eeeeee>
+<strong>mouse</strong> <i>Sun Feb 10 13:19:41 2002</i><br>
+<strong>Re: Rumors of my death</strong>
+<P>&gt; They're exaggerated!
+<P>glad to hear it! ....and here i was worrying you just didn't love us any more.
+<P>&gt; Anyway, last Sunday one of the server processes on my box .....
+<P>gotta admit - this is one reason i am happy to be a mere programmer, and not a sysadmin (well, that and the fact programmers get paid more)(well, unless one is administering a huge system, in which case your mylanta payments would probably eat up the salary difference). sounds like, once you set yourself to make the change, it went reasonably smoothly - congratulations! (i personally am suffering through a system-wide upgrade to win2000 from NT - only half the workstations are done, the server is last, and i'm hoping not to lose my mind before it all gets completed)(and i'm not even the one doing the upgrade - just trying to make all the parts work during the process)
+<P>
+
+</td></tr></table>
+
+
+</blockquote>
+<blockquote>
+<table border=0 cellpadding=5><tr><td bgcolor=eeeeee>
+<strong><a href="mailto:tirdun@yahoo.com">Tirdun</a></strong> <i>Mon Feb 11 10:15:30 2002</i><br>
+<strong>Re: Rumors of my death</strong>
+<P>&gt; Emsworth, Tirdun, this explains why I haven't even
+<BR>> managed to get your contributed episodes up.
+<P>'sokay. I've been too busy with the MYSQL/Linux/Perl system I've been fighting with for weeks to complain... even though the Elvis Pickle joke had gotten a bit old ;p
+<P>Oh, and MYSQL does, indeed, rock. Especially for a nearly-free database.
+
+</td></tr></table>
+<blockquote>
+<table border=0 cellpadding=5><tr><td bgcolor=eeeeee>
+<strong>mouse</strong> <i>Mon Feb 11 15:55:27 2002</i><br>
+<strong>alt jokes</strong>
+<P>&gt; even though the Elvis Pickle joke
+<BR>> had gotten a bit old ;p
+<P>we could revive elephant jokes..... why don't elephants ride tricycles? (they have no little finger to ring the bell)
+
+</td></tr></table>
+<blockquote>
+<table border=0 cellpadding=5><tr><td bgcolor=eeeeee>
+<strong><a href="mailto:elephant@plasticspork.com">Jenn</a></strong> <i>Tue Feb 12 09:02:15 2002</i><br>
+<strong>Re: alt jokes</strong>
+<P>&gt; we could revive elephant jokes.....
+<P>An excellent idea...
+<P>What sings and rides a tricycle?
+<P>Elvis Cycle!
+<P>(And I...don't wanna die. I just wanna ride on my motorcy...cle)
+<P>Okay, it wasn't an elephant joke. I've had a headache for three days. Give me a break.
+
+</td></tr></table>
+<blockquote>
+<table border=0 cellpadding=5><tr><td bgcolor=eeeeee>
+<strong>mouse</strong> <i>Tue Feb 12 16:07:05 2002</i><br>
+<strong>Re: alt jokes</strong>
+<P>&gt; Give
+<BR>> me a break.
+<P>gladly! what do you want broken?
+<P>(sorry, couldn't resist - hope your headache's better)
+
+</td></tr></table>
+
+
+</blockquote>
+
+
+</blockquote>
+
+
+</blockquote>
+
+
+</blockquote>
+
+
+
+
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</center>
+</body>
+
+</html>

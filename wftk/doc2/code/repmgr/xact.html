@@ -1,0 +1,42 @@
+<html><head><title>Repository manager: Transactions</title></head>
+<body>
+<h2>Transactions</h2>
+<center>
+[&nbsp;<a href="context.html">Previous: Context/user session handling</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="processing.html">Next: Actions and synchronous processing</a>&nbsp;]
+</center>
+
+<hr>
+<i>(January 26, 2003)</i>: The repository manager transaction mechanism is probably going to be one of those things I realize I screwed
+up on first implementation and work for years to fix.  A transaction groups a set of object changes together which may span any arbitrary
+set of lists.  This chunk of changes may be submitted for approval all at once.  While a transaction is being built, it may also be
+used as a filter for the repository, so that data retrievals appear to contain the data as changed in the transaction.  Thus a transaction
+can be seen as a sandbox for the user.
+
+<p></p>
+Where I start to worry is when I start to think about really large-scale transactions.  The initial implementation I'm working on is
+unlikely to scale well.  So some kind of transaction-content index scheme needs to be incorporated into the whole thing.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML  * repos_xact_open  (XML * repository, const char * key);
+WFTK_EXPORT XML  * repos_xact_get   (XML * repository, const char * list, const char * key, XML * xact);
+WFTK_EXPORT char * repos_xact_save  (XML * repository, XML * xact);
+WFTK_EXPORT XML  * repos_xact_start (XML * repository, XML * xact); /* Might be char * key? */
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="context.html">Previous: Context/user session handling</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="processing.html">Next: Actions and synchronous processing</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

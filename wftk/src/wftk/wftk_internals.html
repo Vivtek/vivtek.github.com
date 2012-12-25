@@ -1,0 +1,165 @@
+<html><head><title>wftk core library: Internal definitions</title></head>
+<body>
+<h2>Internal definitions</h2>
+<center>
+[&nbsp;<a href="wftk_h.html">Previous: Include file (and API definition)</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="library.html">Next: Function definitions</a>&nbsp;]
+</center>
+
+<hr>
+Here are a few things that the library functions will use (and adaptor code as well) but that don't really need
+to be exposed to the cold, hard world.  First are the IDs for the types of adaptor.  This will almost certainly end
+up being a partial list.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#define DSREP         1
+#define DATASTORE     2
+#define DATATYPE      3
+#define PDREP         4
+#define USER          5
+#define PERMS         6
+#define TASKINDEX     7
+#define NOTIFY        8
+#define ACTION        9
+#define DEBUG_MSG    10
+
+</pre></td></tr></table>
+
+And the other is the definition of the WFTK_ADAPTOR structure used to pass APIs back and forth.  Sort of a poor
+man's ActiveX, I guess.  See the <a href="wftk_adaptors.html">adaptor handling code</a> for a little more detail,
+but the upshot is that the interface
+to an adaptor is a kind of explicit vtable, and calls to adaptors all work through a single function.
+<p></p>
+For the case where we want a list of all the configured adaptors in a given class (like debug adaptors or task index
+adaptors, both of which are notification-like affairs where everybody involved wants to get notified) we have an
+adaptor list structure which can hold several adaptors.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifndef WFTK_EXPORT
+#define WFTK_EXPORT
+#endif
+
+typedef struct wftk_adaptor WFTK_ADAPTOR;
+typedef XML * (*WFTK_API_FUNC) (WFTK_ADAPTOR * ad, va_list args);
+struct wftk_adaptor {
+   int num;                /* Supplied by the adaptor class. */
+   XML * parms;            /* Supplied by the caller. */
+   int  nfuncs;            /* Supplied by the adaptor class. */
+   char ** names;          /* Supplied by the adaptor class. */
+   WFTK_API_FUNC * vtab;   /* Supplied by the adaptor driver. */
+   void * bindata;         /* Supplied by the adaptor driver (a general stash pointer.) */
+   void * session;         /* Supplied by the config module on allocation. */
+};
+struct adaptor_info {
+   int  nfuncs;
+   char ** names;
+   WFTK_API_FUNC * vtab;
+};
+typedef struct wftk_adaptorlist WFTK_ADAPTORLIST;
+struct wftk_adaptorlist {
+   int count; /* The number of adaptors in this list. */
+   WFTK_ADAPTOR * ads[1];
+};
+</pre></td></tr></table>
+
+Then we have the interface to the config module.  Lest this be missed (somehow), each installation of the wftk has a single
+config module, which is static-linked in.  There will be variants, however, at least between Windows and Unix, as Unix
+tends to favor precompiled directory locations, while Windows favors the Registry, because most users don't have a working
+compiler.
+<p></p>
+There are two functions of interest; <code>config_get_value</code> gets a named value, and <code>config_debug_message</code>
+passes a message to any installed debugging adaptors.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT const char * config_get_value (void * session, const char *name);
+WFTK_EXPORT void config_debug_message (char type, const char * message, ...);
+</pre></td></tr></table>
+
+To make debugging simpler, and to make it go away when not in use so as to save space, we'll define a couple of debugging
+macros to wrap around <code>config_debug_message</code>:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifdef DEBUG
+#define DBG(x,y) config_debug_message (x, y);
+#define DBG1(x,y,z) config_debug_message (x, y, z);
+#define DBG2(x,y,z,now) config_debug_message (x, y, z, now);
+#else
+#define DBG(x,y) ;
+#define DBG1(x,y,z) ;
+#define DBG2(x,y,z,now) ;
+#endif
+</pre></td></tr></table>
+
+Prototypes for the adaptor functions, which are defined <a href="wftk_adaptors.html">here</a>.  The single-bore adaptor
+calls may return XML values; the shotgun approach ones (list calls) are used for outgoing simultaneous notification to
+multiple adaptors of a single class, so they don't return any value.  The integer is there ... I'm not sure why it's there,
+but someday I might, in a fit of guilt, decide that an error return would be a good idea.
+<p></p>
+<i>(July 22, 2001)</i> The DSREP_database adaptor, which I'm compiling into a DLL, needs to load
+the database adaptor specified -- so it needs the adaptor functions to be exported.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT WFTK_ADAPTOR * wftk_get_adaptor (void * session, int type, const char * name);
+WFTK_EXPORT XML * wftk_call_adaptor (WFTK_ADAPTOR * ad, const char * funcname, ...);
+WFTK_EXPORT void wftk_free_adaptor (void * session, WFTK_ADAPTOR * ad);
+WFTK_EXPORT WFTK_ADAPTORLIST * wftk_get_adaptorlist (void * session, int type);
+WFTK_EXPORT int wftk_call_adaptorlist (WFTK_ADAPTORLIST * ad, const char * funcname, ...);
+WFTK_EXPORT void wftk_free_adaptorlist (void * session, WFTK_ADAPTORLIST * list);
+</pre></td></tr></table>
+
+We've got a couple of prototypes for functions that are supposed to be called only internally.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * _procdef_load (void * session, XML * datasheet);
+const char * _wftk_value_special (void * session, XML * datasheet, const char * name);
+</pre></td></tr></table>
+
+And the internal definition of a wftk session.  The session is used to stash currently loaded adaptors. 
+ This prevents us from having to (say) log into a database for
+every wftk call.  If, however, no session is created, no harm done -- we'll just free each adaptor each time.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>typedef struct wftk_adaptor_list WFTK_ADAPTOR_LIST;
+struct wftk_adaptor_list {
+   WFTK_ADAPTOR * ad;
+   WFTK_ADAPTOR_LIST *next;
+};
+typedef struct wftk_cache_list WFTK_CACHE_LIST;
+struct wftk_cache_list {
+   XML * cached;
+   WFTK_CACHE_LIST * next;
+};
+typedef struct wftk_session WFTK_SESSION;
+struct wftk_session {
+   WFTK_ADAPTOR_LIST *ads;
+   XML * user;
+   XML * config;
+   XML * datasheet;
+   XML * procdef;
+
+   XML * values;
+   WFTK_CACHE_LIST * cache;
+};
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="wftk_h.html">Previous: Include file (and API definition)</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="library.html">Next: Function definitions</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

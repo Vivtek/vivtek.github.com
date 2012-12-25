@@ -1,0 +1,305 @@
+<html><head><title>Repository manager: Data retrieval and display</title></head>
+<body>
+<h2>Data retrieval and display</h2>
+<center>
+[&nbsp;<a href="reports.html">Previous: Working with individual objects as reports</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="users.html">Next: User authentication and group membership</a>&nbsp;]
+</center>
+
+<hr>
+This section is a front for the list adaptors as well as datatype adaptors and lots of other
+people.  A tad more complicated.
+In the case that no key is supplied (NULL or "") then a blank record will be created from the list
+definition.
+<p></p><i>(May 13, 2002)</i>: to make things easier for integration into the wftk core, I'm decorating each object with its list name
+in the repository.
+<p></p><i>(November 30, 2002)</i>: Introduced some special handlers for system lists -- actually, to date, just a _pages loader.  I'll
+have to do the same for the mod function, too.
+<p></p><i>(March 1, 2003)</i>: Added "rec" attribute to determine element to use when creating a blank object (NULL key).
+And then I started to think.  And I thought a lot.  And I realized that merging linked data from alternate storage really shouldn't
+be that hard, so I decided to try my hand at implementing it.  Here's how it works:
+
+<p>
+If the list definition has a "link" field in it, and that link has a "storage" attribute, this means that we are to merge data from
+some other source into the record at hand.  If the link has an "id" value, we create a link field in the object; otherwise we are
+doing a flat merge and we're just going to be inserting a bunch of records into the object as linked fields.  The canonical example
+might be something like this:
+<br>
+<pre>&lt;link storage="delim:[key]-stuff.txt" rec="stuff"/&gt;</pre>
+<br>
+-- this will create a series of "stuff" elements into the final loaded object.  <i>Updating</i> these values efficiently will be
+the task of another day.  Right now I'm just concerned with reading them.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * _repos_get_pageobj (XML * repository, const char * key);
+static void _repos_get_sublist (XML * repository, XML * obj, XML * list, XML * sublist);
+WFTK_EXPORT XML * repos_get     (XML * repository, const char * list_id, const char * key)
+{
+   WFTK_ADAPTOR * ad;
+   XML * list;
+   XML * ret;
+   const char * line;
+   const char * end;
+   XML * field;
+   XML * mark;
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (sock) { /* Remote. */
+      if (key) {
+         xml_setf (sock->parms, "outgoing", "get %s %s\n", list_id, key);
+      } else {
+         xml_setf (sock->parms, "outgoing", "get %s\n", list_id);
+      }
+      _repos_send (sock);
+      line = _repos_receive (sock);
+      if (*line == '-') return NULL;
+      line = strchr (line, '\n') + 1;
+      list = xml_create ("t");
+      xml_set (list, "r", "");
+      while (line[0] != '>' || line[1] != '>') {
+         end = strchr (line, '\n');
+         if (end) {
+            xml_attrncat (list, "r", line, end - line + 1);
+         } else {
+            xml_attrcat (list, "r", line);
+            break;
+         }
+         line = end + 1;
+      }
+      ret = xml_parse (xml_attrval (list, "r"));
+      xml_free (list);
+      xml_set (sock->parms, "buffer", "");
+      xml_set (ret, "list", list_id);
+      xml_set (ret, "key", key);
+      return ret;
+   }
+
+   /* Handle selected pseudolists first. */
+   if (!strcmp (list_id, "_lists")) {
+   } else if (!strcmp (list_id, "_pages")) {
+      return _repos_get_pageobj (repository, key);
+   }
+
+   /* Find the list named. */
+   list = repos_defn (repository, list_id);
+   if (!list) return NULL;
+
+   /* Handle immediate-addressing mode. */
+   if (!strcmp (xml_attrval (list, "storage"), "here")) {
+      ret = xml_search (list, NULL, "id", key);
+      return ret;
+   }
+
+   /* Handle normal case: key given, use adaptor to retrieve record. */
+   if (key &amp;&amp; *key) {
+      ad = wftk_get_adaptor (repository, LIST, xml_attrval (list, "storage"));
+      if (!ad) return NULL;
+      xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+
+      ret = wftk_call_adaptor (ad, "get", list, key);
+      wftk_free_adaptor (repository, ad);
+   } else { /* NULL-key case (build "blank" record) */
+      ret = xml_create (*xml_attrval (list, "rec") ? xml_attrval (list, "rec") : "rec");
+
+      mark = xml_firstelem (list);
+      while (mark) {
+         if (xml_is (mark, "field") || xml_is (mark, "link")) {
+            field = xml_create (xml_name (mark));
+            xml_set (field, "id", xml_attrval (mark, "id"));
+            if (*xml_attrval (mark, "type"))    xml_set (field, "type", xml_attrval (mark, "type"));
+            if (*xml_attrval (mark, "storage")) xml_set (field, "storage", xml_attrval (mark, "storage"));
+            xml_append (field, xml_createtext (xml_attrval (mark, "default")));
+            xml_append_pretty (ret, field);
+         }
+         mark = xml_nextelem (mark);
+      }
+   }
+
+   /* Handle state, and make sure our marker attributes are set properly. */
+   field = xml_search (list, "field", "type", "state");
+   if (field) xml_set_nodup (ret, "state", xmlobj_get (ret, list, xml_attrval (field, "id")));
+   xml_set (ret, "list", list_id);
+   xml_set (ret, "key", key);
+
+   /* Handle linked data in alternate storage. */
+   field = xml_firstelem (list);
+   while (field) {
+      if (xml_is (field, "link") &amp;&amp; (*xml_attrval (field, "storage") || *xml_attrval (field, "list"))) {
+         _repos_get_sublist (repository, ret, list, field);
+      }
+      field = xml_nextelem (field);
+   }
+
+   return ret;
+}
+static void  _repos_get_sublist (XML * repository, XML * obj, XML * list, XML * sublist) {
+   XML_ATTR * attr;
+   const char * val;
+   XML * linked;
+   XML * linkto;
+   XML * link_into;
+   XML * rec;
+   XML * field;
+
+   linked = xml_copy (sublist);
+
+   /* Attribute values are expressed in terms of parent object.  TODO: what about parent's parent? */
+   attr = xml_attrfirst (linked);
+   while (attr) {
+      val = xml_attrvalue (attr);
+      if (strchr (val, '[')) xml_set_nodup (linked, xml_attrname (attr), xmlobj_format (obj, list, xml_attrvalue (attr)));
+      attr = xml_attrnext (attr);
+   }
+
+   xml_set (linked, "rec", *xml_attrval (sublist, "rec") ? xml_attrval (sublist, "rec") : "rec");
+
+   link_into = obj;
+   if (*xml_attrval (sublist, "id")) {
+      linkto = xml_create ("link");
+      xml_set (linkto, "id", xml_attrval (sublist, "id"));
+      xml_append_pretty (obj, linkto);
+      link_into = linkto;
+      xml_set (linked, "rec", *xml_attrval (sublist, "rec") ? xml_attrval (sublist, "rec") : "link-to");
+   }
+
+   if (*xml_attrval (linked, "list")) {
+      xml_set (list, "id", xml_attrval (linked, "storage"));
+   }
+
+   if (repos_list (repository, linked)) {
+      linkto = xml_firstelem (linked);
+      while (linkto) {
+         rec = xml_copy (linkto);
+      
+         /* Handle linked data in alternate storage. */
+         field = xml_firstelem (sublist);
+         while (field) {
+            if (xml_is (field, "link") &amp;&amp; (*xml_attrval (field, "storage") || *xml_attrval (field, "list"))) {
+               _repos_get_sublist (repository, rec, sublist, field);
+            }
+            field = xml_nextelem (field);
+         }
+
+         xml_append_pretty (link_into, xml_copy (linkto));
+         linkto = xml_nextelem (linkto);
+      }
+   }
+   xml_free (linked);
+}
+static XML * _repos_get_pageobj (XML * repository, const char * key)
+{
+   XML * list;
+   XML * ret;
+   XML * field;
+   XML * mark;
+   XML * page;
+   XML * layout;
+   FILE * file;
+   char line[1024];
+   int bytes;
+
+   page = xml_search (repository, "page", "id", key);
+   if (!page) return NULL;
+
+   layout = repos_get_layout (repository, xml_attrval (page, "layout"));
+
+   /* We scan the layout in order to find page-specific textual values (i.e. Wiki text).
+      If the page is an object page, these might not exist, so we may be restricted to just
+      putting the title and such in the editable object.  We can get arbitrarily clever with this.... */
+   ret = xml_create ("record");
+   xml_set (ret, "textbase", *xml_attrval (repository, "text") ? xml_attrval (repository, "text") : "opmtext");
+   xml_set (ret, "list", "_pages");
+   xml_set (ret, "key", key);
+   xmlobj_set (ret, NULL, "id", xml_attrval (page, "id"));
+   mark = xml_parent (page);
+   if (xml_is (mark, "page")) {
+      xmlobj_set (ret, NULL, "parent", xml_attrval (mark, "id"));
+   } else {
+      xmlobj_set (ret, NULL, "parent", "");
+   }
+   xmlobj_set (ret, NULL, "title", xml_attrval (page, "title"));
+   xmlobj_set (ret, NULL, "layout", xml_attrval (page, "layout"));
+
+   field = xml_search (layout, "template:value", NULL, NULL);
+   while (field) {
+      mark = xml_search (ret, "field", "id", xml_attrval (field, "id"));
+      if (!mark) {
+         /* Here we might need to get *really* clever.  Later, though.  TODO: same. */
+         xmlobj_set (ret, NULL, xml_attrval(field, "id"), "");
+         mark = xmlobj_field (ret, NULL, xml_attrval (field, "id"));
+         xml_setf (ret, "filename", "%s/%s_%s.html", xml_attrval (ret, "textbase"), key, xml_attrval (field, "id"));
+         file = _repos_fopen (repository, xml_attrval (ret, "filename"), "r");
+         if (!file) {
+            xml_setf (ret, "filename", "%s/%s_%s.htm", xml_attrval (ret, "textbase"), key, xml_attrval (field, "id"));
+            file = _repos_fopen (repository, xml_attrval (ret, "filename"), "r");
+         }
+         if (!file) {
+            xml_setf (ret, "filename", "%s/%s_%s.wiki", xml_attrval (ret, "textbase"), key, xml_attrval (field, "id"));
+            file = _repos_fopen (repository, xml_attrval (ret, "filename"), "r");
+         }
+         if (!file) {
+            xml_setf (ret, "filename", "%s/%s_%s.txt", xml_attrval (ret, "textbase"), key, xml_attrval (field, "id"));
+            file = _repos_fopen (repository, xml_attrval (ret, "filename"), "r");
+         }
+         if (!file) {
+            xml_unset (ret, "filename");
+         } else {
+            while (bytes = fread (line, 1, 1024, file)) {
+              xml_textncat (mark, line, bytes);
+            }
+            fclose (file);
+         }
+      }
+      field = xml_search_next (layout, field, "template:value", NULL, NULL);
+   }
+
+   return ret;
+}
+</pre></td></tr></table>
+
+And now a bunch of place holders for functions I haven't actually needed yet.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>
+XML * _repos_format_object (XML * repository, XML * object, XML * layout)
+{
+
+}
+WFTK_EXPORT char * repos_getvalue (XML * repository, const char * list, const char * key, const char * field)
+{
+   /* retrieve obj then call xmlobj_get */
+   return ("");
+}
+WFTK_EXPORT void repos_setvalue (XML * repository, const char * list, const char * key, const char * field, const char * value)
+{
+   /* This will be a while.  It fronts for the adaptor, of course. */
+}
+</pre></td></tr></table>
+
+Where else to put this?  Why even include this?  The idea is to reduce the DLL and linking dependencies for use of repmgr, but it's
+probably stupid.  Ah well.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void repos_xml_free (XML * xml) {
+   xml_free (xml);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="reports.html">Previous: Working with individual objects as reports</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="users.html">Next: User authentication and group membership</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

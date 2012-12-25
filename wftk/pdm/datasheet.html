@@ -1,0 +1,74 @@
+<html><head><title>Project name: datasheet: Generating a blank datasheet</title></head>
+<body>
+<h2>datasheet: Generating a blank datasheet</h2>
+<center>
+[&nbsp;<a href="starter.html">Previous: starter: Displaying a process start form</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The procdef manager</a>&nbsp;]
+[&nbsp;<a href="editor.html">Next: editor: Displaying an edit form</a>&nbsp;]
+</center>
+
+<hr>
+This is basically a straight variation on the starter command.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argc < 5) {
+   printf ("Missing arguments in datasheet command.\n");
+   return (1);
+}
+
+sprintf (sbuf, "%s%s_%s.xml", PROCESS_DEFINITION_REPOSITORY, argv[2], argv[3]);
+file = fopen (sbuf, "r");
+if (!file) {
+   printf ("Unable to open procdef version file %s.\n", sbuf);
+   return (1);
+}
+
+version = xml_read (file);
+fclose (file);
+
+if (!version) {
+   printf ("Corrupt version file %s.\n", sbuf);
+   return (1);
+}
+
+datasheet = xml_create( "datasheet");
+sprintf (sbuf, "%s_%s.xml", argv[2], argv[3]);
+xml_set (datasheet, "procdef", sbuf);
+xml_set (datasheet, "process", argv[4]);
+
+xml = xml_firstelem (version);
+while (xml) {
+   if (!strcmp (xml->name, "data")) {
+      holder = xml_create ("data");
+      xml_set (holder, "id", xml_attrval (xml, "name"));
+      xml_set (holder, "type", xml_attrval (xml, "type"));
+      xml_append (datasheet, holder);
+   } else if (!strcmp (xml->name, "sequence")) {
+      break;
+   } else if (!strcmp (xml->name, "parallel")) {
+      break;
+   } else if (!strcmp (xml->name, "task")) {
+      break;
+   }
+
+   xml = xml_nextelem (xml);
+}
+
+xml_write (stdout, datasheet);
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="starter.html">Previous: starter: Displaying a process start form</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href="editor.html">Next: editor: Displaying an edit form</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

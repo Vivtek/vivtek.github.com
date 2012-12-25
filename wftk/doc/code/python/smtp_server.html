@@ -1,0 +1,143 @@
+<html><head><title>Python SMTP server</title></head>
+<body>
+<h2>Python SMTP Server</h2>
+<center>
+[<a href="index.html">wftk-Python</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+<i>August 18, 2006</i>:
+One of the things I've wanted to be able to do for some time is to have a repository running on my machine
+to which I could forward mail.  That forwarded mail would go into a queue (or multiple queues) and processing
+would then proceed however it was deemed appropriate: a workflow system, if you will.  The element missing
+is actually pretty simple; something has to sit there and interpret SMTP conversations.
+<p></p>
+My first attempt at that was the C-language <a href="../mail-handler/index.html">mail handler code</a>, which
+I started and abandoned in 2002.  I just didn't have enough motivation to slog through that in C, it appears.
+This attempt, some four years later, takes the easy/lazy route of prototyping in Python; if I need it later
+in a more streamlined or more portable form, I will convert then.
+<p></p>
+I'm implementing this based on the asyncore module; SOAPpy and Zope are also based on asyncore and it's pretty
+darned slick.  Even slicker is that Python 2.1 and up include an smtpd module out of the box.  So basing an
+SMTP server on asyncore is simply a question of defining the handler.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#######################################################################################################
+#
+# The Python STMP server is another simple way to export workflow functionality.
+# More information at http://www.vivtek.com/wftk/doc/code/python
+#
+# Copyright (c) 2006, Vivtek, and released under the GPL, as follows:
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#######################################################################################################
+</pre></td></tr></table>
+
+First, let's import the wftk and asyncore.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>import sys
+import asyncore
+import smtpd
+from xmlapi import *
+import repmgr
+import re
+</pre></td></tr></table>
+
+That done, we start up with the local repository.  This is assumed to be an XML file in the local directory;
+if none is given, we use "system.defn", which is much better than the old and faintly quaint "site.opm".
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if len(sys.argv) > 1:
+   repos = sys.argv[1]
+else:
+   repos = 'system.defn'
+
+try:
+   repository = xml_read (repos)
+except:
+   print "Unable to read system definition file '%s'." % repos
+   sys.exit (1)
+
+repmgr.open (repository, "SMTP server")
+
+</pre></td></tr></table>
+
+Once the repository is open (and maybe I want to say TODO: some error handling there) then we're on our way
+to listening for mail.  The rule is essentially that all lists in the repository are mail-enabled.  The addressee
+of any incoming mail is assumed to be the list name (later we may want to be more sophisticated, but for now
+that's what we've got).  The mail message is used to create a new entry for that list.  Workflow can then
+be used to do whatever else might be appropriate, but that will be internal to wftk and not something this
+module needs to worry about.
+
+<p></p>
+What this module <i>does</i> need to worry about is two things:
+<ul>
+<li>The asyncore-based SMTP listener needs to establish mail conversation sessions
+<li>Something in there needs to construct and parse incoming mail messages to be able to do "appropriate things" with them
+</ul>
+
+"Appropriate things" include stripping out attachments and treating them as document-management fodder, for instance, or parsing
+command structures, perhaps.
+<p></p>
+The first thing to do is to define our server.  This is essentially the DebuggingServer from the smtpd.py module itself.  It
+receives the message, then does the Right Thing with it.  We hope.  It calls some parsing functions defined below, but basically
+all you see here is the method override for 'process_message'.  About as simple as we could imagine.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class wftkSMTPServer(smtpd.SMTPServer):
+    # Do something with the gathered message
+    def process_message(self, peer, mailfrom, rcpttos, data):
+        print "peer: %s; mailfrom: %s; rcpttos: %s" % (peer, mailfrom, rcpttos)
+        lines = data.split('\n')
+        print '---------- MESSAGE FOLLOWS ----------'
+        for line in data.split('\n'): print line
+        print '------------ END MESSAGE ------------'
+
+
+</pre></td></tr></table>
+
+
+And finally, the code to create the server object and let it run.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#TODO: override server definitions on command line
+server_host = xmlobj_getconf (repository, "config.smtp.host", "localhost")
+server_port = int(xmlobj_getconf (repository, "config.smtp.port", "25"))
+
+server = wftkSMTPServer((server_url, server_port), ('127.0.0.1', '80'))
+
+print "Listening on %s:%d for mail to %s" % (server_url, server_port, repos)
+
+asyncore.loop()   # TODO: maybe some error handling here.
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2006, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

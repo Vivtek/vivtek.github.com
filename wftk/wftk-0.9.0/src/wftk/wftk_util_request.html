@@ -1,0 +1,214 @@
+<html><head><title>wftk command-line utility: Working with requests</title></head>
+<body>
+<h2>Working with requests</h2>
+<center>
+[&nbsp;<a href="wftk_util_task.html">Previous: Working with tasks</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_value.html">Next: Dealing with values</a>&nbsp;]
+</center>
+
+<hr>
+<br><br>
+<a name="request">
+<i>request: Show a request</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 3) {
+   printf ("wftk request: dsrep, process ID, and request ID required (use . for default repository)\n");
+   exit (1);
+}
+
+task = xml_create ("request");
+if (strcmp (argv[argp++], ".")) xml_set (task, "dsrep", argv[argp-1]);
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "id", argv[argp++]);
+wftk_request_retrieve (session, task);
+
+if (!strcmp (xml_attrval (task, "status"), "none")) {
+   printf ("No request found.\n");
+} else {
+   printf ("Request '%s'\n", *xml_attrval (task, "label") ? xml_attrval (task, "label") : xml_attrval (task, "id"));
+   if (*xml_attrval (task, "request")) {
+      printf ("Subrequest for reassignment of request %s\n", xml_attrval (task, "request"));
+   }
+   if (*xml_attrval (task, "role")) {
+      printf ("Request for assignment of role %s\n", xml_attrval (task, "role"));
+   }
+   if (*xml_attrval (task, "task")) {
+      printf ("Request for reassignment of task %s\n", xml_attrval (task, "task"));
+   }
+   if (*xml_attrval (task, "by")) {
+      printf ("Requested by: %s\n", xml_attrval (task, "by"));
+   } else {
+      printf ("Anonymous request\n");
+   }
+   if (*xml_attrval (task, "of")) printf ("Requestee: %s\n", xml_attrval (task, "of"));
+}
+</pre></td></tr></table>
+<br><br>
+<a name="requests">
+<i>requests: List requests</i><br>
+This request list is simply a list of requests active in a process.  The list is obtained from the datasheet directly.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 2) {
+   printf ("wftk requests: dsrep and process ID required (use . for default repository)\n");
+   exit (1);
+}
+
+list = xml_create ("list");
+if (strcmp (argv[argp++], ".")) xml_set (list, "dsrep", argv[argp-1]);
+xml_set (list, "process", argv[argp++]);
+wftk_request_list (session, list);
+mark = xml_firstelem (list);
+if (!mark) {
+   printf ("No requests found.\n");
+} else {
+   while (mark) {
+      printf ("%s: %s", xml_attrval (mark, "id"), xml_attrval (mark, "label"));
+      if (*xml_attrval (mark, "of")) printf (" (%s)", xml_attrval (mark, "of"));
+      if (*xml_attrval (mark, "request")) {
+         printf (" - reassignment of request %s", xml_attrval (mark, "request"));
+      }
+      if (*xml_attrval (mark, "role")) {
+         printf (" - assignment of role %s", xml_attrval (mark, "role"));
+      }
+      if (*xml_attrval (mark, "task")) {
+         printf (" - reassignment of task %s", xml_attrval (mark, "task"));
+      }
+      printf ("\n");
+      mark = xml_nextelem (mark);
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="accept">
+<i>accept: Accept a request</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 3) {
+   printf ("wftk task: dsrep, process ID, and request ID required (use . for default repository)\n");
+   exit (1);
+}
+
+task = xml_create ("request");
+if (strcmp (argv[argp++], ".")) xml_set (task, "dsrep", argv[argp-1]);
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "id", argv[argp++]);
+
+if (wftk_request_accept (session, task)) {
+   printf ("Accepted.\n");
+} else {
+   printf ("Not accepted. %s\n", xml_attrval (task, "status.reason"));
+}
+</pre></td></tr></table>
+<br><br>
+<a name="decline">
+<i>decline: Decline a request</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 3) {
+   printf ("wftk task: dsrep, process ID, and request ID required (use . for default repository)\n");
+   exit (1);
+}
+
+task = xml_create ("request");
+if (strcmp (argv[argp++], ".")) xml_set (task, "dsrep", argv[argp-1]);
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "id", argv[argp++]);
+
+if (wftk_request_decline (session, task)) {
+   printf ("Accepted.\n");
+} else {
+   printf ("Not accepted.\n");
+}
+</pre></td></tr></table>
+<br><br>
+<a name="ask">
+<i>ask: Make a request</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 4) {
+   printf ("wftk ask: dsrep, process ID, user ID of requestee, and requested object required (use . for default repository)\n");
+   printf ("          For request object, use ?xx for request, xx or !xx for task assignment, @xxx.xxx for request file,\n");
+   printf ("          or - for request on stdin.\n");
+   printf ("          Add another optional argument to set a custom label (notification subject) for request.\n");
+   exit (1);
+}
+
+task = xml_create ("request");
+if (strcmp (argv[argp++], ".")) xml_set (task, "dsrep", argv[argp-1]);
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "of", argv[argp++]);
+chmark = argv[argp++];
+if (argsleft > 0) xml_set (task, "label", argv[argp++]);
+
+if (*chmark == '?') {
+   xml_set (task, "request", chmark + 1);
+} else if (*chmark == '@' || *chmark == '-') {
+   if (*chmark == '@') {
+      file = fopen (chmark + 1, "r");
+      if (!file) {
+         printf ("Unable to open request file %s.\n", chmark + 1);
+         xml_free (task);
+         exit (1);
+      }
+   } else {
+      file = stdin;
+   }
+   mark = xml_read (file);
+   if (file != stdin) fclose (file);
+   if (!mark) {
+      printf ("Bad XML in request.\n");
+      xml_free (task);
+      exit (1);
+   }
+
+   xml_copyinto (task, mark);
+   xml_free (mark);
+} else {
+   xml_set (task, "task", chmark);
+}
+
+if (wftk_request_new (session, task)) {
+   printf ("Request made.\n");
+} else {
+   printf ("No request made. %s\n", xml_attrval (task, "status.reason"));
+}
+</pre></td></tr></table>
+<br><br>
+<a name="forget">
+<i>forget: Rescind a request</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 3) {
+   printf ("wftk task: dsrep, process ID and request ID required (use . for default repository)\n");
+   exit (1);
+}
+
+task = xml_create ("request");
+if (strcmp (argv[argp++], ".")) xml_set (task, "dsrep", argv[argp-1]);
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "id", argv[argp++]);
+
+if (wftk_request_rescind (session, task)) {
+   printf ("Request rescinded.\n");
+} else {
+   printf ("No request rescinded.\n");
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_util_task.html">Previous: Working with tasks</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_value.html">Next: Dealing with values</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

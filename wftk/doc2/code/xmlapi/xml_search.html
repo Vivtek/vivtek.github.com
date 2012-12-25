@@ -1,0 +1,159 @@
+<html><head><title>xmlapi: xml_search: Searching trees for elements</title></head>
+<body>
+<h2>xml_search: Searching trees for elements</h2>
+<center>
+[&nbsp;<a href="xml_is.html">Previous: xml_is: Checking an object's name</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_charcodings.html">Next: xml_charcodings: dealing with UTF-8 and systems that don't quite get it</a>&nbsp;]
+</center>
+
+<hr>
+<i>(September 24, 2001)</i>: This is the final bit that I implemented quickly in Perl and which I've needed for a while in C.  It's
+probably not the last thing I'll ever add to the API, but it's close.
+<p></p>
+A search is simple: you supply a tree to search, an (optional) element name, and an (optional) attribute and value.  The value is a
+format if the searchf variant is used.  Standard C stuff, really.  If you don't give an element name, any element matches; otherwise,
+only that element is searched for.  If you give an attribute name, only elements with that attribute will match; if you don't supply
+a value, then any nonzero value will match.
+<p></p>
+If you don't supply element or attribute, you have a way to visit every node in the tree in depth-first order.
+<p></p>
+The search can continue at the point you left off, if you use search_next or searchf_next and supply the last result as the point to
+start.  See search_all for an example of how that can work.
+<p></p>
+My first attempt at search and search_next used them in mutual recursion, but I soon realized that that approach would grow the stack
+to be as large as the entire XML tree.  Not very scalable...  So I switched to iteration and basically duplicated the code in both.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xml_search (XML * start, const char * element, const char * attr, const char * value)
+{
+   int found = 0;
+   XML * cur = start;
+   XML * next = NULL;
+
+   if (!xml_is_element (start)) return NULL;
+
+   while (!found) {
+      found = 1;
+      if (element) {
+         if (!xml_is (cur, element)) found = 0;
+      }
+      if (found &amp;&amp; attr) {
+         if (value) {
+            if (strcmp (value, xml_attrval (cur, attr))) found = 0;
+         }
+         else if (!*xml_attrval (cur, attr)) found = 0;
+      }
+
+      if (found) return cur;
+
+      next = xml_firstelem (cur); /* TODO: Make this an xml_nextdepthfirst. */
+      while (!next) {
+         if (!next) next = xml_nextelem (cur);
+         if (!next) {
+            /*if (cur == start || !cur) return NULL;*/
+            cur = xml_parent (cur);
+            if (cur == start || !cur) return NULL;
+         }
+      }
+
+      cur = next;
+   }
+}
+XMLAPI XML * xml_searchf (XML * start, const char * element, const char * attr, const char * format, ...);
+XMLAPI XML * xml_search_next (XML * top, XML * start, const char * element, const char * attr, const char * value)
+{
+   int found = 0;
+   XML * cur = start;
+   XML * next;
+
+   if (!xml_is_element (start)) return NULL;
+
+   while (!found) {
+      next = xml_firstelem (cur);
+      while (!next) {
+         if (!next) next = xml_nextelem (cur);
+         if (!next) {
+            if (cur == top || !cur) return NULL;
+            cur = xml_parent (cur);
+         }
+      }
+
+      cur = next;
+
+      found = 1;
+      if (element) {
+         if (!xml_is (cur, element)) found = 0;
+      }
+      if (found &amp;&amp; attr) {
+         if (value) {
+            if (strcmp (value, xml_attrval (cur, attr))) found = 0;
+         }
+         else if (!*xml_attrval (cur, attr)) found = 0;
+      }
+
+      if (found) return cur;
+   }
+}
+XMLAPI XML * xml_searchf_next (XML * top, XML * start, const char * element, const char * attr, const char * format, ...);
+</pre></td></tr></table>
+
+Of course, I don't actually need the searchf variant yet.  So I'll implement it later...  I hope.
+
+<p></p>
+<i>Sep 9, 2003</i> And of course, as usual, I do something else first.  In this case, "search_all" is so convenient I thought
+I could really use it for the xml_assemble thingy I'm writing.  So I added it to the XMLAPI.  What it does is create a list
+like this:
+<pre>
+&lt;s&gt;
+&lt;loc loc="source.child.child(2)"/&gt;
+&lt;loc loc="source.child.child(4)"/&gt;
+&lt;loc loc="source.something.else"/&gt;
+&lt;/s&gt;
+</pre>
+In other words, it does the search/search_next thing for you and you can use plain iteration to step through the results.
+<p></p>
+<i>Sep 19, 2003</i> Finally got to try it out: it works a lot better if you append the hits to the result structure.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xml_search_all (XML * start, const char * element, const char * attr, const char * value)
+{
+   XML * result = xml_create ("s");
+   XML * hit;
+   int count = 0;
+   XML * cur;
+
+   cur = xml_search (start, element, attr, value);
+   while (cur) {
+      hit = xml_create ("loc");
+      xml_set_nodup (hit, "loc", xml_getlocbuf (cur));
+      xml_append (result, hit);
+      count++;
+
+      cur = xml_search_next (start, cur, element, attr, value);
+   }
+
+   xml_setnum (result, "count", count);
+   return result;
+}
+XMLAPI XML * xml_searchf_all (XML * start, const char * element, const char * attr, const char * format, ...);
+</pre></td></tr></table>
+
+And I <i>still</i> don't really need the f variant.
+
+
+
+<center>
+[&nbsp;<a href="xml_is.html">Previous: xml_is: Checking an object's name</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_charcodings.html">Next: xml_charcodings: dealing with UTF-8 and systems that don't quite get it</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

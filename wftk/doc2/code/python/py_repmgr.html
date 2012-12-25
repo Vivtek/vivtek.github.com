@@ -1,0 +1,928 @@
+<html><head><title>Repository manager Python wrapper</title></head>
+<body>
+<h2>Repository manager: Python wrapper</h2>
+<center>
+[<a href="index.html">wftk-Python</a> ] [ <a href="py_repmgr.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+This is a Python wrapper for the wftk <a href="../repmgr/index.html">repository manager</a>.
+The repository manager is a generalized way of dealing with both tabular and text data in a
+very flexible manner.
+<p></p>
+Anyway, down to business.  Let's include all we need to include first off.  Note the
+#define XMLAPI_H -- that's to suppress the full inclusion of xmlapi.h in repmgr.h, to avoid
+a DLL dependency.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;python.h>
+#include "../repmgr/repmgr.h"
+</pre></td></tr></table>
+
+To expose a set of functions to Python, we have to build a method table.
+The first thing we need to do in order to make that work is to declare all our functions.  We
+basically have one Python function for each C function in the repmgr library.  However, the handling
+of arguments is actually going to be handled in the wrapper function, so each has the same
+C arguments.  Additionally, the wrapper functions, although they're exposed to Python with the
+same names as their C contents, can't actually have the same names (otherwise how would we link?)
+So they've all got <code>py_</code> tacked on the front.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static PyObject *py_repos_open(PyObject *self, PyObject *args);
+static PyObject *py_repos_open_file(PyObject *self, PyObject *args);
+static PyObject *py_repos_close(PyObject *self, PyObject *args);
+static PyObject *py_repos_publish_all(PyObject *self, PyObject *args);
+static PyObject *py_repos_publish_list(PyObject *self, PyObject *args);
+static PyObject *py_repos_publish_obj(PyObject *self, PyObject *args);
+static PyObject *py_repos_publish_pages(PyObject *self, PyObject *args);
+static PyObject *py_repos_publish_page(PyObject *self, PyObject *args);
+static PyObject *py_repos_create(PyObject *self, PyObject *args);
+static PyObject *py_repos_drop(PyObject *self, PyObject *args);
+static PyObject *py_repos_defn(PyObject *self, PyObject *args);
+static PyObject *py_repos_list_choices(PyObject *self, PyObject *args);
+static PyObject *py_repos_form(PyObject *self, PyObject *args);
+static PyObject *py_repos_define(PyObject *self, PyObject *args);
+static PyObject *py_repos_add(PyObject *self, PyObject *args);
+static PyObject *py_repos_del(PyObject *self, PyObject *args);
+static PyObject *py_repos_mod(PyObject *self, PyObject *args);
+static PyObject *py_repos_merge(PyObject *self, PyObject *args);
+static PyObject *py_repos_list(PyObject *self, PyObject *args);
+static PyObject *py_repos_tasks_direct(PyObject *self, PyObject *args);
+static PyObject *py_repos_task_get(PyObject *self, PyObject *args);
+static PyObject *py_repos_changes(PyObject *self, PyObject *args);
+static PyObject *py_repos_snapshot(PyObject *self, PyObject *args);
+static PyObject *py_repos_getkey(PyObject *self, PyObject *args);
+static PyObject *py_repos_get(PyObject *self, PyObject *args);
+static PyObject *py_repos_edit(PyObject *self, PyObject *args);
+static PyObject *py_repos_display(PyObject *self, PyObject *args);
+static PyObject *py_repos_getvalue(PyObject *self, PyObject *args);
+static PyObject *py_repos_setvalue(PyObject *self, PyObject *args);
+static PyObject *py_repos_get_layout(PyObject *self, PyObject *args);
+static PyObject *py_repos_user_auth(PyObject *self, PyObject *args);
+static PyObject *py_repos_push(PyObject *self, PyObject *args);
+static PyObject *py_repos_push_all(PyObject *self, PyObject *args);
+static PyObject *py_repos_pull(PyObject *self, PyObject *args);
+static PyObject *py_repos_pull_all(PyObject *self, PyObject *args);
+static PyObject *py_repos_synch(PyObject *self, PyObject *args);
+static PyObject *py_repos_attach(PyObject *self, PyObject *args);
+static PyObject *py_repos_retrieve(PyObject *self, PyObject *args);
+</pre></td></tr></table>
+
+Now we're ready for the message table.  I'm assuming we'll be importing the repmgr library as import repmgr, so that we can say,
+for instance, "repmgr.get (repos, list, key)".  So we won't leave the repos_ part in front of the function names.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static PyMethodDef XMLAPIMethods[] = {
+    {"open",                    py_repos_open,                    METH_VARARGS},
+    {"open_file",               py_repos_open_file,               METH_VARARGS},
+    {"close",                   py_repos_close,                   METH_VARARGS},
+    {"publish_all",             py_repos_publish_all,             METH_VARARGS},
+    {"publish_list",            py_repos_publish_list,            METH_VARARGS},
+    {"publish_obj",             py_repos_publish_obj,             METH_VARARGS},
+    {"publish_pages",           py_repos_publish_pages,           METH_VARARGS},
+    {"publish_page",            py_repos_publish_page,            METH_VARARGS},
+    {"create",                  py_repos_create,                  METH_VARARGS},
+    {"drop",                    py_repos_drop,                    METH_VARARGS},
+    {"defn",                    py_repos_defn,                    METH_VARARGS},
+    {"list_choices",            py_repos_list_choices,            METH_VARARGS},
+    {"form",                    py_repos_form,                    METH_VARARGS},
+    {"format",                  py_repos_form,                    METH_VARARGS},
+    {"define",                  py_repos_define,                  METH_VARARGS},
+    {"add",                     py_repos_add,                     METH_VARARGS},
+    {"delete",                  py_repos_del,                     METH_VARARGS},
+    {"mod",                     py_repos_mod,                     METH_VARARGS},
+    {"merge",                   py_repos_merge,                   METH_VARARGS}, /* 2003-10-14: doofus of year award to me for calling repos_mod instead of repos_merge...  This cost me two days. */
+    {"list",                    py_repos_list,                    METH_VARARGS},
+    {"tasks_direct",            py_repos_tasks_direct,            METH_VARARGS},
+    {"task_get",                py_repos_task_get,                METH_VARARGS},
+    {"changes",                 py_repos_changes,                 METH_VARARGS},
+    {"snapshot",                py_repos_snapshot,                METH_VARARGS},
+    {"getkey",                  py_repos_getkey,                  METH_VARARGS},
+    {"get",                     py_repos_get,                     METH_VARARGS},
+    {"edit",                    py_repos_edit,                    METH_VARARGS},
+    {"display",                 py_repos_display,                 METH_VARARGS},
+    {"getvalue",                py_repos_getvalue,                METH_VARARGS},
+    {"setvalue",                py_repos_setvalue,                METH_VARARGS},
+    {"get_layout",              py_repos_get_layout,              METH_VARARGS},
+    {"user_auth",               py_repos_user_auth,               METH_VARARGS},
+    {"push",                    py_repos_push,                    METH_VARARGS},
+    {"push_all",                py_repos_push_all,                METH_VARARGS},
+    {"pull",                    py_repos_pull,                    METH_VARARGS},
+    {"pull_all",                py_repos_pull_all,                METH_VARARGS},
+    {"synch",                   py_repos_synch,                   METH_VARARGS},
+    {"attach",                  py_repos_attach,                  METH_VARARGS},
+    {"retrieve",                py_repos_retrieve,                METH_VARARGS},
+    {NULL, NULL}
+ };
+</pre></td></tr></table>
+
+OK.  So.  That was really boring.  But we had to suffer through it.  Now follows the function
+which Python will call in order to obtain that table:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void initrepmgr()
+{
+    (void) Py_InitModule("repmgr", XMLAPIMethods);
+}
+</pre></td></tr></table>
+
+As usual, since the library itself needs no initialization, there's not a whole lot for that function to do.
+<p></p>
+
+Anyway, this wrapper is so straightforward I don't even know whether <i>anything</i> will really need much
+comment.  This is my third Python extension, and they're getting pretty easy now that I halfway know what I'm
+doing.  This one is a thinner wrapper than the others so far, so it's <i>really</i> easy.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static void py_repos_xml_cleanup (void * xml, void *parent)
+{
+   if (parent) Py_DECREF ((PyObject *) parent);
+   else xml_free (xml);
+}
+</pre></td></tr></table>
+The above was an attempt to get around some problems I was having with DLL linkage.  It turned out not to
+be necessary, but it's already in there, so who cares?
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static PyObject *py_repos_open(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * calling_app = NULL;
+
+   if (!PyArg_ParseTuple(args, "O|s", &amp;repos, &amp;calling_app)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   repos_open ((XML *) (PyCObject_AsVoidPtr (repos)), NULL, calling_app ? calling_app : "python script");
+   return Py_BuildValue("");
+}
+static PyObject *py_repos_open_file(PyObject *self, PyObject *args)
+{
+   char * file;
+   XML * repos;
+   char * calling_app = NULL;
+
+   if (!PyArg_ParseTuple(args, "s|s", &amp;file, &amp;calling_app)) return NULL;
+   repos = repos_open_file (file, NULL, calling_app ? calling_app : "Python script");
+   if (!repos) return (Py_BuildValue(""));
+
+   return PyCObject_FromVoidPtrAndDesc (repos, (void *) Py_BuildValue(""), py_repos_xml_cleanup);
+}
+static PyObject *py_repos_close(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+
+   if (!PyArg_ParseTuple(args, "O", &amp;repos)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   repos_close ((XML *) (PyCObject_AsVoidPtr (repos)));
+   return Py_BuildValue("");
+}
+static PyObject *py_repos_publish_all(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+
+   if (!PyArg_ParseTuple(args, "O", &amp;repos)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   repos_publish_all ((XML *) (PyCObject_AsVoidPtr (repos)));
+   return Py_BuildValue("");
+}
+static PyObject *py_repos_publish_list(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+
+   if (!PyArg_ParseTuple(args, "Os", &amp;repos, &amp;list)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   repos_publish_list ((XML *) (PyCObject_AsVoidPtr (repos)), list);
+   return Py_BuildValue("");
+}
+static PyObject *py_repos_publish_obj(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   char * key;
+
+   if (!PyArg_ParseTuple(args, "Oss", &amp;repos, &amp;list, &amp;key)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   repos_publish_obj ((XML *) (PyCObject_AsVoidPtr (repos)), list, key);
+   return Py_BuildValue("");
+}
+static PyObject *py_repos_publish_pages(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+
+   if (!PyArg_ParseTuple(args, "O", &amp;repos)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   repos_publish_pages ((XML *) (PyCObject_AsVoidPtr (repos)));
+   return Py_BuildValue("");
+}
+static PyObject *py_repos_publish_page(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * page;
+
+   if (!PyArg_ParseTuple(args, "Os", &amp;repos, &amp;page)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   repos_publish_page ((XML *) (PyCObject_AsVoidPtr (repos)), page);
+   return Py_BuildValue("");
+}
+
+static PyObject *py_repos_create(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   int ret;
+
+   if (!PyArg_ParseTuple(args, "Os", &amp;repos, &amp;list)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   ret = repos_create ((XML *) (PyCObject_AsVoidPtr (repos)), list);
+   return Py_BuildValue("i", ret);
+}
+static PyObject *py_repos_drop(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   int ret;
+
+   if (!PyArg_ParseTuple(args, "Os", &amp;repos, &amp;list)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   ret = repos_drop ((XML *) (PyCObject_AsVoidPtr (repos)), list);
+   return Py_BuildValue("i", ret);
+}
+static PyObject *py_repos_defn(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   XML * ret;
+
+   if (!PyArg_ParseTuple(args, "Os", &amp;repos, &amp;list)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   ret = repos_defn ((XML *) (PyCObject_AsVoidPtr (repos)), list);
+   return PyCObject_FromVoidPtrAndDesc (ret, (void *) Py_BuildValue(""), py_repos_xml_cleanup);
+}
+static PyObject *py_repos_list_choices(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   PyObject * obj;
+   char * field;
+   XML * ret;
+
+   if (!PyArg_ParseTuple(args, "OsOs", &amp;repos, &amp;list, &amp;obj, &amp;field)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   if (!PyCObject_Check (obj) &amp;&amp; obj != Py_None) {
+      PyErr_SetString (PyExc_TypeError, "object not XML object");
+      return NULL;
+   }
+   ret = repos_list_choices ((XML *) (PyCObject_AsVoidPtr (repos)), list, obj == Py_None ? NULL : (XML *) (PyCObject_AsVoidPtr (obj)), field);
+
+   if (ret) {
+      return (PyCObject_FromVoidPtrAndDesc (ret, (void *) Py_BuildValue(""), py_repos_xml_cleanup));
+   } else {
+      return (Py_BuildValue (""));
+   }
+}
+static PyObject *py_repos_form(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   char * key = NULL;
+   char * mode = NULL;
+   XML * ret;
+
+   if (!PyArg_ParseTuple(args, "Os|zz", &amp;repos, &amp;list, &amp;key, &amp;mode)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   ret = repos_form ((XML *) (PyCObject_AsVoidPtr (repos)), list, key, mode);
+   return PyCObject_FromVoidPtrAndDesc (ret, (void *) Py_BuildValue(""), py_repos_xml_cleanup);
+}
+static PyObject *py_repos_define(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   PyObject * defn;
+   int ret;
+
+   if (!PyArg_ParseTuple(args, "OsO", &amp;repos, &amp;list, &amp;defn)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   if (!PyCObject_Check (defn)) {
+      PyErr_SetString (PyExc_TypeError, "definition not XML object");
+      return NULL;
+   }
+   ret = repos_define ((XML *) (PyCObject_AsVoidPtr (repos)), list, (XML * )PyCObject_AsVoidPtr (defn));
+   return Py_BuildValue("i", ret);
+}
+
+static PyObject *py_repos_add(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   PyObject * obj;
+   int ret;
+
+   if (!PyArg_ParseTuple(args, "OsO", &amp;repos, &amp;list, &amp;obj)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   if (!PyCObject_Check (obj)) {
+      PyErr_SetString (PyExc_TypeError, "object not XML object");
+      return NULL;
+   }
+   ret = repos_add ((XML *) (PyCObject_AsVoidPtr (repos)), list, (XML *) (PyCObject_AsVoidPtr (obj)));
+   return Py_BuildValue("i", ret);
+}
+static PyObject *py_repos_del(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   char * key;
+   int ret;
+
+   if (!PyArg_ParseTuple(args, "Oss", &amp;repos, &amp;list, &amp;key)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   ret = repos_del ((XML *) (PyCObject_AsVoidPtr (repos)), list, key);
+   return Py_BuildValue("i", ret);
+}
+static PyObject *py_repos_mod(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   char * key = NULL;
+   PyObject * obj;
+   int ret;
+
+   if (!PyArg_ParseTuple(args, "OsO|z", &amp;repos, &amp;list, &amp;obj, &amp;key)) return NULL; /* Neat: the key is optional. */
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   if (!PyCObject_Check (obj) &amp;&amp; obj != Py_None) {
+      PyErr_SetString (PyExc_TypeError, "object not XML object");
+      return NULL;
+   }
+   ret = repos_mod ((XML *) (PyCObject_AsVoidPtr (repos)), list, obj == Py_None ? NULL : PyCObject_AsVoidPtr (obj), key);
+   return Py_BuildValue("i", ret);
+}
+static PyObject *py_repos_merge(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   char * key = NULL;
+   PyObject * obj;
+   int ret;
+
+   if (!PyArg_ParseTuple(args, "OsOz", &amp;repos, &amp;list, &amp;obj, &amp;key)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   if (!PyCObject_Check (obj)) {
+      PyErr_SetString (PyExc_TypeError, "object not XML object");
+      return NULL;
+   }
+   ret = repos_merge ((XML *) (PyCObject_AsVoidPtr (repos)), list, PyCObject_AsVoidPtr (obj), key);
+   return Py_BuildValue("i", ret);
+}
+
+static PyObject *py_repos_list(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   PyObject * list = NULL;
+   PyObject * retlist;
+   XML * mylist = NULL;
+   XML * elem;
+
+   if (!PyArg_ParseTuple(args, "O|O", &amp;repos, &amp;list)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   if (list &amp;&amp; !PyCObject_Check (list) &amp;&amp; !PyString_Check (list)) {
+      PyErr_SetString (PyExc_TypeError, "list not XML object or string ID");
+      return NULL;
+   }
+   if (!list) {
+      mylist = xml_create ("list");
+      xml_set (mylist, "id", "_lists");
+   } else if (PyString_Check(list)) {
+      mylist = xml_create ("list");
+      xml_set (mylist, "id", PyString_AsString (list));
+      list = NULL;
+   }
+
+   repos_list ((XML *) (PyCObject_AsVoidPtr (repos)), list ? (XML *) (PyCObject_AsVoidPtr (list)) : mylist);
+   retlist = PyList_New (0);
+
+   elem = xml_firstelem (list ? (XML *) (PyCObject_AsVoidPtr (list)) : mylist);
+   while (elem) {
+      PyList_Append (retlist, PyString_FromString (xml_attrval (elem, "id")));
+      elem = xml_nextelem (elem);
+   }
+
+   if (mylist) xml_free (mylist);
+   return retlist;
+}
+</pre></td></tr></table>
+
+<i>October 15, 2003</i>: the ever-growing API.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static PyObject *py_repos_tasks_direct(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   PyObject * object;
+   PyObject * list = NULL;
+   PyObject * retlist;
+   XML * mylist = NULL;
+   XML * elem;
+
+   if (!PyArg_ParseTuple(args, "OO|O", &amp;repos, &amp;object, &amp;list)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   if (!PyCObject_Check (object)) {
+      PyErr_SetString (PyExc_TypeError, "object not XML object");
+      return NULL;
+   }
+   if (list &amp;&amp; !PyCObject_Check (list)) {
+      PyErr_SetString (PyExc_TypeError, "list not XML object");
+      return NULL;
+   }
+   if (!list) {
+      mylist = xml_create ("list");
+      xml_set (mylist, "id", "_tasks");
+   }
+
+   repos_tasks_direct ((XML *) (PyCObject_AsVoidPtr (repos)), list ? (XML *) (PyCObject_AsVoidPtr (list)) : mylist, (XML *) (PyCObject_AsVoidPtr (object)),  NULL);  /* TODO: add user parameter */
+   retlist = PyList_New (0);
+
+   elem = xml_firstelem (list ? (XML *) (PyCObject_AsVoidPtr (list)) : mylist);
+   while (elem) {
+      PyList_Append (retlist, PyString_FromString (xml_attrval (elem, "id")));
+      elem = xml_nextelem (elem);
+   }
+
+   if (mylist) xml_free (mylist);
+   return retlist;
+}
+
+
+static PyObject *py_repos_changes(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list_id;
+   char * date;
+   XML * changes;
+   XML * elem;
+   PyObject * retlist;
+
+   if (!PyArg_ParseTuple(args, "Oss", &amp;repos, &amp;date, &amp;list_id)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+
+   changes = xml_create ("list");
+   repos_changes ((XML *) (PyCObject_AsVoidPtr (repos)), changes, date, list_id);
+
+   retlist = PyList_New (0);
+   elem = xml_firstelem (changes);
+   while (elem) {
+      PyList_Append (retlist, Py_BuildValue ("(ss)", xml_attrval (elem, "action"), xml_attrval (elem, "id")));
+      elem = xml_nextelem (elem);
+   }
+   xml_free (changes);
+
+   return retlist;
+}
+
+static PyObject *py_repos_snapshot(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list_id;
+
+   if (!PyArg_ParseTuple(args, "Os", &amp;repos, &amp;list_id)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+
+   repos_snapshot ((XML *) (PyCObject_AsVoidPtr (repos)), list_id);
+
+   return Py_BuildValue("");
+}
+
+static PyObject *py_repos_getkey(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   PyObject * obj;
+   const char * key;
+   PyObject * ret;
+
+   if (!PyArg_ParseTuple(args, "OsO", &amp;repos, &amp;list, &amp;obj)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   if (!PyCObject_Check (obj)) {
+      PyErr_SetString (PyExc_TypeError, "list not XML object");
+      return NULL;
+   }
+   key = repos_getkey ((XML *) (PyCObject_AsVoidPtr (repos)), list, (XML *) (PyCObject_AsVoidPtr (obj)));
+   ret = Py_BuildValue ("s", key);
+   /*free ((void *) key); -- 2003-06-21 - this took me about two days to find.  Sheesh. */
+   return ret;
+}
+
+static PyObject *py_repos_get(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   char * key;
+   XML * ret;
+
+   if (!PyArg_ParseTuple(args, "Oss", &amp;repos, &amp;list, &amp;key)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   ret = repos_get ((XML *) (PyCObject_AsVoidPtr (repos)), list, key);
+   return PyCObject_FromVoidPtrAndDesc (ret, (void *) Py_BuildValue(""), py_repos_xml_cleanup);
+}
+static PyObject *py_repos_task_get(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   char * key;
+   char * local_key;
+   XML * ret;
+
+   if (!PyArg_ParseTuple(args, "Osss", &amp;repos, &amp;list, &amp;key, &amp;local_key)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   ret = repos_task_get ((XML *) (PyCObject_AsVoidPtr (repos)), list, key, local_key);
+   return PyCObject_FromVoidPtrAndDesc (ret, (void *) Py_BuildValue(""), py_repos_xml_cleanup);
+}
+static PyObject *py_repos_edit(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   char * key;
+   XML * ret;
+
+   if (!PyArg_ParseTuple(args, "Oss", &amp;repos, &amp;list, &amp;key)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   ret = repos_form ((XML *) (PyCObject_AsVoidPtr (repos)), list, key, "edit");
+   return PyCObject_FromVoidPtrAndDesc (ret, (void *) Py_BuildValue(""), py_repos_xml_cleanup);
+}
+static PyObject *py_repos_display(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   char * key;
+   XML * ret;
+
+   if (!PyArg_ParseTuple(args, "Oss", &amp;repos, &amp;list, &amp;key)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   ret = repos_form ((XML *) (PyCObject_AsVoidPtr (repos)), list, key, "display");
+   return PyCObject_FromVoidPtrAndDesc (ret, (void *) Py_BuildValue(""), py_repos_xml_cleanup);
+}
+
+static PyObject *py_repos_getvalue(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   char * key;
+   char * field;
+   char * retstr;
+   PyObject * ret;
+
+   if (!PyArg_ParseTuple(args, "Osss", &amp;repos, &amp;list, &amp;key, &amp;field)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   retstr = repos_getvalue ((XML *) (PyCObject_AsVoidPtr (repos)), list, key, field);
+   ret = Py_BuildValue ("s", retstr);
+   free ((void *) retstr);
+   return ret;
+}
+static PyObject *py_repos_setvalue(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list;
+   char * key;
+   char * field;
+   char * value;
+
+   if (!PyArg_ParseTuple(args, "Ossss", &amp;repos, &amp;list, &amp;key, &amp;field, &amp;value)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   repos_setvalue ((XML *) (PyCObject_AsVoidPtr (repos)), list, key, field, value);
+   return Py_BuildValue ("");
+}
+
+static PyObject *py_repos_get_layout(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * layout_id;
+   XML * ret;
+
+   if (!PyArg_ParseTuple(args, "Os", &amp;repos, &amp;layout_id)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   ret = repos_get_layout ((XML *) (PyCObject_AsVoidPtr (repos)), layout_id);
+   return PyCObject_FromVoidPtrAndDesc (ret, (void *) Py_BuildValue(""), py_repos_xml_cleanup);
+}
+
+static PyObject *py_repos_user_auth(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * user;
+   char * password;
+   XML * ret;
+
+   if (!PyArg_ParseTuple(args, "Oss", &amp;repos, &amp;user, &amp;password)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   ret = repos_user_auth ((XML *) (PyCObject_AsVoidPtr (repos)), user, password);
+   return PyCObject_FromVoidPtrAndDesc (ret, (void *) Py_BuildValue(""), py_repos_xml_cleanup);
+}
+
+static PyObject *py_repos_push(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list_id;
+   char * remote_id = NULL;
+   int ret;
+
+   if (!PyArg_ParseTuple(args, "Os|z", &amp;repos, &amp;list_id, &amp;remote_id)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+
+   ret = repos_push ((XML *) (PyCObject_AsVoidPtr (repos)), list_id, remote_id);
+
+   return Py_BuildValue("i", ret);
+}
+static PyObject *py_repos_push_all(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list_id;
+   char * remote_id = NULL;
+   int ret;
+
+   if (!PyArg_ParseTuple(args, "Os|z", &amp;repos, &amp;list_id, &amp;remote_id)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+
+   ret = repos_push_all ((XML *) (PyCObject_AsVoidPtr (repos)), list_id, remote_id);
+
+   return Py_BuildValue("i", ret);
+}
+static PyObject *py_repos_pull(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list_id;
+   char * remote_id = NULL;
+   XML * changes;
+   XML * elem;
+   PyObject * retlist;
+   int ret;
+
+   if (!PyArg_ParseTuple(args, "Os|z", &amp;repos, &amp;list_id, &amp;remote_id)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+
+   changes = xml_create ("list");
+   ret = repos_pull ((XML *) (PyCObject_AsVoidPtr (repos)), list_id, remote_id, changes);
+
+   retlist = PyList_New (0);
+   elem = xml_firstelem (changes);
+   while (elem) {
+      PyList_Append (retlist, Py_BuildValue ("(ss)", xml_attrval (elem, "action"), xml_attrval (elem, "id")));
+      elem = xml_nextelem (elem);
+   }
+   xml_free (changes);
+
+   return retlist;
+}
+static PyObject *py_repos_pull_all(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list_id;
+   char * remote_id = NULL;
+   int ret;
+
+   if (!PyArg_ParseTuple(args, "Os|z", &amp;repos, &amp;list_id, &amp;remote_id)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+
+   ret = repos_pull_all ((XML *) (PyCObject_AsVoidPtr (repos)), list_id, remote_id, NULL);
+
+   return Py_BuildValue("i", ret);
+}
+static PyObject *py_repos_synch(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list_id;
+   char * remote_id = NULL;
+   int ret;
+   XML * changes;
+   XML * elem;
+   PyObject * retlist;
+
+   if (!PyArg_ParseTuple(args, "Os|z", &amp;repos, &amp;list_id, &amp;remote_id)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+
+   changes = xml_create ("list");
+   ret = repos_synch ((XML *) (PyCObject_AsVoidPtr (repos)), list_id, remote_id, changes);
+
+   retlist = PyList_New (0);
+   elem = xml_firstelem (changes);
+   while (elem) {
+      PyList_Append (retlist, Py_BuildValue ("(ss)", xml_attrval (elem, "action"), xml_attrval (elem, "id")));
+      elem = xml_nextelem (elem);
+   }
+   xml_free (changes);
+
+   return retlist;
+}
+</pre></td></tr></table>
+
+<i>(August 17, 2002)</i>: so here we go with the attachment API for Python.  It consists of just two functions, attach and
+retrieve.  It would be simple enough to expose the full open-read/write-close APIs, but I'm not excited about spending my time
+on that, so instead I'm creating polymorphic functions which can handle tossing attachments into open streams, or loading them into
+strings in memory.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static PyObject *py_repos_retrieve(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list_id;
+   char * key;
+   char * field;
+   char * ver = NULL;
+   PyObject * file = NULL;
+   FILE * f;
+   XML * handle;
+   char chunk[1024];
+   int bytes;
+   PyObject * ret = NULL;
+
+   if (!PyArg_ParseTuple(args, "Osss|sO", &amp;repos, &amp;list_id, &amp;key, &amp;field, &amp;file)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+   if (file) {
+      if (PyFile_Check(file)) {
+         repos_retrieve (PyCObject_AsVoidPtr (repos), list_id, key, field, ver, PyFile_AsFile (file));
+         return Py_BuildValue ("");
+      } else if (PyString_Check(file)) {
+         f = fopen (PyString_AsString (file), "w");
+         if (!f) {
+            PyErr_SetString (PyExc_IOError, "can't open file for output");
+            return NULL;
+         }
+         repos_retrieve (PyCObject_AsVoidPtr (repos), list_id, key, field, ver, f);
+         fclose (f);
+         return Py_BuildValue ("");
+      } else {
+         PyErr_SetString (PyExc_TypeError, "destination neither file object nor path string");
+         return NULL;
+      }
+   } else {
+      handle = repos_retrieve_open (PyCObject_AsVoidPtr (repos), list_id, key, field, ver);
+      while (bytes = repos_retrieve_read (chunk, 1, 1024, handle)) {
+         if (ret) {
+            PyString_ConcatAndDel (&amp;ret, PyString_FromStringAndSize (chunk, bytes));
+         } else {
+            ret = PyString_FromStringAndSize (chunk, bytes);
+         }
+         if (bytes < 1024) break;
+      }
+      repos_retrieve_close (handle);
+      return ret;
+   }
+}
+static PyObject *py_repos_attach(PyObject *self, PyObject *args)
+{
+   PyObject * repos;
+   char * list_id;
+   char * key;
+   char * field;
+   PyObject * file = NULL;
+
+   XML * handle;
+   char * data;
+   int    size;
+
+   if (!PyArg_ParseTuple(args, "OsssO", &amp;repos, &amp;list_id, &amp;key, &amp;field, &amp;file)) return NULL;
+   if (!PyCObject_Check (repos)) {
+      PyErr_SetString (PyExc_TypeError, "repository not XML object");
+      return NULL;
+   }
+
+   if (PyFile_Check(file)) {
+      repos_attach (PyCObject_AsVoidPtr (repos), list_id, key, field, NULL, PyFile_AsFile (file));
+      return Py_BuildValue ("");
+   } else if (PyString_Check(file)) {
+      handle = repos_attach_open (PyCObject_AsVoidPtr (repos), list_id, key, field, NULL);
+      PyString_AsStringAndSize (file, &amp;data, &amp;size);
+      repos_attach_write (data, 1, size, handle);
+      repos_attach_close (PyCObject_AsVoidPtr (repos), handle);
+      return Py_BuildValue ("");
+   } else {
+      PyErr_SetString (PyExc_TypeError, "attachment neither file object nor content string");
+      return NULL;
+   }
+}
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

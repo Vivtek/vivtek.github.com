@@ -1,0 +1,188 @@
+<head>
+<title>wftk tutorial - (unresolved tag 03-a-title)</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk tutorial - (unresolved tag 03-a-title)</div>
+
+<p><a name="__index__"></a></p>
+<!-- INDEX BEGIN -->
+
+
+	<ul>
+
+		<li><a href="#_the_action_api">(The action API</a></li>
+		<li><a href="#_data_actions">(Data actions</a></li>
+		<li><a href="#_the_perl_action">(The Perl action</a></li>
+		<li><a href="#_the_eval_action">(The eval action</a></li>
+	</ul>
+
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<p>An action consists of the following:</p>
+<dl>
+<dt><strong><a name="item_the_name_of_the_action">The name of the action</a></strong>
+
+<dt><strong><a name="item_the_actor_performing_the_action">The actor performing the action</a></strong>
+
+<dt><strong><a name="item_the_data_context_of_the_action">The data context of the action</a></strong>
+
+<dt><strong><a name="item_the_parameters_of_the_action">The parameters of the action</a></strong>
+
+</dl>
+<p>Let's look at these one at a time.  First, the <strong>name</strong> of the action identifies both the handler (the class which will handle the action) and the specific
+action the class will take.  For instance, the ``data'' handler is a front for the Workflow::wftk::Data class.  The data handler knows how to add (add),
+modify (mod), and delete (del) records from a list.  So the name of the action of adding a record would be ``data add'', with a space.  Very simple.</p>
+<p>The default action handler is the wftk's macro system.  A repository may contain a macro list, the keys of which retrieve named macros.  We will cover
+the macro system in a later section.</p>
+<p>Next, the <strong>actor</strong>, which is the subject of the next chapter.  Since any action is taken by an entity, we have to choice but to acknowledge the existence
+of this feature before actually describing it, but it's clear anyway: the actor is the person or program actually responsible for the action.  This
+is one of the things used to determine whether the action will be permitted or not.  If left blank (the default), then we presume this to be the
+anonymous user, which will suffice just fine for now.  But in the next chapter we will look at this in much more detail.</p>
+<p>Next, the data context.  The <strong>data context</strong> of an action is the object in the repository that the action will take place in.  That object stores the history
+of the action, and it provides the basis for data lookups.  A data context is given as the list plus the key of an object in the system.  The repository
+itself is the object with no list (blank) and no key (blank).  A default list may be defined for the repository (e.g. ``cases'' or ``processes''), and then
+you can give just a key.</p>
+<p>For actions which result in the addition of a record to a list, the key may be blank.  In this case, the addition of the record will fill in the key,
+and the action system will pretend as though you'd meant that all along (that is, in logging and the like that key will appear).</p>
+<p>Finally, the <strong>parameters</strong> of the action are an arbitrary record passed to it; the record can contain anything you need.  The fields of the record
+may be templates, in which case they'll be evaluated in the context of the action.</p>
+<p>
+</p>
+<h2><a name="_the_action_api">(The action API</a></h2>
+<p>
+</p>
+<h2><a name="_data_actions">(Data actions</a></h2>
+<p>
+</p>
+<h2><a name="_the_perl_action">(The Perl action</a></h2>
+<p>
+</p>
+<h2><a name="_the_eval_action">(The eval action</a></h2>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

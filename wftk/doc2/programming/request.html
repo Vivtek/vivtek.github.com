@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk: requests</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk: working with requests</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="index.html">wftk programmer's guide home</a> ]
+<hr>
+
+<h3>Requests</h3>
+From the point of view of the user, a request looks a lot like a task.  But when you look more closely,
+the wftk request is a powerful functionality.  A request can indeed be a simple task request -- i.e.
+"can you do this task?"  The task may either be already in existence, or not; if it is, then acceptance
+of the request will transfer assignment of the task.  If not, a new ad-hoc task will be created.
+<p>
+However, a request can be more refined than that.  You can make a request of a user that they take over
+an entire role in a process -- if they accept, then all subsequent tasks assigned to that role will be
+assigned to the user automatically.  You can make a request that contains completely arbitrary workflow;
+if accepted, the workflow is added to the process as ad-hoc workflow, some of which may be tasks
+assigned to the requestee, but others of which may be assigned to any arbitrary user or group.  This
+will probably be most useful when various notifications should be sent out upon acceptance, but since
+it's so open-ended, it'll find plenty of uses, I'm sure.
+<p>
+But back to that sending a task-assumption request for a moment: this effectively implements a
+token-based workflow delegation system.  In fact, if I receive a request, I can make a new request of
+someone else that <i>they</i> fulfill my request, and they will be treated as the acceptor of the
+original request in that case.  Entire hierarchies of delegation can thus be built on this mechanism.
+I do want to talk to the first person actually to <i>implement</i> this in a real situation, though.
+<p>
+<h3>Functions</h3>
+<pre>
+int    wftk_request_list     (void * session, XML * list);
+int    wftk_request_new      (void * session, XML * request);
+XML  * wftk_request_retrieve (void * session, XML * request);
+int    wftk_request_update   (void * session, XML * request);
+int    wftk_request_rescind  (void * session, XML * request);
+int    wftk_request_accept   (void * session, XML * request);
+int    wftk_request_decline  (void * session, XML * request);
+</pre>
+
+<h3>Details</h3>
+
+<a name="wftk_request_list"></a>
+<font size=+1>wftk_request_list</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * list</code>
+</blockquote>
+Returns a (possibly filtered) list of requests.  Like other listing functions in the wftk,
+this function takes a list XML structure decorated with filtering attributes.  Upon return,
+the list contains elements corresponding to the matching requests.  Lists may be reused, but
+you have to clean up old results yourself (if you want them cleaned up).
+<br><br>
+If a process ID is given to the list, the datasheet will be loaded and scanned for requests;
+otherwise, the default task index (database) is asked.  This means effectively that when using
+wftk in a non-database-enabled environment, you must supply a process ID to list requests.
+(This applies equally to tasks and so forth.)
+
+<br><br>
+
+<a name="wftk_request_new"></a>
+<font size=+1>wftk_request_new</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * request</code>
+</blockquote>
+
+<br><br>
+
+<a name="wftk_request_new"></a>
+<font size=+1>wftk_request_new</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * request</code>
+</blockquote>
+Creates a new request.  The request element you supply should have a process ID if the
+process is to be attached to a process, and should have a user ID if the request is to be
+made of a specific user.  I know this is too thin for good documentation, but I'll finish
+it up later.
+
+<br><br>
+
+<a name="wftk_request_retrieve"></a>
+<font size=+1>wftk_request_retrieve</font> returns <code>XML *</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * request</code>
+</blockquote>
+Retrieves the specified request (by filling out the given XML).  A pointer to the given
+XML is returned; NULL means no such request was found.
+
+<br><br>
+
+<a name="wftk_request_update"></a>
+<font size=+1>wftk_request_update</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * request</code>
+</blockquote>
+Updates the given request (this means writing it to the associated datasheet, if any, and
+writing it to the database, if any.)
+
+<br><br>
+
+<a name="wftk_request_rescind"></a>
+<font size=+1>wftk_request_rescind</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * request</code>
+</blockquote>
+Rescinds the specified request (deletes it from datasheet and database).
+
+<br><br>
+
+<a name="wftk_request_accept"></a>
+<font size=+1>wftk_request_accept</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * request</code>
+</blockquote>
+
+Accepts the given request.  This can entail quite a lot of work, as tasks may be created, adhoc
+workflow added to the process, status changed on things; the wftk takes care of all that on 
+acceptance.
+
+<br><br>
+
+<a name="wftk_request_decline"></a>
+<font size=+1>wftk_request_decline</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * request</code>
+</blockquote>
+
+Declines the given request.  Less happens when a request is declined, but there is still work
+to be done (notifications if nothing else.)
+
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

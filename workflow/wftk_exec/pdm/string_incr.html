@@ -1,0 +1,48 @@
+<html><head><title>WFTK PDM: Definition of string_incr()</title></head>
+<body>
+<h2>Definition of string_incr()</h2>
+<center>
+[&nbsp;<a href="update.html">Previous: update: Actually changing procdef versions!</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The procdef manager</a>&nbsp;]
+[&nbsp;<a href="index.html">Next: The procdef manager</a>&nbsp;]
+</center>
+
+<hr>
+A handy little string utility function.  I like alpha-only markers (think of them as base-26
+numbers.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>char * string_incr (char * string)
+{
+   if (!*string) {
+      string[0] = 'a';
+      string[1] = '\0';
+      return (string);
+   }
+
+   if (*string == 'z') {
+      string[0] = 'a';
+      string_incr (string + 1);
+      return (string);
+   }
+
+   string[0]++;
+   return (string);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="update.html">Previous: update: Actually changing procdef versions!</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href="index.html">Next: The procdef manager</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

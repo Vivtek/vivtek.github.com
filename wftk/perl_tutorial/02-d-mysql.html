@@ -1,0 +1,235 @@
+<head>
+<title>wftk tutorial - (unresolved tag 02-d-title)</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk tutorial - (unresolved tag 02-d-title)</div>
+
+<p><a name="__index__"></a></p>
+<!-- INDEX BEGIN -->
+
+
+	<ul>
+
+		<li><a href="#_the_basics__storing_simple_data_records_in_an_existing_table">(The basics: storing simple data records in an existing table</a></li>
+		<li><a href="#_treating_text_fields_as_attachments">(Treating text fields as attachments</a></li>
+		<li><a href="#_creating_and_dropping_tables_on_the_fly">(Creating and dropping tables on the fly</a></li>
+		<li><a href="#_creating_and_dropping_databases_on_the_fly">(Creating and dropping databases on the fly</a></li>
+		<li><a href="#_indexing_a_directory_in_mysql">(Indexing a directory in MySQL</a></li>
+	</ul>
+
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<p>So finally we get to manage data in a system made to manage data efficiently.  Any scalable solution will be built on relational databases, but it's easier
+to test prototypes (including the prototype of the wftk itself) in an environment based on files and directories, so files and directories are where
+I started.  It's also very common to find small amounts of important data in files -- as long as the quantity is manageable, this is a perfectly good
+strategy, as it makes it easier to write scripts or to edit data by hand.</p>
+<p>But at some point, of course, you just have to have a database management system.  The first one we'll look at is MySQL, because it's ubiquitous.  Others
+will be left as an exercise for the reader, or lumped together into 02-f Other storage, or handled by the generic DBI interface.</p>
+<p>
+</p>
+<h2><a name="_the_basics__storing_simple_data_records_in_an_existing_table">(The basics: storing simple data records in an existing table</a></h2>
+<p>The basic functionality of MySQL storage class is <em>exactly the same</em> as any other list.  So let's run down that first, shall we?</p>
+<pre class="code">
+   use Workflow::wftk;
+
+   my $wftk = Workflow::wftk-&gt;new();
+
+   # Create a list stored in 'test_d':TCH
+   my $list = $wftk-&gt;open('mylist', 'dir:test_d');
+
+   # Add a record the easy way, with a hashref.
+   my $key = $list-&gt;add ( {field1 =&gt; 'value1', field2 =&gt; 'value2'} );
+
+   # Look at the fields in the list again:
+   @fields = $list-&gt;fields();          # Returns ('field1', 'field2') now, just like a memory list.
+
+   my $key2 = $list-&gt;add ( ['different value', 'value2'] );
+   my $key3 = $list-&gt;add ( ['third value', 'value2'] );
+
+   # Get a list of keys:
+   my @keys = $list-&gt;keys();
+
+   # Let's check what we just did:
+   opendir IN, 'test';
+   my @files = grep !/^\./, readdir (IN);
+   closedir IN;
+
+   # @keys and @files should be the same thing.
+
+   # Iterate through the list:
+   for (my $key = $list-&gt;first_key(); $key; $key = $list-&gt;next_key()) {
+      # ...
+   }
+
+   # Get a record:
+   $rec = $list-&gt;get($key2);
+
+   # Get a value:
+   print &quot;Value is &quot; . $rec-&gt;get('field2');
+
+   # Modify an existing record.
+   $rec-&gt;put ('field1', 'new value 1');
+   $list-&gt;mod ($key2, $rec);
+
+   # Delete a record.
+   $list-&gt;del ($key3);
+
+   # Note that $list-&gt;as_text WON'T WORK, because the contents of the records are not cached in memory
+   # (they are presumed to be too large).  Use an index if you need contents all at once.
+
+   # Display the contents of the file:
+</pre><p>
+</p>
+<h2><a name="_treating_text_fields_as_attachments">(Treating text fields as attachments</a></h2>
+<p>It's often convenient to avoid loading long text fields in the initial record.  In this case, we can mark the long field as an attachment, so that it's
+only read when specifically requested.</p>
+<p>+head2 (Using an attachment as a ``rest of the record'' field</p>
+<p>There are cases where we're given a MySQL table that has specific records already defined, but where our application could really use some extra ones.
+In this case, we can define an attachment to be a ``rest of the record'' field. This attachment will automatically be read when the record is retrieved,
+and its contents will be merged into the record as though they were already in the top-level list.  Conversely, anything put into a record that isn't
+stored in the underlying SQL table record will also be split off into this ``rest of the record'' attachment.</p>
+<p>This is especially handy when using wftk-specific functionality that doesn't fit into an SQL record, like multiple levels of fields, history or
+enactment within a particular record, and so on.</p>
+<p>
+</p>
+<h2><a name="_creating_and_dropping_tables_on_the_fly">(Creating and dropping tables on the fly</a></h2>
+<p>The wftk can create and drop tables as needed, if told to do so, even determining the table fields on the fly if necessary.</p>
+<p>
+</p>
+<h2><a name="_creating_and_dropping_databases_on_the_fly">(Creating and dropping databases on the fly</a></h2>
+<p>With a little more configuration work, the wftk can also manage the databases themselves in MySQL, given sufficient adminstrative privileges in its
+userid.</p>
+<p>
+</p>
+<h2><a name="_indexing_a_directory_in_mysql">(Indexing a directory in MySQL</a></h2>
+<p>This is a practical recipe, and as such it's redundant with sections elsewhere in this tutorial, but it's convenient to put it here as well.  MySQL
+plus directory storage of large files is a convenient basic document management system that makes sense in a lot of different contexts.  It bears
+repeating.</p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

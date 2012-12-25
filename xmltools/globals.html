@@ -1,0 +1,96 @@
+<html><head><title>xmltools: Global variables (state)</title></head>
+<body>
+<h2>Global variables (state)</h2>
+<center>
+[&nbsp;<a href="data_structures.html">Previous: Data structures: frames and tags</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: xmltools index</a>&nbsp;]
+[&nbsp;<a href="print_stack.html">Next: Printing the current stack as a locator</a>&nbsp;]
+</center>
+
+<hr>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>/* The parsing context: */
+FRAME stack = {
+   "&lt;bottom>",
+   0,
+   0,
+   0,
+   NULL,
+   NULL,
+   NULL,
+   NULL
+};
+
+/* Settings */
+int emit_content = 1;
+int emit_matching_tag = 1;
+int emit_tags = 1;
+int emit_comments = 0;
+int emit_pis = 0;
+int emit_locator = 0;
+
+char * infile = NULL;
+char * insertwhere = NULL;
+char * setattr = NULL;
+char * setvalue = NULL;
+
+FRAME * top = &amp;stack;
+
+int finished; /* We can set this if we know we're done with the snip. */
+int emit_level = -1; /* Set this to the level when our location first matches the locator. */
+
+int done;
+</pre></td></tr></table>
+<br><br>
+<a name="init">
+<i>Reading the command line</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int init(int argc, char * argv[]) {
+   int i;
+   char * mark;
+
+   for (i=1; i &lt; argc; i++) {
+      if (*argv[i] == '-') {
+         mark = argv[i];
+         while (*mark++) {
+           switch (*mark) {
+              case 'c': emit_comments = 1; break;
+              case 'o': emit_tags = 0; break;
+              case 'e': emit_content = 0; break;
+#ifndef XMLSET
+              case 'm': emit_matching_tag = 0; break;
+#endif
+              case 'p': emit_pis = 1; break;
+              case 'l': emit_locator = 1; break;
+           }
+         }
+      }
+#ifdef XMLINSERT
+      else if (!insertwhere) { insertwhere = argv[i]; }
+#endif
+      else if (!stack.locator) { stack.locator = argv[i]; }
+#ifdef XMLSET
+      else if (!setattr) { setattr = argv[i]; }
+      else if (!setvalue) { setvalue = argv[i]; }
+#endif
+      else if (!infile) { infile = argv[i]; }
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="data_structures.html">Previous: Data structures: frames and tags</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: xmltools index</a>&nbsp;]
+[&nbsp;<a href="print_stack.html">Next: Printing the current stack as a locator</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

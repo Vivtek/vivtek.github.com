@@ -1,0 +1,102 @@
+<html><head><title>User module</title></head>
+<body>
+<h2>User module</h2>
+<center>
+[ <a href="wftk_user.zip">download</a> ] [ <a href="user.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+
+<hr>
+The user module is used by the various parts of the wftk both for authorizing users and for
+storing information about users and the things they work with.  To do this, we maintain XML
+documents, one for each user and one for each group.  A <i>group</i> in this context contains
+both a list of users and a list of objects.  The objects are defined pretty vaguely; since
+the programs which handle those objects will be querying the user module for levels of access,
+those programs are assumed to know what they're doing.  So basically I'm giving objects a
+module name (a namespace, really) and an identifier.
+<p></p>
+A group may contain other groups; the contained groups may thus be seen as folders (even though
+they may simultaneously serve as groups of users, the folder metaphor is more apt for contained
+groups.)  In this case, the permission used on the link combines with the permission the
+contained group has on the object thus: (x) + own = (x), own + (x) = (x), (x) + (x) = (x), and
+(x) + (y) = nothing.  So let's assume that group "myfolder" has permission "own" on object
+"MyDocument".  If I grant group "friends" permission "view" on myfolder, then they end up with
+view + own = <i>view</i> on MyDocument.  Anybody with "view" privilege on "friends" thus
+acquires viewing privileges on MyDocument.
+<p></p>
+A group or user may also be considered as an object, of course, and that's how we grant admin
+privileges.  If I grant somebody viewing privileges on the "friends" folder above, <i>as an
+object</i>, then they can view the actual friends folder and its contents, but they <i>do
+not</i> thereby acquire any privileges to MyDocument.
+<p></p>
+This explanation is pretty weak, so I'm going to let it sit a few days and start again.
+<p></p>
+This module defines three files.  First, of course, is <code>user.c</code>, which is simply
+the implementation of the functionality.  This file should be compiled along with your project.
+The obligatory declarations are of course in <code>user.h</code>.  Finally, <code>main.c</code>
+defines a main program and simple command-line interface, resulting in a command-line
+user maintenance utility.
+<p></p>
+I've written a <a href=browse.html>folder browser</a> based on this user library.  Take a look
+at it for an idea of how to use the library.
+<p></p>
+Table of contents:
+<ul>
+<li> <a href="include.html">user.h: definition of the interface</a>
+<li> <a href="library.html">user.c: implementation</a>
+<li> <a href="exist.html">Checking for existence of users and groups</a>
+<ul>
+<li> <a href="exist.html#user">user_exists()</a>
+<li> <a href="exist.html#group">group_exists()</a>
+</ul>
+<li> <a href="getsave.html">Loading and saving users and groups</a>
+<ul>
+<li> <a href="getsave.html#user_get">user_get()</a>
+<li> <a href="getsave.html#user_save">user_save()</a>
+<li> <a href="getsave.html#group_get">group_get()</a>
+<li> <a href="getsave.html#group_save">group_save()</a>
+<li> <a href="getsave.html#user_auth_get">user_auth_get()</a>
+<li> <a href="getsave.html#user_auth_save">user_auth_save()</a>
+<li> <a href="getsave.html#group_auth_get">group_auth_get()</a>
+<li> <a href="getsave.html#group_auth_save">group_auth_save()</a>
+</ul>
+<li> <a href="joinleave.html">Adding and removing users and things from groups</a>
+<ul>
+<li> <a href="joinleave.html#user_join">user_join()</a>
+<li> <a href="joinleave.html#user_leave">user_leave()</a>
+<li> <a href="joinleave.html#object_grant">object_grant()</a>
+<li> <a href="joinleave.html#object_revoke">object_revoke()</a>
+<li> <a href="joinleave.html#group_include">group_include()</a>
+<li> <a href="joinleave.html#group_unlink">group_unlink()</a>
+</ul>
+<li> <a href="auth.html">Authentication in a CGI environment</a>
+<ul>
+<li> <a href="auth.html#base64decode">Decoding base 64 authorization strings</a>
+</ul>
+<li> <a href="user_perm.html">Actually using all this XML to figure out a user's permissions</a>
+<ul>
+<li> <a href="user_perm.html#userhelpers">Helper functions for that</a>
+</ul>
+<li> <a href="listing.html">Listing objects and permissions</a>
+<ul>
+<li> <a href="listing.html#user_list">user_list()</a>
+<li> <a href="listing.html#groups">user_groups_list(): Get a list of groups to which a user belongs.</a>
+<li> <a href="listing.html#users">group_users_list*(): listing users in (or out of) groups</a>
+</ul>
+<li> <a href="main.html">main.c: using the user module</a>
+</ul>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font>
+</td>
+</tr>
+</table>
+</center>
+</body></html>

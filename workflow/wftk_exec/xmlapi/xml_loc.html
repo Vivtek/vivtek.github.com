@@ -1,0 +1,145 @@
+<html><head><title>xmlapi: Bookmarking things: xml_loc and xml_getloc</title></head>
+<body>
+<h2>Bookmarking things: xml_loc and xml_getloc</h2>
+<center>
+[&nbsp;<a href="xml_append.html">Previous: xml_append: Inserting elements</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_set.html">Next: Working with attributes: xml_set and xml_attrval</a>&nbsp;]
+</center>
+
+<hr>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * xml_loc (XML * start, const char * loc)
+{
+   char * mark;
+   const char * attrval;
+   char piece[64];
+   int i;
+   int count;
+
+   if (!loc) return (start);
+   if (!*loc) return (start);
+
+   while (start &amp;&amp; start->name == NULL) start = xml_next (start);
+   if (!start) return (NULL);
+
+   while (*loc == ' ') loc++;
+   i = 0;
+   while (*loc &amp;&amp; *loc != '.') piece[i++] = *loc++;
+   piece[i] = '\0';
+   if (*loc) loc++;
+   while (*loc == ' ') loc++;
+
+   mark = strchr (piece, ']');
+   if (mark) *mark = '\0';
+   mark = strchr (piece, '(');
+   if (mark) {
+      *mark++ = '\0';
+      count = atoi (mark);
+      mark = NULL;
+   } else {
+      count = 0;
+      mark = strchr (piece, '[');
+      if (mark) {
+         *mark++ = '\0';
+      }
+   }
+
+   while (start) {
+      if (start->name == NULL) {
+         start = xml_next (start);
+         continue;
+      }
+      if (strcmp (start->name, piece)) {
+         start = xml_next (start);
+         continue;
+      }
+      if (count) {
+         count --;
+         start = xml_next (start);
+         continue;
+      }
+      if (!mark) {
+         if (*loc) return (xml_loc (xml_first (start), loc));
+         return (start);
+      }
+      attrval = xml_attrval(start, "id");
+      if (attrval) {
+         if (strcmp (attrval, mark)) {
+            start = xml_next (start);
+            continue;
+         }
+         if (*loc) return (xml_loc (xml_first(start), loc));
+         return (start);
+      }
+      attrval = xml_attrval(start, "name");
+      if (attrval) {
+         if (strcmp (attrval, mark)) {
+            start = xml_next (start);
+            continue;
+         }
+         if (*loc) return (xml_loc (xml_first(start), loc));
+         return (start);
+      }
+   }
+   return (NULL);
+}
+</pre></td></tr></table>
+
+Building our locator is recursive.  We build our parent's locator, append a
+dot, and qualify it.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void xml_getloc (XML * xml, char *loc, int len)
+{
+   int s;
+   int count;
+   XML * sib;
+   if (xml->parent != NULL) {
+      xml_getloc (xml->parent, loc, len);
+   } else {
+      *loc = '\0';
+   }
+   s = strlen (loc);
+   if (s > 0 &amp;&amp; s &lt; len-1) { strcat (loc, "."); s++; }
+   len -= s;
+   loc += s;
+   if (strlen(xml->name) &lt; len) {
+      strcpy (loc, xml->name);
+   } else {
+      strncpy (loc, xml->name, len-1);
+      loc[len-1] = '\0';
+   }
+   if (xml->parent == NULL) return;
+   sib = xml_first(xml->parent);
+   count = 0;
+   while (sib != xml &amp;&amp; sib != NULL) {
+      if (sib->name != NULL) {
+         if (!strcmp (sib->name, xml->name)) count ++;
+      }
+      sib = xml_next(sib);
+   }
+   if (count > 0 &amp;&amp; s > 4) {
+      strcat (loc, "(");
+      sprintf (loc + strlen(loc), "%d", count);
+      strcat (loc, ")");
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_append.html">Previous: xml_append: Inserting elements</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_set.html">Next: Working with attributes: xml_set and xml_attrval</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

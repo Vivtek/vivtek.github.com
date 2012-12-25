@@ -1,0 +1,470 @@
+<html><head><title>wftk core library: Dealing with processes</title></head>
+<body>
+<h2>Dealing with processes</h2>
+<center>
+[&nbsp;<a href="library.html">Previous: Function definitions</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_task.html">Next: Dealing with tasks</a>&nbsp;]
+</center>
+
+<hr>
+The process is one of the two dual central data structures of the workflow engine.  I've explained this here and there
+anyway, but this is another good place to take another run at it.  Basically, the <i>process</i> represents something of
+which the system is aware, while <i>tasks</i> represent things which have to be done in order to respond to that something.
+Tasks may exist without processes, whenever individual people decide they want to keep track of things they have to do
+which are effectively external to the workflow system.  Processes may exist without tasks, if nobody has to do anything
+about whatever it is that the process represents.  Where I personally think that a number of workflow and workflow-like
+systems go wrong is in assuming that one or the other representation is the "really central" viewpoint.
+<p></p>
+At any rate, the internal representation of a process is what I call a <i>datasheet</i>.  In the simplest of datasheet
+repositories, these datasheets are simply stored as XML files in a directory.  More sophisticated repositories can build
+the datasheets as needed after querying a database, for instance, but internally all we care about is the XML
+representation.  The term "datasheet" arose when I was attacking the problem from the task viewpoint, and realized I needed
+a central point of storage for arbitrary data values.  As this central point of storage was obviously also a good place to
+store the process state, active tasks, and so forth, the datasheet became the process.
+<p></p>
+The wftk provides tools for both viewpoints and remains agnostic on points of theory.  The functions in the wftk API
+which deal with processes are pretty straightforward.  We need to create them, load and save them, attach procdefs to
+them, archive old ones, and delete unneeded ones.  Almost all this functionality is provided by the datasheet repository
+adaptor, so these functions are short and sweet.
+
+<p></p>
+The functions for creation, load, and save are so straightforward I'll just lump them all together here.  Eh, come to
+think of it, deletion is the same, so here it is, too.
+
+<p></p>
+<i>13 July 2002</i>: Really, I'm just about done with things I want to do before a v1.0 release.  Really.  This feature is a
+default procdef for each datasheet repository.  If there is a default, then we start the default procdef on any new process
+created, and store the process.  I personally think that's a more sensible approach for most installations.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * wftk_process_new (XML * session, const char * dsrep, const char * datasheet_id)
+{
+   WFTK_ADAPTOR * ad;
+   WFTK_ADAPTORLIST * adlist;
+   XML * datasheet;
+   XML * procdef;
+   const char * pd;
+
+   ad = wftk_get_adaptor (session, DSREP, dsrep);
+   if (!ad) return (XML *) 0;
+
+   datasheet = wftk_call_adaptor (ad, "new", datasheet_id);
+   if (!datasheet) {
+      wftk_free_adaptor (session, ad);
+      return (XML *) 0;
+   }
+
+   xml_set (datasheet, "repository", xml_attrval (ad->parms, "spec"));
+   /* ID must be set by adaptor because the adaptor may have selected it. */
+
+   /* Notify task indices. */
+   if (*xml_attrval (datasheet, "id") &amp;&amp; !*xml_attrval (datasheet, "noindex")) {
+      adlist = wftk_get_adaptorlist (session, TASKINDEX);
+      wftk_call_adaptorlist (adlist, "procnew", datasheet);
+      wftk_free_adaptorlist (session, adlist);
+   }
+
+   wftk_session_cache (session, datasheet, NULL);
+   wftk_free_adaptor (session, ad);
+
+   /* Ask the adaptor if there's a default procdef we should be starting. */
+   procdef = wftk_call_adaptor (ad, "procdef", datasheet);
+   pd = xml_attrval (procdef, "value");
+   if (*pd) {
+      wftk_process_start (session, datasheet, NULL, pd);
+   }
+   wftk_free_adaptor (session, ad);
+
+   return datasheet;
+}
+WFTK_EXPORT XML * wftk_process_load (XML * session, const char * dsrep, const char * datasheet_id)
+{
+   WFTK_ADAPTOR * ad;
+   XML * key;
+   XML * datasheet;
+
+   ad = wftk_get_adaptor (session, DSREP, dsrep);
+   if (!ad) return (XML *) 0;
+
+   key = xml_create ("datasheet");
+   xml_set (key, "repository", xml_attrval (ad->parms, "spec"));
+   xml_set (key, "id", datasheet_id);
+   datasheet = wftk_session_cachecheck (session, key);
+   xml_free (key);
+
+   if (datasheet) {
+      wftk_free_adaptor (session, ad);
+      return (datasheet);
+   }
+
+   datasheet = wftk_call_adaptor (ad, "load", datasheet_id);
+   if (!datasheet) {
+      wftk_free_adaptor (session, ad);
+      return (XML *) 0;
+   }
+
+   xml_set (datasheet, "repository", xml_attrval (ad->parms, "spec"));
+
+   wftk_session_cache (session, datasheet, NULL);
+   wftk_free_adaptor (session, ad);
+   return datasheet;
+}
+WFTK_EXPORT int wftk_process_save (XML * session, XML * datasheet)
+{
+   WFTK_ADAPTOR * ad;
+   WFTK_ADAPTORLIST * adlist;
+   XML * ret;
+
+   ad = wftk_get_adaptor (session, DSREP, xml_attrval (datasheet, "repository"));
+   if (!ad) return 0;
+
+   ret = wftk_call_adaptor (ad, "save", datasheet);
+   if (!ret) {
+      wftk_free_adaptor (session, ad);
+      return 0;
+   }
+
+   /* Notify task indices. */
+   if (!*xml_attrval (datasheet, "noindex")) {
+      adlist = wftk_get_adaptorlist (session, TASKINDEX);
+      wftk_call_adaptorlist (adlist, "procput", datasheet);
+      wftk_free_adaptorlist (session, adlist);
+   }
+
+   wftk_free_adaptor (session, ad);
+   return 1;
+}
+WFTK_EXPORT int wftk_process_delete (XML * session, const char * dsrep, const char * datasheet_id)
+{
+   WFTK_ADAPTOR * ad;
+   WFTK_ADAPTORLIST * adlist;
+   XML * ret;
+
+   ad = wftk_get_adaptor (session, DSREP, dsrep);
+   if (!ad) return 0;
+
+   ret = wftk_call_adaptor (ad, "delete", datasheet_id);
+
+   /* Notify task indices. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "procdel", datasheet_id);
+   wftk_free_adaptorlist (session, adlist);
+
+   if (ret) xml_free (ret);
+   wftk_free_adaptor (session, ad);
+   return 1;
+}
+</pre></td></tr></table>
+
+Next is <code>wftk_process_define</code>, which attaches a procdef to a process.  The question may very well arise as to
+exactly why this is necessary.  The answer may not satisfy some people, but it's simply that wftk supports the notion of
+an <i>ad-hoc process</i>, which is basically a folder in which ad-hoc tasks may be grouped and which may also store arbitrary
+values for those grouped tasks.  It has no real workflow functionality at all, so it needs no procdef.  In this mode,
+the datasheet really is just a datasheet.
+<p></p>
+So for better or worse, we have to call two functions to set up a workflow process instead of one.  That just doesn't
+seem like such a sacrifice to me.
+<p></p>
+The version call returns a little value holder XML, which is simply XML of the form <code>&lt;value value="something"&gt;</code>.  It's
+a cheap little dodge.  The current XMLAPI is not good at all with buffer management, but it's still a closer approximation
+to a heap than anything in native C, so I'm finding myself using it a lot.  Later I'll do a better job with it and that
+will automagically improve the workflow engine.
+<p></p>
+It's been said that any sufficiently complex program implemented in C contains most of an
+implementation of LISP.  (The implication being that you might as well save time and write
+LISP to start with.)  I'm starting to believe this.  But I <i>still</i> think this code is
+much more readable than the equivalent LISP would be, and I know it's more portable, too.
+<p></p>
+<i>(May 26, 2002)</i> So here I am, wrapping up the last little (and frankly not <i>so</i> little) changes before
+I release the initial production-level version of the wftk core engine into the world.  It's amazing; it's been over
+two years since I started down this road, and even now I've barely scratched the surface.  The only reason I'm calling
+this bit of work the "initial release" is that I believe that it will be the last change to the structure of the datasheet
+XML that I'll need.
+<p></p>
+The original libary envisioned a single process definition attached to any one datasheet; as it turns out, that's too simplistic.
+I had conflated the notions of <i>data class</i> with </i>activity class</i> -- reasonable if I'm calling a datasheet a process,
+but as it turns out, not powerful enough to express some rather obvious ideas when coming from the repository manager end of things.
+During the course of development of the repository manager (which defines the <i>data class</i> explicitly and much more expressively
+than the attached procdef could) it became obvious that certain actions taken against a datasheet (or process) introduce certain
+snippets of workflow.  Initially I saw those as ad-hoc workflow, but eventually I twigged to a simple fact: most of those activities
+are <i>not</i> ad-hoc; they're defined, and thus should be procdef workflow, managed by the same versioned procdef manager as any.
+And so I came upon the obvious: workflow is attached to a datasheet via a <code>workflow</code> element, which may be explicit
+(thus ad-hoc workflow) or a reference (and thus defined workflow).  This workflow element thus replaces the earlier practice of
+writing the procdef data into the datasheet's top-level attributes, which I frankly hated anyway.
+<p></p>
+However, practically speaking this is an inconvenient relaxation (from one to arbitrarily many procdefs attached) because it
+touches on a lot of places in the code.  The first is of course wftk_process_define -- which now must be more sophisticated.  It
+will, on the other hand, resolve a problem I've had with this API: the idea that attachment (define) and queuing (start) of a
+procdef are separate.  This has reason -- specifically, if a procdef has data requirements, then those must be met before
+it is officially started (i.e. its first tasks are made active).  Thus those data requirements become part of the potential
+task "!start" which the core engine reported when asked for an active task.
+<p></p>
+Now let's imagine that wftk_process_define simply <i>checks</i> data requirements explicitly.  If the data requirements
+aren't satisfied by pre-existing data when the procdef is attached, then it's clear that we can explicitly create a start
+task which contains those data requirements, and queue this task on the process.  But what happens if the data requirements
+<i>are</i> met?  In this case, wftk_process_define creates a start task anyway (which is consistent with earlier behavior)
+but a new function "wftk_process_start" does not -- instead it simply queues the procdef silently, and tasks are created.
+This will probably become the standard modality, but I suspect that there will be times when we need the original behavior,
+which is why I'm keeping it.  Note that the two API functions are naturally mere wrappers around a common flagged implementation.
+<p></p>
+<i>Jun 12, 2002</i>: OK, OK, still haven't released this v1.0 yet -- just one more thing, really.  State-based procdefs.  They
+impact here only in that we want to mark the workflow element so it won't get deleted when it finishes, because state transitions
+are ageless.
+<p></p>
+<i>Jun 25, 2002</i>: Well, one more thing: if there's a state "start" defined, then it gives us our start tasks.  So we shouldn't
+create our own.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int _wftk_process_procdef_attach (XML * session, XML * datasheet, const char * pdrep, const char * procdef_id, int autostart, const char * to_state);
+WFTK_EXPORT int wftk_process_define (XML * session, XML * datasheet, const char * pdrep, const char * procdef_id)
+{
+   return _wftk_process_procdef_attach (session, datasheet, pdrep, procdef_id, 0, NULL);
+}
+WFTK_EXPORT int wftk_process_start (XML * session, XML * datasheet, const char * pdrep, const char * procdef_id)
+{
+   return _wftk_process_procdef_attach (session, datasheet, pdrep, procdef_id, 1, NULL);
+}
+static int _wftk_process_procdef_attach (XML * session, XML * datasheet, const char * pdrep, const char * procdef_id, int autostart, const char * to_state)
+{
+   WFTK_ADAPTOR * ad;
+   XML * version;
+   XML * procdef;
+   XML * mark;
+   XML * value;
+   XML * state;
+   XML * startstate = NULL;
+   XML * queue;
+   XML * workflow;
+   XML * start_task = NULL;
+
+   ad = wftk_get_adaptor (session, PDREP, pdrep);
+   if (!ad) return 0;
+
+   version = wftk_call_adaptor (ad, "version", procdef_id);
+   if (!version) {
+      wftk_free_adaptor (session, ad);
+      return 0;
+   }
+
+   workflow = xml_create ("workflow");
+
+   xml_set (workflow, "pdrep", xml_attrval (ad->parms, "spec"));
+   xml_set (workflow, "procdef", procdef_id);
+   xml_set (workflow, "version", xml_attrval (version, "value"));
+
+   xml_free (version);
+   wftk_free_adaptor (session, ad);
+
+   state = xml_loc (datasheet, ".state");
+   if (!state) {
+      state = xml_create ("state");
+      xml_append_pretty (datasheet, state);
+   }
+   queue = xml_loc (state, ".queue");
+   if (!queue) {
+      queue = xml_create ("queue");
+      xml_append_pretty (state, queue);
+   }
+
+   xml_setnum (workflow, "id", wftk_value_counter (session, datasheet, "workflow"));
+   if (to_state) xml_set (workflow, "oncomplete", to_state);
+
+   xml_append_pretty (datasheet, workflow);
+
+   procdef = _procdef_load (session, workflow);
+   if (procdef) {
+      if (!autostart) start_task = xml_create ("task");
+
+      mark = xml_firstelem (procdef);
+      while (mark) {
+         if (xml_is (mark, "role")) {
+            wftk_role_assign (session, datasheet, xml_attrval (mark, "name"), xml_attrval (mark, "localuser"));
+         } else if (xml_is (mark, "data")) {
+            if (!wftk_value_find (session, datasheet, xml_attrval (mark, "id"))) {
+               value = wftk_value_make (session, datasheet, xml_attrval (mark, "id"));
+               xml_copyinto (value, mark);
+               if (!start_task) start_task = xml_create ("task");
+               xml_append (start_task, xml_copy (mark)); /* TODO: this may be a tad too finicky;
+                                                                  initial data values which happen to be blank
+                                                                  won't trigger creation of a start task. */
+            }
+         } else if (xml_is (mark, "state")) {
+            xml_set (workflow, "state", "yes");
+            if (!strcmp (xml_attrval (mark, "id"), "start")) { startstate = mark; }
+         }
+
+         mark = xml_nextelem (mark);
+      }
+   }
+
+   if (startstate) {
+      xml_set (datasheet, "status", "starting");
+      _status_set (session, datasheet, "start", 0);
+      if (start_task) {  /* If there's a start state, that means there are data requirements.  So all start transitions must show those values. */
+         mark = xml_firstelem (datasheet);
+         while (mark) {
+            if (xml_is (mark, "task") &amp;&amp; *xml_attrval (mark, "id") == '!') {
+               xml_copyinto (mark, start_task);
+            }
+            mark = xml_nextelem (mark);
+         }
+         xml_free (start_task);
+      }
+   } else {
+      if (start_task) {
+         xml_set (start_task, "label", "Start process");
+         xml_append (workflow, start_task);
+         queue_procdef (session, datasheet, start_task, ".workflow[%d]", xml_attrvalnum (workflow, "id"));
+         process_procdef (session, datasheet, state, queue);
+         wftk_process_save (session, datasheet);
+      } else if (procdef) {
+         queue_procdef (session, datasheet, procdef, ".workflow[%d]", xml_attrvalnum (workflow, "id"));
+         process_procdef (session, datasheet, state, queue);
+         wftk_process_save (session, datasheet);
+      }
+   }
+
+   return 1;
+}
+</pre></td></tr></table>
+
+Here's a function to load the procdef version associated with a workflow element.  It's considerably cleverer than its
+predecessor in the old single-procdef regime; it can deal with ad-hoc or defined workflow equally well.  It loads defined
+workflow into the binary pointer of the workflow element.  This has the advantage of being completely transparent when
+saving the datasheet, but still being freed properly with the datasheet.  I'm really rather happy I was smart enough to
+add that binary pointer in the first place.
+<p></p>
+A subtlety here: we check for firstelem before we check for a binary handle.  This allows me to insert an ad-hoc-ish start
+task into a defined workflow; after it fires, we delete it and load the procdef to queue it.  Thus before start, the
+defined workflow looks just like an ad-hoc flow with its start task.  After, it works properly as a defined workflow.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * _procdef_load (XML * session, XML * workflow)
+{
+   WFTK_ADAPTOR * ad;
+   XML * ret;
+
+   if (!workflow) return NULL;
+
+   ret = xml_firstelem (workflow);
+   if (ret) return (ret);
+
+   ret = xml_getbin (workflow);
+   if (ret) return (ret);
+
+   /* key = xml_create ("workflow");
+   xml_set (key, "repository", xml_attrval (datasheet, "pdrep"));
+   xml_set (key, "id", xml_attrval (datasheet, "procdef"));
+   xml_set (key, "version", xml_attrval (datasheet, "version"));
+   ret = wftk_session_cachecheck (session, key);
+   xml_free (key);  -- all this is left over from the session caching I built earlier; for now I'm going to eliminate it,
+                       but it might come in handy later. */
+
+   /* So we haven't already loaded any workflow.  Let's get our defined flow. */
+   ad = wftk_get_adaptor (session, PDREP, xml_attrval (workflow, "pdrep"));
+   if (!ad) return NULL;
+
+   ret = wftk_call_adaptor (ad, "load", xml_attrval (workflow, "procdef"), xml_attrval (workflow, "version"));
+   xml_set (ret, "repository", xml_attrval (ad->parms, "spec"));
+   xml_set (ret, "id", xml_attrval (workflow, "procdef"));
+   xml_set (ret, "version", xml_attrval (workflow, "version"));
+
+   xml_setbin (workflow, ret, (XML_SETBIN_FREE_FN *) xml_free);
+
+   wftk_free_adaptor (session, ad);
+   return (ret);
+}
+</pre></td></tr></table>
+
+Finally, in the API I've defined a function to be used to archive datasheets which are no longer needed.  I haven't
+really thought this through, so I'm going to leave it pretty much undefined for the time being, or more specifically,
+I'm going to assume that the individual adaptors have something coherent to offer here.  Intuitively I feel that this
+is too simplistic, that there should be an archive adaptor or something, so maybe the "archive" parameter will specify
+that.  But right now I don't want to deal with it.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int wftk_process_archive (XML * session, const char * dsrep, const char * datasheet_id, const char * archive)
+{
+   WFTK_ADAPTOR * ad;
+   XML * ret;
+
+   ad = wftk_get_adaptor (session, DSREP, dsrep);
+   if (!ad) return 0;
+
+   ret = wftk_call_adaptor (ad, "archive", datasheet_id, archive);
+   if (!ret) {
+      wftk_free_adaptor (session, ad);
+      return 0;
+   }
+
+   xml_free (ret);
+   wftk_free_adaptor (session, ad);
+   return 1;
+}
+</pre></td></tr></table>
+
+<i>(March 31, 2000)</i>  OK, as of now, things are getting funky.  The <code>wftk_process_adhoc</code> function takes
+an arbitrary piece of workflow script and attaches it to a process.  This code is stored in the process, not in a procdef,
+and it runs right from there.  To make the location stay constant, we need a couple of rules.  First, every ad-hoc code
+segment is in an <code>adhoc</code> tag.  Second, an <code>adhoc</code> tag may never be deleted (because the location
+finder runs on numeric position in the datasheet).  Third, once activated, ad-hoc code may not be changed, otherwise the
+queue will no longer reflect the code being run, and that would be bad.  Other than that, this is easy stuff, but with
+very powerful consequences.
+<p></p>
+Besides just being normal workflow, ad-hoc snippets can do two things upon completion: they can first change the status of
+the process by having an "oncomplete" attribute (so that ad-hoc workflow to recover from an error state is simple to set up),
+and they can also fill in for a task, so that when the snippet completes, the task is also completed.  That makes ad-hoc
+workflow convenient for subplanning without the overhead of explicit subprocesses.
+<p></p>
+<i>(May 26, 2002)</i> The ad-hoc workflow stuff, while it was weird when I introduced it, turns out to be pretty much exactly
+like any old workflow now that I've thought it through.  Who woulda thunk it?
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int wftk_process_adhoc (XML * session, XML * datasheet, XML * arbitrary_workflow)
+{
+   XML * state;
+   XML * queue;
+   XML * procdef = _procdef_load (session, datasheet); /* Necessary for running the queue, just in case something unblocks. */
+   XML * adhoc = xml_create ("workflow");
+
+   state = xml_loc (datasheet, ".state");
+   if (!state) {
+      state = xml_create ("state");
+      xml_append_pretty (datasheet, state);
+   }
+   queue = xml_loc (state, ".queue");
+   if (!queue) {
+      queue = xml_create ("queue");
+      xml_append_pretty (state, queue);
+   }
+
+   xml_setnum (adhoc, "id", wftk_value_counter (session, datasheet, "workflow"));
+
+   xml_append_pretty (adhoc, arbitrary_workflow);
+   xml_append_pretty (datasheet, adhoc);
+
+   queue_procdef (session, datasheet, arbitrary_workflow, ".workflow[%d]", xml_attrvalnum (adhoc, "id"));
+   process_procdef (session, datasheet, state, queue);
+   wftk_process_save (session, datasheet);
+
+   return 1;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="library.html">Previous: Function definitions</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_task.html">Next: Dealing with tasks</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

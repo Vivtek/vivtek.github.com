@@ -1,0 +1,43 @@
+<html><head><title>(unresolved tag title)</title></head>
+
+<body bgcolor=FFFFFF>
+<h2>Process "(unresolved tag title)" (<i>(unresolved tag status)</i>, started (unresolved tag started))<br>
+Owner: (unresolved tag ownertag)</h2><hr>
+<form action="update" method=post>
+<input type=hidden name=process value="(unresolved tag process)">
+<table border=0>
+<tr><td>Short description of the process:</td>
+    <td><input name=title size=60 value="(unresolved tag title)"></td></tr>
+<tr><td>Full description:</td>
+    <td><textarea name=description rows=10 cols=60>(unresolved tag description)</textarea></td></tr>
+</table>
+<input type=submit value="Update process"> (unresolved tag back)
+</form>
+<hr>
+Select keywords associated with this project.  Click the button to make changes or to
+add a new keyword to associate.
+<form action="keywords" method=post>
+<input type=hidden name=process value="(unresolved tag process)">
+Enter a new keyword here or select from the list below: <input name=newkeyword size=20>
+<input type=submit value="Add or select keywords"><br>
+(unresolved tag keywordlist)
+</form>
+
+<hr>
+Edit attached data, or attach a new data value.
+<table>
+(unresolved tag processdata)
+</table>
+<form action=setvalue method=get>
+<input type=hidden name=process value="(unresolved tag process)">
+<input type=hidden name=back value="(unresolved tag backhere)">
+<table>
+<tr><td>Attach new value named</td><td><input name="newname"></td></tr>
+<tr><td>Type of new value:</td><td>
+    <select name=type><option value=string>Short string<option value=text>Long text</select>
+    </td></tr>
+<tr><td colspan=2><center><input type=submit value="Add new value"></center></td></tr>
+</table>
+</form>
+</body>
+</html>

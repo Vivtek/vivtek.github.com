@@ -1,0 +1,47 @@
+<html><head><title>xmlapi: Deleting pieces: xml_delete</title></head>
+<body>
+<h2>Deleting pieces: xml_delete</h2>
+<center>
+[&nbsp;<a href="xml_free.html">Previous: xml_free: Cleaning up afterwards</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_first.html">Next: Children: xml_first and xml_last</a>&nbsp;]
+</center>
+
+<hr>
+Deleting a piece out of an XML structure is more than just freeing it; we have to
+close ranks before and after as well.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void xml_delete(XML * piece)
+{
+   ELEMENTLIST * list;
+   if (!piece) return;
+   if (piece->parent != NULL) {
+      list = piece->parent->children;
+      while (list != NULL &amp;&amp; list->element != piece) list = list->next;
+      if (list != NULL) {
+         if (list->next != NULL) list->next->prev = list->prev;
+         if (list->prev != NULL) list->prev->next = list->next;
+      }
+      if (list == piece->parent->children) piece->parent->children = list->next;
+      if (list != NULL) free ((void *) list);
+   }
+   xml_free (piece);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_free.html">Previous: xml_free: Cleaning up afterwards</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_first.html">Next: Children: xml_first and xml_last</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

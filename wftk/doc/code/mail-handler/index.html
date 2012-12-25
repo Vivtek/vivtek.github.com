@@ -1,0 +1,52 @@
+<html><head><title>Mail handlers</title></head>
+<body>
+<h2>Handling incoming mail</h2>
+<hr>
+A rather frequent situation in workflow is that incoming mail to a special account should
+initiate some action -- a customer submits a problem, and so the workflow system needs to
+start a process, assign it a definition, index it, and start a clock ticking.  The mail
+handler is the component that interfaces the email system with workflow.  Since in this
+situation the mail handler is what invokes workflow action (and not the other way around),
+the mail handlers are not adaptors, but UI wrappers, if very simple ones.
+<p>
+There are two mail handlers, at least initially.  One is the wftk-bare mail handler, which
+doesn't involve the repository manager and thus may be more useful for simpler installations.
+The other is the repmgr mail handler, which relies on the repository manager library to do
+its work.  The wftk-bare manager uses a datasheet repository adaptor (dsrep) to create a datasheet
+corresponding to the mail it receives, while the repmgr handler uses a list adaptor to create
+a list entry.  Otherwise they work substantially identically.
+<p>
+They share common code to do the work of parsing the mail.  This code is in the mail_reader
+object file.
+
+<ul>
+<li><a href="mail_reader.html">mail_reader email/MIME parser</a>
+<li><a href="wftk_mail.html">wftk-bare mail handler</a> (coming soon)
+<li><a href="repmgr_mail.html">repmgr mail handler</a>
+</ul>
+
+Further refinements at a later date might include the ability to recognize an incoming
+mail as related to an existing process, and attaching it to that process.  I think it
+should be possible, however, to set up a procdef to do that automatically via script
+in some way even with the current mail handlers.
+<p>
+<i>(July 26, 2002)</i>: In wrestling with this code, I have come to realize that the way
+I'm dealing with disseminating information about static-linked adaptors frankly sucks.  So my new plan
+is to create a library system which includes the core code in one library (-lwftk, -lrepmgr), and
+puts the local system's static adaptors into a second library which would be compiled to contain
+the adaptors staticly linked on that system.  This second library would be, say, -lwftk_a and would
+then contain the function <code>wftk_lookup_static_adaptors</code>; this function would be compiled
+uniquely for each installation and would return the usual information about local static adaptors.
+<p>
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,47 @@
+<html><head><title>xmlapi: xml_prepend: Inserting elements</title></head>
+<body>
+<h2>xml_prepend: Inserting elements</h2>
+<center>
+[&nbsp;<a href="xml_string.html">Previous: xml_string: Writing XML data to strings in memory</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_append.html">Next: xml_append: Inserting elements</a>&nbsp;]
+</center>
+
+<hr>
+Prepending to a linked list is, of course, very easy.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void xml_prepend (XML * parent, XML * child)
+{
+   ELEMENTLIST * list;
+
+   child->parent = parent;
+
+   list = (ELEMENTLIST *) MALLOC (sizeof(struct _list));
+   list->element = child;
+   list->prev = NULL;
+   list->next = parent->children;
+   if (list->next) list->next->prev = list;
+
+   if (parent->children == NULL) {
+      parent->lastchild = list;
+   }
+   parent->children = list;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_string.html">Previous: xml_string: Writing XML data to strings in memory</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_append.html">Next: xml_append: Inserting elements</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

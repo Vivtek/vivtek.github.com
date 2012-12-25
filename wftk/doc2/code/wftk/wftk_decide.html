@@ -1,0 +1,234 @@
+<html><head><title>wftk core library: Making decisions: wftk_decide</title></head>
+<body>
+<h2>Making decisions: wftk_decide</h2>
+<center>
+[&nbsp;<a href="wftk_action.html">Previous: Taking external action</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_interpreter.html">Next: The interpreter: figuring out what to do next</a>&nbsp;]
+</center>
+
+<hr>
+This approach to XML decision trees is the result of a year's thought, more or less.  We'll see how it works.  It's
+uniquely appropriate to XML, because the decision process is really a collapsing of an XML element hierarchy.  The
+decision takes place in the context of a datasheet, of course, for access to values.
+<p></p>
+The problem with representing an if-then-else structure in XML, of course, is that it doesn't fit.  The obvious first
+way to code an "if" would be:<br>
+<code>&nbsp;&lt;if value="3" equal="3"&gt;result&lt;/if&gt;</code><br>
+but where do you put an "else"?  You don't want it in the content of the <code>if</code>, because then you can't tell
+the difference between actual content and the "else", and it's not elegant to have results of the same test at different
+levels of the hierarchy -- sooner or later you'd screw it up.  And where do you put negations?  Where do you put
+boolean functions like "and" or "or"?  Into the tests?  Then how many different test attributes will you allow?  It <i>just
+doesn't work</i> and it's driven me crazy until now.
+<p></p>
+So I think I've got it worked out.
+<p></p>
+Basically, these elements are involved: <code>decide</code>, <code>if</code>, <code>then</code>, <code>else</code>,
+<code>any</code>, <code>all</code>, and <code>unless</code>.  The rules work like this: we scan elements of the top-level
+decision element.  An "if" is a single test, and if it succeeds, then its attributes are written to the decision element
+and its content replaces that of the decision element:
+<pre>
+&lt;decide&gt;
+ &lt;if value="3" equal="3" result="yes"&gt;content here&lt;/if&gt;
+&lt;/decide&gt;
+</pre>
+thus reduces to <code>&lt;decide result="yes"&gt;content here&lt;/decide&gt;</code>, while
+<pre>
+&lt;decide&gt;
+ &lt;if value="3" equal="4" result="yes"&gt;content here&lt;/if&gt;
+&lt;decide&gt;
+</pre>
+just reduces to <code>&lt;decide/&gt;</code>.
+<p></p>
+It's obvious, then, what <code>else</code> should do.  It's the catchall that succeeds when all <code>if</code>s have
+failed:
+<pre>
+&lt;decide&gt;
+ &lt;if value="3" equal="2" result="2"&gt;it was two&lt;/if&gt;
+ &lt;if value="3" equal="4" result="4"&gt;it was four&lt;/if&gt;
+ &lt;else result="neither"&gt;it wasn't two or four&lt;/else&gt;
+&lt;/decide&gt;
+</pre>
+reduces to <code>&lt;decide result="neither"&gt;it wasn't two or four&lt;/decide&gt;</code>.  See?  So far, so good.  Note that we can have multiple
+cases, since XML makes it easy to put them there.  In this, the <code>decide</code> tag is really more like a <code>select</code>
+statement or a LISP <code>cond</code> statement.
+<p></p>
+OK.  I'll gloss over the <code>unless</code> element, which simply is a negated <code>if</code>, and cut to the chase with
+combinations: <code>all</code> requires that all of its tests succeed, and <code>any</code> will succeed if any of its
+tests succeed.  The tests are again <code>if</code> elements, but in this case, we need a catchall place to put results and
+content, so that's where the <code>then</code> element comes into play.  An example might be a good idea:
+<pre>
+&lt;decide&gt;
+  &lt;if value="3" equal="2" result="2"&gt;it was two&lt;/if&gt;
+  &lt;any anyfired="yep"&gt;
+    &lt;if value="3" equal="4" result="4"/&gt;
+    &lt;if value="3" equal="3" result="3"/&gt;
+    &lt;then thenresult="then was here"&gt;it was either four or three&lt;/then&gt;
+  &lt;/any&gt;
+&lt;/decide&gt;
+</pre>
+will reduce to <code>&lt;decide anyfired="yep" result="3" thenresult="then was here"&gt;it was either four or three&lt;/decide&gt;</code>.  The
+<code>all</code> element works in an entirely analogous manner.
+<p></p>
+Another <code>decide</code> element may replace any <code>then</code> or <code>else</code> for
+recursive decisions.  I don't like that much, but at the moment I don't see a better solution for implementing nested
+tests, for the same reasons that the if-then-else doesn't work: you can't effectively mix arbitrary content with elements
+you want to do something with.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="wftk_decide.html#test">Testing for criteria</a></i>
+<i>See <a href="wftk_decide.html#collapse">Collapsing successful branches into the result</a></i>
+WFTK_EXPORT XML * wftk_decide (XML * session, XML * datasheet, XML * decision) {
+   XML * elem;
+   XML * elem2;
+   XML * mark;
+   XML * result;
+   XML_ATTR * attr;
+   int fire = 0;
+
+   if (!decision) return 0;
+
+   result = xml_create ("decide");
+   attr = xml_attrfirst (decision);
+   while (attr) {
+      xml_set (result, xml_attrname (attr), xml_attrvalue (attr));
+      attr = xml_attrnext (attr);
+   }
+   elem = xml_firstelem (decision);
+   while (elem) {
+      if (xml_is (elem, "if") || xml_is (elem, "unless")) {
+         if (_wftk_decide_test (session, datasheet, elem)) {
+            _wftk_decide_collapse (result, elem);
+            return (result);
+         }
+      } else if (xml_is (elem, "else")) {
+         _wftk_decide_collapse (result, elem);
+         return (result);
+      } else if (xml_is (elem, "any")) {
+         elem2 = xml_firstelem (elem);
+         while (elem2) {
+            fire = 0;
+            if (xml_is (elem2, "if") || xml_is (elem2, "unless")) {
+               if (_wftk_decide_test (session, datasheet, elem2)) {
+                  _wftk_decide_collapse (result, elem);
+                  _wftk_decide_collapse (result, elem2);
+                  fire = 1;
+               }
+            } else if (xml_is (elem2, "then") &amp;&amp; fire) {
+               _wftk_decide_collapse (result, elem);
+               _wftk_decide_collapse (result, elem2);
+               return (result);
+            }
+            elem2 = xml_nextelem (elem2);
+         }
+         if (fire) {
+            _wftk_decide_collapse (result, elem);
+            return (result);
+         }
+      } else if (xml_is (elem, "all")) {
+         elem2 = xml_firstelem (elem);
+         while (elem2) {
+            if (xml_is (elem2, "if") || xml_is (elem2, "unless")) {
+               if (!_wftk_decide_test (session, datasheet, elem2)) {
+                  break;
+               }
+            } else if (xml_is (elem2, "then")) {
+               _wftk_decide_collapse (result, elem);
+               _wftk_decide_collapse (result, elem2);
+               return (result);
+            }
+            elem2 = xml_nextelem (elem2);
+         }
+         if (!elem2) {
+            _wftk_decide_collapse (result, elem);
+            return (result);
+         }
+      } else if (xml_is (elem, "decide")) {
+         mark = wftk_decide (session, datasheet, elem);
+         _wftk_decide_collapse (result, mark);
+         xml_set (result, "loc", xml_attrval (mark, "loc"));
+         xml_free (mark);
+         return (result);
+      }
+      elem = xml_nextelem (elem);
+   }
+   return (result);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="test">
+<i>Testing for criteria</i><br>
+Actually checking values for equality or whatever is done the same for <code>if</code> and <code>unless</code>,
+so I'm going to split it out into a function.  That makes it easier to extend, too.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int _wftk_decide_test (XML * session, XML * datasheet, XML * element)
+{
+   int result = 0;
+   char * value;
+   char * which;
+   char * test;
+
+   if (*xml_attrval (element, "equal")) {  /* Cutting corners.  TODO: maybe some more choices? */
+      which = "equal";
+   } else return result;
+
+   value = wftk_value_interpreta (session, datasheet, xml_attrval (element, "value"));
+   test  = wftk_value_interpreta (session, datasheet, xml_attrval (element, which));
+
+   if (!strcmp (which, "equal")) {
+      result = !strcmp (value, test);
+   }
+
+   free (value);
+   free (test);
+
+   if (xml_is (element, "unless")) return !result;
+   return result;
+}
+</pre></td></tr></table>
+
+Some more interesting comparisons would be numeric greater than/less than, glob matching, regexp, and so forth.
+<br><br>
+<a name="collapse">
+<i>Collapsing successful branches into the result</i><br>
+Since this gets repeated all over, it's another function.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int _wftk_decide_collapse (XML * result, XML * element)
+{
+   XML_ATTR * attr;
+   XML * mark;
+
+   attr = xml_attrfirst (element);
+   while (attr) {
+      if ((strcmp (xml_attrname (attr), "value")) ||
+          (strcmp (xml_attrname (attr), "equal"))) {
+         xml_set (result, xml_attrname (attr), xml_attrvalue (attr));
+      }
+      attr = xml_attrnext (attr);
+   }
+   xml_set_nodup (result, "loc", xml_getlocbuf (element));
+   mark = xml_first (element);
+   while (mark) {
+      xml_append (result, xml_copy (mark));
+      mark = xml_next (mark);
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_action.html">Previous: Taking external action</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_interpreter.html">Next: The interpreter: figuring out what to do next</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

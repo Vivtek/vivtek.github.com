@@ -1,0 +1,51 @@
+<html><head><title>wftk core: notification method adaptor</title></head>
+<body>
+<h2>wftk core: notification method adaptor</h2>
+<center>
+[ <a href="../index.html">back to the core</a> ] [ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+A <i>notification method adaptor</i> is responsible for interfacing with a system used to notify
+people or other agents about events.  This is really, really open-ended.  Obvious candidates
+here are email and line-based logs, but syslogging is also a good possibility, or who knows
+what?
+<p>
+These are the functions exposed by a notification method adaptor (well, OK, they're not there yet):
+<table>
+<tr><td><i><u>Function</i></u></td><td><i><u>Parameters</i></u></td><td><i><u>Purpose</i></u></td></tr>
+<tr bgcolor=eeeeee><td valign=top>0: init</td>
+    <td valign=top>&nbsp;</td>
+    <td>Initialize adaptor instance</td></tr>
+<tr bgcolor=ffffff><td valign=top>1: free</td>
+    <td valign=top>&nbsp;</td>
+    <td>Clean up instance before shutting down</td></tr>
+<tr bgcolor=eeeeee><td valign=top>2: info</td>
+    <td valign=top>&nbsp;</td>
+    <td>Return XML describing the adaptor</td></tr>
+<tr bgcolor=ffffff><td valign-top>3: notify</td>
+    <td valign=top>XML alert structure<br>Datasheet for interpretation of values (if any)</td>
+    <td>Perform the notification</td></tr>
+</table>
+
+<p>
+Implementations:<ul>
+<li><a href="NOTIFY_smtp.html">NOTIFY_smtp</a> (connects to SMTP server to send email notifications)
+<li>(TODO) NOTIFY_odbc (writes to a database)
+<li>(TODO) NOTIFY_mapi (uses MAPI on Win32 to send email notifications)
+<li>(TODO) NOTIFY_log (writes notifications to a log file)
+<li>(TODO) NOTIFY_stdout (writes notifications to stdout, as in the prototype)
+<li>Other possibilities would be integration with Outlook or something, probably.  Is that MAPI?
+</ul>
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

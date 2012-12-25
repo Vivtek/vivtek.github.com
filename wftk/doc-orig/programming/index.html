@@ -1,0 +1,162 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+<hr>
+
+<h3>Overview</h3>
+The wftk functionality itself is contained in a library which you can use in your own applications.
+As of this writing (May 14, 2001) the only example of this usage is the command-line application which
+I wrote for testing of the wftk during the last round of development.  The next publically accessible
+application will probably be a set of CGI programs to expose workflow functionality via HTTP.  (Although
+Zope is a strong contender.)
+<p>
+In the wftk, a process is represented by a <i>datasheet</i>.  Internally, the datasheet is an XML 
+document, which you manipulate using the <i>XMLAPI</i> library, a DOM-like set of functions which
+build and modify heap-based data structures based on XML (and which can be written to and read from
+actual XML files on disk or elsewhere.)  I say, "internally," because you could easily write an adaptor
+which would talk to some other non-XML-based system to load a datasheet; that adaptor would build an
+XMLAPI structure which would be equivalent to the standard XML file used in the stock adaptor.
+<p>
+The datasheet contains values (hence its name), it maintains a queue of tasks and bookmarks into
+active workflows, it contains an enactment history of the process, and it will probably end up doing
+more as time goes on.  In a very real sense, then, even though the users' activities focus on tasks
+more than on processes, your programming will focus on processes.
+<p>
+<h3>Data structures</h3>
+<i>All</i> data structures for the wftk are built as internal XML objects using the XMLAPI.
+These are the various things you will encounter while working with the wftk:
+<ul>
+<li>Datasheets
+<li>Process definitions (procdefs)
+<li>Task objects
+<li>Request objects
+<li>User objects
+<li>Notification (alert) objects
+<li><a href="xml_list.html">List (query) objects</a>
+</ul>
+Obviously, a major shortcoming of the current documentation is the absence of definitions for
+any of these.  I need to comb through the code to reconstruct them, so it'll be a few days yet.
+Bear with me.  I never actually stop working on the wftk, I just get distracted sometimes.
+<p>
+<h3>Areas of functionality</h3>
+Full usage of the wftk in your application may entail writing some adaptors (this process is
+covered in the <a href="../interfaces/index.html">Interface Writer's Guide</a>),
+but assuming your adaptor needs are already covered, you need to know about the
+following groups of functions:
+<ul>
+<li><a href="session.html"><font size=+1>Establishing a workflow session and doing things with it</font></a><ul>
+  <li>wftk_session_alloc
+  <li>wftk_session_free
+  <li>wftk_session_current
+  <li>wftk_session_configure
+  <li>wftk_session_setuser
+  <li>wftk_session_getuser
+  <li>wftk_session_stashvalue
+  <li>wftk_session_freevalue
+  <li>wftk_session_cache
+  <li>wftk_session_cachecheck
+</ul>
+<li><a href="process.html"><font size=+1>Working with processes</font></a><ul>
+  <li>wftk_process_new
+  <li>wftk_process_load
+  <li>wftk_process_save
+  <li>wftk_process_define
+  <li>wftk_process_archive
+  <li>wftk_process_delete
+  <li>wftk_process_adhoc
+</ul>
+<li><a href="task.html"><font size=+1>Working with tasks</font></a><ul>
+  <li>wftk_task_list
+  <li>wftk_task_new
+  <li>wftk_task_retrieve
+  <li>wftk_task_update
+  <li>wftk_task_complete
+  <li>wftk_task_reject
+  <li>wftk_task_rescind
+</ul>
+<li><a href="request.html"><font size=+1>Working with requests</font></a><ul>
+  <li>wftk_request_list
+  <li>wftk_request_new
+  <li>wftk_request_retrieve
+  <li>wftk_request_update
+  <li>wftk_request_rescind
+  <li>wftk_request_accept
+  <li>wftk_request_decline
+</ul>
+<li><a href="value.html"><font size=+1>Getting and setting values</font></a><ul>
+  <li>wftk_value_list
+  <li>wftk_value_find
+  <li>wftk_value_make
+  <li>wftk_value_isnull
+  <li>wftk_value_get
+  <li>wftk_value_get_num
+  <li>wftk_value_interpret
+  <li>wftk_value_makenull
+  <li>wftk_value_set
+  <li>wftk_value_set_num
+  <li>wftk_value_settype
+  <li>wftk_value_define
+  <li>wftk_value_calc
+  <li>wftk_value_html
+  <li>wftk_value_htmlblank
+  <li>wftk_value_info
+</ul>
+<li><a href="status.html"><font size=+1>Getting and setting process status</font></a><ul>
+  <li>wftk_status_get
+  <li>wftk_status_set
+</ul>
+<li><a href="role.html"><font size=+1>Working with roles</font></a><ul>
+  <li>wftk_role_list
+  <li>wftk_role_user
+  <li>wftk_role_assign
+</ul>
+<li><a href="user.html"><font size=+1>Working with users</font></a><ul>
+  <li>wftk_user_list
+  <li>wftk_user_add
+  <li>wftk_user_retrieve
+  <li>wftk_user_update
+  <li>wftk_user_remove
+  <li>wftk_user_synch
+  <li>wftk_user_auth
+</ul>
+<li><a href="enactment.html"><font size=+1>Working with the enactment history</font></a><ul>
+  <li>wftk_enactment
+  <li>wftk_enactment_write
+  <li>wftk_log
+</ul>
+<li><a href="action.html"><font size=+1>Working with actions</font></a><ul>
+  <li>wftk_action
+</ul>
+<li><a href="decide.html"><font size=+1>Computing decisions</font></a><ul>
+  <li>wftk_decide
+</ul>
+<li><a href="notify.html"><font size=+1>Using wftk to send messages</font></a><ul>
+  <li>wftk_notify
+</ul>
+<br><br><li><a href="xmlapi/index.html"><font size=+1>Programming with the XMLAPI</font></a>
+</ul>
+Granted, some of those categories are pretty peripheral, but that's the API as it stands right now.
+<p>
+<h3>Examples</h3>
+For now, you can look at the code in the command-line utility, but at some point I want to snip some
+working bits of code out as examples.  Most importantly, there are a couple of ways to use wftk that
+you probably aren't thinking of -- for instance, you can use it as a permission system for arbitrary
+actions using the <code>wftk_action</code> function.  (You can grant or revoke full permission or
+cause the action to start an approval process; after approval, wftk will automatically complete the
+action.)  WFTK -- it's not just for breakfast anymore.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

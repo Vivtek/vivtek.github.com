@@ -1,0 +1,450 @@
+<html><head><title>TASKINDEX adaptor: stdout</title></head>
+<body>
+<h2>TASKINDEX adaptor: stdout</h2>
+<hr>
+<p></p>
+This is a sort of degenerate example of a task index adaptor; all it does is intercept task indexing
+notifications and write them to stdout for a calling program to collect and do something with.  Obviously,
+since the adaptor doesn't store its own task information, it can't respond to queries or retrieval requests,
+so it won't even try.
+<p></p>
+But it stands in the same place as a task index, so it's an example of TASKINDEX.  And it's the first I'm
+developing, so it's special.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include &lt;sys/types.h>
+#include &lt;sys/stat.h>
+#ifdef WINDOWS
+#include &lt;io.h>
+#endif
+#include &lt;errno.h>
+#include "xmlapi.h"
+#include "../wftk_session.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "procnew",
+   "procdel",
+   "procget",
+   "procput",
+   "proclist",
+   "proccomplete",
+   "procerror",
+   "tasknew",
+   "taskdel",
+   "taskget",
+   "taskput",
+   "tasklist",
+   "taskcomplete",
+   "taskreject",
+   "reqnew",
+   "reqdel",
+   "reqget",
+   "reqput",
+   "reqlist",
+   "reqaccept",
+   "reqdecline"
+};
+
+XML * TASKINDEX_stdout_init (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_free (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_info (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_procnew (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_procdel (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_procget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_procput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_proclist (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_proccomplete (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_procerror (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_tasknew (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_taskdel (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_taskget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_taskput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_tasklist (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_taskcomplete (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_taskreject (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_reqnew (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_reqdel (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_reqget (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_reqput (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_reqlist (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_reqaccept (WFTK_ADAPTOR * ad, va_list args);
+XML * TASKINDEX_stdout_reqdecline (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   TASKINDEX_stdout_init,
+   TASKINDEX_stdout_free,
+   TASKINDEX_stdout_info,
+   TASKINDEX_stdout_procnew,
+   TASKINDEX_stdout_procdel,
+   TASKINDEX_stdout_procget,
+   TASKINDEX_stdout_procput,
+   TASKINDEX_stdout_proclist,
+   TASKINDEX_stdout_proccomplete,
+   TASKINDEX_stdout_procerror,
+   TASKINDEX_stdout_tasknew,
+   TASKINDEX_stdout_taskdel,
+   TASKINDEX_stdout_taskget,
+   TASKINDEX_stdout_taskput,
+   TASKINDEX_stdout_tasklist,
+   TASKINDEX_stdout_taskcomplete,
+   TASKINDEX_stdout_taskreject,
+   TASKINDEX_stdout_reqnew,
+   TASKINDEX_stdout_reqdel,
+   TASKINDEX_stdout_reqget,
+   TASKINDEX_stdout_reqput,
+   TASKINDEX_stdout_reqlist,
+   TASKINDEX_stdout_reqaccept,
+   TASKINDEX_stdout_reqdecline
+};
+
+static struct wftk_adaptor_info _TASKINDEX_stdout_info =
+{
+   24,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct wftk_adaptor_info * TASKINDEX_stdout_get_info ()
+{
+   return &amp; _TASKINDEX_stdout_info;
+}
+</pre></td></tr></table>
+
+Thus concludes the communication with the config module.  Now on with the actual implementation
+of functionality.  The initialization of TASKINDEX_stdout is basically nonexistent.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_stdout_init (WFTK_ADAPTOR * ad, va_list args) {
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+Ditto freeing.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_stdout_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+So far, this is the easiest module I've written.  Info is just cadged from elsewhere, so it's no big deal either.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_stdout_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "taskindex");
+   xml_set (info, "name", "stdout");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+
+OK, now we just need to go down the list of functions, and basically spit out a line for each one to stdout.  Then you
+can kind of imagine what each function would be doing if it needed to actually talk to a database.  The ODBC adaptor is
+next up, followed closely by a PostgreSQL driver for Unix (and yeah, MySQL and all those, don't worry, they'll all be there.)
+<p></p>
+The rule for each of these will be that the line will consist of a starting flag of PROC, TASK, or REQUEST, followed by
+the action taken (new, del, get, put, complete, reject, etc.), followed by the salient features of each action, i.e. ID,
+process ID, label, and so forth.  This really isn't brain surgery at this level.
+
+<p></p>
+Let's do the process stuff first.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_stdout_procnew (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * datasheet = (XML *) 0;
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+   printf ("PROC new:%s:%s:%s\n", xml_attrval (datasheet, "id"),
+                                  xml_attrval (datasheet, "label"),
+                                  xml_attrval (datasheet, "state"));
+   return (XML *) 0;
+}
+XML * TASKINDEX_stdout_procdel (WFTK_ADAPTOR * ad, va_list args)
+{
+   const char *id;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+   printf ("PROC del:%s\n", id);
+   return (XML *) 0;
+}
+XML * TASKINDEX_stdout_procget (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * TASKINDEX_stdout_procput (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * datasheet = (XML *) 0;
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+   printf ("PROC put:%s:%s:%s\n", xml_attrval (datasheet, "id"),
+                                  xml_attrval (datasheet, "label"),
+                                  xml_attrval (datasheet, "state"));
+   return (XML *) 0;
+}
+XML * TASKINDEX_stdout_proclist (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * TASKINDEX_stdout_proccomplete (WFTK_ADAPTOR * ad, va_list args)
+{
+   const char *id;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+   printf ("PROC complete:%s\n", id);
+   return (XML *) 0;
+}
+XML * TASKINDEX_stdout_procerror (WFTK_ADAPTOR * ad, va_list args)
+{
+   const char *id;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No process given.");
+      return (XML *) 0;
+   }
+   printf ("PROC error:%s\n", id);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+See how mindlessly easy that was?  Now we do exactly the same thing for tasks and requests, and we're done.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_stdout_tasknew (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+
+   if (args) task = va_arg (args, XML *);
+   if (!task) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   printf ("TASK new:%s:%s:%s:%s:%s\n", xml_attrval (task, "process"),
+                                        xml_attrval (task, "id"),
+                                        xml_attrval (task, "label"),
+                                        xml_attrval (task, "role"),
+                                        xml_attrval (task, "user"));
+   return (XML *) 0;
+}
+XML * TASKINDEX_stdout_taskdel (WFTK_ADAPTOR * ad, va_list args)
+{
+   const char *process;
+   const char *id;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   printf ("TASK del:%s:%s\n", process, id);
+   return (XML *) 0;
+}
+XML * TASKINDEX_stdout_taskget (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * TASKINDEX_stdout_taskput (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+
+   if (args) task = va_arg (args, XML *);
+   if (!task) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   printf ("TASK put:%s:%s:%s:%s:%s\n", xml_attrval (task, "process"),
+                                        xml_attrval (task, "id"),
+                                        xml_attrval (task, "label"),
+                                        xml_attrval (task, "role"),
+                                        xml_attrval (task, "user"));
+   return (XML *) 0;
+}
+XML * TASKINDEX_stdout_tasklist (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * TASKINDEX_stdout_taskcomplete (WFTK_ADAPTOR * ad, va_list args)
+{
+   const char *process;
+   const char *id;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   printf ("TASK complete:%s:%s\n", process, id);
+   return (XML *) 0;
+}
+XML * TASKINDEX_stdout_taskreject (WFTK_ADAPTOR * ad, va_list args)
+{
+   const char *process;
+   const char *id;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   printf ("TASK reject:%s:%s\n", process, id);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+And once more through for requests.  Note that requests are basically the same as tasks, as far as indexing goes.  How
+they'll be implemented more specifically is as of this writing still pretty vague, but indexing them will be straightforward,
+anyway.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * TASKINDEX_stdout_reqnew (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+
+   if (args) task = va_arg (args, XML *);
+   if (!task) {
+      xml_set (ad->parms, "error", "No task given.");
+      return (XML *) 0;
+   }
+   printf ("REQ new:%s:%s:%s:%s:%s\n", xml_attrval (task, "process"),
+                                       xml_attrval (task, "id"),
+                                       xml_attrval (task, "label"),
+                                       xml_attrval (task, "role"),
+                                       xml_attrval (task, "user"));
+   return (XML *) 0;
+}
+XML * TASKINDEX_stdout_reqdel (WFTK_ADAPTOR * ad, va_list args)
+{
+   const char *process;
+   const char *id;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) {
+      xml_set (ad->parms, "error", "No request given.");
+      return (XML *) 0;
+   }
+   id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No request given.");
+      return (XML *) 0;
+   }
+   printf ("REQ del:%s:%s\n", process, id);
+   return (XML *) 0;
+}
+XML * TASKINDEX_stdout_reqget (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * TASKINDEX_stdout_reqput (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * task = (XML *) 0;
+
+   if (args) task = va_arg (args, XML *);
+   if (!task) {
+      xml_set (ad->parms, "error", "No request given.");
+      return (XML *) 0;
+   }
+   printf ("REQ put:%s:%s:%s:%s:%s\n", xml_attrval (task, "process"),
+                                       xml_attrval (task, "id"),
+                                       xml_attrval (task, "label"),
+                                       xml_attrval (task, "role"),
+                                       xml_attrval (task, "user"));
+   return (XML *) 0;
+}
+XML * TASKINDEX_stdout_reqlist (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * TASKINDEX_stdout_reqaccept (WFTK_ADAPTOR * ad, va_list args)
+{
+   const char *process;
+   const char *id;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) {
+      xml_set (ad->parms, "error", "No request given.");
+      return (XML *) 0;
+   }
+   id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No request given.");
+      return (XML *) 0;
+   }
+   printf ("REQ accept:%s:%s\n", process, id);
+   return (XML *) 0;
+}
+XML * TASKINDEX_stdout_reqdecline (WFTK_ADAPTOR * ad, va_list args)
+{
+   const char *process;
+   const char *id;
+
+   if (args) process = va_arg (args, char *);
+   if (!process) {
+      xml_set (ad->parms, "error", "No request given.");
+      return (XML *) 0;
+   }
+   id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No request given.");
+      return (XML *) 0;
+   }
+   printf ("REQ decline:%s:%s\n", process, id);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

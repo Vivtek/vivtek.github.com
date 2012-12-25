@@ -1,0 +1,129 @@
+<html><head><title>wftk core engine</title></head>
+<body>
+<h2>wftk: wftk core engine</h2>
+<center>
+[ <a href="wftk_engine.zip">download</a> ] [ <a href="wftk_lib.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+The wftk core library, defined here, is the core workflow functionality of the whole wftk system.  Everything
+else just supports this stuff, basically.  It's implemented as a library so we can build it into other systems.
+<p></p>
+The library consists of: <ul>
+<li> Basic workflow functions.
+<li> HTML presentation functions.
+<li> Datasheet repository functions (datasheet load/save).
+<li> Places to put adaptors.
+</ul>
+
+<strong><font size=+1>Adaptors</font></strong><br>
+
+The core engine uses the following adaptors:<ul>
+<li> <code>config</code>: Configuration
+<li> <code>dsrep</code>: Datasheet repository.
+<li> <code>pdrep</code>: Procdef repository.
+<li> <code>user</code>: User/permission module.
+<li> <code>db</code>: Database interface.
+<li> <code>notify</code>: Notification mechanisms.
+<li> <code>script</code>: Scripting languages.
+<li> <code>datatype</code>: Data types.
+<li> <code>debug</code>: What to do with debugging output.
+</ul>
+
+The point of these adaptors is to create as flexible and modular a system as possible.  The
+<a href="http://www.aolserver.com">AOLserver</a> database driver system has been a great influence on
+me here -- with AOLserver it's almost trivial to write a database driver to allow seamless (well, ideally)
+access to database functionality from scripts.
+<p></p>
+I guess I could be a little clearer about some of those adaptors, though.  The datasheet repository,
+for example, is where datasheets are stored.  The procdef repository is where process definitions are
+stored.  In the prototype, each of these was implemented as a fairly simple system of files and
+directories.  In the case of the procdef repository, however, there are already good solutions to things
+like version control -- CVS is a good example.  Ideally, if CVS is available, the procdef repository
+should be able to use it for "real" version control and also for all the integration possibilities
+which are already there.  Thus the procdef repository is implemented as an adaptor.
+<p></p>
+The configuration adaptor is unique to a given installation, and could be as simple as a bunch of
+compiled settings, or as complex as the location of an XML file to be loaded based on some kind of
+context.  On Windows it will read the Registry.
+<p></p>
+The user adaptor allows the core engine (and its CGI implementations) to ask a directory who the
+current user is and what permissions the current user has.  Naturally, the <a href="../user/index.html">user
+module</a> included with the wftk is the preferred one, if that's the right word, but once I've
+learned something about LDAP I'm sure I'll want to integrate with it.  More to the point, if your
+organization already has something in place that can do user authentication and permission
+definitions, then wftk should work with it.
+<p></p>
+The db adaptor provides an interface to a task manager.  The overview talks about the difference between
+core workflow and task management.  Suffice it to say here that the db adaptor allows us to specify a
+set of databases to which current status of tasks and processes can be written so that other systems
+can also use that information.
+<p></p>
+The notification adaptor provides a way to adapt wftk to existing messaging protocols.  I'm implementing
+email and a database-based task manager notification methods, but you can easily imagine others, like
+Outlook integration or alpanumeric pagers.
+<p></p>
+The scripting language adaptor is going to be one of the most exciting parts of wftk.  Particularly once
+I drop this engine into Python, it's going to be nice to be able to run Python snippets from inside a
+process.  The same thing applies to Perl, Java, Tcl, or what have you.  (OK, Java might be a little
+trickier since it's compiled.  I'll see how that all works out.)  The default "scripting language" will
+be something very simple to allow basic data value manipulation without having to compile a scripting
+engine into the basic configuration.
+<p></p>
+Likewise, the data manipulation facilities will be extensible via a datatype adaptor.  The details of
+this (like the scripting adaptor) are pretty fuzzy at this point.
+<p></p>
+
+<strong><font size=+1>Data sources used</font></strong><br>
+Besides its commands, the engine has two sources of input: the process definition and the
+datasheet.  The procdef stores information about a class of processes; the datasheet stores
+information about the current instance of that class.  Both documents are XML documents, and
+the core engine interprets these documents using James Clark's
+<a href="http://www.vivtek.com/expat.html">expat parser</a>, a stable and fairly simple parser.
+<p></p>
+Commands can be performed either by calling individual action functions, or passing a <i>very</i>
+simple list of commands in an XML format to a general command doer thingy function.
+<p></p>
+Here's how we do all this stuff:
+<ul>
+<li> <a href="wftk_lib.html">wftk core library</a>
+<li> <a href="wftk_h.html">Include file (and API definition)</a>
+<li> <a href="wftk_internals.html">Internal definitions</a>
+<li> <a href="library.html">Function definitions</a>
+<li> <a href="wftk_action.html">Taking action and interpreting command streams</a>
+<ul>
+<li> <a href="wftk_action.html#wftk_action_create">Definition of wftk_action_create</a>
+<li> <a href="wftk_action.html#wftk_action_define">Definition of wftk_action_define</a>
+<li> <a href="wftk_action.html#wftk_action_complete">Definition of wftk_action_complete</a>
+<li> <a href="wftk_action.html#wftk_action_abort">Definition of wftk_action_abort</a>
+<li> <a href="wftk_action.html#wftk_action_setvalue">Definition of wftk_action_setvalue</a>
+</ul>
+<li> <a href="wftk_interpreter.html">The interpreter: figuring out what to do next</a>
+<ul>
+<li> <a href="wftk_interpreter.html#sequence">Handling sequence</a>
+<li> <a href="wftk_interpreter.html#parallel">Handling parallel</a>
+<li> <a href="wftk_interpreter.html#task">Handling task</a>
+<li> <a href="wftk_interpreter.html#data">Handling data</a>
+<li> <a href="wftk_interpreter.html#situation">Handling situation</a>
+<li> <a href="wftk_interpreter.html#if">Handling if and elseif</a>
+<li> <a href="wftk_interpreter.html#alert">Handling alerts</a>
+<li> <a href="wftk_interpreter.html#start">start: Starting subprocesses</a>
+</ul>
+<li> <a href="wftk_list.html">Distilling summary lists from datasheets</a>
+<li> <a href="wftk_htmlout.html">Writing HTML descriptions of processes, tasks, and so on</a>
+<li> <a href="wftk_dsrep.html">Dealing with datasheet repositories</a>
+<li> <a href="wftk_pdrep.html">Dealing with procdef repositories</a>
+</ul>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Applying the wftk: lartmeister.com -- Use Cases</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Applying the wftk: lartmeister.com -- Use Cases</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="lartmeister.html">lartmeister example home</a> ]
+<hr>
+
+<h3>Use Cases</h3>
+There are a number of ways in which people can interact with the LARTmeister system.  We'll ignore
+the ways which are already afforded by the standard tools (for instance, direct query of objects is
+provided by the repository manager, so it would add nothing to this presentation to include it here;
+instead, we will focus on system-specific usage.)
+<p>
+
+Here are the use cases I'll be working through in this document:
+
+<ul>
+<li><a href="#spam_web">Spam submission via Web interface</a>
+<li><a href="#spam_email">Spam submission via email interface</a>
+<li><a href="#web_web">Scam Website submission via Web interface</a>
+<li><a href="#web_email">Scam Website submission via email interface</a>
+<li><a href="#status_check">Status check on an abuse case</a>
+<li><a href="#report_send">Sending an abuse report</a>
+<li><a href="#report_recv">Receiving an abuse report</a>
+<li><a href="#closing">Closing an abuse case</a>
+</ul>
+
+More will doubtlessly present themselves as time goes on.  Let's look at these in detail.
+
+<a name="spam_web">
+<h3>Spam submission via Web interface</h3>
+This is the obvious way to get new content into the database: you provide a screen into which a user
+can paste a spam email message, including headers.  Here's what should happen:
+<ul>
+<li>User arrives at page, pastes spam, clicks Submit button.
+<li>A new abuse instance is created and given a unique ID.
+<li>The initial-discovery process is started.  This consists of:<ul>
+    <li>Header processing to identify originating IP and/or open relays used to inject the spam.
+    <li>Body processing to identify drop boxes, spamvertised Websites, and/or chain letter participants.
+    <li>If any IPs or Websites are identified, then an analysis is made of ownership, domain ownership,
+        and upstream.
+    <li>If any whitehats are known to be in a position to take action (e.g. a known effective admin
+        found in the perpetrator's upstream) then this is noted.
+    </ul>
+<li>Spam categorization is also initiated on the body; the aim of this is to categorize the spam.
+<li>The initial discovery may take some time, so while it's running, the user is forwarded to a status
+    screen encoded with the unique identifier.  This status screen may have an auto-reload on a delay
+    of several seconds, which could be removed after the traceroute (probably the longest segment of
+    initial discovery) is complete.
+</ul>
+
+<a name="spam_email">
+<h3>Spam submission via email interface</h3>
+This would be a handy little tool to take up some of the burden of abuse submissions at Despammed.com;
+essentially it does exactly the same behind the scenes as Web submission, except that there need be no
+interactive component.
+<ul>
+<li>Submission is received at (e.g.) spam-submit@lartmeister.com
+<li>The email is analyzed to find how the spam has been submitted (attachment, in body, mistaken
+    post to the wrong address, etc.) and a new abuse incident created if appropriate.  If this step
+    fails, then the submission is placed onto a queue to be manually categorized.
+<li>The initial discovery is initiated as above.
+<li>A notification response is delivered containing the unique abuse instance identifier and a link
+    to the status page of the incident.
+</ul>
+
+<a name="web_web">
+<h3>Scam Website submission via Web interface</h3>
+Here, the submission isn't an email but rather a Website dedicated to a scam.  The process is fairly
+similar to spam handling:
+
+<ul>
+<li>User arrives at page, enters URL of scam site, clicks Submit.
+<li>A new abuse instance is created; if the URL is known then the instance is attached to it, but
+    otherwise a new scam site URL is created.  Scam sites, once known, are monitored periodically to
+    see if they've been deactivated, reactivated, or modified.
+<li>Initial discovery is initiated, consisting of pretty much the same things as spam discovery.
+    Links may also be analyzed, and if several pages are clustered on the site, they may all be cached
+    for future reference.  All hosting and upstream ToS's are checked, if known.
+<li>The user is directed to a status page, as with spam submission.
+</ul>
+
+<a name="web_email">
+<h3>Scam Website submission via email interface</h3>
+This may also facilitate submission from automatic sources, like the above email submission, but I don't
+expect it to be nearly as useful as other submission sources.
+
+<ul>
+<li>Submission is received at (e.g.) site-submit@lartmeister.com
+<li>The email is parsed for the submitted URL -- this should be easy, anyway.  A unique abuse
+    instance identifier is assigned.
+<li>Discovery processes are initiated.
+<li>A response is delivered containing the unique identifier and a link to its status page.
+</ul>
+
+<a name="status_page">
+<h3>Status check</h3>
+In this scenario, a user checks on the status of an abuse incident.  This may be reached from the link
+in a notification email, or if the user is a registered user then the system may keep a list of open
+incidents belonging to that user.
+
+<ul>
+<li>User views status page of incident
+<li>User may choose between possible further activities: report the incident, close the incident,
+    enter notes or log entries, attach a response received in external email or communication, etc.
+</ul>
+
+<a name="report_send">
+<h3>Sending an abuse report</h3>
+Assuming that a reasonable abuse report address has been identified, the system will format a stock
+abuse report for the user, to which arbitrary text may be added.  If the system can't find an abuse
+address, the user can supply one; the user may also supply any Cc: or Bcc: addresses desired.
+
+<ul>
+<li>The user submits the report, once created.
+<li>A copy of the report is attached to the incident.
+<li>The report is sent including an envelope and return address unique to the incident; the report
+    explains its provenance and includes a link to the incident status page, which includes all
+    relevant information and case history.
+<li>The user can optionally supply a timeout; if the timeout expires before a response is received,
+    the user will be notified and can take further action if desired.
+</ul>
+
+<a name="report_recv">
+<h3>Receiving an abuse report response</h3>
+Responses return via email, of course, and the system routes them to the correct incident using their
+recipient address.  All responses are attached to their incidents automatically.
+
+<ul>
+<li>The user is notified immediately of each response, by means of an email containing a link to
+    the incident status page plus a full quote of the response.
+</ul>
+
+<a name="closing">
+<h3>Closing an incident</h3>
+If the user is satisfied that an incident is closed, then it can be archived.
+
+<ul>
+<li>User chooses the "close" action from the status page.  Note that to close, the user <i>must</i>
+    be a registered user of lartmeister.com, because we don't want random strangers closing cases.
+<li>The entire object is archived to some other location; a copy may optionally be sent to the user.
+</ul>
+
+<hr>
+<h3>Conclusion</h3>
+
+There could be any number of additional use cases.  For instance, once there are investigatory tools
+available, those could be exposed for use independent of any abuse case.  For instance, a whois
+query is a nice little tool to have around.  Of course, there are already any number of such tools
+floating around, but as it's no real trouble to provide, it would be logical to include it.  But since
+these "use cases" are essentially peripheral to the core functionality of the site, I'm not going to
+document them here.
+
+<p>
+There are a number of system requirements entailed in these cases already. Some are already implemented;
+others will need a little more work.  Let's look at some of them.
+
+<ul>
+<li><b>Objects</b><br> Abuse incident, user, spam category, spammer, IP, ISP, Website, and so on.
+Nothing surprising here.
+<li><b>Web interface</b><br>
+At the moment (19 Jan 2002), there is no Web interface for the repository manager or wftk.  That will be
+changing quite soon.
+<li><b>Email client</b><br>
+Same story.  While I can imagine that it's not going to take me too long to implement an interface which
+will allow sendmail to add an object, I haven't actually done it yet.  Since the repository manager has
+a very functional command line, however, it really shouldn't be too involved: essentially this will be
+a "submit" command with a registered on-add process.  Easy.
+<li><b>Tools</b><br>
+The discovery processes will make use of several tools; it will be an interesting thing to think through
+how those tools should be implemented.  I suspect they'll turn out to be query adaptors.  We'll see.
+</ul>
+
+Man.  Looked at this way, this really shouldn't be so onerous.  This document took me roughly an hour
+to create, on 19 Jan 2002, bringing me to 2.5 hours on the demo project so far.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2002 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

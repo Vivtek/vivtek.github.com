@@ -1,0 +1,64 @@
+<html><head><title>Folder browser CGI</title></head>
+<body>
+<h2>A permission-based folder browser CGI</h2>
+<center>
+[ <a href="wftk_user.zip">download</a> ] [ <a href="browser.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">wftk discussion</a> ]
+</center>
+
+<hr>
+This browser is based on the <a href=index.html>user module for wftk</a> and is distributed as a part of
+that code.  It allows hierarchical data to be browsed very easily, and additional objects to be added
+to a hierarchy.  Moreover, the user module allows a given user's view of the hierarchy to be affected by
+that user's permission levels for various objects and groups of objects.
+<p></p>
+The browser is implemented as a CGI program.  Since display of a fully opened folder tree thus requires a full
+traversal of that tree on every request, an alternative which caches some results in persistent storage might
+be a nice extension at some point, but in the meantime this will serve many purposes.  Not only can it be used
+to browse users themselves for an admin tool, it can also be pressed into service for menu maintenance for the
+overall wftk user interface, it can organize groups of procdefs for the PDM, and so on.  Basically it should
+do a good job allowing a user to traverse any kind of hierarchical structure, especially where that structure
+depends on the access level of the user.
+<p></p>
+The whole thing is defined in a single file, browse.c, which compiles to the CGI executable in question.
+The CGI interface is managed by <a href="http://www.vivtek.com/xml/xmlapi/xmlcgi.html">XMLCGI</a>, which is
+an optional part of the <a href="http://www.vivtek.com/xml/xmlapi/">XMLAPI</a>.  You'll be seeing lots of the
+XMLAPI around this project.
+<p></p>
+This program is showing my gradual drift in programming philosophy towards more object-oriented styles.  Yeah, OK,
+so that makes me fifteen years behind, so sue me.  But my first inclination (and first stab) at this was simply to
+knock out some code which reads the user/group permission structure and writes some HTML.  But then I started
+thinking, and what I came up with is a lot nicer: the program works in two passes.  The first pass builds a
+directory view structure (as, yes, an in-memory XML structure, I just can't get enough of this library), and the
+second pass expresses that as HTML (or as whatever we want, really).  This separation of form from content is
+one of the things I continually wrestle with, and it's fascinating how it just keeps cropping up, even when
+you aren't really looking for it.
+<p></p>
+So this program, like all of them, will most likely end up producing some spinoff library code.  In the meantime,
+it's monolithic in that single file, but broken into a couple of interesting functions.
+<p></p>
+Table of contents:
+<ul>
+<li> <a href="browse.html">Folder browser</a>
+<li> <a href="browse_main.html">user.c: implementation</a>
+<li> <a href="browse_dirview_create.html">Traversing the user/group repositories to build a directory view</a>
+<ul>
+<li> <a href="browse_dirview_create.html#scan">Scanning a user or group</a>
+</ul>
+<li> <a href="browse_dirview_show.html">Presenting a directory view in HTML</a>
+</ul>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.  Try literate programming.  You'll like it.
+</font>
+</td>
+</tr>
+</table>
+</center>
+</body></html>

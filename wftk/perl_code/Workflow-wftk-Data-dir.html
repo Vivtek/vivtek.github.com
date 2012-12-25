@@ -1,0 +1,311 @@
+<head>
+<title>wftk perl - Workflow::wftk::Data::dir</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk perl - Workflow::wftk::Data::dir</div>
+
+<p><a name="__index__"></a></p>
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<p>Workflow::wftk::Data::dir - Provides storage tools for putting data into files in a directory, one file per record.</p>
+<p>
+</p>
+<hr />
+<!-- INDEX BEGIN -->
+
+
+	<ul>
+
+		<li><a href="#connect">connect</a></li>
+		<li><a href="#keys__first_key">keys, first_key</a></li>
+		<li><a href="#get__get_sql">get, get_sql</a></li>
+		<li><a href="#put">put</a></li>
+		<li><a href="#delete__del">delete, del</a></li>
+	</ul>
+
+	<li><a href="#copyright___license">COPYRIGHT &amp; LICENSE</a></li>
+<hr>
+<p>Version 0.01</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   our $VERSION = '0.01';
+</pre><p>
+</p>
+<hr />
+<p>The <code>Workflow::wftk::Data::dir</code> module implements the Data class with storage of data in directories.  In this model, each
+entry in the directory has a separate file.  The default parser for data in that file is the default Record parser (with one
+field per line, the name of the field being colon-separated from the value).</p>
+<p>Ultimately, we'll need to define different parsers.  I'm not sure yet where that definition will reside, but it's crucial, because
+defining variant parsers will allow us to set filters and do indexing in a principled manner.</p>
+<p>The <code>::dir</code> class differs from our memory and file classes in that it supports a two-tiered data structure.  The first level of
+fields are visible to SQL, and must be available by parsing of the filename itself (which is available immediately upon reading
+the directory), while the second level of fields is only revealed after retrieval of the full record.  This notion of multitiered
+expense in data structures is a powerful one.  We'll work the mechanisms back into the general data handler and we'll thank ourselves
+later.</p>
+<p>
+</p>
+<hr />
+<hr>
+<p>
+</p>
+<h2><a name="connect">connect</a></h2>
+<p>The <code>connect</code> method just sets up the data structure, but it doesn't actually read the directory.  That's because sometimes we're
+going to use this adapter to read single files without needing to load the whole directory every time.  The directory loader
+is only going to run when <code>first_key</code> or <code>keys</code> is called.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub connect {
+      my ($self, $def) = @_;
+
+      $self-&gt;{cache_keys} = 1;
+      $self-&gt;{keycache} = 0;
+      $self-&gt;{mask} = &quot;#&quot;;
+      $self-&gt;{sql_fields} = ['id', 'filename', 'mod', 'size'];
+      $self-&gt;{dir} = $self-&gt;{conf}-&gt;get('dir');
+
+      die unless my $ret = File::Path::Tiny::mk($self-&gt;{dir});   # TODO: Surely there's a better way to handle errors?
+   }
+   sub DESTROY { $_[0]-&gt;close() }
+</pre><p>
+</p>
+<h2><a name="keys__first_key">keys, first_key</a></h2>
+<p>For the directory adapter, we're going to cache our keys (that is, the directory listing) and return key lists from that cache.
+A call to <code>keys</code> or <code>first_key</code> renews the cache if the directory has changed since the last time we read it.  (There is no
+special implementation of <code>first_key</code> here because if keys are cached, first_key calls <code>keys</code> anyway.)</p>
+<p>When we call the key reader (thus loading the list) we also load the values hash with the SQL-accessible fields (those that we
+can determine from the directory scan itself, but nothing from the file contents).</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub keys {
+      my ($self) = @_;
+
+      if ($self-&gt;{keycache} != -M $self-&gt;{dir}) {
+         my $sym = gensym();
+         opendir $sym, $self-&gt;{dir};
+         foreach my $f (readdir($sym)) {
+            next unless -f &quot;$self-&gt;{dir}/$f&quot;;
+            my $rec = $self-&gt;get_new();
+            $rec-&gt;put('id', $f);
+            $rec-&gt;put('filename', $f);
+            my $m = DateTime-&gt;now();
+            $m-&gt;subtract (seconds =&gt; (-M &quot;$self-&gt;{dir}/$f&quot;) * 24 * 60 * 60);
+            $rec-&gt;put('mod', $m-&gt;iso8601());
+            $rec-&gt;put('size', -s &quot;$self-&gt;{dir}/$f&quot;);
+            $self-&gt;SUPER::put($f, $rec);
+         }
+         closedir $sym;
+         $self-&gt;{keycache} = -M $self-&gt;{dir};
+      }
+
+      $self-&gt;SUPER::keys();
+   }
+</pre><p>
+</p>
+<h2><a name="get__get_sql">get, get_sql</a></h2>
+<p>The <code>get</code> method retrieves the actual field contents from a file given its key.  This is not cached.
+The <code>get_sql</code> method is also overridden here, because it needs to load the directory before saying anything
+about any specific SQL record.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub get {
+      my ($self, $key) = @_;
+      my $sym = gensym();
+      my $text = &quot;&quot;;
+      open $sym, &quot;$self-&gt;{dir}/$key&quot; or return;
+      while (&lt;$sym&gt;) { $text .= $_; }
+      close $sym;
+      my $rec = $self-&gt;get_new(1);
+      $rec-&gt;parse($text);
+      return $rec;
+   }
+   sub get_sql {
+      my $self = shift;
+      my $keys = scalar $self-&gt;keys();
+      $self-&gt;SUPER::get_sql(@_);
+   }
+</pre><p>
+</p>
+<h2><a name="put">put</a></h2>
+<p>The <code>put</code> method takes a record object and writes the appropriate file</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub put {
+      my ($self, $key, $record) = @_;
+      if (defined $key) {
+         if (looks_like_number($key) &amp;&amp; $key &gt;= $self-&gt;{nextkey}) {
+            $self-&gt;{nextkey} = $key + 1;
+         }
+      } else {
+         my $keys = scalar $self-&gt;keys(); # Make sure the known keys are obtained.
+         $key = $self-&gt;genkey($record);
+      }
+      my $sym = gensym();
+      open $sym, &quot;&gt;$self-&gt;{dir}/$key&quot; or return;
+      print $sym $record-&gt;as_text();
+      close $sym;
+      return $key;
+   }
+</pre><p>
+</p>
+<h2><a name="delete__del">delete, del</a></h2>
+<p>The <code>delete</code> method, given a key, deletes the file for that key.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub delete {
+      my ($self, $key) = @_;
+      $self-&gt;SUPER::delete($key);
+      unlink &quot;$self-&gt;{dir}/$key&quot;;
+   }
+</pre><p>
+</p>
+<hr />
+<p>Michael Roberts, <code>&lt;michael at vivtek.com&gt;</code></p>
+<p>
+</p>
+<hr />
+<p>Please report any bugs or feature requests to <code>bug-workflow-wftk at rt.cpan.org</code>, or through
+the web interface at <a href="http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Workflow-wftk">http://rt.cpan.org/NoAuth/ReportBug.html</a>.  I will be notified, and then you'll
+automatically be notified of progress on your bug as I make changes.</p>
+<p>
+</p>
+<hr />
+<p>You can find documentation for this module with the perldoc command.</p>
+<pre class="code">
+    perldoc Workflow::wftk::Data
+</pre><p>
+</p>
+<hr />
+<p>Copyright 2009 Vivtek, all rights reserved.</p>
+<p>This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   1; # End of Workflow::wftk::Data::dir
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

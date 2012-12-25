@@ -1,0 +1,57 @@
+<html><head><title>To-do manager: Schema for user access</title></head>
+<body>
+<h2>Schema for user access</h2>
+<center>
+[&nbsp;<a href=schema.html>Previous: Database schema of the task list</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=perm_schema.html>Next: Permissions schema</a>&nbsp;]
+</center>
+
+<hr>
+The user table, as indicated, has a sort of temporary aspect for me.  But I need it implemented
+in order to get a prototype demo off the ground, so here it is.  It will probably be replaced
+by some directory module or something as soon as I figure out how all that works.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>userid text,
+password text,
+permlevel smallint,
+name text,
+email text,
+website text
+</pre></td></tr></table>
+
+Here are what the fields are supposed to be for:<ul>
+<b><li>userid, password</b> - obvious.<br>
+The password will be plaintext for this demo just to cut corners.  Not a very valid long-term
+solution, but it's quick.
+<p>
+<b><li>permlevel</b><br>
+The level of access of the user to the whole task list manager.  Allowed values are: 0 - inactive
+user (in case I want to block somebody but not lose the contact info), 1 - viewer only, and 2 -
+full access.  Full access just means that this user may own tasks and processes.  The detailed
+privileges of a viewer-level user are granted with the keyword/permission system (in the next
+section.)  Privileges of a level-2 user to processes owned by other people are likewise
+governed by the permission system.
+<p>
+In the demo system, the "demo" user is a level-2 user.  This means that people trying out the
+demo can create their own tasks and processes in order to see how the system works.  They also
+have viewer-level access to the wftk processes.
+<p>
+<b><li>name, email, website</b><br>
+Since this particular implementation is aimed at being a demo, these three contact information
+fields seem logical.  Obviously anything could be tossed in here as contact info, and this UI
+wouldn't care about it.
+
+
+
+<center>
+[&nbsp;<a href=schema.html>Previous: Database schema of the task list</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=perm_schema.html>Next: Permissions schema</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

@@ -1,0 +1,481 @@
+<html><head><title>Popup UI framework: Implementation of the classes</title></head>
+<body>
+<h2>Implementation of the classes</h2>
+<center>
+[&nbsp;<a href="classes.html">Previous: Class outline</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: popup UI framework</a>&nbsp;]
+[&nbsp;<a href="index.html">Next: popup UI framework</a>&nbsp;]
+</center>
+
+<hr>
+First things first: we #include all the class definitions and such.  Again, this is snarfed straight from the wxWindows demos, so there
+is code there to Do Things Right which may or may not work for you, because I haven't tested any of it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifdef __GNUG__
+#pragma implementation "popup.h"
+#endif
+
+// For compilers that support precompilation, includes "wx.h".
+#include "wx/wxprec.h"
+
+#ifdef __BORLANDC__
+#pragma hdrstop
+#endif
+
+#ifndef WX_PRECOMP
+#include "wx/wx.h"
+#endif
+
+#ifdef __WXMSW__
+#include &lt;wx/msw/taskbar.h>
+#endif
+#include &lt;wx/image.h>
+#include &lt;wx/imagpng.h>
+#include &lt;wx/wxhtml.h>
+
+#include "popup.h"
+
+#ifdef __WINDOWS__
+#include &lt;windows.h>
+#endif
+
+#include &lt;stdio.h>
+#include &lt;string.h>
+#include &lt;malloc.h>
+#include &lt;wftk.h>
+
+extern "C" {
+  const char * config_get_value (void * session, const char *name);
+};
+
+</pre></td></tr></table>
+
+(TODO:) That declaration above for config_get_value really has to move into a new wftk session module which I can use here and there.
+<p></p>
+
+Now some global information.  The first thing is the wftk session.  This app reuses the session and configuration code from the main
+wftk, so we establish a session and then read the configuration and attach it.  The config file is assumed to be in the same directory
+as the app itself.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void * session = NULL;
+XML * adaptor_menus = NULL;
+</pre></td></tr></table>
+
+We'll also need a place to anchor the main frame window.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>PopupFrame *frame = NULL;
+</pre></td></tr></table>
+
+And a quick little prototype for the adaptor menu event handler.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void ProcessAdaptor (wxEvent&amp; event);
+</pre></td></tr></table>
+
+So.  Down to business.  First, let's declare the application using the standard wxWindows macro, and then define the constructor, which
+doesn't do much except creating the frame, establishing the wftk session and reading the configuration.  The destructor just has to free
+the session, and that's it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>IMPLEMENT_APP(PopupApp)
+bool PopupApp::OnInit()
+{
+    const char * opt;
+    FILE * config;
+    XML * xconfig;
+
+    // Get configuration.
+    session = wftk_session_alloc ();
+    adaptor_menus = xml_create ("menu");
+    config = fopen ("config.xml", "r");
+    if (config) {
+       xconfig = xml_read_error (config);
+       if (xml_is (xconfig, "xml-error")) {
+          wxMessageBox ("Can't parse config.xml");
+          xml_free (xconfig);
+       } else {
+          wftk_session_configure (session, xconfig);
+       }
+       fclose (config);
+    }
+
+    frame = new PopupFrame();
+
+    opt = config_get_value (session, "popup.startmsg");
+    if (*opt) frame->SetStatusText (opt, 0);
+    opt = config_get_value (session, "popup.title");
+    if (*opt) frame->SetTitle (opt);
+    frame->Show(TRUE);
+    SetTopWindow(frame);
+
+    // On Windows, set up the system tray icon.
+#ifdef __WXMSW__
+    wxIcon icon("popup_icon");
+
+    m_systemtrayicon.SetIcon(icon, *opt ? opt : "Popup UI");
+#endif
+
+    return TRUE;
+}
+
+int PopupApp::OnExit()
+{
+   //wftk_session_free (session);  // Not sure what the problem is, but it causes a GPF...
+   xml_free (adaptor_menus);
+
+   return 0;
+}
+</pre></td></tr></table>
+
+That was painless, wasn't it?  I'm going to have to rebuild the wftk library to split the session code out into its own object file, but
+other than that, this is easy reuse.
+
+<p></p>
+
+Next, let's define the code for the system tray icon.  It doesn't have to do much, just restore the app and exit.  Note that I'm enumerating
+the events for the main frame here as well, because the popup menu handler has to translate from one set of adaptor events to the other,
+so it needs to know the value of ID_ADAPTOR...
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>enum {
+   ID_FILE_SAVE = 1001,
+   ID_FILE_PREFS,
+   ID_FILE_HIDE,
+   ID_FILE_EXIT,
+
+   ID_QUERY_LIST,
+   ID_HELP_ABOUT,
+
+   ID_ADAPTOR,
+
+};
+
+#ifdef __WXMSW__
+enum {
+    PU_RESTORE = 10001,
+    PU_EXIT,
+    PU_ADAPTOR,
+};
+
+
+
+
+
+BEGIN_EVENT_TABLE(PopupSystemTrayIcon, wxTaskBarIcon)
+    EVT_MENU(PU_RESTORE,    PopupSystemTrayIcon::OnMenuRestore)
+    EVT_MENU(PU_EXIT,       PopupSystemTrayIcon::OnMenuExit)
+    EVT_MENU(PU_ADAPTOR,    PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+1,  PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+2,  PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+3,  PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+4,  PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+5,  PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+6,  PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+7,  PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+8,  PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+9,  PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+10, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+11, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+12, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+13, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+14, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+15, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+16, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+17, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+18, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+19, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+20, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+21, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+22, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+23, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+24, PopupSystemTrayIcon::ProcessAdaptor)
+    EVT_MENU(PU_ADAPTOR+25, PopupSystemTrayIcon::ProcessAdaptor)
+END_EVENT_TABLE()
+
+void PopupSystemTrayIcon::OnMenuRestore(wxCommandEvent&amp; )
+{
+    frame->Show(TRUE);
+}
+
+void PopupSystemTrayIcon::ProcessAdaptor(wxCommandEvent&amp; event)
+{
+    XML * menu;
+
+    frame->Show(TRUE);
+    menu = xml_locf (adaptor_menus, ".menu[%d]", event.GetId() + ID_ADAPTOR - PU_ADAPTOR);
+    if (menu) {
+      wxMessageBox (xml_attrval (menu, "menu"));
+    } else {
+      wxMessageBox ("Well, that didn't work.");
+    }
+}
+
+void PopupSystemTrayIcon::OnMenuExit(wxCommandEvent&amp; )
+{
+    frame->Close(TRUE);
+
+    // Nudge wxWindows into destroying the dialog, since
+    // with a hidden window no messages will get sent to put
+    // it into idle processing.
+    wxGetApp().ProcessIdle();
+}
+
+
+// Overridables
+void PopupSystemTrayIcon::OnMouseMove(wxEvent&amp;)     { }
+void PopupSystemTrayIcon::OnLButtonDown(wxEvent&amp;)   { }
+void PopupSystemTrayIcon::OnLButtonUp(wxEvent&amp;)     { }
+void PopupSystemTrayIcon::OnRButtonDown(wxEvent&amp;)   { }
+void PopupSystemTrayIcon::OnRButtonDClick(wxEvent&amp;) { }
+void PopupSystemTrayIcon::OnRButtonUp(wxEvent&amp;)
+{
+    wxMenu      menu;
+
+    menu.Append(PU_RESTORE, "Bring up window");
+    menu.AppendSeparator ();
+
+    int query_event = PU_ADAPTOR;
+    XML * scratch;
+
+    scratch = xml_firstelem (adaptor_menus);
+    while (scratch) {
+       if (!strncmp (xml_attrval (scratch, "menu"), "query.", 6)) {
+          menu.Append (query_event, config_get_value (session, xml_attrval (scratch, "menu")), config_get_value (session, xml_attrval (scratch, "action")));
+          query_event++;
+       }
+
+       scratch = xml_nextelem (scratch);
+    }
+
+    menu.AppendSeparator ();
+    menu.Append(PU_EXIT,    "Exit");
+
+    PopupMenu(&amp;menu);
+}
+
+void PopupSystemTrayIcon::OnLButtonDClick(wxEvent&amp;)
+{
+    frame->Show(TRUE);
+}
+
+#endif
+</pre></td></tr></table>
+
+OK.  Next, we define our frame.  Now, the frame is the main window, which contains the menu among other things.  The menu is actually
+dependent upon the configuration, which makes things trickier than the demo code.  Unfortunately, the only way I've been able to get this
+to work is by compiling an event table which simply lists a whole lot of numeric events to be used by adaptor menu entries;  this is less
+than graceful and will scale poorly, obviously.  Eventually I need to figure out event handling and roll my own, but my initial attempts
+seemed to disable handling of many of the frame's natural events, and I don't know why.  And I don't have time to figure it out.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>BEGIN_EVENT_TABLE(PopupFrame, wxFrame)
+    EVT_MENU            (ID_FILE_SAVE,  PopupFrame::OnFileSave)
+    EVT_MENU            (ID_FILE_PREFS, PopupFrame::OnFilePrefs)
+    EVT_MENU            (ID_FILE_HIDE,  PopupFrame::OnHide)
+    EVT_MENU            (ID_FILE_EXIT,  PopupFrame::OnClose)
+    EVT_MENU            (ID_QUERY_LIST, PopupFrame::OnQueryList)
+    EVT_MENU            (ID_HELP_ABOUT, PopupFrame::OnHelpAbout)
+    EVT_MENU            (ID_ADAPTOR,    PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+1,  PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+2,  PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+3,  PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+4,  PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+5,  PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+6,  PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+7,  PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+8,  PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+9,  PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+10, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+11, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+12, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+13, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+14, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+15, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+16, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+17, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+18, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+19, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+20, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+21, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+22, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+23, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+24, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+25, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+26, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+27, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+28, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+29, PopupFrame::ProcessAdaptor)
+    EVT_MENU            (ID_ADAPTOR+30, PopupFrame::ProcessAdaptor)  /* That's *got* to be enough. Stupid way to do this, though. */
+    EVT_CLOSE           (               PopupFrame::OnClose)
+END_EVENT_TABLE()
+</pre></td></tr></table>
+
+So.  Let's set up our frame.  This consists entirely of setting up the menus, as the individual queries and messages will define
+the actual look of the body of the window.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>PopupFrame::PopupFrame() : wxFrame((wxFrame *)0, -1, _("Popup UI"), wxPoint(400, 400))
+{
+    // frame icon
+    SetIcon(wxICON(popup_icon));
+
+    // menu bar
+    wxMenu *menuFile = new wxMenu("", wxMENU_TEAROFF);
+    wxMenu *menuQuery = new wxMenu("", wxMENU_TEAROFF);
+    wxMenu *menuMessages = new wxMenu("", wxMENU_TEAROFF);
+    wxMenu *menuHelp = new wxMenu("", wxMENU_TEAROFF);
+
+    // Set up static menu items first.
+    //menuFile->Append(ID_FILE_SAVE, _("&amp;Save"), _("Save the current query"));
+    //menuFile->Append(ID_FILE_PREFS, _("&amp;Preferences"), _("View or change your configuration"));  // We'll implement this later.
+    //menuFile->AppendSeparator();
+    menuFile->Append(ID_FILE_HIDE, _("&amp;Hide\tAlt-H"), _("Hide in the system tray"));
+    menuFile->Append(ID_FILE_EXIT, _("E&amp;xit\tAlt-X"), _("Quit this program"));
+
+    menuQuery->Append(ID_QUERY_LIST, _("&amp;List"), _("List saved query results"));
+
+    menuHelp->Append(ID_HELP_ABOUT, _("&amp;About"), _("About popup framework"));
+
+    // Now the dynamically configured items.
+    int query_event = ID_ADAPTOR;
+    const char * opt;
+    const char * curopt;
+    const char * mark;
+    XML * scratch = xml_create ("scratch");
+
+    opt = config_get_value (session, "settings.querylist");
+    curopt = opt;
+    while (*curopt) {
+       mark = strchr (curopt, ':');
+
+       scratch = xml_create ("menu");
+       xml_set (scratch, "menu", "query.");
+       xml_attrncat (scratch, "menu", curopt, mark ? mark - curopt : strlen(curopt));
+       xml_set (scratch, "action", xml_attrval (scratch, "menu"));
+       xml_attrcat (scratch, "menu", ".menu");
+       xml_attrcat (scratch, "action", ".action");
+
+       xml_setnum (scratch, "id", query_event);
+       xml_append (adaptor_menus, scratch);
+       menuQuery->Append (query_event, config_get_value (session, xml_attrval (scratch, "menu")), config_get_value (session, xml_attrval (scratch, "action")));
+       query_event++;
+
+       if (mark) {
+          curopt = mark + 1;
+       } else break;
+    }
+
+    opt = config_get_value (session, "settings.eventlist");
+    curopt = opt;
+    while (*curopt) {
+       mark = strchr (curopt, ':');
+
+       scratch = xml_create ("menu");
+       xml_set (scratch, "menu", "event.");
+       xml_attrncat (scratch, "menu", curopt, mark ? mark - curopt : strlen(curopt));
+       xml_set (scratch, "action", xml_attrval (scratch, "menu"));
+       xml_attrcat (scratch, "menu", ".menu");
+       xml_attrcat (scratch, "action", ".action");
+
+       xml_setnum (scratch, "id", query_event);
+       xml_append (adaptor_menus, scratch);
+       menuMessages->Append (query_event, config_get_value (session, xml_attrval (scratch, "menu")), config_get_value (session, xml_attrval (scratch, "action")));
+       query_event++;
+
+       if (mark) {
+          curopt = mark + 1;
+       } else break;
+    }
+
+    wxMenuBar *menuBar = new wxMenuBar();
+    menuBar->Append(menuFile,     _("&amp;File"));
+    menuBar->Append(menuQuery,    _("&amp;Query"));
+    menuBar->Append(menuMessages, _("&amp;Messages"));
+    menuBar->Append(menuHelp,     _("&amp;Help"));
+    SetMenuBar(menuBar);
+
+    // status bar
+    CreateStatusBar(2);
+    SetStatusText(_("Status message goes here."));
+
+    // Now the HTML window in the body.  Current plan: use this for nearly everything.
+    top_sizer = new wxBoxSizer(wxVERTICAL);
+
+    html = new wxHtmlWindow(this, -1, wxDefaultPosition, wxSize(1, 1), wxHW_SCROLLBAR_AUTO);
+    html -> SetBorders(0);
+    html -> SetPage("<html><body bgcolor=#FFFFFF></body></html>");
+
+    top_sizer -> Add(html, 1, wxEXPAND, 0);
+
+    SetSizer(top_sizer);
+
+    // And set an adaptor event handler.
+    //menuQuery->PushEventHandler (new AdaptorEventHandler); /* That's easy! */
+                                                  /* Were it not for the fact that it doesn't work... */
+}
+PopupFrame::~PopupFrame() { }
+</pre></td></tr></table>
+
+Now some stubs for the missing handlers, and we can test.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void PopupFrame::OnMenu(wxCommandEvent&amp; event)
+{
+    switch (event.GetId())
+    {
+       default: break;
+    }
+}
+void PopupFrame::OnClose(wxCommandEvent&amp; WXUNUSED(event))     { Destroy(); }
+void PopupFrame::OnHide(wxCommandEvent&amp; WXUNUSED(event))      { Show(FALSE); }
+void PopupFrame::OnFileSave(wxCommandEvent&amp; WXUNUSED(event))  { }
+void PopupFrame::OnFilePrefs(wxCommandEvent&amp; WXUNUSED(event)) { }
+void PopupFrame::OnQueryList(wxCommandEvent&amp; WXUNUSED(event))
+{
+   html->SetPage ("<body bgcolor=#eecc33>This is a query list</body>");
+}
+void PopupFrame::OnHelpAbout(wxCommandEvent&amp; WXUNUSED(event))
+{
+   html -> LoadPage("about.html");
+}
+
+
+void PopupFrame::ProcessAdaptor (wxCommandEvent&amp; event)
+{
+   XML * menu;
+
+   menu = xml_locf (adaptor_menus, ".menu[%d]", event.GetId());
+   if (menu) {
+     wxMessageBox (xml_attrval (menu, "menu"));
+   } else {
+     wxMessageBox ("Well, that didn't work.");
+   }
+}
+</pre></td></tr></table>
+
+So.  That much should now actually give us a visible program.
+
+
+
+<center>
+[&nbsp;<a href="classes.html">Previous: Class outline</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: popup UI framework</a>&nbsp;]
+[&nbsp;<a href="index.html">Next: popup UI framework</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

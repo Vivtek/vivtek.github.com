@@ -1,0 +1,246 @@
+<html><head><title>USER adaptor: localxml</title></head>
+<body>
+<h2>USER adaptor: localxml</h2>
+<hr>
+<p></p>
+This is the localxml user directory adaptor for the wftk.  It encapsulates user directory
+functionality, storing users and groups as XML files in local directories.  The directories in
+question are determined by the config module using the USER_DIRECTORY
+and GROUP_DIRECTORY named values.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include &lt;sys/types.h>
+#include &lt;sys/stat.h>
+#ifdef WINDOWS
+#include &lt;io.h>
+#endif
+#include &lt;errno.h>
+#include "xmlapi.h"
+#include "../wftk_session.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "get",
+   "auth",
+   "ingroup"
+};
+
+XML * USER_localxml_init    (WFTK_ADAPTOR * ad, va_list args);
+XML * USER_localxml_free    (WFTK_ADAPTOR * ad, va_list args);
+XML * USER_localxml_info    (WFTK_ADAPTOR * ad, va_list args);
+XML * USER_localxml_get     (WFTK_ADAPTOR * ad, va_list args);
+XML * USER_localxml_auth    (WFTK_ADAPTOR * ad, va_list args);
+XML * USER_localxml_ingroup (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   USER_localxml_init,
+   USER_localxml_free,
+   USER_localxml_info,
+   USER_localxml_get,
+   USER_localxml_auth,
+   USER_localxml_ingroup
+};
+
+static struct wftk_adaptor_info _USER_localxml_info =
+{
+   6,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct wftk_adaptor_info * USER_localxml_get_info ()
+{
+   return &amp; _USER_localxml_info;
+}
+</pre></td></tr></table>
+
+Thus concludes the communication with the config module.  Now on with the actual implementation
+of functionality.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * USER_localxml_init (WFTK_ADAPTOR * ad, va_list args) {
+   struct stat statbuf;
+   const char * parms;
+   char directory[256];
+   char * end;
+
+   parms = xml_attrval (ad->parms, "parm");
+   if (!*parms) parms = wftk_config_get_value (ad->session, "user.localxml.directory");
+
+   /* Check for existence, return error if the directory doesn't exist or if it isn't a directory. */
+   strcpy (directory, parms);
+   end = directory + strlen (directory) - 1;
+   if (*end == '\\') *end = '\0';
+   if (*end == '/') *end = '\0';
+
+   if (stat (directory, &amp;statbuf) == -1) {
+      xml_setf (ad->parms, "error", "Directory '%s' not found.", directory);
+      return (XML *) 0;
+   }
+   if (!(statbuf.st_mode &amp; S_IFDIR)) {
+      xml_setf (ad->parms, "error", "Directory '%s' not directory.", directory);
+      return (XML *) 0;
+   }
+
+   strcat (directory, "/");
+   xml_set (ad->parms, "dir", directory);
+   strcpy (directory, "localxml:");
+   strcat (directory, xml_attrval (ad->parms, "dir"));
+   xml_set (ad->parms, "spec", directory);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+That wasn't so hard, was it?  Well, freeing up the adaptor is much easier:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * USER_localxml_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * USER_localxml_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "user");
+   xml_set (info, "name", "localxml");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+
+We've got two functions in the user adaptor, one to retrieve a descriptive XML file
+(which will, at least at first, just be the user entry itself),
+and one to authenticate a password against a user. 
+For the time being we're going to be really slipshod about that last,
+and just store the password in plaintext.
+Post-v1.0 (sigh) we'll want to at least encrypt the password or something.  Or just switch to LDAP.
+
+<p></p>
+<i>November 25, 2002</i>: OK.  This model is stupid.  On my second approach (more than a year later)
+whilst adding user auth to the repository manager, I realize that really for authentication I want
+to pass the user's ID in to authenticate -- not the entire user definition, which I may not have.
+This gives a lot more leeway to the adaptor to implement authentication correctly.
+
+<p></p>
+I also see that this code is really, really <i>old</i>.  Frankly, I don't care about it much; it's
+just going to be the default for the wftk-core configuration, and any repmgr system is going
+to ignore it completely in favor of the repository manager list implementation.  So I'm not going to
+waste any time bringing it up to date.  If you're actually using the wftk-core configuration, well,
+congratulations -- you've found another place to try out your debugging skills!
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * USER_localxml_get (WFTK_ADAPTOR * ad, va_list args) {
+   char path[256];
+   char *id = (char *) 0;
+   FILE *file;
+   XML * ret;
+
+   if (args) id = va_arg (args, char *);
+   if (!id) {
+      xml_set (ad->parms, "error", "No ID given.");
+      return (XML *) 0;
+   }
+
+   strcpy (path, xml_attrval (ad->parms, "dir"));
+   strcat (path, id);
+   strcat (path, ".xml");
+   file = fopen (path, "r");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Couldn't open file '%s' for reading.", path);
+      return (XML *) 0;
+   }
+
+   ret = xml_read (file);
+   fclose (file);
+
+   return ret;
+
+}
+
+XML * USER_localxml_auth (WFTK_ADAPTOR * ad, va_list args) {
+   char * userid = NULL;
+   XML * user = 0;
+   char * password;
+   char path[256];
+   FILE * file;
+
+   if (args) userid = va_arg (args, char *);
+   if (!userid) {
+      xml_set (ad->parms, "error", "No user given.");
+      return (XML *) 0;
+   }
+   password = va_arg (args, char *);
+
+   strcpy (path, xml_attrval (ad->parms, "dir"));
+   strcat (path, userid);
+   strcat (path, ".xml");
+   file = fopen (path, "r");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Couldn't open file '%s' for reading.", path);
+      return (XML *) 0;
+   }
+
+   user = xml_read (file);
+   fclose (file);
+
+   if (!strcmp (password, xml_attrval (user, "password"))) return user;
+   xml_free (user);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+<i>(November 25, 2002)</i>  Also I realize I need an in-group function to test group membership.
+The localxml adaptor is <i>so</i> stupid that it doesn't really implement groups yet.  So I punt.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * USER_localxml_ingroup (WFTK_ADAPTOR * ad, va_list args) {
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

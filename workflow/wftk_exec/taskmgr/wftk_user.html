@@ -1,0 +1,101 @@
+<html><head><title>Task manager: Interfacing with the wftk user module for permissions</title></head>
+<body>
+<h2>Interfacing with the wftk user module for permissions</h2>
+<center>
+[&nbsp;<a href="login_admin.html">Previous: Login management stuff</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="pageout.html">Next: How I'm writing pages out</a>&nbsp;]
+</center>
+
+<hr>
+In the prototype of the task manager, I implemented a really ugly permission structure stored in the
+database.  Then I went away and developed the wftk user module as a better way of dealing with permission
+issues -- but at this point, our only convenient interface to that is via the command-line <code>user</code>
+utility.  That isn't all that convenient, but I haven't had the time to sit down and write a Tcl extension
+for user permissions, which is what will eventually happen.
+
+<p></p>
+So for the time being, I'm going to write little utility functions here which call the <code>user</code>
+utility to get information, then postprocess that information into something we can use.  The first of those
+functions is <code>perms_or</code>, which, given a username, first gets a list of groups the user belongs to,
+and then builds an 'or' clause using those.  The clause starts with 'or' because I figure we'll always be
+tacking it onto something else.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc perms_or {user sql_field {perm "view"}} {
+   global wftk_home
+   set ret ""
+
+   set pipe [open "|${wftk_home}user/user groups $user $perm" "r"]
+   set groups [split [read $pipe] "\n"]
+   close $pipe
+
+   foreach group $groups {
+      append ret " or $sql_field = '[sql_safe_string [lindex [split $group :] 0]]'"
+   }
+
+   return $ret
+}
+</pre></td></tr></table>
+
+Boy, sometimes I just love Tcl.  It makes command-line work soooo easy.
+<p></p>
+OK, next trick: check a permission level to things owned by a group.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc perms_check {user group {perm "view"}} {
+   if ![string compare $group ""] { return 1 }
+   global wftk_home
+   set pipe [open "|${wftk_home}user/user permgroup $user $group $perm" "r"]
+   set perm [read $pipe]
+   close $pipe
+
+   return [string match OK* $perm]
+}
+</pre></td></tr></table>
+
+Now a function to return a select-option list of users with particular permission level to a particular group.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc perms_userselect {group {perm "view"}} {
+   if ![string compare $group ""] { set group "everybody" }
+
+   global wftk_home
+   set pipe [open "|${wftk_home}user/user userlist $group $perm" "r"]
+   set info [split [read $pipe] "\n"]
+   close $pipe
+
+   set ret ""
+   foreach i $info {
+      set i [split $i :]
+
+      set name [join [lrange $i 2 end] :]
+      if ![string compare $name ""] {
+         set name [lindex $i 0]
+      } else {
+         append name " ([lindex $i 0])"
+      }
+      append ret "&lt;option value=\"[lindex $i 0]\">$name\n"
+   }
+
+   return $ret
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="login_admin.html">Previous: Login management stuff</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="pageout.html">Next: How I'm writing pages out</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

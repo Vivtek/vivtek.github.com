@@ -1,0 +1,150 @@
+<html><head><title>Repository manager: Context/user session handling</title></head>
+<body>
+<h2>Context/user session handling</h2>
+<center>
+[&nbsp;<a href="remote_users.html">Previous: User authentication and group membership</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_xact.html">Next: Transactions</a>&nbsp;]
+</center>
+
+<hr>
+Yeah, this should end up being pretty important.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT char * FN_NAME(repos_context_save) (XML * repository)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+   char * ret;
+   char * mark;
+   const char * line;
+   const char * end;
+
+   if (sock) { /* Remote. */
+      xml_setf (sock->parms, "outgoing", "context\n");
+      _repos_send (sock);
+
+      line = _repos_receive (sock);
+      if (*line == '-') return NULL;
+      line = strchr (line, '-') + 1;
+      ret = strdup (line);
+      mark = strstr (ret, " ++done++");
+      if (mark) *mark = '\0';
+      else {
+         mark = strchr (ret, '\n');
+         if (mark) *mark = '\0';
+      }
+      return (ret);
+   }
+
+   return NULL;
+}
+</pre></td></tr></table>
+
+Besides saving sessions (and retrieving handles for them), we also need to be able to switch sessions.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * FN_NAME(repos_context_switch) (XML * repository, const char * contextid)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+   XML * temp;
+   XML * context;
+   const char * line;
+   const char * end;
+
+   if (sock) { /* Remote. */
+      xml_setf (sock->parms, "outgoing", "context %s\n", contextid);
+      _repos_send (sock);
+
+      line = _repos_receive (sock);
+      if (*line == '-') {
+         /*wftk_session_setcontext (repository, NULL);*/
+         return NULL;
+      }
+      line = strchr (line, '\n') + 1;
+      temp = xml_create ("t");
+      xml_set (temp, "r", "");
+      while (line[0] != '>' || line[1] != '>') {
+         end = strchr (line, '\n');
+         if (end) {
+            xml_attrncat (temp, "r", line, end - line + 1);
+         } else {
+            xml_attrcat (temp, "r", line);
+            break;
+         }
+         line = end + 1;
+      }
+      context = xml_parse (xml_attrval (temp, "r"));
+      xml_free (temp);
+      xml_set (sock->parms, "buffer", "");
+      return (context);
+   }
+   return NULL;
+}
+</pre></td></tr></table>
+
+Finally, we need our two central context functions: get and set value.  These are basically the whole point of the exercise (although
+we'll probably get more involved later, with logs and attachments and nice things like that.)  The get-value function works as a
+string formatter; if there is a square bracket in the value spec, it will create a value using xmlobj_format.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void FN_NAME(repos_context_set) (XML * repository, const char * valname, const char * value)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+   const char * line;
+
+   if (sock) { /* Remote. */
+      xml_setf (sock->parms, "outgoing", "set % %s\n", valname, value);
+      _repos_send (sock);
+
+      line = _repos_receive (sock);
+      xml_set (sock->parms, "buffer", "");
+   }
+}
+WFTK_EXPORT char * FN_NAME(repos_context_get) (XML * repository, const char * valname)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+   char * mark;
+   char * ret;
+   const char * line;
+   const char * end;
+
+   if (sock) { /* Remote. */
+      xml_setf (sock->parms, "outgoing", "read %s\n", valname);
+      _repos_send (sock);
+
+      line = _repos_receive (sock);
+      if (*line == '-') return NULL;
+      line = strchr (line, ' ') + 1;
+      ret = strdup (line);
+      mark = strchr (ret, ' ');
+      if (mark) *mark = '\0';
+      else {
+         mark = strchr (ret, '\n');
+         if (mark) *mark = '\0';
+      }
+      return (ret);
+   }
+
+   return NULL;
+}
+
+
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="remote_users.html">Previous: User authentication and group membership</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_xact.html">Next: Transactions</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

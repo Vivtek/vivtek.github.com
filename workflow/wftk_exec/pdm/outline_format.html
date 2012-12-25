@@ -1,0 +1,166 @@
+<html><head><title>WFTK PDM: Formatting outlines and such</title></head>
+<body>
+<h2>Formatting outlines and such</h2>
+<center>
+[&nbsp;<a href="format_update_command.html">Previous: Building command hrefs</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The procdef manager</a>&nbsp;]
+[&nbsp;<a href="update.html">Next: update: Actually changing procdef versions!</a>&nbsp;]
+</center>
+
+<hr>
+The <code>outline_format</code> function is used for, well, formatting outlines which correspond
+to actions in the process.  There may be other uses at some point.
+<p></p>
+It returns an integer value which is the number of nodes displayed.  The primary
+use of this is to do something special if there are no nodes.  (As is the case when a fresh
+procdef is created and we display its empty action outline.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int outline_format (XML * action)
+{
+   XML * child;
+   int count = 0;
+
+   if (!strcmp (action->name, "workflow")) {
+      printf ("&lt;table border=0 cellpadding=0 cellborder=0>\n");
+      child = xml_firstelem (action);
+      while (child) {
+         if (strcmp (child->name, "data") &amp;&amp; strcmp (child->name, "role")) {
+            count += outline_format (child);
+         }
+         child = xml_nextelem (child);
+      }
+      printf ("&lt;/table>\n");
+   } else if (!strcmp (action->name, "sequence")) {
+      count ++;
+      printf ("&lt;tr>&lt;td valign=top align=center>&lt;img src=sequence.gif>&lt;/td>&lt;td>&lt;a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">");
+      print_element (action);
+      printf ("&lt;/a>\n");
+      printf ("&lt;table border=0 cellpadding=0 cellborder=0>\n");
+      child = xml_firstelem (action);
+      while (child) {
+         count += outline_format (child);
+         child = xml_nextelem (child);
+      }
+      printf ("&lt;/table>&lt;/td>&lt;/tr>\n");
+   } else if (!strcmp (action->name, "parallel")) {
+      count ++;
+      printf ("&lt;tr>&lt;td valign=top align=center>&lt;img src=parallel.gif>&lt;/td>&lt;td>&lt;a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">");
+      print_element (action);
+      printf ("&lt;/a>\n");
+      printf ("&lt;table border=0 cellpadding=0 cellborder=0>\n");
+      child = xml_firstelem (action);
+      while (child) {
+         count += outline_format (child);
+         child = xml_nextelem (child);
+      }
+      printf ("&lt;/table>&lt;/td>&lt;/tr>\n");
+   } else if (!strcmp (action->name, "task")) {
+      count ++;
+      printf ("&lt;tr>&lt;td valign=top align=center>&lt;img src=task.gif>&lt;/td>&lt;td>&lt;a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">");
+      print_element (action);
+      printf ("&lt;/a> (%s)\n", xml_attrval (action, "role"));
+      printf ("&lt;table border=0 cellpadding=0 cellborder=0>\n");
+      child = xml_firstelem (action);
+      while (child) {
+         if (!strcmp (child->name, "data")) {
+            printf ("&lt;tr>&lt;td class=\"data\">&lt;img src=\"result.gif\">&lt;/td>");
+            printf ("&lt;td class=\"data\">&lt;a href=\"");
+            print_edit_command (child);
+            printf ("\"");
+            print_target ();
+            printf (">%s&lt;/a>&lt;/td>", xml_attrval (child, "name"));
+            printf ("&lt;/tr>\n");
+            count ++;
+         }
+         child = xml_nextelem (child);
+      }
+      printf ("&lt;/table>&lt;/td>&lt;/tr>\n");
+   } else if (!strcmp (action->name, "if")) {
+      count ++;
+      printf ("&lt;tr>&lt;td valign=top align=center>&lt;img src=if.gif>&lt;/td>&lt;td>&lt;a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">&lt;b>If&lt;/b> %s&lt;/a>\n", xml_attrval (action, "expr"));
+      printf ("&lt;table border=0 cellpadding=0 cellborder=0>\n");
+      child = xml_firstelem (action);
+      while (child) {
+         count += outline_format (child);
+         child = xml_nextelem (child);
+      }
+      printf ("&lt;/table>&lt;/td>&lt;/tr>\n");
+   } else if (!strcmp (action->name, "alert")) {
+      count ++;
+      printf ("&lt;tr>&lt;td valign=top align=center>&lt;img src=alert.gif>&lt;/td>&lt;td>&lt;a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">");
+      print_element (action);
+      printf ("&lt;/a>&lt;/td>&lt;/tr>\n");
+   } else if (!strcmp (action->name, "data")) {
+      count ++;
+      printf ("&lt;tr>&lt;td valign=top align=center>&lt;img src=data.gif>&lt;/td>&lt;td>&lt;a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">");
+      print_element (action);
+      printf ("&lt;/a>&lt;/td>&lt;/tr>\n");
+   } else if (!strcmp (action->name, "situation")) {
+      count ++;
+      printf ("&lt;tr>&lt;td valign=top align=center>&lt;img src=sit.gif>&lt;/td>&lt;td>&lt;a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">");
+      print_element (action);
+      printf ("&lt;/a>&lt;/td>&lt;/tr>\n");
+   } else if (!strcmp (action->name, "handle")) {
+      count ++;
+      printf ("&lt;tr>&lt;td valign=top align=center>&lt;img src=sit.gif>&lt;/td>&lt;td>&lt;a href=\"");
+      print_edit_command (action);
+      printf ("\"");
+      print_target ();
+      printf (">");
+      print_element (action);
+      printf ("&lt;/a>\n");
+      printf ("&lt;table border=0 cellpadding=0 cellborder=0>\n");
+      child = xml_firstelem (action);
+      while (child) {
+         count += outline_format (child);
+         child = xml_nextelem (child);
+      }
+      printf ("&lt;/table>&lt;/td>&lt;/tr>\n");
+   }
+   return (count);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="format_update_command.html">Previous: Building command hrefs</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href="update.html">Next: update: Actually changing procdef versions!</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

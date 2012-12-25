@@ -1,0 +1,158 @@
+<head>
+<title>wftk tutorial - 03 Actions and events</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk tutorial - 03 Actions and events</div>
+
+<p>
+</p>
+<p>So far, the wftk is a nice way to represent the "data landscape" of a process or set of processes, but that's only the backdrop for a workflow system.
+A workflow system is all about organizing <strong>actions</strong> on data, after all.  So the next step on our road to workflow is to define actions
+and ways of representing them.</p>
+<p>An action is an activity performed by an actor (which we'll ignore until the next chapter), which affects data.  Of course, at a lower level every line of
+code, even every opcode in our CPU, is an action, but we're not interested in actions at that level.  Instead, we are more interested in something
+closer to the notion of a function call.  In the wftk, an <strong>action</strong> is defined as a record (a set of parameters) passed to an action
+handler.  If we understand a list subclass to be a sort of "data handler", we can see that a subclass of the Workflow::wftk::Action class is an action
+handler.</p>
+<p>Just as individual lists instantiate list subclasses, different specific action types are handled by a single action handler.  And just as each
+individual list holds multiple specific records, an action type is used to carry out multiple specific actions.  The record of those actions is what
+(potentially) gets stored in a record's enactment (see 02-i).</p>
+<p>Action types are stored either in the repository itself, or in the repository's type.  This provides a sort of hierarchical definition system
+allowing us to include applications and libraries into the repository.</p>
+<p>The <strong>event</strong> is a notion similar to the action.  Each specific action is, of course, an event (because it's logged in the enactment).
+However, the idea of an event is also used to cover data coming into a wftk system from actions taken outside the system.  Events are organized into
+event lists, and an event list generally is assigned a handler to take action when an external event occurs.</p>
+<p>The standard list of events is diverse: incoming email or other messages (faxes, SMS, etc.), Web form posts, commands issued from the command line,
+RPC or SOAP calls, GUI element actuation, and so on.</p>
+
+<p>Finally, actions and events can also be <b>scheduled</b> by entries in a special list called, appropriately enough, a schedule.  The wftk handles
+the conversion of changes to that list into specifications for the underlying scheduler provided by the operating system.</p>
+
+<p>Here is an index to the information in this chapter:</p>
+
+(unresolved tag 03-index)
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

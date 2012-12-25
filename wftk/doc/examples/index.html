@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk Application Examples</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Applying the wftk workflow toolkit</h2>
+<hr>
+
+The most effective documentation of any system is descriptions of ways to build working systems with it.
+With the addition of the repository manager, the wftk has finally reached the point where it is
+practical to talk about real-life systems, and so I want to start sketching out (and wherever possible
+actually building) some sample systems, so that you can get some idea of what you can actually do with
+this stuff.
+
+<br><br>
+
+Here are a few basic functional areas that I see the wftk fitting into.
+<ul>
+<li><b>Web-enabled submission</b><br>
+My chief example for this is the <a href="lartmeister.html">LARTmeister</a>, which allows public submission
+of Net abuse incidents and subsequent workflow-based tracking.  This is far too complex, of course, but will
+surely spin off a few much smaller example configurations before it goes too much further.
+
+<li><b>Content-based website</b><br>
+Another track of development of wftk which has recently started bearing fruit is data and content
+management.  The content-based website is the whole idea here, starting from simple management of
+articles posted at various times, to event calendars, weblogs, searchable archives, and the whole nine
+yards.  Everybody does this stuff by hand, but it gets out of control if you do that for too long.
+A more advanced version of the content-based website is the searchable online database, and that model
+also falls under this category.  A good example of a non-free application which aims at this category
+is Microsoft's Sharepoint.
+
+<li><b>Simple document management</b><br>
+Although the content-based website can involve document management (for example, in managing images
+used in the site), it makes sense to highlight some of the explicitly document-management-oriented features of
+the new repository manager portion of the wftk.  This isn't necessarily even an Internet-enabled
+application; essentially you can imagine a drag-and-drop client which allows you to submit documents
+to an EDMS (electronic document management system) from your desktop.  Once the document is in the
+repository, it can trigger whatever workflow processes are needed, and it can be version-controlled,
+meaning that people can check it out, make changes, and check it back in, all tracked at each step.
+
+<li><b><a href="crm.html">Customer relationship manager</a></b>: also known as CRM, or issue tracker, or bug tracker, etc.<br>
+This is nearly the classic workflow application.  Each trouble ticket is a case and may be attached
+to a particular customer (if there is only one customer, i.e. the "userbase", then this is generally
+called a bug tracker or project management system, but if you regard each issue as a project for any
+of many customers, it's CRM.)  As a case progresses
+through various stages it must be brought to the attention of different people.  Cases which have been
+open too long need to trigger emergency handling.  The customer needs to be notified of various actions
+taken, or possibly needs to supply additional data.
+
+<li><b>E-commerce server</b><br>
+The shopping cart/order server was one of the original prototype scenarios, and that hasn't changed.
+From a repository standpoint (data management), you have a hierarchical set of SKUs in each merchant's
+catalog, you have a list of customers, you have an arbitrary number of suppliers which may drop-ship
+ordered items, and you have any number of arbitrary procedures to trigger when something happens.  There
+are a number of variations on all this, with the result that an implementation of a shopping cart that's
+built on something less flexible than wftk is going to have surprising limitations just when you least
+expect it.  Trust me, this is the voice of painful experience speaking here.
+
+<li><b>Session-based website</b><br>
+This will possibly be the most involved example, but the idea is to present a website in which the
+navigational aids reflect the system's knowledge of who you are and what you are doing.  This is based
+on the new templating system built into the repository manager, and it is quite powerful technology.
+
+<li><b>Status display for general data processing systems</b><br>
+A rather common model for complex data systems is to start with a few limited goals of things to manage,
+write some quick Perl code to do things with it, maybe do some formatting code to make pretty lists of things
+to indicate current status of things in the system, and then ... just keep tweaking and extending that for a
+few years until nobody really remembers what is where and why.  I do this a lot.  So one of the goal areas for
+a <i>workflow toolkit</i> would be to take such a system and make it manageable without requiring a great deal
+of recoding (maybe none at all).  My initial target for this mode of system development is the abuse tracking
+and response systems of <a href=http://www.despammed.com>Despammed.com</a>, with which I've been spending some
+quality time lately.  This documentation effort is starting on 9 May 2003 and the story <a href=despammed.html>starts
+here</a>.
+
+</ul>
+
+<hr width=66%>
+
+<h2>Timeline of actual development of this section</h2>
+<ul>
+<li> <b>19 Jan 2002</b> Started <a href=lartmeister.html>LARTmeister concept</a> and wrote some <a href=lm_use.html>use
+cases</a> for the system.
+<li> <b>25-29 Dec 2002</b> Wrote a <a href=crm_techspex.html>bug tracker for Techspex.com</a> and penned some general
+musings on <a href=crm.html>CRM in general</a>.
+<li> <b>9 May 2003</b> Started a <a href=data_processing.html>white paper on wftk support of Perl data processing systems</a>.
+
+</ul>
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2003 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

@@ -1,0 +1,65 @@
+<html><head><title>xmlapi: xml_free: Cleaning up afterwards</title></head>
+<body>
+<h2>xml_free: Cleaning up afterwards</h2>
+<center>
+[&nbsp;<a href="xml_createtext.html">Previous: xml_createtext: a shortcut for plain text</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_delete.html">Next: Deleting pieces: xml_delete</a>&nbsp;]
+</center>
+
+<hr>
+To free an XML element, we free its name, each of its attributes (and their names and
+values), each child (recursively) and the list element which held the child, and finally
+we can free the XML element itself.
+<p></p>
+<i>December 7, 2001</i>: I often wonder at what point all this starts to be code bloat.
+Anyway, I've introduced a "cleanup" member to the element, to clean up attached binary
+data when an element is freed.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void xml_free (XML * xml)
+{
+   ATTR * attr;
+   ELEMENTLIST * list;
+
+   if (xml == NULL) return;
+
+   if (xml->cleanup &amp;&amp; xml->extra) {
+      (*(xml->cleanup)) (xml->extra);
+   }
+
+   if (xml->name != NULL) FREE ((void *) (xml->name));
+   while (xml->attrs) {
+      attr = xml->attrs;
+      xml->attrs = xml->attrs->next;
+      if (attr->name != NULL) FREE ((void *) (attr->name));
+      if (attr->value != NULL) FREE ((void *) (attr->value));
+      xml->attrs = attr->next;
+      FREE ((void *) attr);
+   }
+
+   while (xml->children) {
+      list = xml->children;
+      xml->children = list->next;
+      if (list->element != NULL) xml_free (list->element);
+      FREE ((void *) list);
+   }
+   FREE ((void *) xml);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_createtext.html">Previous: xml_createtext: a shortcut for plain text</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_delete.html">Next: Deleting pieces: xml_delete</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

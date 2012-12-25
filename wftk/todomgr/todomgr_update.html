@@ -1,0 +1,200 @@
+<html><head><title>To-do manager: Definition of todomgr_update</title></head>
+<body>
+<h2>Definition of todomgr_update</h2>
+<center>
+[&nbsp;<a href=todomgr_overview.html>Previous: Definition of todomgr_overview</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=todomgr_complete.html>Next: Definition of todomgr_complete</a>&nbsp;]
+</center>
+
+<hr>
+Updating of tasks and processes has the same basic shape as the other functions we've
+already defined: we get the form, check whether we're working on a task or a process, then
+perform the update.  Afterwards we forward the browser to the URL given by the "back"
+parameter, to smooth the overall user interface.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set form [ns_conn form $conn]
+if {$form == ""} {
+   set tags(title) "Nothing to update"
+   set tags(body) "You need to specify something to update."
+   return [todomgr_pageout $conn message.html]
+}
+global todomgr_pool
+set db [ns_db gethandle $todomgr_pool]
+<i>See <a href="user.html#check">Checking authuser</a></i>
+
+set task [ns_set get $form task]
+if {$task != ""} {
+   <i>See <a href="todomgr_update.html#task">Updating task record</a></i> 
+   <i>See <a href="todomgr_update.html#goback">Forwarding back to where the update started</a></i>
+}
+set process [ns_set get $form process]
+if {$process != ""} {
+   <i>See <a href="todomgr_update.html#process">Updating process record</a></i>
+   <i>See <a href="todomgr_update.html#goback">Forwarding back to where the update started</a></i>
+}
+
+set tags(title) "Nothing to update"
+set tags(body) "You need to specify either a task or a process to update."
+todomgr_pageout $conn message.html
+</pre></td></tr></table>
+<br><br>
+<a name="task">
+<i>Updating task record</i><br>
+Updating the task is quite simple; we grab the updatable fields (which do <i>not</i> include
+the status of the task), build an update query, and run it.  The only really unpleasant aspect
+is checking that the user has permission to do so, and I'll split that off into the next section.
+<p>
+That section returns the flag <code>$modify</code>; if the flag is set, then full modification
+is allowed; if not, then only priority is modifiable by the current user.  (If the current user
+has no permission at all to modify the task, then that will already have been dealt with.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="todomgr_update.html#taskcheckuser">Checking user permissions to update task</a></i>
+set fields [list]
+foreach field {process description priority sched_date sched_time} {
+   if {[ns_set find $form $field] == -1} { continue }
+   if {[ns_set get $form $field] == ""} { continue }
+   if {!$modify &amp;&amp; $field != "priority"} { continue }
+
+   if {$field == "priority"} {
+      lappend fields "$field=[ns_set get $form $field]"
+   } else {
+      lappend fields "$field='[sql_safe_string [ns_set get $form $field]]'"
+   }
+}
+
+if {[llength $fields] > 0} {
+   set query "update task set "
+   append query [join $fields ", "]
+   append query " where id='$task'"
+
+   ns_db dml $db $query
+}
+</pre></td></tr></table>
+
+This is coded dangerously.  I should be preprocessing the values supplied for sched_date
+and sched_time in order to force them to be something usable.  At the very least I should
+check for an error return on update and do something meaningful with it.  Oh, well.  This is
+a prototype, right?
+<br><br>
+<a name="taskcheckuser">
+<i>Checking user permissions to update task</i><br>
+The simplest case is if the user owns the task.  The task owner always has full permission.
+Note the continued complete lack of error handling; one of the things I plan to do is to 
+centralize query handling into one nice place, then do general error handling there.  In the
+meantime, we'll just have to live with those 500 status returns.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "select * from task where id='[sql_safe_string $task]'"
+set row [ns_db select $db $query]
+ns_db getrow $db $row
+set modify 1
+set priority 1
+if [string compare $user [ns_set get $row owner]] {
+</pre></td></tr></table>
+
+We assume the ability to modify and set priority.  If the current user owns the task, we won't
+check further, but otherwise, if the task belongs to a process, then the process owner and 
+anybody with 'm' privilege may modify the task, and anybody with 'r' privilege may change the
+task's priority but may change nothing else about the task.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   set modify 0
+   set priority 0
+   set process [ns_set get $row process]
+   if [string compare $process ""] {
+      set query "select * from process where id='[sql_safe_string $process]'"
+      set row [ns_db select $db $query]
+      ns_db getrow $db $row
+      set modify 1
+      set priority 1
+      if [string compare $user [ns_set get $row owner]] {
+         set modify 0
+         set priority 0
+         set    query "select flags from keyword, permission "
+         append query   "where keyword.process='[sql_safe_string $process]' "
+         append query     "and keyword.keyword=permission.keyword "
+         append query     "and permission.userid='[sql_safe_string $user]'"
+         set row [ns_db select $db $query]
+         while {[ns_db getrow $db $row]} {
+            if [string match *m* [ns_set get $row flags]] { set modify 1 }
+            if [string match *r* [ns_set get $row flags]] { set priority 1 }
+         }
+      }
+   }
+}
+</pre></td></tr></table>
+
+After all that, if the user doesn't have permission to modify anything in the task, then
+we need to indicate that and return.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if {!$modify &amp;&amp; !$priority} {
+   set tags(title) "Insufficient privilege"
+   set tags(body) "You don't have sufficient privilege to update this task."
+   return [todomgr_pageout $conn message.html]
+}
+</pre></td></tr></table>
+<br><br>
+<a name="process">
+<i>Updating process record</i><br>
+Updating the process record is, of course, even easier because we don't have that numeric
+priority to special-case.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set fields [list]
+foreach field {title description} {
+   if {[ns_set find $form $field] == -1} { continue }
+   if {[ns_set get $form $field] == ""} { continue }
+
+   lappend fields "$field='[sql_safe_string [ns_set get $form $field]]'"
+}
+
+if {[llength $fields] > 0} {
+   set query "update process set "
+   append query [join $fields ", "]
+   append query " where id='$process'"
+
+   ns_db dml $db $query
+}
+</pre></td></tr></table>
+<br><br>
+<a name="goback">
+<i>Forwarding back to where the update started</i><br>
+After the update is complete (whether it's a task or a process that was updated) we have
+to return the user back to where the transaction started, whether that's the <code>show</code>
+screen or one of the overview lists.  The starting URL is in the <code>back</code> parameter;
+if not, we'll just have to present a little message saying that the update was completed and
+let the user take care of the navigation for us.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set back [ns_set get $form back]
+if [string compare $back ""] {
+   ns_returnredirect  $conn $back
+} else {
+   set tags(title) "Update complete"
+   set tags(body) "Your update operation was completed."
+   todomgr_pageout $conn message.html
+}
+return
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href=todomgr_overview.html>Previous: Definition of todomgr_overview</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=todomgr_complete.html>Next: Definition of todomgr_complete</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

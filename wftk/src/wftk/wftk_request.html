@@ -1,0 +1,429 @@
+<html><head><title>wftk core library: Dealing with requests</title></head>
+<body>
+<h2>Dealing with requests</h2>
+<center>
+[&nbsp;<a href="wftk_task.html">Previous: Dealing with tasks</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_value.html">Next: Dealing with values</a>&nbsp;]
+</center>
+
+<hr>
+This is an experimental category of functionality, but it's one which I think is crucial for a working system.  Basically,
+a request is just that: let's say I have a task on my to-do list.  I want to ask Joe to do it for me.  The wftk supports
+that by allowing me to create a request object which contains that active task.  Joe can either accept the request (in which
+case the active task is reassigned to him) or decline it (in which case nothing happens to the task.)  And of course I
+can always rescind the request.
+<p></p>
+I can also make the request of any arbitrary group of people; then the first who accepts gets the task.  I can create a
+request which bundles together several tasks, and they'll all get reassigned.  And finally, I think it'll be useful to
+allow arbitrary workflow stuff to happen in a request, so that if it's accepted, for instance, a new task can be created
+for me, to send the physical file over or something, I don't know.  More usefully, if a request is accepted, I can specify
+an arbitrary notification or data modification based on that knowledge.
+<p></p>
+So this is all pretty vague and can obviously be implemented in an ongoing manner; for the time being I just want to get
+really simple requests implemented so that I can talk about <i>task tokens</i>, which form the groovy theoretical basis
+for the task view of workflow.  A request is basically the ad-hoc means of transferring a task token to somebody else; it's
+a formalization of the notion of delegation.
+<p></p>
+<i>(April 1, 2001)</i><br>
+OK, so for v1.0 I'm going to omit requests of groups, omit non-datasheet requests (i.e. index-only), but as I just did
+ad-hoc workflow, that'll be in there.  A request consists of an alert plus what to be done upon acceptance.  If a task, the
+task is created with <code>wftk_task_new</code>.  If an action, the action is done with <code>wftk_action_do</code>.  If
+anything else, it's created as ad-hoc workflow with <code>wftk_process_adhoc</code>.  Note that we don't have a lot of
+permissions here.  Eventually we're going to want to funnel <i>all</i> that through <code>wftk_action_do</code> so that
+we don't have a security problem.
+<p></p>
+The request can also name a particular task in the "task" attribute; upon acceptance, that task will thus be assigned to
+the requestee.  There is no security on this at this point, which is (naturally) a bad idea in the long term, as it would
+be simple to steal tasks by requesting them to be assigned to you, then accepting the request.  Post-v1.0.
+<p></p>
+A request will be indexed with a starting "?", and so a request naming a task starting with "?" will be construed as a 
+sub-request; upon acceptance it will accept its parent request in the name of the requestee.  So Joe has a task and sends
+a reassignment request to Karen, then Karen sends a subrequest to Larry.  Larry accepts, so Joe's task gets assigned to
+Larry.  Everybody gets notified that this has happened.
+<p></p>
+Finally, if the request has a "role" attribute, then it's a request to take over a particular role for the process and will
+result in role assignment.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int    wftk_request_new      (void * session, XML * request) {
+   XML * datasheet = NULL;
+   XML * req;
+   XML * requestor = NULL;
+   XML * mark;
+   XML * alert = NULL;
+   const char * alertcontent;
+   char * newalertcontent = NULL;
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!request) return 0;
+   if (*xml_attrval (request, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (request, "dsrep"), xml_attrval (request, "process"));
+      if (!datasheet) return 0;
+   }
+
+   if (datasheet &amp;&amp; !*xml_attrval (request, "of") &amp;&amp; *xml_attrval (request, "of-role")) {
+      xml_set (request, "of", wftk_role_user (session, datasheet, xml_attrval (request, "of-role")));
+   }
+
+   if (!*xml_attrval (request, "of")) {
+      xml_set (request, "status", "error");
+      xml_set (request, "status.reason", "The requestee could not be determined.");
+      return 0;
+   }
+
+   /* Inform task indices of new request. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "reqnew", request);
+   wftk_free_adaptorlist (session, adlist);
+
+   if (!datasheet) return 1; /* The request was ad-hoc with no process, so there's nothing left to do. */
+   req = xml_create ("request");
+   if (datasheet) xml_setnum (req, "id", unique_id (datasheet, NULL));
+   xml_set (req, "of", xml_attrval (request, "of"));
+
+   if (*xml_attrval (request, "by")) {
+      requestor = wftk_user_retrieve (session, datasheet, xml_attrval (request, "by"));
+   } else {
+      requestor = wftk_session_getuser (session);
+   }
+   if (requestor) {
+      xml_set (req, "by", xml_attrval (requestor, "id"));
+   }
+
+   if (*xml_attrval (request, "label")) {
+      if (!datasheet) {
+         xml_set_nodup (req, "label", wftk_value_interpreta (session, datasheet, xml_attrval (request, "label")));
+      } else {
+         xml_set (req, "label", xml_attrval (request, "label"));
+      }
+   } else {
+      /* TODO: default label for request depends on kind of request. */
+      if (requestor) {
+         xml_setf (req, "label", "Request from %s", *xml_attrval (requestor, "name") ? xml_attrval (requestor, "name") : xml_attrval (requestor, "id"));
+      } else {
+         xml_set (req, "label", "Anonymous request");
+      }
+   }
+
+   if (*xml_attrval (request, "task") == '?') {
+      xml_set (req, "request", xml_attrval (request, "task") + 1);
+   } else if (*xml_attrval (request, "task")) {
+      xml_set (req, "task", xml_attrval (request, "task"));
+   }
+   if (*xml_attrval (request, "role"))    xml_set (req, "role", xml_attrval (request, "role"));
+   if (*xml_attrval (request, "request")) xml_set (req, "request", xml_attrval (request, "request"));
+
+   if (*xml_attrval (req, "request")) {
+      /* TODO: some of this stuff should be done before the taskindex is updated with the request, right? */
+      if (xml_attrvalnum (req, "request") >= xml_attrvalnum (req, "id")) {
+         xml_set (request, "status", "error");
+         xml_set (request, "status.reason", "Can't issue subrequest for nonexistent request");
+         return 0;
+      }
+   }
+
+   /* Transfer the content of the request, interpreting any alert found. */
+   mark = xml_firstelem (request);
+   while (mark) {
+      if (xml_is (mark, "alert") &amp;&amp; !alert) {
+         alert = xml_create ("alert");
+         alertcontent = xml_stringcontent (mark);
+         wftk_value_interpret (session, datasheet, alertcontent, newalertcontent, strlen (alertcontent) + 1024);
+         xml_append (alert, xml_createtext_nodup (wftk_value_interpreta (session, datasheet, alertcontent)));
+         free (alertcontent);
+         xml_append (req, alert);
+      } else {
+         xml_append (req, xml_copy (mark));
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   /* If there was no custom alert, build a logical one. */
+   if (!alert) {
+      alert = xml_create ("alert");
+      xml_append (alert, xml_createtext ("A request has been made for your action.\nPlease visit the workflow app to accept or decline.\n"));
+      /* TODO: Boy, that is a useless alert.  Write a better one. */
+      xml_prepend (req, alert);
+   }
+
+   xml_set (alert, "to", xml_attrval (req, "of"));
+   xml_set (alert, "from", xml_attrval (req, "by"));
+   xml_set (alert, "subject", xml_attrval (req, "label"));
+
+   /* Do the alert -- use custom content if found above, otherwise do something logical. */
+   wftk_notify (session, datasheet, alert);
+
+   xml_append (datasheet, req);
+   wftk_enactment_write (session, datasheet, request, "action", "place");
+   wftk_process_save (session, datasheet);
+
+   return 1;
+}
+</pre></td></tr></table>
+
+Retrieval of requests is much simpler than tasks if it's a datasheet-based request.  If it's not a datasheet request, we'll have to 
+ask the task index.  And that's not actually implemented yet, so I'm pretty much skipping it for v1.0.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML  * wftk_request_retrieve (void * session, XML * request) {
+   XML * datasheet;
+   WFTK_ADAPTOR * ad;
+   XML * mark;
+
+   if (!request) return 0;
+   if (*xml_attrval (request, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (request, "dsrep"), xml_attrval (request, "process"));
+   }
+
+   if (!datasheet) {
+      /*ad = wftk_get_adaptor (session, TASKINDEX, NULL);
+      wftk_call_adaptor (adlist, "reqget", xml_attrval (request, "id"));
+      wftk_free_adaptor (session, adlist);
+      */ /* TODO: the right thing. */
+      return 0;
+   }
+
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (xml_is (mark, "request") &amp;&amp; !strcmp (xml_attrval (mark, "id"), xml_attrval (request, "id"))) {
+         xml_copyinto (request, mark);
+         return (request);
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   return NULL;
+}
+WFTK_EXPORT int    wftk_request_update   (void * session, XML * request) { return 0; } /* TODO: figure out if this even makes sense. */
+WFTK_EXPORT int    wftk_request_rescind  (void * session, XML * request) {
+   XML * datasheet = NULL;
+   XML * mark;
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!request) return 0;
+   if (*xml_attrval (request, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (request, "dsrep"), xml_attrval (request, "process"));
+      if (!datasheet) return 0;
+   }
+
+   /* Inform task indices of rescinded request. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "reqdel", xml_attrval (request, "process"), xml_attrval (request, "id"));
+   wftk_free_adaptorlist (session, adlist);
+
+   if (!datasheet) return 1; /* The task was ad-hoc with no process, so there's nothing left to do. */
+
+   mark = xml_locf (datasheet, ".request[%s]", xml_attrval (request, "id"));
+   if (mark) {
+      xml_delete (mark);
+   }
+   wftk_enactment_write (session, datasheet, request, "action", "rescind");
+   wftk_process_save (session, datasheet);
+
+   return 1;
+}
+</pre></td></tr></table>
+
+OK.  Now the tricky part.  Acceptance of a request causes things to happen, so we have to get it right.  Declining a request causes
+basically nothing to happen except a notification of the requestor that the request was declined.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int    wftk_request_accept   (void * session, XML * request) {
+   XML * datasheet = NULL;
+   XML * req;
+   XML * mark;
+   XML * task;
+   int first = 1;
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!request) return 0;
+   if (*xml_attrval (request, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (request, "dsrep"), xml_attrval (request, "process"));
+      if (!datasheet) return 0;
+   }
+
+
+   if (datasheet) {
+      req = xml_locf (datasheet, ".request[%s]", xml_attrval (request, "id"));
+      if (!req) {
+         xml_set (request, "status", "error");
+         xml_set (request, "status.reason", "No such request");
+         return 0;
+      }
+      if (!strcmp (xml_attrval (req, "status"), "accepted")) {
+         xml_set (request, "status", "error");
+         xml_set (request, "status.reason", "Request has already been accepted.");
+         return 0;
+      }
+   }
+
+   /* Inform task indices of accepted request. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "reqaccept", xml_attrval (request, "process"), xml_attrval (request, "id"));
+
+   if (!datasheet) {
+      wftk_free_adaptorlist (session, adlist);
+      return 1; /* The task was ad-hoc with no process, so there's nothing left to do. */
+   }
+
+   /* TODO: some of this stuff should happen before the taskindex is written. */
+   if (!*xml_attrval (request, "accepting")) xml_set (request, "accepting", xml_attrval (req, "of"));
+   xml_set (req, "accepting", xml_attrval (request, "accepting"));
+   xml_set (req, "status", "accepted");
+   if (*xml_attrval (req, "request")) {
+      task = xml_locf (datasheet, ".request[%s]", xml_attrval (req, "request"));
+      if (task) {
+         xml_set (task, "accepting", xml_attrval (req, "accepting")); /* Not "of", because then you couldn't send subsubreqs. */
+         xml_set (task, "dsrep", xml_attrval (datasheet, "repository"));
+         xml_set (task, "process", xml_attrval (datasheet, "id"));
+         wftk_request_accept (session, task);
+      }
+   }
+   if (*xml_attrval (req, "role")) {
+      wftk_role_assign (session, datasheet, xml_attrval (req, "role"), xml_attrval (req, "accepting"));
+   }
+   if (*xml_attrval (req, "task")) {
+      task = xml_locf (datasheet, ".task[%s]", xml_attrval (req, "task"));
+      if (!task) {
+         task = xml_locf (datasheet, ".state.queue.item[%s]", xml_attrval (req, "task"));
+      }
+      if (task) {
+         xml_set (task, "user", xml_attrval (req, "accepting"));
+         xml_set (task, "process", xml_attrval (datasheet, "id"));
+         wftk_call_adaptorlist (adlist, "taskput", task);
+      }
+   }
+
+   /* Now we handle the contents, if any.  The first alert is the one which went to the requestee at the outset, so we skip it. */
+   mark = xml_firstelem (req);
+   while (mark) {
+      if (xml_is (mark, "alert")) {
+         if (first) {
+            first = 0;
+         } else {
+            wftk_notify (session, datasheet, mark);
+         }
+      } else if (xml_is (mark, "task")) {
+         xml_set (mark, "user", xml_attrval (req, "accepting"));
+         xml_set (mark, "dsrep", xml_attrval (datasheet, "repository"));
+         xml_set (mark, "process", xml_attrval (datasheet, "id"));
+         wftk_task_new (session, xml_copy (mark));
+      } else {
+         wftk_process_adhoc (session, datasheet, xml_copy (mark));
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   wftk_enactment_write (session, datasheet, request, "action", "accepted"); /* Also saves datasheet. */
+   wftk_process_save (session, datasheet);
+   wftk_free_adaptorlist (session, adlist);
+
+   return 1;
+}
+WFTK_EXPORT int    wftk_request_decline  (void * session, XML * request) {
+   XML * datasheet = NULL;
+   XML * mark;
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!request) return 0;
+   if (*xml_attrval (request, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (request, "dsrep"), xml_attrval (request, "process"));
+      if (!datasheet) return 0;
+   }
+
+   /* Inform task indices of declined request. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "reqdecline", xml_attrval (request, "process"), xml_attrval (request, "id"));
+   wftk_free_adaptorlist (session, adlist);
+
+   if (!datasheet) return 1; /* The task was ad-hoc with no process, so there's nothing left to do. */
+
+
+   mark = xml_locf (datasheet, ".request[%s]", xml_attrval (request, "id"));
+   if (mark) {
+      xml_set (mark, "status", "declined");
+   }
+   wftk_enactment_write (session, datasheet, request, "action", "declined"); /* Also saves datasheet. */
+   wftk_process_save (session, datasheet);
+
+   /* TODO: notify the requestor that something's amiss. */
+
+   return 1;
+}
+</pre></td></tr></table>
+
+Listing requests is a whole lot like listing tasks.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int wftk_request_list (void * session, XML * list) {
+   int count = 0;
+   const char * userid;
+   XML * datasheet = NULL;
+   XML * procdef = NULL;
+   XML * mark;
+   XML * mark2;
+   XML * hit;
+   WFTK_ADAPTOR * ad;
+
+   if (*xml_attrval (list, "process")) {
+      /* This is a process list. */
+      userid = xml_attrval (list, "user");
+
+      datasheet = wftk_process_load (session, xml_attrval (list, "dsrep"), xml_attrval (list, "process"));
+      if (!datasheet) { return 0; }
+
+      mark = xml_firstelem (datasheet);
+      while (mark) {
+         if (xml_is (mark, "request") 
+             &amp;&amp; strcmp ("declined", xml_attrval (mark, "status"))
+             &amp;&amp; strcmp ("accepted", xml_attrval (mark, "status"))
+             &amp;&amp; (!*userid || !strcmp (userid, xml_attrval (mark, "of")))) {
+            hit = xml_create ("request");
+            xml_set (hit, "id", xml_attrval (mark, "id"));
+            xml_set (hit, "label", xml_attrval (mark, "label"));
+            xml_set (hit, "of", xml_attrval (mark, "of"));
+            xml_set (hit, "by", xml_attrval (mark, "by"));
+            xml_set (hit, "request", xml_attrval (mark, "request"));
+            xml_set (hit, "role", xml_attrval (mark, "role"));
+            xml_set (hit, "task", xml_attrval (mark, "task"));
+            xml_append (list, hit);
+         }
+         mark = xml_nextelem (mark);
+      }
+      xml_setnum (list, "count", count);
+
+      /* TODO: sort the list. */
+   } else {
+      /* No process means we have to ask a task index.  Fortunately this is *very easy*. */
+      ad = wftk_get_adaptor (session, TASKINDEX, NULL);
+      count = 0;
+      if (ad) {
+         wftk_call_adaptor (ad, "reqlist", list);
+         wftk_free_adaptor (session, ad);
+         count = xml_attrvalnum (list, "count");
+      }
+   }
+
+   return count;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_task.html">Previous: Dealing with tasks</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_value.html">Next: Dealing with values</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

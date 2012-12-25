@@ -1,0 +1,100 @@
+<html><head><title>xmlapi: xml_replace and xml_replacecontent: Replacing an element with another.</title></head>
+<body>
+<h2>xml_replace and xml_replacecontent: Replacing an element with another.</h2>
+<center>
+[&nbsp;<a href="xml_append.html">Previous: xml_append: Inserting elements</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_loc.html">Next: Bookmarking things: xml_loc and xml_getloc</a>&nbsp;]
+</center>
+
+<hr>
+This is pretty straightforward; the linked list of the parent is traversed until the current XML is found, and it's
+swapped in.  The parent pointer of the new child is modified, and the old child is deleted.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void xml_replace (XML * xml, XML * newxml)
+{
+   ELEMENTLIST * list;
+
+   if (xml == NULL) return;
+   if (xml->parent == NULL) return;
+   if (newxml == NULL) xml_delete (xml);
+
+   list = xml->parent->children;
+   while (list != NULL &amp;&amp; list->element != xml) list = list->next;
+   if (list == NULL) return;
+
+   newxml->parent = xml->parent;
+   list->element = newxml;
+
+   xml_free (xml);
+}
+</pre></td></tr></table>
+
+To replace all contents, we just delete all the contents, then append the new piece.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void xml_replacecontent (XML * parent, XML * child)
+{
+   XML * first;
+
+   if (parent == NULL) return;
+   while (first = xml_first (parent)) {
+      xml_delete (first);
+   }
+   if (child != NULL) xml_prepend (parent, child);
+}
+</pre></td></tr></table>
+
+<i>(September 24, 2001)</i>: And now it turns out I really want to replace one element with all the contents of another.  Hence yet another
+replace function.  The replacewithcontent has no effect on the source.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void xml_replacewithcontent (XML * xml, XML * source)
+{
+   ELEMENTLIST * list;
+   XML * src;
+   XML * target;
+
+   if (xml == NULL) return;
+   if (xml->parent == NULL) return;
+   if (source == NULL) xml_delete (xml);
+
+   list = xml->parent->children;
+   while (list != NULL &amp;&amp; list->element != xml) list = list->next;
+   if (list == NULL) return;
+
+   src = xml_first (source);
+   if (!src) {
+      xml_delete (xml);
+      return;
+   }
+   target = xml_copy (src);
+
+   target->parent = xml->parent;
+   list->element = target;
+
+   src = xml_next (src);
+   while (src) {
+      target = xml_insertafter (target, xml_copy (src));
+      src = xml_next (src);
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_append.html">Previous: xml_append: Inserting elements</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_loc.html">Next: Bookmarking things: xml_loc and xml_getloc</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

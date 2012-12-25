@@ -1,0 +1,597 @@
+<head>
+<title>wftk tutorial - (unresolved tag 02-h-title)</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk tutorial - (unresolved tag 02-h-title)</div>
+
+<p><a name="__index__"></a></p>
+<!-- INDEX BEGIN -->
+
+
+	<ul>
+
+		<li><a href="#the_basic_record__flat_values">The basic record: flat values</a></li>
+		<li><a href="#_setting_default_values">(Setting default values</a></li>
+		<li><a href="#_creating_records_in_other_speedy_ways">(Creating records in other speedy ways</a></li>
+		<li><a href="#record_storage_in_files">Record storage in files</a></li>
+		<li><a href="#tying_hashes">Tying hashes</a></li>
+		<li><a href="#inline_text_bodies">Inline text bodies</a></li>
+		<li><a href="#list_values">List values</a></li>
+		<li><a href="#boolean_values">Boolean values</a></li>
+		<li><a href="#_comments_and_blank_lines_as_metadata">(Comments and blank lines as metadata</a></li>
+		<li><a href="#_text_bodies_not_named__body_">(Text bodies not named 'body'</a></li>
+		<li><a href="#subrecords_and_dotted_nomenclature">Subrecords and dotted nomenclature</a></li>
+		<li><a href="#extracting_data_from_records">Extracting data from records</a></li>
+		<li><a href="#_dumping_and_parsing_records">(Dumping and parsing records</a></li>
+		<li><a href="#_dumping_and_parsing_records_as_xml">(Dumping and parsing records as XML</a></li>
+		<li><a href="#_dumping_and_parsing_records_using_arbitrary_parsers_formatters__e_g__mime_email_">(Dumping and parsing records using arbitrary parsers/formatters (e.g. MIME email)</a></li>
+		<li><a href="#_templates_i__publishing_records_for_human_consumption">(Templates I: publishing records for human consumption</a></li>
+		<li><a href="#_record_storage_i__saving_pieces_of_records_in_different_places">(Record storage I: saving pieces of records in different places</a></li>
+		<li><a href="#_record_storage_ii__attachments__both_inline_and_not">(Record storage II: attachments, both inline and not</a></li>
+		<li><a href="#_record_storage_iii__specifying_shallow_and_deep_retrieval">(Record storage III: specifying shallow and deep retrieval</a></li>
+	</ul>
+
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<p>The wftk record has three basic kinds of data: the <strong>data itself</strong> which is the subject of this section, the record's <strong>history</strong>, which is the subject
+of section 02-i History, and <strong>attachments</strong>, which are the subject of section 02-j Document management.</p>
+<p>The wftk record's ``data proper'' can loosely be seen as a set of <strong>named values</strong>, and as such, you can think of a record as an SQL record or a hash.
+But the wftk record can
+also do a lot more.  It can store <strong>lists of values</strong> instead of just single values into a single field (LDAP can do this, too).  It can also store
+<strong>subrecords</strong> into a given slot, so that a named value can point to a lower level of organization of data -- and of course, that hierarchical data
+system can go down as many levels as needed (XML elements do this, and this is one reason XML was the data storage of choice for the wftk 1.0).</p>
+<p>A field can also contain a <strong>reference</strong> into another list, or even a reference to an entire list or portion of a list.  That's the subject of section
+02-k Data within data, however, so I won't go into it here, just note that it is possible.  This also allows the use of a given record field as a virtual
+list within a given session.</p>
+<p>Since the semantics of the record don't always match the semantics of the underlying data storage, the Workflow::wftk::Data class does some work
+for you in assembling records that might actually be stored in different places, and putting the pieces back into the right places when you're done.
+There are times when this bits-and-pieces approach is too expensive for some cases where you know you don't need the whole record, so you can
+tell the list, in such a case, just to give you a single level of retrieval, saving the harder work for later.</p>
+<p>However, Workflow::wftk::Record can also be used separately from Workflow::wftk::Data, simply working off the filesystem or strings you give it; this
+allows its use for the wftk repository's configuration data, which must after all be read before lists are defined for W::w::Data.  (It also allows
+you to use W::w::Record as a flexible configuration parser for anything you want, but I'm not going to document that here.)</p>
+<p>This section will also show you how to define a record with fields that don't match the fields in an underlying database table.  (Perhaps you have
+no control over the structure of the table, but you still want to augment it.)  In this case, fields can be mapped onto differently named fields, and
+excess fields can be lumped into a text representation for storage in an attachment.</p>
+<p>The fields in a record can be addressed in very detailed ways, with a dotted nomenclature for subrecords and other very powerful tools for getting
+at pieces of complex data structures.</p>
+<p>There is a set of tools for dumping and parsing record structures as text, which is convenient for working with them by hand and also allows them to
+be stored piecemeal wherever they fit.</p>
+<p>As I mentioned earlier,
+the wftk repository configuration is stored as a set of wftk records in the local repository directory.  This allows the wftk to be used
+to edit the repository's configuration.  It took me a really long time to realize this was the most effective way of handling things.</p>
+<p>
+</p>
+<h2><a name="the_basic_record__flat_values">The basic record: flat values</a></h2>
+<p>Records can be used entirely independently of lists or, in fact, even repositories.  We can create a record using the Workflow::wftk::Record's 
+standard API, or by parsing one in from a string.  We can also load one directly from an open file handle.  In this sense, W::w::Record can be made
+to act a lot like the AppConfig module, if you're familiar with it, and we use records in this way to load the wftk's own configuration.</p>
+<p>A record object knows its own source, and if necessary, you can tell it to store itself each time it's changed.  This is most often done in a list
+context, of course, but this means that the wftk's configuration is persistent in the repository's local directory without needing to do any explicit
+saving.</p>
+<p>Here's how you can create a record in a single step:</p>
+<pre class="code">
+   use Workflow::wftk::Record;
+
+   my $rec = Workflow::wftk::Record-&gt;new(&lt;&lt;REC);
+   field1: value1
+   field2: second value
+   REC
+
+   my $value = $rec-&gt;get{'field1'};
+
+   my @fields = $rec-&gt;fields();
+
+   $rec-&gt;put('field3', 'third value');
+
+   print $rec-&gt;as_text;
+</pre><p>Simple enough, right?  You've already seen all this in the basic list sections.  It's just here to serve as a starting point.</p>
+<p>
+</p>
+<h2><a name="_setting_default_values">(Setting default values</a></h2>
+<p>When using a record as the definition for a list (the list specification string is internally turned into a record) it is convenient
+to be able to set default values.  The <code>set_default</code> is used for that -- given a hashref of named values, it checks to be sure that
+ieach value has actually been set in the record.  If not, it sets it using the default value given.</p>
+<p>
+</p>
+<h2><a name="_creating_records_in_other_speedy_ways">(Creating records in other speedy ways</a></h2>
+<p>You can also create a record from a hash or hashref, simply by passing that value to the alternative <code>make_record</code> constructor.</p>
+<p>
+</p>
+<h2><a name="record_storage_in_files">Record storage in files</a></h2>
+<p>Of course, records can be persisted by storing them in lists (see the entire previous part of this section) -- but sometimes we don't
+want to clutter things up with another list definition.  One example of this is when storing the repository's configuration: all we need
+is to tell the repository a filename where it should store the configuration information.  Why have a list just for that, when the concept
+of a file system is universal anyway, and the repository concept already assumes the existence of a local working directory?</p>
+<p>To attach a file to a record as its persistent store, just specify it during creation, like this:</p>
+<pre class="code">
+   use Workflow::wftk::Record;
+
+   my $rec = Workflow::wftk::Record-&gt;new({file =&gt; 'test.rec', persist =&gt; 1});
+
+   # Let's assume that file didn't actually exist.
+   $rec-&gt;put ('myvalue', '3');
+
+   undef $rec;                  # Now we destroy the object in memory and create a new one.
+
+   $rec = Workflow::wftk::Record-&gt;new({file =&gt; 'test.rec', persist =&gt; 1});
+   print $rec-&gt;get ('myvalue');  # Prints 3.
+</pre><p>So the wftk record, when used outside a list, gives us a really easy-to-use persistence mechanism.</p>
+<p>
+</p>
+<h2><a name="tying_hashes">Tying hashes</a></h2>
+<p>Which brings us to the next step: like Tie::Hash::DBM, we'd like to persist a magical hash between calls to our program.  As you might
+guess, the wftk record lends itself marvellously to this purpose.</p>
+<pre class="code">
+   use Workflow::wftk::Record;
+
+   # Tie to the same file we just created above, without deleting it.
+   my $rec = tie %rec, 'Workflow::wftk::Record', {file =&gt; 'test.rec', persist =&gt; 1};
+
+   print $rec{myvalue};   # Prints 3!  Like magic!
+
+   $rec{different_value} = 'something else';   # And again, this gets written directly to the file.
+
+   system 'cat test.rec';
+
+   # On Unix, you'll see this:
+   myvalue: 3
+   different_value: something else
+</pre><p>
+</p>
+<h2><a name="inline_text_bodies">Inline text bodies</a></h2>
+<p>So that's the basic flat record; just a list of named values, all of which are relatively small in extent.  Now let's look at four extensions to that
+basic paradigm.  First, some values are not small; they may be arbitrarily large.  In SQL databases, these are often called blobs (Binary Large OBjects)
+or clobs (in Oracle: character-based large objects) and are generally not stored in the record.  They may also simply be called a ``text'' or ``memo''
+type, in which case they are presumed to be character-based text and <em>are</em> stored in the record.</p>
+<p>Where a record is actually stored is more or less irrelevant for the record itself, and irrelevant for us when working with the record.  But there <em>is</em>
+a distinction drawn between ``short'' or ``normal'' values and ``long'' values -- long values can have carriage returns in them.  Later, when we get into
+document management and the use of actual attachments to records, we'll see that these long values can also be treated as attachments, although they're
+lumped in with the rest of the text when it comes to text serialization.</p>
+<p>The distinction between a long text and an attachment is a pragmatic one.  An attachment isn't loaded when the rest of the record is -- it's considered
+expensive to do so.  A long text is loaded with the rest of the record, but (as we'll see later) we can still treat it as an attachment if we need to,
+so that we can open it as a stream, for instance.</p>
+<p>The standard text serialization of a record uses a special long-value syntax for any value that contains a carriage return, based on the Perl inline
+document syntax, and it looks like this:</p>
+<pre class="code">
+   field1: simple value
+   field2: another simple value
+   long_field: &lt;&lt;EOF
+   This is a field
+   of arbitrary complexity and length,
+   which has a lot of
+   line breaks in it.
+   EOF
+   field3: another simple value
+</pre><p>When parsed, this record will have four fields (field1, field2, long_field, and field3), one of whose values just happens to have carriage returns in
+it.  And when the record is seralized again (with the <code>as_text()</code> method), the serializer will use the same EOF syntax to encode it.</p>
+<p>Sometimes, though, it's convenient to arrange the text representation of a record with a single long-text field at the end of the record, with no
+field name or EOF marker, as a sort of ``text body''.  In this case, the record above would be written like this:</p>
+<pre class="code">
+   field1: simple value
+   field2: another simple value
+   field3: another simple value
+   This is a field
+   of arbitrary complexity and length,
+   which has a lot of
+   line breaks in it.
+</pre><p>In this case, the parser will name the field ``body'', since there's nowhere to encode the name of the field.  The field will also be flagged as the
+text body for the record, so that the text serializer will know to write it back out last in text-body format.  Of course, you can always flag a
+field as the text body to force the text serializer to treat it as one.  There can be only one text body.  (Naturally.)</p>
+<p>Here is some example code.  Note that the W::w::Record class is smart enough to strip out common prefixes from a record creation string passed in;
+this makes code a lot easier to read.  The common prefix is discarded; if you write that record back out, you won't see it.</p>
+<pre class="code">
+   use Workflow::wftk::Record;
+
+   my $rec1 = Workflow::wftk::Record-&gt;new(&lt;&lt;&quot;   REC&quot;);
+       ! field1: simple value
+       ! field2: another simple value
+       ! long_field: &lt;&lt;EOF
+       ! This is a field
+       ! of arbitrary complexity and length,
+       ! which has a lot of
+       ! line breaks in it.
+       ! EOF
+       ! field3: another simple value
+      REC
+
+   my $rec2 = Workflow::wftk::Record-&gt;new(&lt;&lt;&quot;   REC&quot;);
+       ! field1: second record
+       ! This is an inline text body
+       ! which might be just as long
+       ! as we want.
+       !
+       ! Even blank lines are simply rolled into the body.
+       ! Note, however, that an initial blank line will not
+       ! be written to the body unless you take special measures
+       ! (see below).
+      REC
+
+   my @fields = $rec2-&gt;fields();
+   # Returns (field1, body)
+
+   $rec2-&gt;append ('body', &quot;&quot;);
+   $rec2-&gt;append ('body', &quot;Another line here.&quot;); # The carriage return will be appended for you.
+
+   print $rec2-&gt;get('body');
+</pre><p>
+</p>
+<h2><a name="list_values">List values</a></h2>
+<p>The second extension to the ``standard flat record'' is the use of list values.  A list field's name is anything that starts with the '@' character
+in its field assignment:</p>
+<pre class="code">
+   field1: simple value
+   @list1: value1 value2 &quot;value3 with spaces&quot; value4
+</pre><p>That's not earthshattering from a data entry standpoint.  This is mostly here to make it easier to write configuration records.  There's another
+twist, though.  Once you've defined a value to be a list by flagging it with '@' in the data entry text, you can add new values to it later:</p>
+<pre class="code">
+   field1: simple value
+   @list1: value1 value2
+   field2: another value
+   list1:  value3 with spaces
+   list1:  value4
+</pre><p>If you want to parse spaces as list value separators in this format, you have to add the '@' flag; otherwise, the entire line will be taken as a single
+value, <em>with spaces</em>, and that value will be appended to the list value being built.</p>
+<p>Once you've broken up a list value in this manner, the text serializer will remember that, and write the list back out in the same way, if it can.
+If you change the values in the list, the text serializer may do things a little oddly, but the result will be guaranteed to result in a valid
+list value later.</p>
+<p>The '@' character is, of course, a special character in Perl, and so if you're specifying a list field in a string passed to the record, you'll
+have to escape it.  I find that jarring, so instead of a '@' character, you can equivalently use an asterisk '*'.  This is just syntactic sugar
+to placate my own sense of esthetics, so if you prefer quoting your @s, by all means continue to do so.  The text serializer won't remember that you
+used an asterisk, so if you write records to files, it will revert to using '@' to signify list fields.</p>
+<p>
+</p>
+<h2><a name="boolean_values">Boolean values</a></h2>
+<p>If you want a Boolean value, you can use '+' (for true) or '-' (for false) as the first character on a line.  The rest of the line (minus trailing
+spaces) is the name of the field in that case.  The text serializer will write the flag back out as a Boolean.</p>
+<pre class="code">
+   field1: simple value
+   +some_feature
+   -unwanted_feature
+</pre><p>This is equivalent to:</p>
+<pre class="code">
+   field1: simple value
+   some_feature: 1
+   unwanted_feature: 0
+</pre><p>(except for the fact that the parser notes that the fields are Boolean, so the text serializer will write them back out as Boolean.)</p>
+<p>
+</p>
+<h2><a name="_comments_and_blank_lines_as_metadata">(Comments and blank lines as metadata</a></h2>
+<p>But if the point of record specifications is not only to specify data, but to do so in a reasonably human-readable manner, then we also need the
+ability to break things up with white space, and to provide comments.  So the text parser ignores blank lines, and any line starting with a '#'
+character, as long as the text body hasn't started yet.  (If there is a text body.)  Or rather -- it ignores them for the purpose of data.
+Instead, it notes both as field comments.</p>
+<p>A field comment can be accessed through the API as well; we can consider it a sort of out-of-band data.  Normally, we're not going to care about it;
+if you can think of some good applications for out-of-band metadata which would be good for comments, let me know.  So far, I haven't thought of any.</p>
+<p>At any rate, since white space and comment lines are stored as metadata, they are also serialized back out by the text serializer when the record
+is written.</p>
+<p>
+</p>
+<h2><a name="_text_bodies_not_named__body_">(Text bodies not named 'body'</a></h2>
+<p>Remember how I said that a line in a data entry that begins with '#', or any blank line, is taken as a comment <em>as long as the text body hasn't
+started yet</em>?  That means that
+if you want a text body with a blank line or a comment at the outset, you can't do it.  In that case, you need another special flag; a line 
+that starts ``!body: xxxxx'' will both flag the rest of the record as the text body and name the body as whatever you insert for 'xxxxx'.</p>
+<pre class="code">
+   field: simple value
+
+   # A comment in our data
+   field2: another simple value
+
+   !body: long_field
+
+   # This text and the blank line above it will appear in the
+   # value of 'long_field'.
+
+   (This allows us to include, say, program code as body text.)
+</pre><p>
+</p>
+<h2><a name="subrecords_and_dotted_nomenclature">Subrecords and dotted nomenclature</a></h2>
+<p>The final extension to the 'flat record`` paradigm is the concept of hierarchical record organization.  Again, this is a pretty natural concept, but
+it makes working with data very convenient in the wftk.  The ramifications of dotted nomenclature subrecord structure, though, make a few extra functions
+necessary, for instance for searching for values.</p>
+<p>There are two ways of specifying a dotted name.  The first is simply to give it as a dotted name:</p>
+<pre class="code">
+   field1: simple value
+   dotted.field: one level down
+   dotted.field2: same level
+</pre><p>This gives us a subrecord called ``dotted'', which itself contains fields 'field' and 'field2'.</p>
+<p>However, this quickly becomes difficult to read, so we can also introduce a section by naming it in square brackets:</p>
+<pre class="code">
+   field1: simple value
+
+   [dotted]
+   field: one level down
+   field2: same level
+</pre><p>The last square-bracketed name always takes precedence, but you can ``cancel'' the last set of square brackets and return to the top level of
+data with an empty set of brackets:</p>
+<pre class="code">
+   field1: simple value
+
+   [dotted]
+   field: one level down
+   field2: same level
+   []
+
+   field3: top level again
+</pre><p>Since our data entry format is flat, but we want to allow levels of hierarchy, there are two ways of getting additional levels.  First, we can just
+give a dotted sequence as the name of a section:</p>
+<pre class="code">
+   field1: simple value
+
+   [dotted]
+   field: one level down
+
+   [dotted.again]
+   field: two levels down
+</pre><p>This gives us a field 'dotted.again.field' with value 'two levels down'.  We could also abbreviate that; an initial dot will start a new level, and two
+dots will back us out:</p>
+<pre class="code">
+   field1: level 0
+
+   [dotted]
+   field: level 1
+
+   [.again]
+   field: This goes into dotted.again.field
+
+   [..]
+   field2: This goes to dotted.field2
+
+   [.second_child]
+   field: This goes to dotted.second_child.field
+
+   [..third_child]
+   field: This goes to dotted.third_child.field
+
+   []
+   field2: This is back to level0 'field2'
+</pre><p>This would be an exact equivalent to the following, as far as the actual data values are concerned:</p>
+<pre class="code">
+   field1: level 0
+   dotted.field: level 1
+   dotted.again.field: This goes into dotted.again.field
+   dotted.field2: This goes to dotted.field2
+   dotted.second_child.field: This goes to dotted.second_child.field
+   dotted.third_child.field: This goes to dotted.third_child.field
+   field2: This is back to level0 'field2'
+</pre><p>It's just easier to read.</p>
+<p>As syntactic sugar, you can also use <code>[/]</code> to mean <code>[..]</code>.  This allows you to terminate the current subrecord of a record and introduce the next
+child without a double dot only in front of the second child's name.  (The subrecord ``third_child'' in the example above uses this -- I think it's
+a little jarring that <code>[.second_child]</code> and <code>[..third_child]</code> are on the same level, so I prefer using a subrecord terminator.)</p>
+<p>There is one thing that the square bracket notation can get you which can't be encoded in any other way.  You can put a colon into the square brackets
+to attach a ``type'' -- really more of a mark or keyword -- which can later be used to search for subrecords of a given kind.
+Here's a simple example from the
+configuration for a repository:</p>
+<pre class="code">
+   [mylist: list]
+   type: memory
+   @fields: field1 field2
+
+   [.field1: field]
+   type: varchar
+   description: First field
+   [/]
+
+   [.field2: field]
+   type: number 6.2
+   description: Second field
+
+   [other: list]
+   type: file
+   file: test.txt
+   @fields: first last
+   +headers
+   +keys
+</pre><p>Here, we're telling the configuration manager which subrecords encode lists, and which subrecords of the list configuration records specify fields.
+Since we have no other syntax to specify these values, we're stuck with it (as long as we want to use the standard parser -- you could always
+use XML, or write your own arbitrary parser, if you felt that need).</p>
+<p>Clear?  Of course it is.  Try a few out and it will shortly make perfect sense.</p>
+<p>
+</p>
+<h2><a name="extracting_data_from_records">Extracting data from records</a></h2>
+<p>Once we've got a record loaded, there are a number of different useful ways of getting at its data.  I'm going to use the record from the last
+section, which has a lot of different features in it, to illustrate them.</p>
+<p>The first, of course, is the <code>get</code> method, which we've already seen a lot of.  In previous sections, we've seen that it can return a value, or
+a list of values if it's given a list of field names, like this:</p>
+<pre class="code">
+   # Get a couple of values directly from the top-level record, using dotted notation for subrecords along the way:
+   my ($type, $description) = $rec-&gt;get('mylist.field1.type', 'mylist.field1.description');
+
+   # Equivalently, we can do this:
+   my $field1 = $rec-&gt;get('mylist.field1');
+   ($type, $description) = $field1-&gt;get('type', 'description');
+</pre><p>This usage also returns a list if the value itself is a field value:</p>
+<pre class="code">
+   my @other_fields = $rec-&gt;get('other.fields');
+   # returns ('first', 'last')
+
+   # It will merge the lists if given a list of list fields:
+   my @all_fields = $rec-&gt;get('mylist.fields', 'other.fields');
+   # returns ('field1', 'field2', 'first', 'last')
+</pre><p>You can also retrieve a single value from a list:</p>
+<pre class="code">
+   print $rec-&gt;get('mylist.fields(0)');  # Prints 'field1'
+</pre><p>That feature isn't all that powerful; it can't do slices or anything like that.  Its chief purpose is to provide a way to make bookmarks into
+multilevel structures, a feature which we'll use later when working with references and data-in-data.</p>
+<p>In addition to the <code>get</code> method, there's also a <code>get_kind</code> method that can return a list of subrecords of a given record which are of a particular
+type.  It returns a hash of matching subrecords, like this:</p>
+<pre class="code">
+   my %lists = $rec-&gt;get_kind('list');
+   print $lists{'mylist'}-&gt;get('type');    # prints &quot;memory&quot;.
+   print $lists{'other'}-&gt;get('headers');  # prints &quot;1&quot;.
+</pre><p>We can do the same thing through <code>get</code> using a question-mark notation; this only returns the names of the subrecords, though:</p>
+<pre class="code">
+   my @lists = $rec-&gt;get('?list');
+   # returns ('mylist', 'other')
+</pre><p>If the search is to be recursive, then use <code>search</code>, which will search the subrecord tree for everything of the given kind.  Its corresponding get
+code is a double question mark.</p>
+<pre class="code">
+   my %fields = $rec-&gt;search('field');
+   my @fields = $rec-&gt;get('??fields');
+   # returns ('mylist.field1', 'mylist.field2'), which is not too impressive with this little example.
+</pre><p>Now here's where it gets interesting.  The <code>get</code> method can dot or index the results of question-mar lists as well:</p>
+<pre class="code">
+   my @all_fields = $rec-&gt;get('?list.?field.type');
+   # returns ('varchar', 'number 6.2')
+</pre><p>
+</p>
+<h2><a name="_dumping_and_parsing_records">(Dumping and parsing records</a></h2>
+<p>The standard serialization format is used when you don't specify a different one; it's the one we've been using all along.  The functions we use
+for dumping and loading records are as follows:</p>
+<p>
+</p>
+<h2><a name="_dumping_and_parsing_records_as_xml">(Dumping and parsing records as XML</a></h2>
+<p>But what if you want to use XML?  After all, XML is ubiquitous, efficient, and well-adapted to arbitrarily complicated data structures.  Well, say
+no more.  To use XML, we simply set up a parser/formatter in XML format and attach it to the record or specify it when actually parsing or dumping
+any record.</p>
+<p>XML is a good example of an alternate formatter, because the XML parser/serializer is parameterizable, so you can see how that works.</p>
+<p>
+</p>
+<h2><a name="_dumping_and_parsing_records_using_arbitrary_parsers_formatters__e_g__mime_email_">(Dumping and parsing records using arbitrary parsers/formatters (e.g. MIME email)</a></h2>
+<p>Oh, but wait -- there's more.  We can also define a class to dump/parse a record into and from <em>any</em> format.  Let's take MIME email as an example.
+It's useful, and it's short because it relies on existing CPAN modules.  Think of this as a worked example (even though it is also included in
+the standard distribution of the wftk).</p>
+<p>Note also that MIME email provides a way to encode actual attachments in the serialized format -- that's the point of MIME, after all.  This facility
+allows a really easy way to email documents to a wftk system for treatment in document management, a capability we'll explore in more detail in
+02-j Document management.</p>
+<p>
+</p>
+<h2><a name="_templates_i__publishing_records_for_human_consumption">(Templates I: publishing records for human consumption</a></h2>
+<p>
+</p>
+<h2><a name="_record_storage_i__saving_pieces_of_records_in_different_places">(Record storage I: saving pieces of records in different places</a></h2>
+<p>
+</p>
+<h2><a name="_record_storage_ii__attachments__both_inline_and_not">(Record storage II: attachments, both inline and not</a></h2>
+<p>
+</p>
+<h2><a name="_record_storage_iii__specifying_shallow_and_deep_retrieval">(Record storage III: specifying shallow and deep retrieval</a></h2>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

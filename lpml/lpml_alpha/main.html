@@ -1,0 +1,202 @@
+<html><head><title>lpml alpha: Script file structure</title><style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style></head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Script file structure</div>
+<center>
+[&nbsp;<a href="index.html">Previous: LPML alpha</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: LPML alpha</a>&nbsp;]
+[&nbsp;<a href="scan.html">Next: Initial scan</a>&nbsp;]
+</center>
+
+<hr>
+This is the overall layout of the file, and indeed of most single-file Perl scripts.  As such,
+it will serve as a useful pattern someday when this project gets to the point where patterns
+are explicitly supported. 
+<p></p>
+I don't know how other people write Perl scripts, but I start out by processing the input, so
+I can quit early if there's already a problem.  Then globals and subroutine declaration (in
+most of my larger pieces, of course, I eschew globals and I put subroutines into separate
+files.)  Then the meat of the code, which executes the following basic algorithm: <ul>
+<li>Scan<br>
+The initial scan reads the file and creates a list of items keyed by name.  Each item's
+information includes its label (for printing into the documentation) and its initial text
+pieces (for tangling.)  Note that some pieces concatenate onto <i>other</i> items than the
+one they're in; in this case, the label may not even be known before the first text piece
+is added, but that won't stop us, we're Perl.
+<li>Tangle<br>
+Once the scan is complete, we have all the information we need to generate the text targets
+defined by this file.  (That's tangling.)  So we get that task out of the way.  The other
+reason that tangle goes first is that in a later version than this, the tangle will accumulate
+index data which will be used during the weave phase (where documentation is generated.)
+<li>Prepare indices<br>
+Using information gained during the initial scan and possibly augmented during tangle, we can
+prepare various indices which can then be used in the generation of the documentation.  At the
+moment, these indices are simply a hierarchical list of items and a list of objects generated;
+no information is created during tangle.  Knuth's original <code>WEB</code>, of course,
+generated a comprehensive list of crossreferences and a list of identifiers during tangle.
+<li>Weave<br>
+The weave step generates the documentation, one page per item, by name.
+If an item is called "index" (thus generating "index.html") then it will be omitted from the
+list of items, and its label will be available for use in subsequent pages.
+The <code>&lt;insert&gt;</code> tag is replaced by the label of its item, suitably formatted.
+Text pieces are formatted as code blocks. 
+</ul>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#!/usr/local/bin/perl
+# This is the lpml alpha Perl script.
+# Copyright (c) 2000 Vivtek.  All rights reserved except those explicitly granted
+# under the GNU Public License.
+# http://www.vivtek.com/lpml/lpml_alpha/index.html for more information.
+
+<i>See <a href="process_args.html">Process arguments and open source file</a></i>
+
+
+<i>See <a href="scan.html">Initial scan</a></i>
+<i>See <a href="tangle.html">Tangle: write code output</a></i>
+<i>See <a href="write_index.html">Prepare indices</a></i>
+<i>See <a href="weave.html">Weave: Write documentation pages</a></i>
+
+<i>See <a href="clean_up.html">Clean up afterwards</a></i>
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="index.html">Previous: LPML alpha</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href="scan.html">Next: Initial scan</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2006, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body></html>

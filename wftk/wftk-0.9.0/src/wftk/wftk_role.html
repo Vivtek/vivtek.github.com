@@ -1,0 +1,96 @@
+<html><head><title>wftk core library: Working with roles</title></head>
+<body>
+<h2>Working with roles</h2>
+<center>
+[&nbsp;<a href="wftk_status.html">Previous: Getting and setting process status</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_user.html">Next: Working with users</a>&nbsp;]
+</center>
+
+<hr>
+Roles are pretty loose at this point.  Basically, we want to be able to list the roles in a process, determine who's
+assigned to them at the moment (by default, once someone gets a task, that person gets further tasks assigned to that role
+in that process.  The only way to get out of this is to de-assign the role or send a request to somebody else.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int    wftk_role_list   (void * session, XML * datasheet, XML * list)
+{
+   int count = 0;
+   XML * mark;
+   XML * hit;
+   ATTR * attr;
+
+   if (!list) return 0;
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (!strcmp (mark->name, "role")) {
+         hit = xml_create ("role");
+         attr = mark->attrs;
+         while (attr) {
+            xml_set (hit, attr->name, attr->value);
+            attr = attr->next;
+         }
+         xml_append (list, hit);
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   return count;
+}
+
+const char * wftk_role_user (void * session, XML * datasheet, const char * role)
+{
+   XML * mark;
+
+   if (!role) return "";
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (!strcmp (mark->name, "role") &amp;&amp; !strcmp (xml_attrval (mark, "name"), role)) {
+         return (xml_attrval (mark, "user"));
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   return "";
+}
+
+int    wftk_role_assign (void * session, XML * datasheet, const char * role, const char * userid)
+{
+   XML * mark;
+
+   if (!role || !userid) return 0;
+   if (*userid) wftk_user_retrieve (session, datasheet, userid);
+
+   /* TODO: reassign existing role-based tasks based on new role assignment. */
+
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (!strcmp (mark->name, "role") &amp;&amp; !strcmp (xml_attrval (mark, "name"), role)) {
+         xml_set (mark, "user", userid);
+         return 1;
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   mark = xml_create ("role");
+   xml_set (mark, "name", role);
+   xml_set (mark, "user", userid);
+   xml_append (datasheet, mark);
+   return 1;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_status.html">Previous: Getting and setting process status</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_user.html">Next: Working with users</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

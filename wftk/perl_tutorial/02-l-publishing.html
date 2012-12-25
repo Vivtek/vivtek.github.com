@@ -1,0 +1,182 @@
+<head>
+<title>wftk tutorial - (unresolved tag 02-l-title)</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk tutorial - (unresolved tag 02-l-title)</div>
+
+<p><a name="__index__"></a></p>
+<!-- INDEX BEGIN -->
+
+
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<p>The data dumpers covered in 02-h Records are useful for situations where we need to parse the data back out of a given format, but one common feature
+of easily parsed formats is that they're generally not all that useful for human consumption.  (The standard format is meant to be a reasonable
+compromise, providing a relatively easy-to-parse format that can also be edited by a programmer, but non-programmers are not likely to find it terribly
+palatable.)</p>
+<p>So the wftk also provides a mechanism for publishing data -- both lists and records -- using templates.  Like everything else, the publishing system
+is an attempt to be as modular as possible, so you can define your own template language if that's what floats your boat, and everything that can
+possibly be seen as a publisher will be handled with this mechanism as well.</p>
+<p>Here are some possible applications of publishers:</p>
+<dl>
+<dt><strong><a name="item_generation_of_webpages_to_allow_navigation_in_the_">Generation of webpages to allow navigation in the data system of a repository</a></strong>
+
+<dd>
+<p>A list can be represented as an HTML table, and a record as a page to be displayed with a given template.  Individual rows in the table will have
+links to display the records, and there can be a lot of work done with other navigational features, Javascript, frames, what have you -- all of that
+together resides as one complex publisher which uses a number of separate templates for various purposes.</p>
+</dd>
+</li>
+<dt><strong><a name="item_outgoing_mail_2c_with_attachments_2c_sent_when_par">Outgoing mail, with attachments, sent when particular events occur</a></strong>
+
+<dd>
+<p>This is an easier publisher to conceptualize.  It can be a single action to invoke a notification publisher on a given record.  That publisher
+may be parameterized with a list of recipients, and it can use a MIME email template to build an email with arbitrarily complex formatting and
+attachments, then send it.</p>
+</dd>
+</li>
+<dt><strong><a name="item_periodic_reports">Periodic reports</a></strong>
+
+<dd>
+<p>Given the action scheduling facility (see Chapter 3: Actions and events), you can set up periodic reporting to do whatever queries you want, format
+the results in a single useful HTML or PDF file, then save that file into a document management system for later evaluation by a human being.</p>
+</dd>
+</li>
+<dt><strong><a name="item_ad_2dhoc_reporting">Ad-hoc reporting</a></strong>
+
+<dd>
+<p>The same facility can be used to specify an ad-hoc reporter that can track what people have requested and stash results into a document management
+system.  To do this, you might want to define a simple language for specification of the publisher, and perhaps provide a second document management
+facility to keep track of useful ad-hoc reports.</p>
+</dd>
+</li>
+</dl>
+<p>All of these are modeled in the wftk using the same publishing system, so any templates developed for one purpose can easily be reused for another.</p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

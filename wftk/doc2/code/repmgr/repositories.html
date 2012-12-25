@@ -1,0 +1,348 @@
+<html><head><title>Repository manager: Working with repository objects</title></head>
+<body>
+<h2>Working with repository objects</h2>
+<center>
+[&nbsp;<a href="library.html">Previous: Repository management library</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="publishing.html">Next: Publishing objects: internals</a>&nbsp;]
+</center>
+
+<hr>
+The repository itself is (of course) an XML object.  This object describes the repository in detail, listing pages, lists,
+layout specifications, publishing links, and so on.  This is combined with a current directory used to store various information.
+<p></p>
+In the case of a remote repository, however, things get more interesting.  Here, all traffic in and out is piped to the remote
+repository's command-line listener.  This is by default on port 4239 -- I don't know why, I just made it up.  Anyway, everything
+is handled by the API, including conversion to and from whatever on-the-wire representation is expected.  A fully remote repository
+looks like this: &lt;site host="www.myhost.com!4239!/mydir/repository"/&gt; -- if 4239 is the port, of course, then you don't need
+to specify it.  Relative directories may also be specified, in which case the interpretation of the relative directory is up to the
+host.
+<p></p>
+When a remote repository such as this is opened, the XML object's binary pointer is used to store the socket.  When xml_free is called,
+the socket is automatically cleaned up -- or repos_close can be used to clean it up at any arbitrary time.
+<p></p>
+So anyway, a nonremote repository needs no particular opening.  A remote repository does.  Other types ... well, if there ever are
+any other types, they may or may not need this service.  We'll find out.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _repos_remote {
+   XML * parms;
+#ifdef WINDOWS
+   SOCKET sock;
+#else
+   int sock;
+#endif
+};
+void _repos_remote_cleanup (void * _sock) {
+   struct _repos_remote * sock = (struct _repos_remote *) _sock;
+
+   xml_free (sock->parms);
+#ifdef WINDOWS
+   if (sock->sock) closesocket (sock->sock);
+#else
+   if (sock->sock) close (sock->sock);
+#endif
+
+   free (sock);
+}
+const char * _repos_receive (struct _repos_remote * sock)
+{
+   char *line;
+   int bufsize = 0;
+   int bufsizelen = sizeof (int);
+   int bytes;
+/*#ifdef WINDOWS
+   ULONG flag = 1;
+   ioctlsocket (sock->sock, FIONBIO, &amp;flag);
+#else
+   int flags = fcntl (sock->sock, F_GETFL);
+
+   fcntl (sock->sock, F_SETFL, flags | O_NONBLOCKING);
+#endif*/
+
+   getsockopt (sock->sock, SOL_SOCKET, SO_RCVBUF, (char *) &amp;bufsize, &amp;bufsizelen);
+   if (!bufsize) bufsize = 1024; /* Why doesn't the getsockopt work on Solaris?  Dunno. */
+   line = (char *) malloc (bufsize);
+
+   xml_set (sock->parms, "buffer", "");
+   do {
+      bytes = recv (sock->sock, line, bufsize, 0);
+
+      if (bytes > 0) xml_attrncat (sock->parms, "buffer", line, bytes);
+   } while (!strstr (xml_attrval (sock->parms, "buffer"), "++done++"));
+
+   free (line);
+   return xml_attrval (sock->parms, "buffer");
+}
+void _repos_send (struct _repos_remote * sock)
+{
+   send (sock->sock, xml_attrval (sock->parms, "outgoing"), strlen (xml_attrval (sock->parms, "outgoing")), 0);
+}
+
+static struct wftk_adaptor_info * 
+             _repmgr_standard_adaptor_lookup_function (int adaptor_class,
+                                                       int name_length,
+                                                       const char * adaptor_descriptor);
+WFTK_EXPORT XML * repos_open (XML * repository, WFTK_MODULE_LOOKUP_FN * lookup_function, const char * calling_app)
+{
+   struct _repos_remote * sock;
+   const char * host = xml_attrval (repository, "host");
+   const char * mark;
+   struct hostent *server;
+#ifdef WINDOWS
+   WSADATA wsa;
+#endif
+   struct sockaddr_in name;
+
+   repos_log (repository, 2, 0, NULL, "repos", "opening repository (%s)", calling_app ? calling_app : "no app named");
+
+   if (*host) {
+      if (xml_getbin (repository)) return (repository);
+#ifdef WINDOWS
+      WSAStartup (MAKEWORD (1, 0), &amp;wsa);
+#endif
+      sock = (struct _repos_remote *) malloc (sizeof (struct _repos_remote));
+      sock->parms = xml_create ("p");
+      sock->sock = 0;
+      xml_set (sock->parms, "mode", "sockets");
+      xml_set (sock->parms, "host", host);
+      mark = strchr (host, '!');
+      if (!mark) {
+         xml_set (sock->parms, "server", host);
+         xml_set (sock->parms, "port", "4239");
+      } else {
+         xml_set (sock->parms, "server", "");
+         xml_attrncat (sock->parms, "server", host, mark - host);
+         host = mark + 1;
+         mark = strchr (host, '!');
+         if (mark) {
+            xml_set (sock->parms, "port", "");
+            xml_attrncat (sock->parms, "port", host, mark - host);
+            xml_set (sock->parms, "repos", mark + 1);
+         } else {
+            xml_set (sock->parms, "port", "4239");
+            xml_set (sock->parms, "repos", host);
+         }
+      }
+
+      server = gethostbyname (xml_attrval (sock->parms, "server"));
+      if (!server) {
+         xml_setf (repository, "error-state", "Unable to resolve remote server name '%s'.", xml_attrval (sock->parms, "server"));
+         _repos_remote_cleanup (sock);
+         return repository;
+      }
+
+      sock->sock = socket (AF_INET, SOCK_STREAM, 0);
+#ifdef WINDOWS
+      if (sock->sock == INVALID_SOCKET) {
+#else
+      if (sock->sock < 0) {
+#endif
+         xml_set (repository, "error-state", "Unable to allocate socket.");
+         sock->sock = 0;
+         _repos_remote_cleanup (sock);
+         return repository;
+      }
+
+
+      memset (&amp;name, 0, sizeof (struct sockaddr_in));
+      name.sin_family = AF_INET;
+      name.sin_port = htons (xml_attrvalnum (sock->parms, "port"));
+      memcpy (&amp;name.sin_addr, server->h_addr_list[0], server->h_length);
+
+      if (connect(sock->sock, (struct sockaddr *) &amp;name, sizeof (struct sockaddr)) < 0) {
+         xml_setf (repository, "error-state", "Unable to connect to server '%s:%s'", xml_attrval (sock->parms, "server"), xml_attrval (sock->parms, "port"));
+         _repos_remote_cleanup (sock);
+         return repository;
+      }
+
+      xml_set (sock->parms, "outgoing", "\n");
+      _repos_send (sock);
+      _repos_receive (sock); /* Throw away greeting. */
+      if (*xml_attrval (sock->parms, "repos")) {
+         xml_setf (sock->parms, "outgoing", "repos %s\n", xml_attrval (sock->parms, "repos"));
+         _repos_send (sock);
+         if (*_repos_receive (sock) == '-') {
+            xml_setf (repository, "error-state", "Unable to open repository '%s'", xml_attrval (sock->parms, "repos"));
+            _repos_remote_cleanup (sock);
+            return repository;
+         }
+      }
+
+      xml_setbin (repository, sock, _repos_remote_cleanup);
+   } else {
+      /* Local repository, so we have to tell it about the adaptors we have statically linked. */
+      wftk_session_init(repository);
+      if (lookup_function) {
+         wftk_session_setlookup (repository, (WFTK_MODULE_LOOKUP_FN) lookup_function);
+      } else {
+         wftk_session_setlookup (repository, (WFTK_MODULE_LOOKUP_FN) _repmgr_standard_adaptor_lookup_function);
+      }
+   }
+
+   return repository;
+}
+WFTK_EXPORT XML * repos_open_file (const char * repfile, WFTK_MODULE_LOOKUP_FN * lookup_function, const char * calling_app)
+{
+   char * buf;
+   char * chmark;
+   FILE * file;
+   XML * ret;
+
+   if (-1 == chdir(repfile)) {
+      buf = strdup (repfile);
+      chmark = strrchr (buf, '/');
+      if (!chmark) chmark = strrchr (buf, '\\');
+      if (chmark) {
+         *chmark = '\0';
+         if (-1 == chdir (buf)) {
+            free (buf);
+            return NULL;
+         }
+         repfile = chmark + 1;
+         if (!*repfile) repfile = "site.opm";
+      }
+   } else {
+      buf = strdup (repfile);
+      repfile = "site.opm"; /* TODO: um.  configurable?  But where?  Compilation? */
+   }
+
+   file = fopen (repfile, "r");
+   if (!file) {
+      free (buf);
+      return NULL;
+   }
+
+   ret = xml_parse_general (file, (XMLAPI_DATARETRIEVE) fread);
+   fclose (file);
+   if (!xml_is (ret, "xml-error")) {
+      repos_open (ret, (WFTK_MODULE_LOOKUP_FN *)lookup_function, calling_app);
+      xml_set_nodup (ret, "basedir", buf);
+      return ret;
+   }
+   xml_free (ret);
+   free (buf);
+   return NULL;
+}
+WFTK_EXPORT void  repos_close     (XML * repository)
+{
+   struct _repos_remote * sock = (struct _repos_remote *) xml_getbin (repository);
+
+   if (!sock) return;
+
+   _repos_remote_cleanup ((void *) sock);
+   xml_setbin (repository, NULL, NULL);
+}
+</pre></td></tr></table>
+
+<i>March 26, 2002:</i> Under Windows, where we package up a repmgr.dll, there are cases (such as when we dynamically
+link the repository manager from Python) where it would be inconvenient to provide a C callback to look up
+statically linked (or at least known) modules.  So in this case we have a standard lookup function which knows about
+the adaptors available in the DLL.  The same applies to Unix, so I guess this will look pretty much the same for both.
+<p></p>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_ADAPTOR_INFO_FN LIST_localdir_get_info;
+WFTK_ADAPTOR_INFO_FN LIST_delim_get_info;
+WFTK_ADAPTOR_INFO_FN LIST_lines_get_info;
+WFTK_ADAPTOR_INFO_FN USER_list_get_info;
+WFTK_ADAPTOR_INFO_FN DATASTORE_role_get_info;
+WFTK_ADAPTOR_INFO_FN DSREP_list_get_info;
+WFTK_ADAPTOR_INFO_FN PDREP_list_get_info;
+WFTK_ADAPTOR_INFO_FN TASKINDEX_list_get_info;
+WFTK_ADAPTOR_INFO_FN PERMS_list_get_info;
+WFTK_ADAPTOR_INFO_FN NOTIFY_smtp_get_info;
+#ifdef ADAPTOR_LIST_MYSQL_STATIC
+WFTK_ADAPTOR_INFO_FN LIST_mysql_get_info;
+#endif
+#ifdef ADAPTOR_LIST_ORACLE_STATIC
+WFTK_ADAPTOR_INFO_FN LIST_oracle_get_info;
+#endif
+#ifdef ADAPTOR_ACTION_HTTP
+WFTK_ADAPTOR_INFO_FN ACTION_http_get_info;
+WFTK_ADAPTOR_INFO_FN ACTION_soap_get_info;
+#endif
+
+static struct wftk_adaptor_info * _repmgr_standard_adaptor_lookup_function (int adaptor_class, int name_length, const char * adaptor_descriptor)
+{
+   switch (adaptor_class) {
+      case LIST:
+         if (!name_length || (name_length == 8 &amp;&amp; !strncmp ("localdir", adaptor_descriptor, 8))) {
+            return LIST_localdir_get_info();
+         }
+         if ((name_length == 5 &amp;&amp; !strncmp ("delim", adaptor_descriptor, 5))) {
+            return LIST_delim_get_info();
+         }
+         if ((name_length == 5 &amp;&amp; !strncmp ("lines", adaptor_descriptor, 5))) {
+            return LIST_lines_get_info();
+         }
+#ifdef ADAPTOR_LIST_MYSQL_STATIC
+         if (name_length == 5 &amp;&amp; !strncmp ("mysql", adaptor_descriptor, 5)) {
+            return LIST_mysql_get_info();
+         }
+#endif
+#ifdef ADAPTOR_LIST_ORACLE_STATIC
+         if (name_length == 6 &amp;&amp; !strncmp ("oracle", adaptor_descriptor, 6)) {
+            return LIST_oracle_get_info();
+         }
+#endif
+         break;
+      case USER:
+         if (!name_length || (name_length == 4 &amp;&amp; !strncmp ("list", adaptor_descriptor, 4))) {
+            return USER_list_get_info();
+         }
+      case DATASTORE:
+         if ((name_length == 4 &amp;&amp; !strncmp ("role", adaptor_descriptor, 4))) {
+            return DATASTORE_role_get_info();
+         }
+      case DSREP:
+         if (!name_length || (name_length == 4 &amp;&amp; !strncmp ("list", adaptor_descriptor, 4))) {
+            return DSREP_list_get_info();
+         }
+      case PDREP:
+         if (!name_length || (name_length == 4 &amp;&amp; !strncmp ("list", adaptor_descriptor, 4))) {
+            return PDREP_list_get_info();
+         }
+      case TASKINDEX:
+         if (!name_length || (name_length == 4 &amp;&amp; !strncmp ("list", adaptor_descriptor, 4))) {
+            return TASKINDEX_list_get_info();
+         }
+      case PERMS:
+         if (!name_length || (name_length == 4 &amp;&amp; !strncmp ("list", adaptor_descriptor, 4))) {
+            return PERMS_list_get_info();
+         }
+      case NOTIFY:
+         if (!name_length || (name_length == 4 &amp;&amp; !strncmp ("smtp", adaptor_descriptor, 4))) {
+            return NOTIFY_smtp_get_info();
+         }
+      case ACTION:
+#ifdef ADAPTOR_ACTION_HTTP
+         if (name_length == 4 &amp;&amp; !strncmp ("http", adaptor_descriptor, 4)) {
+            return ACTION_http_get_info();
+         }
+         if (name_length == 4 &amp;&amp; !strncmp ("soap", adaptor_descriptor, 4)) {
+            return ACTION_soap_get_info();
+         }
+#endif
+      break;
+   }
+   return NULL;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="library.html">Previous: Repository management library</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="publishing.html">Next: Publishing objects: internals</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

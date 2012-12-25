@@ -1,0 +1,102 @@
+<html><head><title>wftk command-line utility: Working with users</title></head>
+<body>
+<h2>Working with users</h2>
+<center>
+[&nbsp;<a href="wftk_util_role.html">Previous: Working with roles</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_action.html">Next: action: Performing actions with possible deferment</a>&nbsp;]
+</center>
+
+<hr>
+The user facilities at this level are very simple: each user element in a datasheet represents one user involved with
+the process.  I'm a tad worried that we'll run into synchronization problems with this (I update my email address, but
+individual processes I'm involved with don't get the message) but I figure at some point we'll include a user directory
+pointer in the session, which can be consulted when necessary.  I don't know yet.
+<p></p>
+At any rate, the command-line utility exposes two functions: one lists users, the other lists the attributes of users
+or sets attributes.
+<br><br>
+<a name="users">
+<i>users: list users in a datasheet</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 2) {
+   printf ("wftk users: repository and ID of the datasheet are required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+
+list = xml_create ("list");
+wftk_user_list (session, datasheet, list);
+mark = xml_firstelem (list);
+while (mark) {
+   printf ("%s ", xml_attrval (mark, "id"));
+   if (*xml_attrval (mark, "name")) {
+      printf ("(%s) ", xml_attrval (mark, "name"));
+   }
+   if (*xml_attrval (mark, "email")) {
+      printf (": %s", xml_attrval (mark, "email"));
+   }
+   printf ("\n");
+   mark = xml_nextelem (mark);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="user">
+<i>user: display user or set attribute</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 3) {
+   printf ("wftk user: repository and ID of the datasheet and a userid are all required.\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+   exit (1);
+}
+
+mark = wftk_user_retrieve (session, datasheet, argv[argp++]);
+if (argsleft &lt; 1) {
+   if (!mark) {
+      printf ("User %s apparently not involved with process %s\n", argv[argp-1], argv[argp-2]);
+   } else {
+      printf ("%s ", xml_attrval (mark, "id"));
+      if (*xml_attrval (mark, "name")) {
+         printf ("(%s) ", xml_attrval (mark, "name"));
+      }
+      if (*xml_attrval (mark, "email")) {
+         printf (": %s", xml_attrval (mark, "email"));
+      }
+      printf ("\n");
+   }
+} else {
+   if (argsleft &lt; 2) {
+      printf ("wftk user: to set attribute, both attribute and value are required.\n");
+   } else {
+      xml_set (mark, argv[argp], argv[argp+1]);
+      wftk_process_save (session, datasheet);
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_util_role.html">Previous: Working with roles</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_action.html">Next: action: Performing actions with possible deferment</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,1127 @@
+<html><head><title>LIST adaptor: mbox</title></head>
+<body>
+<h2>LIST adaptor: mbox</h2>
+<hr>
+<p></p>
+This is the fourth list adaptor (or the third, depending on whether I finish this or the MySQL
+adaptor first) and what it does is fairly obvious; it organizes mbox-style mailbox files so that they
+look like lists to the repository manager.  The advantages are likewise obvious: mail can be tossed
+into mbox format, and trigger workflow or publishing action with very little hassle.  Also, further
+code can be written to do arbitrary processing of mail (for instance, I'm very interested in doing
+textual analysis.)
+
+<p></p>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include &lt;string.h>
+#include &lt;sys/types.h>
+#include &lt;sys/stat.h>
+#include &lt;errno.h>
+#include &lt;malloc.h>
+#include "../wftk.h"
+#include "../../xmlapi/xmlobj.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "create",
+   "destroy",
+   "add",
+   "update",
+   "delete",
+   "get",
+   "query",
+   "first",
+   "next",
+   "rewind",
+   "prev",
+   "last",
+   "attach_open",
+   "attach_write",
+   "attach_close",
+   "attach_cancel",
+   "retrieve_open",
+   "retrieve_read",
+   "retrieve_close"
+};
+
+XML * LIST_mbox_init (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_free (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_info (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_create (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_destroy (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_add (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_update (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_delete (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_get (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_query (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_first (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_next (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_rewind (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_prev (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_last (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_attach_open (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_attach_write (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_attach_close (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_attach_cancel (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_retrieve_open (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_retrieve_read (WFTK_ADAPTOR * ad, va_list args);
+XML * LIST_mbox_retrieve_close (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   LIST_mbox_init,
+   LIST_mbox_free,
+   LIST_mbox_info,
+   LIST_mbox_create,
+   LIST_mbox_destroy,
+   LIST_mbox_add,
+   LIST_mbox_update,
+   LIST_mbox_delete,
+   LIST_mbox_get,
+   LIST_mbox_query,
+   LIST_mbox_first,
+   LIST_mbox_next,
+   LIST_mbox_rewind,
+   LIST_mbox_prev,
+   LIST_mbox_last,
+   LIST_mbox_attach_open,
+   LIST_mbox_attach_write,
+   LIST_mbox_attach_close,
+   LIST_mbox_attach_cancel,
+   LIST_mbox_retrieve_open,
+   LIST_mbox_retrieve_read,
+   LIST_mbox_retrieve_close
+};
+
+static struct wftk_adaptor_info _LIST_mbox_info =
+{
+   22,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct wftk_adaptor_info * LIST_mbox_get_info ()
+{
+   return &amp; _LIST_mbox_info;
+}
+</pre></td></tr></table>
+
+As with the localdir adaptor, the sticky wicket with initialization is that we don't have all the information we need during the
+init call.  Specifically, we don't have the ID of the list, which is generally used during the determination of the storage file
+of the mailbox.  So we can't really do a lot of initialization here; that happens the first time the adaptor is actually called.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mbox_init (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * LIST_mbox_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mbox_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "list");
+   xml_set (info, "name", "mbox");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+<p></p>
+
+So first off, let's define the actual initialization function, which for the mbox adaptor is non-trivial; after determining the
+actual mailbox to use, we check whether its index is current (by checking modification dates); if it isn't present, or isn't current,
+then we actually scan the mailbox and write a new index.  During this operation, we will later store up a list of changes (adds and
+deletes; mail messages cannot be modified), which will be passed on to whatever indices are defined on the list.  This is rather
+different from the standard list adaptor, and it'll be interesting to see what list applications might borrow from this sort of
+functionality.  All in all, the list adaptor is turning out to be the most interesting adaptor class I've yet considered.
+
+<p></p>
+<i>March 11, 2003</i>: turns out this is also the first adaptor to use a configuration value.  The mbox adaptor looks for a configuration
+value named "mbox_dir" -- this is the directory, defaulting to the current directory, which stores the mbox files.  The reason it's
+a nice thing to use separate directories is that many mail clients (Netscape being one of them), extraneous files like site.opm sitting
+around in the mail directory get treated as folders themselves, and get overwritten willy-nilly.  The easy solution is to have one
+directory for the repository, another for the mail itself.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * _LIST_mbox_initialize (WFTK_ADAPTOR * ad, XML * list)
+{
+   struct stat statbuf;
+   struct stat statbuf_idx;
+   int current;
+   int header = 0;
+   XML * cache;
+   FILE * mbox;
+   FILE * idx;
+   char line[1024];
+   long offset = 0;
+   char localmsgid[128];
+   char id[128];
+   char from[128];
+   char to[128];
+   char msgid[128];
+   char recvdate[64];
+   char date[64];
+   char subject[1024];
+   char * mark;
+   XML * rec;
+   XML * index;
+
+   /* Find mbox storage file. */
+   xml_set (ad->parms, "_dir", xmlobj_getconf (ad->session, "mbox_dir", xml_attrval (ad->parms, "basedir")));
+   if (!*xml_attrval (ad->parms, "_dir")) xml_set (ad->parms, "_dir", ".");
+   if (*xml_attrval (list, "mbox_dir")) xml_set (ad->parms, "_dir", xml_attrval (list, "mbox_dir"));
+
+   if (!*xml_attrval (ad->parms, "_file")) {
+      if (*xml_attrval (ad->parms, "parm")) {
+         xml_setf (ad->parms, "_file", "%s/%s", xml_attrval (ad->parms, "_dir"), xml_attrval (ad->parms, "parm"));
+      } else {
+         xml_setf (ad->parms, "_file", "%s/%s", xml_attrval (ad->parms, "_dir"), xml_attrval (list, "id"));
+      }
+   }
+
+   /* Build full index filename. */
+   if (*xml_attrval (ad->parms, "parm")) {
+      xml_setf (ad->parms, "_idx", "%s/%s.mbox", *xml_attrval (ad->parms, "basedir") ? xml_attrval (ad->parms, "basedir") : ".",
+                                                  xml_attrval (ad->parms, "parm"));
+   } else {
+      xml_setf (ad->parms, "_idx", "%s/%s.mbox", *xml_attrval (ad->parms, "basedir") ? xml_attrval (ad->parms, "basedir") : ".",
+                                                  xml_attrval (list, "id"));
+   }
+
+   /* Check for currency of index. */
+   current = 1;
+   if (stat (xml_attrval (ad->parms, "_idx"), &amp;statbuf_idx) == -1) { current = 0; }
+   if (current) {
+      if (stat (xml_attrval (ad->parms, "_file"), &amp;statbuf) == -1) {
+         xml_setf (ad->parms, "error", "Mailbox '%s' not found.", xml_attrval (ad->parms, "_file"));
+         return NULL;
+      }
+
+      if (statbuf.st_mtime > statbuf_idx.st_mtime) current = 0;
+   }
+
+   if (current) {
+      /* Do we have a loaded index? */
+      index = xml_loc (ad->parms, ".cache");
+      if (!index) {
+         /* Load index. */
+         index = xml_create ("cache");
+         xml_append (ad->parms, index);
+         idx = fopen (xml_attrval (ad->parms, "_idx"), "rt");
+         while (fgets (line, sizeof (line)-1, idx)) {
+            rec = xml_create ("record");
+            xml_append (index, rec);
+            xmlobj_set (rec, NULL, "offset", strtok (line, "\t"));
+            xmlobj_set (rec, NULL, "id", strtok (NULL, "\t"));
+            xmlobj_set (rec, NULL, "recvdate", strtok (NULL, "\t"));
+            xmlobj_set (rec, NULL, "date", strtok (NULL, "\t"));
+            xmlobj_set (rec, NULL, "from", strtok (NULL, "\t"));
+            xmlobj_set (rec, NULL, "to", strtok (NULL, "\t"));
+            xmlobj_set (rec, NULL, "subject", strtok (NULL, "\n"));
+
+            xml_set_nodup (rec, "id", xmlobj_get (rec, NULL, "id"));
+        }
+         fclose (idx);
+      }
+   } else {
+      /* Scan mailbox if index absent or no longer current. */
+      /* TODO: there may be a way to reuse existing index info when the mailbox is changed.  If so, this would be the place to do this. */
+      mbox = fopen (xml_attrval (ad->parms, "_file"), "rt");
+      if (!mbox) {
+         xml_setf (ad->parms, "error", "Cannot open mailbox '%s' for reading.", xml_attrval (ad->parms, "_file"));
+         return NULL;
+      }
+      idx = fopen (xml_attrval (ad->parms, "_idx"), "wt");
+      if (!idx) {
+         xml_setf (ad->parms, "error", "Cannot open index '%s' for writing.", xml_attrval (ad->parms, "_idx"));
+         fclose (mbox);
+         return NULL;
+      }
+
+      /* Do we have a loaded index?  If so, delete it. */
+      index = xml_loc (ad->parms, ".cache");
+      if (index) xml_delete (index);
+      index = xml_create ("cache");
+      xml_append (ad->parms, index);
+
+      while (fgets (line, sizeof (line)-1, mbox)) {
+         if (!strncmp (line, "From -", 6)) {
+            if (offset) { /* Write a line. */
+               sprintf (localmsgid, "%ld@local", offset);
+               fprintf (idx, "%ld\t%s\t%s\t%s\t%s\t%s\t%s\n",
+                             offset, *msgid ? msgid : localmsgid, recvdate, date, from, to, subject);
+               rec = xml_create ("record");
+               xml_append (index, rec);
+               xmlobj_setnum (rec, NULL, "offset", offset);
+               xmlobj_set (rec, NULL, "id", *msgid ? msgid : localmsgid);
+               xmlobj_set (rec, NULL, "recvdate", recvdate);
+               xmlobj_set (rec, NULL, "date", date);
+               xmlobj_set (rec, NULL, "from", from);
+               xmlobj_set (rec, NULL, "to", to);
+               xmlobj_set (rec, NULL, "subject", subject);
+
+               xml_set_nodup (rec, "id", xmlobj_get (rec, NULL, "id"));
+            }
+            strcpy (recvdate, line + 7);
+            mark = strchr (recvdate, '\n');
+            if (mark) *mark = '\0';
+            *id = '\0';
+            *date = '\0';
+            *from = '\0';
+            *to = '\0';
+            *subject = '\0';
+            *msgid = '\0';
+            header = 1;
+         } else if (!header) {
+            offset = ftell (mbox);
+            continue;
+         }
+
+         if (*line == '\n') {
+            header = 0;
+            continue;
+         }
+
+         if (!strncmp (line, "Date: ", 6)) {
+            mark = line + 6;
+            while (*mark == ' ') mark++;
+            strcpy (date, mark);
+            mark = strchr (date, '\n');
+            if (mark) *mark = '\0';
+         } else if (!strncmp (line, "From: ", 6)) {
+            mark = line + 6;
+            while (*mark == ' ') mark++;
+            strcpy (from, mark);
+            mark = strchr (from, '\n');
+            if (mark) *mark = '\0';
+         } else if (!strncmp (line, "To: ", 4)) {
+            mark = line + 4;
+            while (*mark == ' ') mark++;
+            strcpy (to, mark);
+            mark = strchr (to, '\n');
+            if (mark) *mark = '\0';
+         } else if (!strncmp (line, "Subject: ", 9)) {
+            mark = line + 9;
+            while (*mark == ' ') mark++;
+            strcpy (subject, mark);
+            mark = strchr (subject, '\n');
+            if (mark) *mark = '\0';
+         } else if (!strncmp (line, "Message-Id: ", 12)) {
+            mark = line + 12;
+            while (mark &amp;&amp; (*mark == ' ' || *mark == '&lt;')) mark++;
+            strcpy (msgid, mark);
+            mark = strchr (msgid, '>');
+            if (mark) *mark = '\0';
+         }
+         offset = ftell (mbox);
+      }
+      if (offset) { /* Write a line. */
+         sprintf (localmsgid, "%ld@local", offset);
+         fprintf (idx, "%ld\t%s\t%s\t%s\t%s\t%s\t%s\n",
+                       offset, *msgid ? msgid : localmsgid, recvdate, date, from, to, subject);
+         rec = xml_create ("record");
+         xml_append (index, rec);
+         xmlobj_setnum (rec, NULL, "offset", offset);
+         xmlobj_set (rec, NULL, "id", *msgid ? msgid : localmsgid);
+         xmlobj_set (rec, NULL, "recvdate", recvdate);
+         xmlobj_set (rec, NULL, "date", date);
+         xmlobj_set (rec, NULL, "from", from);
+         xmlobj_set (rec, NULL, "to", to);
+         xmlobj_set (rec, NULL, "subject", subject);
+
+         xml_set_nodup (rec, "id", xmlobj_get (rec, NULL, "id"));
+      }
+
+      fclose (idx);
+      fclose (mbox);
+   }
+
+   return (index);
+}
+</pre></td></tr></table>
+
+The first real functionality, then, is the list function.  It's easy, because all it needs to do is scan the index and return
+whatever it sees.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mbox_query (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * list;
+   XML * index;
+   XML * rec;
+   int count;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   index = _LIST_mbox_initialize (ad, list); /* Note that this may reinitialize before *any* operation, if the mailbox has changed. */
+   if (*xml_attrval (ad->parms, "error")) return NULL;
+   if (!index) return NULL;
+
+   /* if (!*xml_attrval (list, "select") &amp;&amp; !*xml_attrval (list, "order") &amp;&amp; !*xml_attrval (list, "where")) return list; */
+
+   /* Copy things over.  If "where" depends on fields not found in the index, then load those fields, but also load anything needed for
+      "select" or "order". TODO: implement "where" */
+   rec = xml_firstelem (index);
+   count = 0;
+   while (rec) {
+      if (xml_is (rec, "record")) {
+         xml_append (list, xml_copy (rec));
+         count++;
+      }
+      rec = xml_nextelem (rec);
+   }
+   xml_setnum (list, "count", count);
+
+   /* Sorting happens here. TODO: do it.*/
+
+   /* Finally, sweep through and remove any non-selected fields. TODO: do it. */
+
+   return list;
+}
+</pre></td></tr></table>
+
+So now we're in a position to define iteration over lists.  Both backwards and forwards are simple
+to define for this adaptor; for databases things may be more difficult to manage.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mbox_first (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * ret;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   xml_set (list, "cur", "");
+
+   ret = xml_firstelem (list);
+   if (ret) xml_set_nodup (list, "cur", xml_getlocbuf (ret));
+   else     xml_set (list, "cur", "EOF");
+   return (ret);
+}
+XML * LIST_mbox_next (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * cur;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   if (*xml_attrval (list, "cur")) {
+      if (!strcmp (xml_attrval (list, "cur"), "EOF")) return NULL;
+
+      cur = xml_loc (list, xml_attrval (list, "cur"));
+      if (cur) cur = xml_nextelem (cur);
+      if (cur) xml_set_nodup (list, "cur", xml_getlocbuf (cur));
+      else     xml_set (list, "cur", "EOF");
+      return (cur);
+   }
+
+   cur = xml_firstelem (list);
+   if (cur) xml_set_nodup (list, "cur", xml_getlocbuf (cur));
+   else     xml_set (list, "cur", "EOF");
+   return (cur);
+}
+XML * LIST_mbox_rewind (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   xml_set (list, "cur", "");
+}
+XML * LIST_mbox_prev (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * list;
+   XML * cur;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   if (!*xml_attrval (list, "cur")) return NULL;
+
+   if (!strcmp (xml_attrval (list, "cur"), "EOF")) {
+      cur = xml_lastelem (list);
+      if (cur) xml_set_nodup (list, "cur", xml_getlocbuf (cur));
+      else     xml_set (list, "cur", "");
+      return (cur);
+   }
+
+   cur = xml_loc (list, xml_attrval (list, "cur"));
+   if (cur) cur = xml_prevelem (cur);
+   if (cur) xml_set_nodup (list, "cur", xml_getlocbuf (cur));
+   else     xml_set (list, "cur", "");
+   return (cur);
+}
+XML * LIST_mbox_last (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * list;
+   XML * ret;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+
+   xml_set (list, "cur", "EOF");
+
+   ret = xml_lastelem (list);
+   if (ret) xml_set_nodup (list, "cur", xml_getlocbuf (ret));
+   else     xml_set (list, "cur", "");
+   return (ret);
+}
+</pre></td></tr></table>
+
+Let's skip the create/destroy stuff for now.  I haven't figured out sequencing for everything yet.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mbox_create (WFTK_ADAPTOR * ad, va_list args) { return 0; }
+XML * LIST_mbox_destroy (WFTK_ADAPTOR * ad, va_list args) { return 0; }
+</pre></td></tr></table>
+
+The "get" function for the mbox adaptor is somewhat complex, as it must work with MIME types to parse out attachments.
+The MIME reader is shared with the repmgr_mail front-end, and in fact the object constructed by the mbox adaptor is
+exactly the same as that built from incoming mail by repmgr_mail, except for the way that attachments are handled.
+Likewise, I suppose that the same basic structure should be used for notifications, so that attachments can be added
+to notifications going out.  All in all, this needs some serious exploration.
+
+<p></p>
+Here's the basic idea, though.  First, the basic fields of a mail message are "to", "from", "sent" (the date), "subject",
+and "content".  The content field is the readable text version of the actual content; if necessary and possible, this
+content will be generated from the actual content received.  In addition, there are a set of "header" fields, one per
+header in the mail message.
+
+<p></p>
+Let's define the "get" function first, then below we'll define a reader for it (this reader will migrate over to the
+repmgr_mail front-end at some point.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * _LIST_mbox_read (FILE * mbox, int content);
+XML * LIST_mbox_get (WFTK_ADAPTOR * ad, va_list args) {
+   XML * ret = NULL;
+   XML * list = NULL;
+   XML * index;
+   char * key;
+   FILE * mbox;
+   XML * mark;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+
+   /* Get the index. */
+   index = _LIST_mbox_initialize (ad, list); /* Note that this may reinitialize before *any* operation, if the mailbox has changed. */
+   if (*xml_attrval (ad->parms, "error")) return NULL;
+   if (!index) return NULL;
+
+   /* Find the message in question. */
+   mark = xml_locf (index, ".record[%s]", key);
+   if (!mark) {
+      xml_setf (ad->parms, "error", "Message-Id '%s' not present in mailbox.", key);
+      return NULL;
+   }
+
+   mbox = fopen (xml_attrval (ad->parms, "_file"), "rt");
+   if (!mbox) {
+      xml_setf (ad->parms, "error", "Cannot open mailbox '%s' for reading.", xml_attrval (ad->parms, "_file"));
+      return NULL;
+   }
+
+   fseek (mbox, xml_attrvalnum (mark, "offset"), SEEK_SET);
+   ret = _LIST_mbox_read (mbox, 1);
+
+   xmlobj_set (ret, list, "id", key);
+
+   return ret;
+}
+</pre></td></tr></table>
+
+All right, so how do we work that reader magic?  This will start simple, and probably at some point get pretty horrendous.  Fun!
+This version of the function expects the "From -" header to get things started off right.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static XML * _LIST_mbox_read (FILE * mbox, int content)
+{
+   char   line[1024];
+   char   buf[1024];
+   char * mark;
+   XML  * msg = xml_create ("msg");
+   XML  * field;
+   char   mimetype [64];
+   char   separator [64];
+   int    header = 1;
+
+   while (fgets (line, sizeof (line)-1, mbox)) {
+      if (*line == '\n') {
+         header = 0;
+         continue;
+      }
+
+      /* Now we collect our special fields. */
+      if (header) {
+         if (!strncmp (line, "From -", 6)) {
+            strcpy (buf, line + 7);
+            mark = strchr (buf, '\n');
+            if (mark) *mark = '\0';
+            xmlobj_set (msg, NULL, "recvdate", buf);
+         } else if (!strncmp (line, "Date: ", 6)) {
+            mark = line + 6;
+            while (*mark == ' ') mark++;
+            strcpy (buf, mark);
+            mark = strchr (buf, '\n');
+            if (mark) *mark = '\0';
+            xmlobj_set (msg, NULL, "date", buf);
+         } else if (!strncmp (line, "From: ", 6)) {
+            mark = line + 6;
+            while (*mark == ' ') mark++;
+            strcpy (buf, mark);
+            mark = strchr (buf, '\n');
+            if (mark) *mark = '\0';
+            xmlobj_set (msg, NULL, "from", buf);
+            mark = strchr (buf, '&lt;');
+            if (mark) {
+               strcpy (buf, mark+1);
+               mark = strchr (buf, '>');
+               if (mark) *mark = '\0';
+               xmlobj_set (msg, NULL, "from_addr", buf);
+            } else {
+               xmlobj_set (msg, NULL, "from_addr", buf);
+            }
+         } else if (!strncmp (line, "To: ", 4)) {
+            mark = line + 4;
+            while (*mark == ' ') mark++;
+            strcpy (buf, mark);
+            mark = strchr (buf, '\n');
+            if (mark) *mark = '\0';
+            mark = strchr (buf, '&lt;');
+            if (mark) {
+               strcpy (buf, mark+1);
+               mark = strchr (buf, '>');
+               if (mark) *mark = '\0';
+               xmlobj_set (msg, NULL, "to_addr", buf);
+            } else {
+               xmlobj_set (msg, NULL, "to_addr", buf);
+            }
+         } else if (!strncmp (line, "Subject: ", 9)) {
+            mark = line + 9;
+            while (*mark == ' ') mark++;
+            strcpy (buf, mark);
+            mark = strchr (buf, '\n');
+            if (mark) *mark = '\0';
+            xmlobj_set (msg, NULL, "subject", buf);
+         } else if (!strncmp (line, "Message-Id: ", 12)) {
+            mark = line + 12;
+            while (mark &amp;&amp; (*mark == ' ' || *mark == '&lt;')) mark++;
+            strcpy (buf, mark);
+            mark = strchr (buf, '>');
+            if (mark) *mark = '\0';
+            xmlobj_set (msg, NULL, "msgid", buf);
+         } else {
+            /* TODO: collect more headers. */
+         }
+      } else {
+         /* Get the content and set any attachment stuff that's necessary. */
+      }
+   }
+
+   return (msg);
+}
+</pre></td></tr></table>
+
+When adding an object to a list, we get a list descriptor (which serves every function) and the
+object itself.  The list descriptor includes our destination directory, possibly cryptically.  If
+no actual directory was given in our initialization, we will simply use the list ID given in the
+list descriptor.  If this directory doesn't exist, it won't be created -- that's what we have an explicit
+create for, after all.
+
+<p></p>
+If the "key" attribute is set on the object, this is used as a key; if not, then the "key" attribute of the
+list definition is checked and is assumed to name a field unless bracket notation is used, in which case a
+key value will be constructed.  Failing this, the first field in the object is taken as the key.  This
+logic applies to all three operations.  Update will check to see whether the key given in the object can still
+be reconstructed from the list definition and will delete the earlier object, <i>if</i> the list definition
+includes a key field definition!
+
+<p></p>
+Add will fail if the key already exists; update will overwrite but will not fail if the key does not exist;
+delete will likewise not fail if the key does not exist.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mbox_add (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * obj;
+   const char * key;
+   int cleanup = 0;
+   XML * mark;
+   XML * ret;
+   XML * scratch;
+   FILE * file;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   obj = va_arg (args, XML *);
+   if (!obj) {
+      xml_set (ad->parms, "error", "No object given.");
+      return (XML *) 0;
+   }
+
+   if (!*xml_attrval (ad->parms, "subdir")) xml_set (ad->parms, "subdir", xml_attrval (list, "id"));
+
+   key = xml_attrval (obj, "key");
+   if (!*key) {
+      key = xml_attrval (list, "key");
+      if (*key) {
+         key = xml_attrval (obj, key);
+      } else {
+         mark = xml_search (obj, "field", NULL, NULL);
+         if (!mark) {
+            xml_set (ad->parms, "error", "No key can be determined.");
+            return (XML *) 0;
+         }
+         key = xml_attrval (mark, "value");
+         if (!*key) {
+            key = xml_stringcontent (mark);
+            if (!*key) {
+               free ((void *)key);
+               xml_set (ad->parms, "error", "No key can be determined.");
+               return (XML *) 0;
+            }
+            cleanup = 1;
+         }
+      }
+   }
+
+   scratch = xml_create ("s");
+   xml_set (scratch, "dir", xml_attrval (ad->parms, "basedir"));
+   if (strcmp (xml_attrval (ad->parms, "subdir"), ".")) {
+      xml_attrcat (scratch, "dir", xml_attrval (ad->parms, "subdir"));
+      xml_attrcat (scratch, "dir", "/");
+   }
+   xml_setf (scratch, "file", "%s%s%s%s", xml_attrval (scratch, "dir"), xml_attrval (ad->parms, "prefix"), key, xml_attrval (ad->parms, "defsuffix")); /* TODO: multiple suffixes? */
+   if (cleanup) free ((void *)key);
+
+   file = fopen (xml_attrval (scratch, "file"), "w");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Object file %s cannot be opened for writing.", xml_attrval (scratch, "file"));
+   } else {
+      xml_write (file, obj);
+      fclose (file);
+   }
+
+   xml_free (scratch);
+   return NULL;
+}
+XML * LIST_mbox_update (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * obj;
+   const char * oldkey;
+   const char * key;
+   int cleanup = 0;
+   XML * mark;
+   XML * ret;
+   XML * scratch;
+   FILE * file;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   obj = va_arg (args, XML *);
+   if (!obj) {
+      xml_set (ad->parms, "error", "No object given.");
+      return (XML *) 0;
+   }
+
+   if (!*xml_attrval (ad->parms, "subdir")) xml_set (ad->parms, "subdir", xml_attrval (list, "id"));
+
+   oldkey = xml_attrval (obj, "key");
+
+   key = xml_attrval (list, "key");
+   if (key) {
+      mark = xml_search (obj, "field", "id", key);
+      if (mark) {
+         key = xml_attrval (mark, "value");
+         if (!*key) {
+            key = xml_stringcontent (mark);
+            if (!*key) {
+               free ((void *) key);
+               key = "";
+            } else {
+               cleanup = 1;
+            }
+         }
+      }
+   }
+
+   if (!*key) key = oldkey;
+
+   if (!*key) {
+      mark = xml_search (obj, "field", NULL, NULL);
+      if (!mark) {
+         xml_set (ad->parms, "error", "No key can be determined.");
+         return (XML *) 0;
+      } else {
+         key = xml_attrval (mark, "value");
+         if (!*key) {
+            key = xml_stringcontent (mark);
+            if (!*key) {
+               free ((void *)key);
+               xml_set (ad->parms, "error", "No key can be determined.");
+               return (XML *) 0;
+            }
+            cleanup = 1;
+         }
+      }
+   }
+
+   scratch = xml_create ("s");
+   xml_set (scratch, "dir", xml_attrval (ad->parms, "basedir"));
+   if (strcmp (xml_attrval (ad->parms, "subdir"), ".")) {
+      xml_attrcat (scratch, "dir", xml_attrval (ad->parms, "subdir"));
+      xml_attrcat (scratch, "dir", "/");
+   }
+   xml_setf (scratch, "file", "%s%s%s%s", xml_attrval (scratch, "dir"), xml_attrval (ad->parms, "prefix"), key, xml_attrval (ad->parms, "defsuffix")); /* TODO: multiple suffixes? */
+
+   if (cleanup) free ((void *)key);
+
+   file = fopen (xml_attrval (scratch, "file"), "w");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Object file %s cannot be opened for writing.", xml_attrval (scratch, "file"));
+   } else {
+      xml_write (file, obj);
+      fclose (file);
+      if (*oldkey &amp;&amp; strcmp (oldkey, key)) {
+         xml_setf (scratch, "delfile", "%s%s%s%s", xml_attrval (scratch, "dir"), xml_attrval (ad->parms, "prefix"), oldkey, xml_attrval (ad->parms, "defsuffix")); /* TODO: multiple suffixes? */
+         unlink (xml_attrval (scratch, "delfile"));
+      }
+   }
+
+   xml_free (scratch);
+   return NULL;
+}
+XML * LIST_mbox_delete (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   XML * obj;
+   char * key;
+   int cleanup = 0;
+   XML * mark;
+   XML * ret;
+   XML * scratch;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+   if (!key) {
+      xml_set (ad->parms, "error", "No object given.");
+      return (XML *) 0;
+   }
+
+   if (!*xml_attrval (ad->parms, "subdir")) xml_set (ad->parms, "subdir", xml_attrval (list, "id"));
+
+   scratch = xml_create ("s");
+   xml_set (scratch, "dir", xml_attrval (ad->parms, "basedir"));
+   if (strcmp (xml_attrval (ad->parms, "subdir"), ".")) {
+      xml_attrcat (scratch, "dir", xml_attrval (ad->parms, "subdir"));
+      xml_attrcat (scratch, "dir", "/");
+   }
+   xml_setf (scratch, "file", "%s%s%s%s", xml_attrval (scratch, "dir"), xml_attrval (ad->parms, "prefix"), key, xml_attrval (ad->parms, "defsuffix")); /* TODO: multiple suffixes? */
+   if (cleanup) free (key);
+
+   unlink (xml_attrval (scratch, "file"));
+
+   xml_free (scratch);
+   return NULL;
+}
+</pre></td></tr></table>
+
+
+So (<i>January 12, 2002</i>) the next thing to address is attachments.  I think it's likely that handling
+attachments will be the last new thing that the list storage adaptor will have to handle itself.  At any
+rate, an attachment is a regular field value, except it is generally stored separately from the object.
+As far as storage is concerned, attachments are pretty straightforward: they're files, or something
+like files.  You open them, set their MIME types, read and write to streams, close them.
+
+<p></p>
+It's important to realize that actually telling the object where its attachment is stored is up to the repository
+manager library, <i>not</i> the adaptor.  I waffled about this a lot, but essentially the list adaptor shouldn't
+be dependent on the repmgr, so that precludes any knowledge of the structure of record objects, and so (for instance)
+to open an attachment for retrieval, the repmgr will simply give the adaptor back whatever the adaptor told it earlier
+was the "location" of the attachment.  In our case here, this is a filename local to the adaptor's controlled directory,
+but in a database it may be a unique key into a BLOB table or something.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mbox_attach_open (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list;
+   char * key;
+   char * field;
+   char * filename;
+   struct stat statbuf;
+   XML * mark;
+   XML * ret;
+   FILE * file;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list descriptor given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+   field = va_arg (args, char *);
+   filename = va_arg (args, char *);
+
+   /* If we're not given a fieldname, then we'll just scan the list definition to find the first "document"-type field. */
+   if (!field) {
+      mark = xml_search (list, "field", "type", "document");
+      if (!mark) {
+         xml_set (ad->parms, "error", "No attachment field given and no default exists.");
+         return NULL;
+      }
+      field = (char *) xml_attrval (mark, "id");
+   }
+
+   ret = xml_create ("attachment-handle");
+
+   xml_set (ret, "dir", xml_attrval (ad->parms, "basedir"));
+   if (!*xml_attrval (ad->parms, "subdir")) xml_set (ad->parms, "subdir", xml_attrval (list, "id"));
+   if (strcmp (xml_attrval (ad->parms, "subdir"), ".")) {
+      xml_attrcat (ret, "dir", xml_attrval (ad->parms, "subdir"));
+      xml_attrcat (ret, "dir", "/");
+   }
+   xml_setf (ret, "adaptor", "mbox:%s", xml_attrval (ret, "dir"));
+
+   /* If we're supplied with a filename, then that file can't already exist in our controlled
+      directory. */
+   if (filename &amp;&amp; *filename) {
+      xml_setf (ret, "location", filename);
+      xml_setf (ret, "file", "%s%s", xml_attrval (ret, "dir"), filename);
+      xml_set (ret, "tempfile", xml_attrval (ret, "file"));
+      if (stat (xml_attrval (ret, "file"), &amp;statbuf) != -1) { /* File exists already. */
+         xml_setf (ad->parms, "error", "File %s is already present.", filename);
+         xml_free (ret);
+         return NULL;
+      }
+   } else {
+      xml_setf (ret, "location", "_att_%s_%s.dat", key, field);
+      xml_setf (ret, "file", "%s%s", xml_attrval (ret, "dir"), xml_attrval (ret, "location"));
+      xml_setf (ret, "tempfile", "%s_newatt_%s_%s.dat", xml_attrval (ret, "dir"), key, field);
+   }
+
+   file = fopen (xml_attrval (ret, "file"), "w");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Unable to open file %s for writing.", xml_attrval (ret, "file"));
+      xml_free (ret);
+      return NULL;
+   }
+
+   xml_setbin (ret, file, fclose);
+   xml_set (ret, "content-type", "text/plain");
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+Writing and closing are easy -- note that when closing the attachment, we do nothing else; the repository manager wrapped around this
+adaptor will take care of writing any location information into the object for the attachment, any version-control work, or whatever
+else.  Otherwise we'd be duplicating that logic in every adaptor, which doesn't make a lot of sense.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mbox_attach_write (WFTK_ADAPTOR * ad, va_list args) {
+   void * buffer;
+   int size, number;
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   buffer = va_arg (args, void *);
+   size = va_arg (args, int);
+   number = va_arg (args, int);
+   handle = va_arg (args, XML *);
+
+   xml_setnum (handle, "last-write", fwrite (buffer, size, number, xml_getbin(handle)));
+   return NULL;
+}
+XML * LIST_mbox_attach_cancel (WFTK_ADAPTOR * ad, va_list args) {
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   handle = va_arg (args, XML *);
+
+   fclose (xml_getbin (handle));
+   unlink (xml_attrval (handle, "tempfile"));
+   return NULL;
+}
+XML * LIST_mbox_attach_close (WFTK_ADAPTOR * ad, va_list args) {
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   handle = va_arg (args, XML *);
+
+   fclose (xml_getbin (handle));
+   rename (xml_attrval (handle, "tempfile"), xml_attrval (handle, "file"));
+   return NULL;
+}
+</pre></td></tr></table>
+
+Retrieval is easier than attachment, because we already have a filename.  The filename is stored in the object, using the attribute
+"filename" -- this reserves the content of the field element for version control or whatever else may be appropriate.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * LIST_mbox_retrieve_open (WFTK_ADAPTOR * ad, va_list args) {
+   XML * list = NULL;
+   XML * fld;
+   char * key;
+   char * field;
+   XML * mark;
+   XML * ret;
+   FILE * file;
+   WFTK_ADAPTOR * ad2;
+
+   if (args) list = va_arg (args, XML *);
+   if (!list) {
+      xml_set (ad->parms, "error", "No list given.");
+      return (XML *) 0;
+   }
+   key = va_arg (args, char *);
+   fld = va_arg (args, XML *);
+
+   ret = xml_create ("attachment-handle");
+
+   xml_set (ret, "dir", xml_attrval (ad->parms, "basedir"));
+   if (!*xml_attrval (ad->parms, "subdir")) xml_set (ad->parms, "subdir", xml_attrval (list, "id"));
+   if (strcmp (xml_attrval (ad->parms, "subdir"), ".")) {
+      xml_attrcat (ret, "dir", xml_attrval (ad->parms, "subdir"));
+      xml_attrcat (ret, "dir", "/");
+   }
+   xml_setf (ret, "adaptor", "mbox:%s", xml_attrval (ret, "dir"));
+
+   if (fld) {
+      xml_set (ret, "location", xml_attrval (fld, "location"));
+   }
+   if (!*xml_attrval (ret, "location")) xml_setf (ret, "location", "_att_%s_%s.dat", key, xml_attrval (fld, "id"));
+   xml_setf (ret, "file", "%s%s", xml_attrval (ret, "dir"), xml_attrval (ret, "location"));
+
+   file = fopen (xml_attrval (ret, "file"), "r");
+   if (!file) {
+      xml_setf (ad->parms, "error", "Unable to open file %s for reading.", xml_attrval (ret, "location"));
+      xml_free (ret);
+      return NULL;
+   }
+
+   xml_setbin (ret, file, fclose);
+   xml_set (ret, "content-type", "text/plain");
+
+   return (ret);
+}
+XML * LIST_mbox_retrieve_read (WFTK_ADAPTOR * ad, va_list args) {
+   void * buffer;
+   int size, number;
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   buffer = va_arg (args, void *);
+   size = va_arg (args, int);
+   number = va_arg (args, int);
+   handle = va_arg (args, XML *);
+
+   xml_setnum (handle, "last-read", fread (buffer, size, number, xml_getbin(handle)));
+   return NULL;
+}
+XML * LIST_mbox_retrieve_close (WFTK_ADAPTOR * ad, va_list args) {
+   XML * handle;
+
+   if (!args) {
+      xml_set (ad->parms, "error", "No arguments given.");
+      return NULL;
+   }
+   handle = va_arg (args, XML *);
+
+   fclose (xml_getbin (handle));
+   return NULL;
+}
+
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,133 @@
+<html><head><title>ACTION adaptor: system</title></head>
+<body>
+<h2>ACTION adaptor: system</h2>
+<hr>
+<p></p>
+This is the ACTION adaptor for local system calls.  It allows workflow processes to do
+arbitrary "system stuff", meaning among other things that you can use it to provide a
+permissions layer on any program you want to run from the command line.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdlib.h>
+#include &lt;stdarg.h>
+#include "xmlapi.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "do"
+};
+
+XML * ACTION_system_init (WFTK_ADAPTOR * ad, va_list args);
+XML * ACTION_system_free (WFTK_ADAPTOR * ad, va_list args);
+XML * ACTION_system_info (WFTK_ADAPTOR * ad, va_list args);
+XML * ACTION_system_do (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   ACTION_system_init,
+   ACTION_system_free,
+   ACTION_system_info,
+   ACTION_system_do
+};
+
+static struct adaptor_info _ACTION_system_info =
+{
+   4,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct adaptor_info * ACTION_system_get_info ()
+{
+   return &amp; _ACTION_system_info;
+}
+</pre></td></tr></table>
+
+Thus concludes the communication with the config module.  Now on with the actual implementation
+of functionality.  It's not complicated.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * ACTION_system_init (WFTK_ADAPTOR * ad, va_list args) {
+   xml_set (ad->parms, "spec", "wftk");
+   return (XML *) 0;
+}
+XML * ACTION_system_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * ACTION_system_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "action");
+   xml_set (info, "name", "system");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+<p></p>
+Moving along at breakneck speed, we come to actual functionality: taking action.  Given that the action has already been
+parsed thanks to its XML nature, we hardly have anything to do at all.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * ACTION_system_do  (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * action = (XML *) 0;
+   const char * aname;
+   char * content;
+
+   if (args) action = va_arg (args, XML *);
+   if (action) {
+      aname = xml_attrval (action, "action");
+      if (!strcmp (aname, "exec")) {
+         /* TODO: Line by line, run the content of the action through the data interpreter
+            and pass it over to the shell.  Primitive, yeah -- you can't break lines. */
+         /* TODO: do a better parser for this, line breaks and stuff. */
+         content = xml_stringcontent (action);
+         system (content);
+         free (content);
+      }
+   }
+   return 0;
+}
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

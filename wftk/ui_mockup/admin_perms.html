@@ -1,0 +1,48 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+
+<h2>Permissions</h2>
+<font size=-1><i>
+Permissions are pretty straightforward -- for any process, I can specify the level of
+permission of any group or user.  Permission levels are Owner, Viewer, Execute, and None.
+To determine the privilege level of a user against a particular process, I take the maximum
+level afforded any of the groups the user belongs to.  Note that since administrative tasks
+will also be considered processes, we end up with a very flexible and powerful permission
+system for all aspects of system administration.  Processes which appear in this list are
+those to which I have owner privilege.  (If I'm an administrator, everything appears.)
+</i></font>
+<hr>
+
+<table>
+<tr>
+  <td bgcolor="cccccc"><b>Process</b></td>
+  <td bgcolor="cccccc"><b>Permissions</b></td>
+</tr>
+
+<tr>
+  <td valign=top>Equipment purchase request<br><a href=action.html>Update permissions</a></td>
+  <td>
+    <table cellpadding=0>
+      <tr><td>Owner:</td><td>Michael Roberts</td></tr>
+      <tr><td>Viewer:</td><td>Joe User</td></tr>
+      <tr><td>Viewer:</td><td>Purchasing</td></tr>
+      <tr><td>Execute:</td><td>all</td></tr>
+    </table>
+  </td>
+</tr>
+
+<tr bgcolor="eeeeee">
+  <td valign=top>Add user (system task)<br><a href=action.html>Update permissions</a></td>
+  <td>
+    <table cellpadding=0>
+      <tr><td>Owner:</td><td>Admin</td></tr>
+      <tr><td>Execute:</td><td>System User Administrators</td></tr>
+    </table>
+  </td>
+</tr>
+
+</table>
+
+</body>
+</html>

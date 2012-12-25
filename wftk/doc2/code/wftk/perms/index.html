@@ -1,0 +1,46 @@
+<html><head><title>wftk core: permissions directory adaptor</title></head>
+<body>
+<h2>wftk core: permissions directory adaptor</h2>
+<center>
+[ <a href="../index.html">back to the core</a> ] [ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+A <i>permissions directory adaptor</i> is responsible for interfacing with a directory system in order to 
+determine whether a given user has permission to perform a named task (or group of tasks or whatever) on a given object.
+<p>
+These are the functions exposed by a permission directory adaptor (well, OK, they're not there yet):
+<table>
+<tr><td><i><u>Function</i></u></td><td><i><u>Parameters</i></u></td><td><i><u>Purpose</i></u></td></tr>
+<tr bgcolor=eeeeee><td valign=top>0: init</td>
+    <td valign=top>&nbsp;</td>
+    <td>Initialize adaptor instance</td></tr>
+<tr bgcolor=ffffff><td valign=top>1: free</td>
+    <td valign=top>&nbsp;</td>
+    <td>Clean up instance before shutting down</td></tr>
+<tr bgcolor=eeeeee><td valign=top>2: info</td>
+    <td valign=top>&nbsp;</td>
+    <td>Return XML describing the adaptor</td></tr>
+<tr bgcolor=ffffff><td valign=top>3: perm</td>
+    <td valign=top>XML * action<br>XML * user (optional: use NULL if anonymous)</td>
+    <td>Judge permission level.  Returns "ok", "no", or the name of an approval process to start.</td></tr>
+</table>
+
+<p>
+Implementations:<ul>
+<li><a href="PERMS_localxml.html">PERMS_localxml</a> (stores XML files in local directory)
+<li><a href="PERMS_list.html">PERMS_list</a> (stores XML files in repository manager)
+<li>(TODO) PERMS_ldap.html (asks an LDAP directory for permission info -- if LDAP even does that.  What do I know?)
+</ul>
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

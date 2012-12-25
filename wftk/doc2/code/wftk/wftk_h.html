@@ -1,0 +1,133 @@
+<html><head><title>wftk core library: Include file (and API definition)</title></head>
+<body>
+<h2>Include file (and API definition)</h2>
+<center>
+[&nbsp;<a href="wftk_lib.html">Previous: wftk core library</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_internals.html">Next: Internal definitions</a>&nbsp;]
+</center>
+
+<hr>
+Here's the wftk API.  It'll grow but it's guaranteed never to shrink.
+To facilitate the creation of dynamically linked libraries, we define a <code>WFTK_EXPORT</code> declaration
+symbol; this should be defined on the compilation command line if we're building a DLL or .so.  If not, it'll
+just be ignored.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifndef WFTK_H
+#define WFTK_H
+#include &lt;stdio.h>
+#include &lt;string.h>
+#include &lt;xmlapi.h>
+#include &lt;xmlobj.h>
+#include "wftk_session.h"
+#ifdef WFTK_WITH_REPMGR
+#include "repmgr.h"
+#endif
+
+#ifndef WFTK_EXPORT
+#define WFTK_EXPORT
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+WFTK_EXPORT XML  * wftk_info ();
+
+WFTK_EXPORT XML  * wftk_process_new     (XML * session, const char * dsrep, const char * datasheet_id);
+WFTK_EXPORT XML  * wftk_process_load    (XML * session, const char * dsrep, const char * datasheet_id);
+WFTK_EXPORT int    wftk_process_save    (XML * session, XML * datasheet);
+WFTK_EXPORT int    wftk_process_archive (XML * session, const char * dsrep, const char * datasheet_id, const char * archive);
+WFTK_EXPORT int    wftk_process_delete  (XML * session, const char * dsrep, const char * datasheet_id);
+WFTK_EXPORT int    wftk_process_define  (XML * session, XML * datasheet, const char * pdrep, const char * procdef_id);
+WFTK_EXPORT int    wftk_process_start   (XML * session, XML * datasheet, const char * pdrep, const char * procdef_id);
+WFTK_EXPORT int    wftk_process_adhoc   (XML * session, XML * datasheet, XML * arbitraryworkflow);
+
+WFTK_EXPORT int    wftk_task_list      (XML * session, XML * list, XML * datasheet);
+WFTK_EXPORT int    wftk_task_new       (XML * session, XML * task);
+WFTK_EXPORT XML  * wftk_task_retrieve  (XML * session, XML * task);
+WFTK_EXPORT int    wftk_task_update    (XML * session, XML * task);
+WFTK_EXPORT int    wftk_task_complete  (XML * session, XML * task);
+WFTK_EXPORT int    wftk_task_reject    (XML * session, XML * task);
+WFTK_EXPORT int    wftk_task_rescind   (XML * session, XML * task);
+WFTK_EXPORT int    wftk_task_subproc   (XML * session, XML * task, XML * subproc_datasheet);
+WFTK_EXPORT int    wftk_task_attach    (XML * session, XML * task, XML * datasheet);
+
+WFTK_EXPORT int    wftk_request_list     (XML * session, XML * list);
+WFTK_EXPORT int    wftk_request_new      (XML * session, XML * request);
+WFTK_EXPORT XML  * wftk_request_retrieve (XML * session, XML * request);
+WFTK_EXPORT int    wftk_request_update   (XML * session, XML * request);
+WFTK_EXPORT int    wftk_request_rescind  (XML * session, XML * request);
+WFTK_EXPORT int    wftk_request_accept   (XML * session, XML * request);
+WFTK_EXPORT int    wftk_request_decline  (XML * session, XML * request);
+
+WFTK_EXPORT int    wftk_value_list      (XML * session, XML * datasheet, XML * list);
+WFTK_EXPORT XML  * wftk_value_find      (XML * session, XML * datasheet, const char * name);
+WFTK_EXPORT XML  * wftk_value_make      (XML * session, XML * datasheet, const char * name);
+WFTK_EXPORT int    wftk_value_isnull    (XML * session, XML * datasheet, const char * name);
+WFTK_EXPORT char * wftk_value_get (XML * session, XML * datasheet, const char * name);
+WFTK_EXPORT int    wftk_value_get_num   (XML * session, XML * datasheet, const char * name);
+WFTK_EXPORT int    wftk_value_counter   (XML * session, XML * datasheet, const char * name);
+WFTK_EXPORT int    wftk_value_interpret (XML * session, XML * datasheet, const char * spec, char * buffer, int bufsize);
+WFTK_EXPORT char * wftk_value_interpreta (XML * session, XML * datasheet, const char * spec);
+WFTK_EXPORT int    wftk_value_makenull  (XML * session, XML * datasheet, const char * name);
+WFTK_EXPORT int    wftk_value_set       (XML * session, XML * datasheet, const char * name, const char * value);
+WFTK_EXPORT int    wftk_value_set_num   (XML * session, XML * datasheet, const char * name, int value);
+WFTK_EXPORT int    wftk_value_settype   (XML * session, XML * datasheet, const char * name, const char * type);
+WFTK_EXPORT int    wftk_value_define    (XML * session, XML * datasheet, const char * name, const char * storage);
+WFTK_EXPORT int    wftk_value_calc      (XML * session, XML * datasheet, const char * name, const char * value);
+WFTK_EXPORT XML  * wftk_value_html      (XML * session, XML * datasheet, const char * name);
+WFTK_EXPORT XML  * wftk_value_htmlblank (XML * session, XML * datasheet, const char * name);
+WFTK_EXPORT XML  * wftk_value_info      (XML * session, XML * datasheet, const char * name);
+
+WFTK_EXPORT const char * wftk_status_get (XML * session, XML * datasheet);
+WFTK_EXPORT int    wftk_status_set (XML * session, XML * datasheet, const char *status);
+
+WFTK_EXPORT int    wftk_role_list       (XML * session, XML * datasheet, XML * list);
+WFTK_EXPORT const char * wftk_role_user (XML * session, XML * datasheet, const char * role);
+WFTK_EXPORT int    wftk_role_assign     (XML * session, XML * datasheet, const char * role, const char * userid);
+
+WFTK_EXPORT int    wftk_user_list     (XML * session, XML * datasheet, XML * list);
+WFTK_EXPORT int    wftk_user_add      (XML * session, XML * datasheet, XML * user);
+WFTK_EXPORT XML  * wftk_user_retrieve (XML * session, XML * datasheet, const char * userid);
+WFTK_EXPORT int    wftk_user_update   (XML * session, XML * datasheet, XML * user);
+WFTK_EXPORT int    wftk_user_remove   (XML * session, XML * datasheet, const char * userid);
+WFTK_EXPORT int    wftk_user_synch    (XML * session, XML * user);
+WFTK_EXPORT int    wftk_user_auth     (XML * session, XML * user, const char * password);
+
+WFTK_EXPORT XML  * wftk_enactment       (XML * session, XML * datasheet);
+WFTK_EXPORT int    wftk_enactment_write (XML * session, XML * datasheet, XML * xml, const char * attribute, const char * value);
+WFTK_EXPORT int    wftk_log             (XML * session, XML * datasheet, char * log);
+
+WFTK_EXPORT int    wftk_action          (XML * session, XML * action, XML * datasheet);
+
+WFTK_EXPORT XML  * wftk_decide          (XML * session, XML * datasheet, XML * decision);
+
+WFTK_EXPORT int    wftk_notify (XML * session, XML * context, XML * alert);
+
+
+typedef void (*WFTK_SQL_FORCE_MAPPING) (XML * field);
+
+
+#ifdef __cplusplus
+}
+#endif
+#endif
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_lib.html">Previous: wftk core library</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_internals.html">Next: Internal definitions</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

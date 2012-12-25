@@ -1,0 +1,57 @@
+<html><head><title>xmlapi: xml_attr*: Working with attributes</title></head>
+<body>
+<h2>xml_attr*: Working with attributes</h2>
+<center>
+[&nbsp;<a href="xml_copy.html">Previous: xml_copy: making fresh copies of XML</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_is.html">Next: xml_is: Checking an object's name</a>&nbsp;]
+</center>
+
+<hr>
+<i>(May 27, 2001)</i>: it's turning out that the only place the wftk really knows anything about the internals of the XMLAPI is when
+it has to iterate through attributes.  This is a bad situation, because it prevents me from creating alternate XMLAPI libraries to
+work with different environments (this all occurred to me as I was musing about the best way to make an XMLAPI that takes advantage of
+the Python heap manager when working in a Python environment).  So the attribute functions will be <code>xml_attrfirst</code>,
+<code>xml_attrnext</code>, <code>xml_attrname</code> and <code>xml_attrvalue</code>.  The unfortunate similarity to <code>xml_attrval</code>
+is, well, unfortunate, but I've written too much code that works with <code>xml_attrval</code> to go back and change it now.  Them's the
+breaks when you design an API on the fly, I guess.
+<p></p>
+Let's do the iteration functions first; they're interesting.  The other two are boring.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML_ATTR * xml_attrfirst (XML * element)
+{
+   if (!element) return NULL;
+   return element->attrs;
+}
+XMLAPI XML_ATTR * xml_attrnext (XML_ATTR * attr)
+{
+   if (!attr) return NULL;
+   return attr->next;
+}
+</pre></td></tr></table>
+
+OK, let's mop up the boring pieces, then.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>const char *xml_attrname  (XML_ATTR * attr) { return (attr->name);  }
+const char *xml_attrvalue (XML_ATTR * attr) { return (attr->value); }
+</pre></td></tr></table>
+
+So, OK, it's pretty stupid that I never got around to writing code of <i>that</i> much complexity...  Sheesh.
+
+
+
+<center>
+[&nbsp;<a href="xml_copy.html">Previous: xml_copy: making fresh copies of XML</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_is.html">Next: xml_is: Checking an object's name</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

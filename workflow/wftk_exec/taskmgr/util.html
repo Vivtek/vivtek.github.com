@@ -1,0 +1,58 @@
+<html><head><title>Task manager: Miscellaneous utility functions</title></head>
+<body>
+<h2>Miscellaneous utility functions</h2>
+<center>
+[&nbsp;<a href="wftk_interpret.html">Previous: Interpreting the results that wftk sends back</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="index.html">Next: wftk: Task manager</a>&nbsp;]
+</center>
+
+<hr>
+These are some functions I end up using a lot for AOLserver/Tcl applications.  The
+<code>now</code> function is pretty obvious, and the <code>sql_safe_string</code> function
+simply doubles single quotes in order to make strings safe to insert into SQL queries.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc now {{what all}} {
+   set time [ns_localtime]
+   switch $what {
+    all {return [format "%04d-%02d-%02d %02d:%02d:%02d" [expr [lindex $time 5] + 1900] [expr [lindex $time 4] + 1] [lindex $time 3] [lindex $time 2] [lindex $time 1] [lindex $time 0]]}
+    date {return [format "%04d-%02d-%02d" [expr [lindex $time 5] + 1900] [expr [lindex $time 4] + 1] [lindex $time 3]]}
+    time {return [format "%02d:%02d:%02d" [lindex $time 2] [lindex $time 1] [lindex $time 0]]}
+    tag {return [format "%04d%02d%02d%02d%02d%02d" [expr [lindex $time 5] + 1900] [expr [lindex $time 4] + 1] [lindex $time 3] [lindex $time 2] [lindex $time 1] [lindex $time 0]]}
+   }
+}
+
+proc sql_safe_string {s} {
+   set out ""
+   while {[string first "'" $s] > -1} {
+      set f [string first "'" $s]
+      append out [string range $s 0 $f]
+      append out "'"
+      set s [string range $s [expr $f + 1] end]
+   }
+   append out $s
+
+   return $out
+}
+</pre></td></tr></table>
+
+I suppose I could use <code>regsub</code> to implement <code>sql_safe_string</code> but this
+works and I trust it.  (I wrote it very early on in my Tcl days.  Ah, gotta love those code
+fossils.)
+
+
+
+<center>
+[&nbsp;<a href="wftk_interpret.html">Previous: Interpreting the results that wftk sends back</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="index.html">Next: wftk: Task manager</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

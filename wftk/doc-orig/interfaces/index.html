@@ -1,0 +1,44 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Interface writer's guide</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Interfacing the wftk with other systems</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+<hr>
+
+As with most of the wftk documentation, this isn't complete.  However, here is what I hope to have in
+this section:
+<ul>
+<li>Overview of the adaptor mechanism
+<li>Documentation of the various adaptor classes
+<li>Descriptions of already complete interfaces<ul>
+    <li>ODBC database adaptor
+    <li>Oracle database adaptor
+    <li>SMTP notification adaptor
+    </ul>
+</ul>
+
+<h3>Overview of the adaptor mechanism</h3>
+The wftk is intended to do workflow-y kinds of things in whatever system you have.  In order to make
+that work, nearly every system dependency that wftk has is split out into one or more <i>adaptors</i>.
+An adaptor presents a unified API to wftk and identifies individual functions using string names.
+It's not the most efficient way of doing things, perhaps, compared to the traditional C approach, but
+it's simple to manage and simple to write to.  It's kind of like letting a bare minimum of scripting
+languages into the C paradigm.
+<p>
+At any rate, I need to flesh this out with examples, but for the time being, look at some of the
+implementations in the source directory.
+
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

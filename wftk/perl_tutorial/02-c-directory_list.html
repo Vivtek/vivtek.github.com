@@ -1,0 +1,327 @@
+<head>
+<title>wftk tutorial - (unresolved tag 02-c-title)</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk tutorial - (unresolved tag 02-c-title)</div>
+
+<p><a name="__index__"></a></p>
+<!-- INDEX BEGIN -->
+
+
+	<ul>
+
+		<li><a href="#storing_recordbased_data_in_a_directory">Storing record-based data in a directory</a></li>
+		<li><a href="#reading_directory_metadata_using_sql">Reading directory metadata using SQL</a></li>
+		<li><a href="#_restricting_the_files_made_visible_to_a_list">(Restricting the files made visible to a list</a></li>
+		<li><a href="#_composite_keys">(Composite keys</a></li>
+		<li><a href="#_treating_file_contents_as_attachments">(Treating file contents as attachments</a></li>
+		<li><a href="#_using_alternative_record_parser_dumpers_in_a_directory__e_g__xml_">(Using alternative record parser/dumpers in a directory (e.g. XML)</a></li>
+		<li><a href="#_keeping_attachments_and_data_files_in_the_same_directory">(Keeping attachments and data files in the same directory</a></li>
+		<li><a href="#_keeping_attachments_in_a_directory_but_data_in_a_flat_file">(Keeping attachments in a directory but data in a flat file</a></li>
+		<li><a href="#_using_a_directory_attachment_storage_for_record_supplementation">(Using a directory attachment storage for record supplementation</a></li>
+	</ul>
+
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<p>Our next variety of data storage is still in the local filesystem, but this time we represent each record with a separate file in a given directory.</p>
+<p>There are two basic ways we can look at files.  The first is simply as blobs -- in this mode, the file contents themselves are effectively a large
+binary field which we consider opaque.  This comes in handy for attachment storage, for instance, and document management.</p>
+<p>The second basic mode is to regard the contents as encoding a record.  Since the Workflow::wftk::Record class has lots of ways of parsing data into
+records, this can be a very flexible way of organizing relatively small amounts of data in situations where we don't have a relational database
+available, or when some external process is generating files in a directory for some reason and we simply want our workflow system to get at them
+and use them.</p>
+<p>There is one quirk of the directory storage class, however, which will come up later, as well: it draws a distinction between ``SQL fields'' and
+``record fields''.  The reason for this is simple.  When we look at a directory, we can immediately see the name of each file, its size, and its
+creation and modification dates (depending on the operating system) -- that's because this is the information which is stored in the directory
+structure itself.  Only by laboriously opening and reading each individual file can we get information about file contents.</p>
+<p>So when the unaugmented directory storage mechanism is asked to do an SQL query, it will only have access to what information it can get from
+the filename, size, and dates of the files.  None of the other files defined in the record is accessible to SQL.  The only way to get around that
+is with an <strong>index</strong>, which we will cover in section 02-g Indexing.</p>
+<p>The directory fields (ID, filename, size, and modification date) are stored as <em>metadata</em> for the record.  
+When we retrieve a record, however, we get the entire record's data, parsed (if the list is a parsed list).</p>
+<p>In some cases, if we've defined a filename structure for a record, we can get some fields by parsing the filename.  In this case, the class will
+do its best.</p>
+<p>
+</p>
+<h2><a name="storing_recordbased_data_in_a_directory">Storing record-based data in a directory</a></h2>
+<p>The basic functionality of the directory storage class is pretty close to that of the memory and file classes, except for the distinction between
+SQL fields and full record fields, which we'll cover in the next section.  First, let's look at the basic access; it's just like the other list
+types we've seen.</p>
+<pre class="code">
+   use Workflow::wftk;
+
+   my $wftk = Workflow::wftk-&gt;new();
+
+   # Create a list stored in 'test_d':TCH 
+   my $list = $wftk-&gt;open('mylist', 'dir:test_d');
+
+   # Add a record the easy way, with a hashref.
+   my $key = $list-&gt;add ( {field1 =&gt; 'value1', field2 =&gt; 'value2'} );
+
+   # Look at the fields in the list again:
+   @fields = $list-&gt;fields();          # Returns ('field1', 'field2') now, just like a memory list.
+
+   my $key2 = $list-&gt;add ( ['different value', 'value2'] );
+   my $key3 = $list-&gt;add ( ['third value', 'value2'] );
+
+   # Get a list of keys:
+   my @keys = $list-&gt;keys();
+
+   # Let's check what we just did:
+   opendir IN, 'test';
+   my @files = grep !/^\./, readdir (IN);
+   closedir IN;
+
+   # @keys and @files should be the same thing.
+
+   # Iterate through the list:
+   for (my $key = $list-&gt;first_key(); $key; $key = $list-&gt;next_key()) {
+      # ...
+   }
+
+   # Get a record:
+   $rec = $list-&gt;get($key2);
+
+   # Get a value:
+   print &quot;Value is &quot; . $rec-&gt;get('field2');
+
+   # Modify an existing record.
+   $rec-&gt;put ('field1', 'new value 1');
+   $list-&gt;mod ($key2, $rec);
+
+   # Delete a record.
+   $list-&gt;del ($key3);
+
+   # Note that $list-&gt;as_text WON'T WORK, because the contents of the records are not cached in memory
+   # (they are presumed to be too large).  Use an index if you need contents all at once.
+
+   # Display the contents of the file:
+   system 'cat test_d/1';
+
+   # That (if you're running Unix) will print this:
+   # field1: value1
+   # field2: value2
+</pre><p>Again, remember that you have plenty of ways to address directory lists beyond the ones I'm showing you here.  The entire machinery of the wftk
+is at your disposal for any type of list, including directory lists.</p>
+<p>
+</p>
+<h2><a name="reading_directory_metadata_using_sql">Reading directory metadata using SQL</a></h2>
+<p>As mentioned earlier, in comparison with the memory and flat file lists we've seen so far, retrieval of a record from a directory is relatively expensive.  To permit
+SQL queries on the actual data would require us to open and read each individual file in the directory -- almost certainly something we don't actually
+want to do.  So the basic directory list doesn't support it.  (If you really want to do this, you have to set up an index for this purpose. Since the
+index can just as well be an in-memory list, you're not actually losing any performance; the only cost is a little extra coding and awareness.)</p>
+<p>But even though we don't have access to the actual data for each record, 
+we still have metadata (the filename, file size, modification date) which is easily
+and quickly accessible, so we allow SQL to access those metadata fields as true fields for the purpose of querying.  This gives us the ability
+to read directory listings and manipulate them in useful ways.  When we actually retrieve a record from the list, we get its fields, with the metadata
+still accessible as ``meta fields''.</p>
+<p>(The upshot of this is that the direct string value of a directory list is basically useless; it simply shows a list of keys.  Instead, to get a quick
+tabular string, we select * from the list, running the metavalues through SQL to turn them into values.  This process is shown in the example below.)</p>
+<p>In addition to the ID, filename, size, and modification date, we can also specify for a given list that the filename itself is built of certain
+of its data fields.  If that's the case, then we may be able to reverse-engineer those data
+fields back out from the directory listing -- in this case, those
+fields are also accessible to SQL and stored as meta fields in the final record.  We'll address this feature below, in subsection ``Composite keys''.</p>
+<p>In the last subsection, we left a directory list in ``test_d'' with two records inserted.  Let's do a little SQL with them.  Note: for a directory list,
+SQL can't see data fields, just metadata, so INSERT will have no effect.  At some later date, it might make sense to allow modification of the access
+date, but that's probably about it; you don't want to be able to change the size of files, for instance.  (That is, if you <em>do</em>, you probably don't
+really need to do it from wftk SQL.)  All that's a long-winded way of telling you that this section isn't going to include an INSERT statement.</p>
+<pre class="code">
+   use Workflow::wftk;
+
+   my $wftk = Workflow::wftk-&gt;new();
+
+   my $list = $wftk-&gt;open('dirlist', 'dir:test_d');  # Open the directory as a list.
+   $wftk-&gt;do (&quot;select * from dirlist&quot;);              # Select everything.
+   my $result = $wftk-&gt;list();                       # Get the result back as another list.
+
+   # Now the fields in $result are 'id', 'filename', 'size', and 'date', instead of those being meta fields,
+   # and we can use as_text() to get a quick string for convenient display.
+   print $result-&gt;as_text;
+
+   # With a two-step process, we can select records newer than a particular date and do
+   # something with each.
+
+   foreach my $id ($wftk-&gt;sql_get_list (&quot;select id from dirlist where date &gt; '2009-04-01'&quot;) {
+      my $rec = $list-&gt;get($id);
+   }
+</pre><p>
+</p>
+<h2><a name="_restricting_the_files_made_visible_to_a_list">(Restricting the files made visible to a list</a></h2>
+<p>Sometimes, instead of treating all the files in a directory as one list, we want to store multiple lists in the directory, or we simply want to have
+other files in the directory that won't be used by wftk at all, but still shouldn't show up as records.  For instance, we might want to keep image
+files in a directory along with XML files describing each one; in that case, the list itself might be restricted to just files marked as XML files, and
+the others would remain ``invisible'' to the list.</p>
+<p>
+</p>
+<h2><a name="_composite_keys">(Composite keys</a></h2>
+<p>Up to this point, all the keys we've used in every list have been sequential numbers automatically generated by the system.  While that's often the
+most convenient way to work, sometimes we want our keys to have meaning.  We call those <strong>composite keys</strong> because they're composed of other values.
+Even a composite key will normally have a sequential component, though, just to prevent the possibility of collision.</p>
+<p>We specify a composite key by supplying a key format to be used on a record to generate its key.</p>
+<p>Composite keys work in two directions, or at least they sometimes do.  We can always use a format to generate a key, but it's also very useful
+to be able to use an existing key to come up with the field values used to generate it.  But be careful!  To make this possible, your key format
+has to delimit the fields in a way that can be used to extract the fields.  If you have two text fields next to one another with no delimiter,
+for instance, there's no way to tell where the first ends and the second begins.</p>
+<p>Composite keys are particularly useful for directory lists because it allows us to read some identifying fields from the directory (e.g. the file
+names), so we can do some SQL queries on them.  But you can use a composite key for a list stored anywhere; the feature is not specific to directory
+lists.</p>
+<p>
+</p>
+<h2><a name="_treating_file_contents_as_attachments">(Treating file contents as attachments</a></h2>
+<p>Normally, a parser is invoked on record content (as in the first section), causing the file contents to be read as fields (or in some other way, as
+shown in the next section).  But we can also tell the list <em>not</em> to do that, instead just treating the entire contents of the file as one big
+field, generally calling it an attachment.  Obviously, this is usually going to be used in conjunction with some other list to store other data
+fields.  This feature forms the basis for <em>document management</em>, which has an entire section (02-j Document management) devoted to it, but here
+is how it is used in its most basic form.</p>
+<p>
+</p>
+<h2><a name="_using_alternative_record_parser_dumpers_in_a_directory__e_g__xml_">(Using alternative record parser/dumpers in a directory (e.g. XML)</a></h2>
+<p>The last subsection showed you how to turn off field parsing for the contents of a directory -- but perhaps you simply want to parse your records
+in a different way, like with XML.  Here's how you do that.</p>
+<p>
+</p>
+<h2><a name="_keeping_attachments_and_data_files_in_the_same_directory">(Keeping attachments and data files in the same directory</a></h2>
+<p>Getting back to our example above of keeping image files in a directory with an XML data file for each one, let's set that up.</p>
+<p>
+</p>
+<h2><a name="_keeping_attachments_in_a_directory_but_data_in_a_flat_file">(Keeping attachments in a directory but data in a flat file</a></h2>
+<p>With just a slight modification, though, we can put the data into a flat file, and keep the attachments in the directory as before.  The flat file
+can either be in the directory itself, or elsewhere.</p>
+<p>This is the first and most basic mode of combining the advantages of flat-file storage and directory storage.  Flat files can store lots of
+fields in a convenient structure, but not very large items of data (well, unless you want crazy-looking flat file content and even worse performance
+than using the file system will already give us).  The natural way of doing things, then, is to store the smaller fields in the flat file,
+and use a directory list for storage of attachments.</p>
+<p>
+</p>
+<h2><a name="_using_a_directory_attachment_storage_for_record_supplementation">(Using a directory attachment storage for record supplementation</a></h2>
+<p>What if our flat file has a restricted set of fields, but we want to supplement those fields with all the larded-down W::w::Record goodies?  No problem;
+we can define an attachment to hold ``the rest'' of the fields.  This is another feature that's convenient for supplementing RDBMS records with extra
+data structures.</p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

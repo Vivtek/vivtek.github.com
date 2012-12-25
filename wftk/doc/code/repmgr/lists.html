@@ -1,0 +1,990 @@
+<html><head><title>Repository manager: Creating and administering lists</title></head>
+<body>
+<h2>Creating and administering lists</h2>
+<center>
+[&nbsp;<a href="macros.html">Previous: Macro processing</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="iteration.html">Next: Iterating across list contents</a>&nbsp;]
+</center>
+
+<hr>
+The basic core of list administration is the definition of the data in the list.  The repository manager is very flexible when it comes
+to what can be in objects -- essentially, it doesn't care what XML you toss in there, as long as it can figure out a couple of fields.
+However, your needs may require restrictions, and of course if the list is stored in a relational database then the database may also
+impose some restrictions.  Changing those restrictions may require addition of columns, or even the complete reload of a table, depending
+on how much change you actually need.  So naturally (as per usual procedure) I'm glossing over most of that for now.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   repos_create  (XML * repository, const char * list)
+{
+   return 0;
+}
+WFTK_EXPORT int   repos_drop    (XML * repository, const char * list)
+{
+   return 0;
+}
+</pre></td></tr></table>
+
+Returning the definition of a list is a pretty straightforward process; this might get a little more fraught with detail after we
+get more serious about the various special-purpose pseudolists.  We'll see.
+<p></p>
+TODO: may need pseudolist post-processing of definition retrieval for _publog: we *always* need, for instance, a "start" field with
+special "now" handling.
+<p></p>
+<i>November 29, 2002</i>: Here we go.  The definition of the "_sessions" list must be returned correctly even if it's not defined.
+Thus we first look at the repository to find a definition, and return that (overriding) definition if found.  But if it's not overridden,
+we return a default definition.  We'll eventually be doing much the same thing with all the system lists (and not only here in the
+defn return function, but also in various access and editing functions as well.)
+<p></p>
+<i>May 26, 2003</i>: Woo!  Workflow smarts!  All that repos_defn has to do is to make sure that _tasks and _taskindex work correctly
+regardless of their definitions in the repository.  (I.e. all the correct fields are there, default storages are appropriate, etc.)
+And _todo.  And _procdefs.
+<p></p>
+<i>May 29, 2003</i>: Still debugging....  Anyway, it seems to me that repos_defn should enforce the default localdir:(list name) storage
+location.
+<p></p>
+<i>Feb 4, 2004</i>: Added _views.  Slowly the formatting end is starting to make a little sense.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_defn    (XML * repository, const char * list_id)
+{
+   XML * list;
+   XML * defn;
+   int   later_check = 0;
+   FILE * file;
+
+   list = xml_locf (repository, ".list[%s]", list_id);
+   if (!list) {
+      /* System-defined lists, first list. */
+      if (!strcmp (list_id, "_sessions")) {
+         list = xml_parse ("<list id=\"_sessions\" storage=\"localdir:_sessions\">\n<field id=\"key\" special=\"key\"/>\n</list>");
+      } else if (!strcmp (list_id, "_views")) {
+         list = xml_parse ("<list id=\"_views\" storage=\"lines:_views\">\n<field id=\"key\" special=\"key\"/>\n<field id=\"view\" type=\"text\"/>\n</list>");
+      } else if (!strcmp (list_id, "_notifications")) {
+         list = xml_parse ("<list id=\"_notifications\" storage=\"localdir:_notifications\"/>");
+      } else if (!strcmp (list_id, "_tasks")) {
+         list = xml_parse ("<list id=\"_tasks\"/>");
+         later_check = 1;
+      } else if (!strcmp (list_id, "_todo")) {
+         list = xml_parse ("<list id=\"_todo\"/>");
+         later_check = 1;
+      } else if (!strcmp (list_id, "_taskindex")) {
+         list = xml_parse ("<list id=\"_taskindex\"/>");
+         later_check = 1;
+      } else if (!strcmp (list_id, "_procdefs")) {
+         list = xml_parse ("<list id=\"_procdefs\" storage=\"localdir:_procdefs\">\n<field id=\"key\" special=\"key\"/>\n</list>");
+         later_check = 1;
+      }
+
+      if (list) xml_append (repository, list);
+      if (!later_check) return list;
+   }
+
+   if (*xml_attrval (list, "defn")) {
+      file = _repos_fopen (repository, xml_attrval (list, "defn"), "r");
+      if (file) {
+         defn = xml_parse_general (file, (XMLAPI_DATARETRIEVE) fread);
+         if (!xml_is (defn, "xml-error")) {
+            xml_copyinto (list, defn);
+            xml_set (list, "defn", "");
+            xml_free (defn);
+         }
+         fclose (file);
+      }
+   }
+
+   if (!strcmp (list_id, "_notifications")) {
+      if (!*xml_attrval (list, "storage")) xml_setf (list, "storage", "localdir:%s", list_id);
+      if (!*xml_attrval (list, "key")) xml_set (list, "key", "key");
+      if (!xml_loc (list, ".field[label]"))   xml_append_pretty (list, xml_parse ("<field id=\"label\"/>"));
+      if (!xml_loc (list, ".field[from]"))    xml_append_pretty (list, xml_parse ("<field id=\"from\"/>"));
+      if (!xml_loc (list, ".field[to]"))      xml_append_pretty (list, xml_parse ("<field id=\"to\"/>"));
+      if (!xml_loc (list, ".field[subject]")) xml_append_pretty (list, xml_parse ("<field id=\"subject\"/>"));
+      if (!xml_loc (list, ".field[text]"))    xml_append_pretty (list, xml_parse ("<field id=\"text\" type=\"text\"/>"));
+      if (!xml_loc (list, ".field[html]"))    xml_append_pretty (list, xml_parse ("<field id=\"html\" type=\"text\"/>"));
+   } else if (!strcmp (list_id, "_todo") || !strcmp (list_id, "_tasks")) {
+      /* Ensure no stupidity with key or default storage defns. */
+      if (!*xml_attrval (list, "storage")) xml_set (list, "storage", "localdir:_tasks");
+      if (!*xml_attrval (list, "key"))     xml_set (list, "key",     "key");
+      if (!*xml_attrval (list, "format"))  xml_set (list, "format",  "object"); /* Formatting looks to object for labels, etc. */
+      if (!*xml_attrval (list, "order"))   xml_set (list, "order",   "priority desc");
+
+      /* _tasks requires some particular fields. */
+      if (!xml_loc (list, ".field[only_after]")) xml_prepend_pretty (list, xml_parse ("<field id=\"only_after\">"));
+      if (!xml_loc (list, ".field[priority]")) xml_prepend_pretty (list, xml_parse ("<field id=\"priority\" type=\"numeric\">"));
+      if (!xml_loc (list, ".field[cost]")) xml_prepend_pretty (list, xml_parse ("<field id=\"cost\" type=\"numeric\">"));
+      if (!xml_loc (list, ".field[sched_end]")) xml_prepend_pretty (list, xml_parse ("<field id=\"sched_end\">"));
+      if (!xml_loc (list, ".field[sched_start]")) xml_prepend_pretty (list, xml_parse ("<field id=\"sched_start\">"));
+      if (!xml_loc (list, ".field[user]")) xml_prepend_pretty (list, xml_parse ("<field id=\"user\">"));
+      if (!xml_loc (list, ".field[role]")) xml_prepend_pretty (list, xml_parse ("<field id=\"role\">"));
+      if (!xml_loc (list, ".field[label]")) xml_prepend_pretty (list, xml_parse ("<field id=\"label\">"));
+      if (!xml_loc (list, ".field[state]")) xml_prepend_pretty (list, xml_parse ("<field id=\"state\">"));
+      if (!xml_loc (list, ".field[id]")) xml_prepend_pretty (list, xml_parse ("<field id=\"id\">"));
+      if (!xml_loc (list, ".field[obj]")) xml_prepend_pretty (list, xml_parse ("<field id=\"obj\">"));
+      if (!xml_loc (list, ".field[list]")) xml_prepend_pretty (list, xml_parse ("<field id=\"list\">"));
+      if (!xml_loc (list, ".field[key]")) xml_prepend_pretty (list, xml_parse ("<field id=\"key\" special=\"key\">"));
+   } else if (!strcmp (list_id, "_taskindex")) {
+      /* Ensure no stupidity with key or default storage defns. */
+      if (!*xml_attrval (list, "storage")) xml_set (list, "storage", "delim:_taskindex");
+      if (!*xml_attrval (list, "key"))     xml_set (list, "key",     "id");
+      if (!*xml_attrval (list, "create"))  xml_set (list, "create",  "yes");
+      if (!*xml_attrval (list, "order"))   xml_set (list, "order",   "priority desc");
+
+      /* _taskindex requires some particular fields. */
+      if (!xml_loc (list, ".field[only_after]")) xml_prepend_pretty (list, xml_parse ("<field id=\"only_after\">"));
+      if (!xml_loc (list, ".field[priority]")) xml_prepend_pretty (list, xml_parse ("<field id=\"priority\" type=\"numeric\">"));
+      if (!xml_loc (list, ".field[cost]")) xml_prepend_pretty (list, xml_parse ("<field id=\"cost\" type=\"numeric\">"));
+      if (!xml_loc (list, ".field[sched_end]")) xml_prepend_pretty (list, xml_parse ("<field id=\"sched_end\">"));
+      if (!xml_loc (list, ".field[sched_start]")) xml_prepend_pretty (list, xml_parse ("<field id=\"sched_start\">"));
+      if (!xml_loc (list, ".field[user]")) xml_prepend_pretty (list, xml_parse ("<field id=\"user\">"));
+      if (!xml_loc (list, ".field[role]")) xml_prepend_pretty (list, xml_parse ("<field id=\"role\">"));
+      if (!xml_loc (list, ".field[label]")) xml_prepend_pretty (list, xml_parse ("<field id=\"label\">"));
+      if (!xml_loc (list, ".field[state]")) xml_prepend_pretty (list, xml_parse ("<field id=\"state\">"));
+      if (!xml_loc (list, ".field[internal_id]")) xml_prepend_pretty (list, xml_parse ("<field id=\"internal_id\">"));
+      if (!xml_loc (list, ".field[obj]")) xml_prepend_pretty (list, xml_parse ("<field id=\"obj\">"));
+      if (!xml_loc (list, ".field[list]")) xml_prepend_pretty (list, xml_parse ("<field id=\"list\">"));
+      if (!xml_loc (list, ".field[key]")) xml_prepend_pretty (list, xml_parse ("<field id=\"key\">"));
+      if (!xml_loc (list, ".field[id]")) xml_prepend_pretty (list, xml_parse ("<field id=\"id\">"));
+   } else {
+      if (!*xml_attrval (list, "storage")) xml_setf (list, "storage", "localdir:%s", list_id);
+   }
+
+   return list;
+}
+</pre></td></tr></table>
+
+<i>(25 June 2003)</i>: Thanks to the fine folks at Startext GmbH, I'm revisiting a lot of functionality around here lately.  Today's task is
+to provide a way to get a list of valid values for a given field; the immediate application is to ask the role datastorage adaptor for a list
+of valid users for a given role if the role is being represented as a field -- but other applications may include, for instance, a list of
+valid categories for an object.
+<p></p>
+The function will look in the following places for the list of values:
+<ul>
+<li>If the field is a non-local field (i.e. it's managed using a datastore adaptor like DATASTORE_role) then we'll ask the adaptor.
+<li>If the list definition of the field has a "link" attribute, we'll use repos_list on the linked list to generate a list of values.  The
+formatting of the values will be the key by default; a "link-label" attribute can override that with a [square bracket format].
+<li>If the list definition of the field has [[option> tags in it, we'll use those.
+</ul>
+Failing all that, we return NULL, meaning there is no restriction on values.
+<p></p>
+The format of the return XML is similar to that of an HTML select tag, with [[option value="something">label[[/option> being the motif.  This makes
+it easy to use the result to format an HTML dropdown selection for the field.
+
+<p></p>
+<i>2004-Feb-6</i>: This is also the logical place to build the list of choices for the state variable
+(either named "_state", or with type="state") -- and also the list of choices for valid actions to
+take against an object.  For either of these, the eventual logic is going to be a lot more complex than
+what I'm putting here today.  But this is still the logical place.
+<p></p>
+Permissible actions fall into three categories that I can think of right now: regular object actions
+(mod, del), state transitions (state.x for all valid transition states x, including "complete" for task objects),
+and task completion (active, potential, or passive tasks).  Note that completion of tasks at the <i>process</i>
+level is different from completing a task object at the <i>task</i> level.  (I forget this point again and again.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_list_choices (XML * repository, const char *list_id, XML * obj, const char *field) {
+   XML * list;
+   XML * fld;
+   WFTK_ADAPTOR * ad;
+   XML * mark;
+   XML * state;
+   XML * choices = NULL;
+   XML * choice;
+   XML * holder;
+   XML * val;
+   const char * adaptor;
+   char * adaptor_buf;
+   char * label;
+   XML * query;
+
+   list = repos_defn (repository, list_id);
+   fld = xml_locf (list, ".field[%s]", field);
+
+   if (!strcmp (xml_attrval (fld, "type"), "select")) {
+      mark = xml_firstelem (fld);
+      while (mark) {
+         if (xml_is (mark, "option")) {
+            if (!choices) choices = xml_create ("select");
+            xml_append_pretty (choices, xml_copy (mark));
+         }
+         mark = xml_nextelem (mark);
+      }
+      return (choices);
+   }
+
+   /* State? */
+   if (!strcmp (field, "_state") || !strcmp (xml_attrval (fld, "type"), "state")) {
+      if (!obj) return NULL;
+
+      choices = xml_create ("select");
+      xml_set (choices, "name", field);
+      xml_set_nodup (choices, "state", xmlobj_get (obj, list, field));
+
+      if (*xml_attrval (choices, "state")) {
+         state = xml_search (list, "state", "id", xml_attrval (choices, "state"));
+      } else {
+         state = xml_search (list, "state", NULL, NULL);
+         if (state) xml_set (choices, "state", xml_attrval (state, "id"));
+      }
+
+      mark = NULL;
+      if (state) mark = xml_search (state, "transition", NULL, NULL);
+      if (!mark) { /* No transitions (or no such state): all states are fair game. */
+         mark = xml_search (list, "state", NULL, NULL);
+         while (mark) {
+            if (xml_is (mark, "state")) {
+               holder = xml_create ("option");
+               xml_set (holder, "value", xml_attrval (mark, "id"));
+               if (!strcmp (xml_attrval (mark, "id"), xml_attrval (choices, "state"))) {
+                  xml_set (holder, "selected", "yes");
+               }
+               xml_append (holder, xml_createtext (*xml_attrval (mark, "label")
+                                                   ? xml_attrval (mark, "label")
+                                                   : xml_attrval (mark, "id")));
+               xml_append (choices, holder);
+            }
+            mark = xml_nextelem (mark);
+         }
+      } else { /* Current state has restricted transition list. */
+         holder = xml_create ("option");
+         xml_set (holder, "value", xml_attrval (choices, "state"));
+         xml_set (holder, "selected", "yes");
+         xml_append (holder, xml_createtext (*xml_attrval (state, "label")
+                                             ? xml_attrval (state, "label")
+                                             : xml_attrval (state, "id")));
+         xml_append (choices, holder);
+         while (mark) {
+            if (xml_is (mark, "transition")) {
+               state = xml_search (list, "state", "id", xml_attrval (mark, "to"));
+               if (strcmp (xml_attrval (state, "id"), xml_attrval (choices, "state"))) {
+                  holder = xml_create ("option");
+                  xml_set (holder, "value", xml_attrval (mark, "to"));
+                  xml_append (holder, xml_createtext (*xml_attrval (state, "label")
+                                                      ? xml_attrval (state, "label")
+                                                      : xml_attrval (state, "id")));
+                  xml_append (choices, holder);
+               }
+            }
+            mark = xml_nextelem (mark);
+         }
+      }
+      xml_unset (choices, "state");
+      return (choices);
+   }
+
+   /* Permissible actions? */
+   if (!strcmp (field, "_action")) {
+      /* TODO */
+   }
+
+   adaptor = strchr (field, ':') ? field : fld ? (*xml_attrval (fld, "choices") ? xml_attrval (fld, "choices") : xml_attrval (fld, "storage") ) : "";
+   if (*adaptor &amp;&amp; strcmp (adaptor, "record")) { /* Ask datastore adaptor */
+      if (!strncmp (adaptor, "list:", 5)) {
+         adaptor_buf = strdup (adaptor + 5);
+         label = strchr (adaptor_buf, ';');
+         if (label) {
+            *label = '\0';
+            label++;
+         }
+         query = xml_create ("list");
+         xml_set (query, "id", adaptor_buf);
+         repos_list (repository, query);
+         choices = xml_create ("select");
+         mark = xml_firstelem (query);
+         while (mark) {
+            if (!xml_is (mark, "field") &amp;&amp; !xml_is(mark, "where") &amp;&amp; !xml_is (mark, "link")) {
+               choice = xml_create ("option");
+               xml_set (choice, "value", xml_attrval (mark, "id"));
+               if (label) {
+                  xml_append (choice, xml_createtext_nodup (xmlobj_format (mark, NULL, label)));
+               } else {
+                  xml_append (choice, xml_createtext (xml_attrval (mark, "id")));
+               }
+               xml_append_pretty (choices, choice);
+            }
+            mark = xml_nextelem (mark);
+         }
+         xml_free (query);
+         free (adaptor_buf);
+         return (choices);
+      }
+
+      ad = wftk_get_adaptor (repository, DATASTORE, adaptor);
+      if (!ad) return NULL;
+      choices = wftk_call_adaptor (ad, "choices", field, obj, list);
+      wftk_free_adaptor (repository, ad);
+      return (choices);
+   }
+
+   if (!fld) return NULL;
+
+   if (*xml_attrval (fld, "link")) { /* TODO: implement linked fields. */
+      return NULL;
+   }
+
+   /* Are options supplied in the field spec? */
+   mark = xml_firstelem (fld);
+   while (mark) {
+      if (xml_is (mark, "option")) {
+         if (!choices) choices = xml_create ("select");
+         xml_append_pretty (choices, xml_copy (mark));
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   return choices;
+}
+</pre></td></tr></table>
+
+<i>(30 July 2002)</i>: So I'm just now getting down to the business of displaying object edit forms now that I'm working on the CGI
+interface (i.e. the first actual use of object edit forms).  The way I'm doing this is going to be pretty complex in the end -- I want
+the ability to encode wizards into the list definition, so the actual display of an edit form will depend on three variables: the <i>mode</i>
+is specified by the caller (example: edit, display), the <i>status</i> of the object is the second, and third the <i>user</i> making the
+request can also have an effect on the form actually displayed.  For the time being, of course, I'm ignoring most of that.  This is just
+the game plan.  TODO: (as usual) implement the big plan.
+<p></p>
+The overall steps for building an edit (or display) form are:<ul>
+<li>Find or build a layout for the object.
+<li>For each field in the layout, retrieve a value.<ul>
+    <li>The value may be a display-only value.
+    <li>The value may be an edit field, either blank or filled out.
+    </ul>
+<li>Express the fields in the layout appropriately.
+</ul>
+It's the layout where we're going to get clever with our Big Plan.  If there is no layout (which for the time being will always be the
+case) then we build a default layout consisting of a table with labels and fields as appropriate.  So there's a meaningful improvement
+path ahead of us.
+<p></p>
+<i>(2 Jan 2003)</i>: so.  Breaking ground with integration of workflow and repmgr, at last; today the form display function learns
+how to display states and available transitions.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_form    (XML * repository, const char * list_id, const char * key, const char * mode)
+{
+   XML * list;
+   if (!repository) return NULL;
+   list = repos_defn (repository, list_id);
+   if (!list) return NULL;
+   return repos_form_direct (repository, list, key, mode);
+}
+WFTK_EXPORT XML * repos_form_object (XML * repository, const char * list_id, XML * object, const char * mode)
+{
+   XML * list;
+   if (!repository) return NULL;
+   list = repos_defn (repository, list_id);
+   if (!list) return NULL;
+   return repos_form_object_direct (repository, list, object, mode);
+}
+WFTK_EXPORT XML * repos_form_direct (XML * repository, XML * list, const char * key, const char * mode)
+{
+   XML * object;
+
+   /* Retrieve the object. */
+   if (key) {
+      object = repos_get (repository, xml_attrval (list, "id"), key);
+      if (!object) return NULL;
+   } else {
+      object = NULL;
+   }
+
+   return repos_form_object_direct (repository, list, object, mode);
+}
+
+void _repos_default_field_layout (XML * layout, XML * field, const char * mode);
+WFTK_EXPORT XML * repos_form_object_direct (XML * repository, XML * list, XML * object, const char * mode)
+{
+   XML * layout = NULL;
+   XML * field;
+   XML * state;
+   XML * parent_list;
+   XML * defn_field;
+   XML * actions;
+   XML * tr;
+   XML * td;
+   XML * mark;
+   char * view;
+   WFTK_ADAPTOR * ad;
+
+   if (!mode) mode = "new";
+
+   /* Ask the list how we should lay the current object out, assuming there is one. */
+   /* TODO: this is where we implement form construction from the system definition (or form lookup, or whatever). */
+   /* 2004-02-14 - one method: _views (see repos_view_find) */
+   view = repos_view_find (repository, list, object, mode);
+   if (view) {
+      repos_log (repository, 4, 0, NULL, "repmgr", "building _views-derived form in mode %s for object in class %s", mode, xml_attrval (list, "id"));
+      layout = xml_createtext_nodup (repos_view_express (repository, list, object, view));
+      free (view);
+      return (layout);
+   }
+
+
+   /* Otherwise we build our default. */
+   repos_log (repository, 4, 0, NULL, "repmgr", "building default form in mode %s for object in class %s", mode, xml_attrval (list, "id"));
+
+   /* The default for tasks, of course, differs from the regular run of the mill object, as field information
+      comes from the parent object and its list rather than (mostly) from the _tasks list. */
+   if (!strcmp (xml_attrval (list, "id"), "_tasks") || !strcmp (xml_attrval (list, "id"), "_todo")) {
+      list = repos_defn (repository, "_tasks");
+
+      layout = xml_create ("table");
+      repos_log (repository, 4, 0, NULL, "repmgr", "task's parent list is %s", xml_attrval (object, "list"));
+      parent_list = repos_defn (repository, xml_attrval (object, "list"));
+      /* For tasks, we first scan the object itself for fields, and display them using labeling info from the parent object's list. */
+      field = xml_firstelem (object);
+      while (field) {
+         if (xml_is (field, "field")) {
+            defn_field = xml_search (parent_list, "field", "id", xml_attrval (field, "id"));
+            if (strcmp (xml_attrval (defn_field, "special"), "rest_xml")) {
+               _repos_default_field_layout (layout, defn_field ? defn_field : field, mode);
+            }
+         }
+         field = xml_nextelem (field);
+      }
+
+      /* We then scan the task defn for all fields with a display-mode attribute, and add them to the form. */
+      field = xml_firstelem (list);
+      while (field) {
+         if (xml_is (field, "field") &amp;&amp; *xml_attrval (field, "display-mode")) {
+            _repos_default_field_layout (layout, field, (strcmp (mode, "edit") &amp;&amp; strcmp (mode, "new")) ? mode : xml_attrval (field, "display-mode"));
+         }
+         field = xml_nextelem (field);
+      }
+   }
+
+   /* If not a task, we build a simple layout. */
+   if (!layout) {
+      layout = xml_create ("table");
+      field = xml_create ("input");
+      xml_set (field, "name", "_control.list");
+      xml_set (field, "type", "hidden");
+      xml_set (field, "value", xml_attrval (list, "id"));
+      xml_append_pretty (layout, field);
+      if (object) {
+         field = xml_create ("input");
+         xml_set (field, "name", "_control.key");
+         xml_set (field, "type", "hidden");
+         xml_set_nodup (field, "value", xmlobj_getkey (object, list));
+         xml_append_pretty (layout, field);
+      }
+      field = xml_firstelem (list ? ((!strcmp (xml_attrval (list, "format"), "object") &amp;&amp; object) ? object : list) : object);
+      while (field) {
+         if (xml_is (field, "field") &amp;&amp; strcmp (xml_attrval (field, "special"), "rest_xml")) { /* rest_xml fields are invisible. */
+            _repos_default_field_layout (layout, field, mode);
+         } /* TODO: how about lists and links? */
+         field = xml_nextelem (field);
+      }
+
+      /* Add standard actions. */
+      if ((!object || !strcmp (mode, "new") || !strcmp (mode, "edit")) &amp;&amp; strcmp (xml_attrval (list, "defaultview"), "nobuttons")) {
+         actions = repos_action_list_object_direct (repository, list, object, mode);
+         tr = xml_create ("tr");
+         td = xml_create ("td");
+         xml_append_pretty (layout, tr);
+         xml_append_pretty (tr, td);
+         xml_set (td, "colspan", "2");
+         tr = xml_create ("center");
+         xml_append_pretty (td, tr);
+         for (mark = xml_firstelem (actions); mark; mark = xml_nextelem (mark)) {
+            field = xml_create ("input");
+            xml_setf (field, "name", "_action.%s", xml_attrval (mark, "id"));
+            xml_set (field, "type", "submit");
+            xml_set  (field, "value", xml_attrval (mark, "label"));
+            xml_append (tr, field);
+            xml_append (tr, xml_create ("nbsp"));
+            xml_append (tr, xml_create ("nbsp"));
+         }
+      }
+   }
+
+   return repos_format_object (repository, list, object, layout);
+}
+</pre></td></tr></table>
+
+That uses a little helper function to build a standard field's layout, defined as follows:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _repos_default_field_layout (XML * layout, XML * field, const char * mode)
+{
+   XML * row;
+   XML * col;
+   XML * val;
+
+   row = xml_create ("tr");
+   col = xml_create ("td");
+   xml_append (row, col);
+   xml_append (col, xml_createtext (*xml_attrval (field, "label") ? xml_attrval (field, "label") : xml_attrval (field, "id")));
+   if (strcmp (xml_attrval (field, "type"), "text") &amp;&amp; strcmp (xml_attrval (field, "type"), "wiki")) {
+      col = xml_create ("td");
+      xml_append (row, col);
+      val = xml_create ("template:value");
+      xml_set (val, "name", xml_attrval (field, "id"));
+      xml_set (val, "storage", xml_attrval (field, "storage"));
+      xml_set (val, "mode", mode);
+      xml_append (col, val);
+   } else {
+      xml_set (col, "colspan", "2");
+      xml_append_pretty (layout, row);
+      row = xml_create ("tr");
+      col = xml_create ("td");
+      xml_append (row, col);
+      xml_set (col, "colspan", "2");
+      val = xml_create ("template:value");
+      xml_set (val, "name", xml_attrval (field, "id"));
+      xml_set (val, "storage", xml_attrval (field, "storage"));
+      xml_set (val, "mode", mode);
+      xml_append (col, val);
+   }
+   xml_append_pretty (layout, row);
+}
+</pre></td></tr></table>
+
+<i>2004-02-05</i>: I split the field formatter out of format_object, so that we can use it to format
+fields in repos_view_express.  In the process, I cleaned it up a little, which is good, because
+it's already a mess and it's not even doing half of what I want it to be able to do eventually.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_form_object_field  (XML * repository, XML * list, XML * object, const char * field_name)
+{
+   XML * field;
+   XML * spec;
+   XML * choices;
+   XML * mark;
+   XML * state;
+   WFTK_ADAPTOR * ad;
+   XML * val = NULL;
+   char * value = NULL;
+   const char * t;
+   const char * f;
+
+   spec = xml_locf (list ? list : object, ".field[%s]", field_name);
+   if (object) value = xmlobj_get (object, list, field_name);
+
+   /* Select drop-down if repos_list_choices can come up with a list of value choices. */
+   /* Note: this includes state selection fields. */
+   if (strchr (xml_attrval (spec, "storage"), ':') || !strcmp (xml_attrval (spec, "type"), "select")) {
+      choices = repos_list_choices (repository, xml_attrval (list, "id"), object,
+                                    strchr (xml_attrval (spec, "storage"), ':') ? xml_attrval (spec, "storage") : field_name);
+      if (choices) {
+         val = xml_create ("select");
+         xml_set (val, "name", field_name);
+         if (*xml_attrval (spec, "size")) xml_set (val, "size", xml_attrval (spec, "size"));
+         if (*xml_attrval (spec, "class")) xml_set (val, "class", xml_attrval (spec, "class"));
+         if (*xml_attrval (spec, "style")) xml_set (val, "style", xml_attrval (spec, "style"));
+         mark = xml_firstelem (choices);
+         while (mark) {
+            if (value &amp;&amp; !strcmp (value, xml_attrval (mark, "value"))) xml_set (mark, "selected", "yes");
+            xml_append_pretty (val, xml_copy (mark));
+            mark = xml_nextelem (mark);
+         }
+      }
+      xml_free (choices);
+      if (value) free (value);
+      return (val);
+   }
+
+   /* Next, normal text fields. */
+   if (!*xml_attrval (spec, "type") || !strcmp (xml_attrval (spec, "type"), "string")
+                                    || !strcmp (xml_attrval (spec, "type"), "numeric")) {
+      val = xml_create ("input");
+      xml_set (val, "name", field_name);
+      if (*xml_attrval (spec, "size")) xml_set (val, "size", xml_attrval (spec, "size"));
+      if (*xml_attrval (spec, "class")) xml_set (val, "class", xml_attrval (spec, "class"));
+      if (*xml_attrval (spec, "style")) xml_set (val, "style", xml_attrval (spec, "style"));
+      if (value) xml_set_nodup (val, "value", xmlobj_get (object, list, field_name));
+      return (val);
+   }
+
+   /* Attachment fields = upload fields. TODO: something sensible if an attachment is already present. */
+   if (!strcmp (xml_attrval (spec, "type"), "document")) {
+      val = xml_create ("input");
+      xml_set (val, "name", xml_attrval (spec, "id"));
+      xml_set (val, "type", "file");
+      if (*xml_attrval (spec, "size")) xml_set (val, "size", xml_attrval (spec, "size"));
+      if (*xml_attrval (spec, "class")) xml_set (val, "class", xml_attrval (spec, "class"));
+      if (*xml_attrval (spec, "style")) xml_set (val, "style", xml_attrval (spec, "style"));
+
+      if (value) free (value);
+      return (val);
+   }
+
+   /* Text/Wiki fields, that is, textareas. */
+   if (!strcmp (xml_attrval (spec, "type"), "text") || !strcmp (xml_attrval (spec, "type"), "wiki")) {
+      val = xml_create ("textarea");
+      xml_set (val, "name", field_name);
+      if (*xml_attrval (spec, "rows")) xml_set (val, "rows", xml_attrval (spec, "rows"));
+      if (*xml_attrval (spec, "cols")) xml_set (val, "cols", xml_attrval (spec, "cols"));
+      if (*xml_attrval (spec, "class")) xml_set (val, "cols", xml_attrval (spec, "class"));
+      if (*xml_attrval (spec, "style")) xml_set (val, "style", xml_attrval (spec, "style"));
+      if (value) xml_append (val, xml_createtext_nodup (value));
+
+      return (val);
+   }
+
+   /* State fields that didn't get handled by repos_list_choices */
+   if (!strcmp (xml_attrval (spec, "type"), "state")) {
+      val = xml_create ("div");
+      xml_set (val, "name", field_name);
+      if (*xml_attrval (spec, "class")) xml_set (val, "class", xml_attrval (spec, "class"));
+      if (*xml_attrval (spec, "style")) xml_set (val, "style", xml_attrval (spec, "style"));
+      state = xml_search (list, "state", NULL, NULL);
+      if (state) {
+         if (*xml_attrval (state, "label")) {
+            xml_append (val, xml_createtextf ("(%s)", xml_attrval (state, "label")));
+         } else {
+            xml_append (val, xml_createtextf ("(%s)", xml_attrval (state, "id")));
+         }
+      } else {
+         xml_append (val, xml_createtext ("(system will supply)"));
+      }
+
+      if (value) free (value);
+      return (val);
+   }
+
+   /* System-determined fields (treated as simple text) */
+   if (!strcmp (xml_attrval (spec, "type"), "system")) {
+      val = xml_create ("div");
+      xml_set (val, "name", field_name);
+      if (*xml_attrval (spec, "class")) xml_set (val, "cols", xml_attrval (spec, "class"));
+      if (*xml_attrval (spec, "style")) xml_set (val, "style", xml_attrval (spec, "style"));
+      if (value) xml_append (val, xml_createtext_nodup (xmlobj_get (object, list, field_name)));
+      else       xml_append (val, xml_createtext ("(system will supply)"));
+
+      return (val);
+   }
+
+   /* Boolean fields (new 2004/03/04) */
+   if (!strcmp (xml_attrval (spec, "type"), "bool") || !strncmp (xml_attrval (spec, "type"), "bool:", 5)) {
+      if (!strncmp (xml_attrval (spec, "type"), "bool:", 5)) {
+         f = xml_attrval (spec, "type") + 5;
+         t = strchr (f, ':');
+         if (t) {
+            t++;
+            xml_set (spec, "t", t);
+            t--;
+            xml_set (spec, "f", "");
+            xml_attrncat (spec, "f", f, t-f);
+         } else {
+            if (!*xml_attrval (spec, "t")) xml_set (spec, "t", "1");
+            xml_set (spec, "f", f);
+         }
+         xml_set (spec, "type", "bool");
+      }
+      if (!*xml_attrval (spec, "t")) xml_set (spec, "t", "1"); /* TODO: should there be a one-time preparation phase? */
+
+      val = xml_create ("div");
+      mark = xml_create ("input");
+      xml_append_pretty (val, mark);
+      xml_set (mark, "name", field_name);
+      xml_set (mark, "type", "hidden");
+      xml_set (mark, "value", xml_attrval (spec, "f"));
+      mark = xml_create ("input");
+      xml_append_pretty (val, mark);
+      xml_set (mark, "name", field_name);
+      xml_set (mark, "type", "checkbox");
+      if (*xml_attrval (spec, "class")) xml_set (mark, "class", xml_attrval (spec, "class"));
+      if (*xml_attrval (spec, "style")) xml_set (mark, "style", xml_attrval (spec, "style"));
+      xml_set (mark, "value", xml_attrval (spec, "t"));
+
+      if (value) {
+         if (*value &amp;&amp; strcmp (value, xml_attrval (spec, "f"))) xml_set (mark, "checked", "yes");
+         free (value);
+      }
+
+      return (val);
+   }
+
+   /* Last chance: let the adaptor deal with it. */
+   ad = wftk_get_adaptor (repository, DATATYPE, xml_attrval (spec, "type"));
+   if (ad) {
+      val = wftk_call_adaptor (ad, value ? "html" : "htmlblank", object, spec);
+      wftk_free_adaptor (repository, ad);
+
+      if (value) free (value);
+      return (val);
+   }
+
+   if (value) free (value);
+   return NULL;
+}
+
+WFTK_EXPORT XML * repos_format_object (XML * repository, XML * list, XML * object, XML * layout)
+{
+   XML * row;
+   XML * col;
+   XML * val;
+   XML * spec;
+   XML * field;
+   XML * state;
+   XML * mark;
+   XML * holder;
+   XML * choices;
+   char * value;
+   WFTK_ADAPTOR * ad;
+
+   /* Express the object using the layout we just retrieved or built. */
+   field = xml_firstelem (layout);
+   while (field) {
+      if (xml_is (field, "template:value")) {
+         spec = xml_locf (list ? list : object, ".field[%s]", xml_attrval (field, "name"));
+         val = NULL;
+         if (!object || !strcmp (xml_attrval (field, "mode"), "new")) {
+            val = repos_form_object_field (repository, list, NULL, xml_attrval (field, "name"));
+         } else if (!strcmp (xml_attrval (field, "mode"), "edit")) {
+            val = repos_form_object_field (repository, list, object, xml_attrval (field, "name"));
+         } else {
+            if (*xml_attrval (field, "storage")) {
+               choices = repos_list_choices (repository, xml_attrval (list, "id"), object, xml_attrval (field, "storage"));
+            } else {
+               choices = NULL;
+            }
+            value = xmlobj_get (object, list, xml_attrval (field, "name"));
+            if (choices) {
+               for (mark = xml_firstelem (choices); mark; mark = xml_nextelem (mark)) {
+                  if (!strcmp (value, xml_attrval (mark, "value"))) {
+                     val = xml_createtext_nodup (xml_stringcontenthtml (mark));
+                     break;
+                  }
+               }
+            }
+            if (!val) {
+               val = xml_createtext_nodup (value);
+            } else {
+               free (value);
+            }
+         }
+         if (!val) val = xml_createtext ("");
+         xml_replace (field, val);
+         field = val;
+      } /* TODO: presumably we'll have some sort of list things too. */
+
+      if (xml_firstelem (field)) {
+         field = xml_firstelem (field);
+      } else do {
+         if (xml_nextelem (field)) {
+            field = xml_nextelem (field);
+            break;
+         } else {
+            field = xml_parent (field);
+            if (!field) break;
+         }
+      } while (1);
+   }
+
+   /* Return the result. */
+   return (layout);
+}
+</pre></td></tr></table>
+
+<p></p>
+<i>Valentine's Day, 2004</i>: So today I return to my true love, the workflow toolkit, and start a new function section: a new way of
+formatting objects.  This is really pretty straightforward, consisting of two functions: repos_view_find and repos_view_express.
+The view finder takes an object and based on that object, the current user, and the user's requested view (say, "view" or "edit")
+looks up the appropriate template to use in a _views list.  Then repos_view_express takes that and builds a text object.
+<p></p>
+"Hey, wait a minute," you're saying, "you just defined repos_format_object to do that."  Well, yeah.  Except I hate repos_format_object.
+For one thing, it gives an XML output, which is great for writing HTML pages, but isn't great for building, say, textual email messages.
+For another, its input layouts are also XML, and I like my template format better; it's easier to deal with, for me anyway.  The way
+view_express works is that named tags are enclosed like this: [&#35;#tagname##].  It's simple and easy to deal with, and doesn't interfere
+with SGML-type markup, or any other markup I know of.  Granted, it's weaker in principle than the full XML layout, but usually that
+doesn't matter much.
+<p></p>
+Anyway, let's look at how these templates are looked up, with repos_view_find.  Note that repos_view_find returns an allocated string,
+not an XML object, which makes it pretty unusual for this API.
+<p></p>
+Note also: this is a very simplified version of what we will probably end up with here.  Ideally, we'd want to use a rule-based
+decision engine to figure out what view applies to a given current situation.  However, since I don't want to implement a rule-based
+engine in order to use simple views for the project I'm working on at the moment, I'm going to simplify.  The _views list is indexed
+by a view key.  That view key will be the result of a rule-based process eventually -- but in the meantime it is an explicit
+flat-template string attached to the list, as viewkey="[field]_[_mode]".  The named [fields] in this are just like our normal
+flat templates (i.e. they're field names in the object we're viewing) extended with [_user] (the current userid, not too useful since
+it doesn't scale at all well), [_state] for the object's state, and [_mode] (the view mode passed in to repos_view_find).  Klar?  Easy.
+
+<p></p>
+The final key actually used to index _views is composed of the list id (always), underscore, and the expressed view key.  This is going
+to be the same when we apply a rule engine, too, or at least it looks that way now.
+
+<p></p>
+TODO: (as always) do something appropriate to define views for tasks in lists.
+
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT char * repos_view_find (XML * repository, XML * list, XML * object, const char * mode)
+{
+   char * viewkey;
+   char * viewkey_expressed;
+   char * key;
+   XML * view_object = object;
+   char * ret;
+
+   if (!list) return NULL;
+   if (!view_object) view_object = list;
+
+   /* Get viewkey -- TODO: implement said rule engine interface here, when we have a rule engine. */
+   viewkey = strdup (xml_attrval (list, "viewkey"));
+   if (!*viewkey) {
+      free (viewkey);
+      return NULL; /* TODO: make sure this behavior makes sense in the bigger picture.  When called from repos_form, it does. */
+   }
+
+   /* Do the flat-template thing, with extra fields. */
+   /*xml_set (view_object, "_user", TODO: get current user from repository); */
+   /* _state is already set for object, right?  TODO: test this. */
+   xml_set (view_object, "_mode", mode);
+
+   viewkey_expressed = xmlobj_format (view_object, list, viewkey);
+   free (viewkey);
+   key = xml_string_format ("%s_%s", xml_attrval (list, "id"), viewkey_expressed);
+   free (viewkey_expressed);
+
+   xml_unset (view_object, "_mode"); /* Clean up pseudofield. */
+
+   /* Use the key just built to index _views. */
+   repos_log (repository, 5, 0, NULL, "repmgr", "repos_view_find: looking for %s in _views", key);
+   view_object = repos_get (repository, "_views", key);
+   free (key);
+
+   if (!view_object) return NULL;
+
+   ret = xmlobj_get (view_object, NULL, "view");
+   xml_free (view_object);
+   return (ret);
+}
+</pre></td></tr></table>
+
+Once we find a view, we'll probably want to express it.  Here's how.  Some interesting caveats here: although the canonical tag is
+a named field, we also define some other neat stuff.  [&#35;#input (field)##] calls repos_form_object_field to build some HTML for a
+populated input widget for the named field.  [&#35;#insert (viewkey)##] calls another view, allowing us to cascade views.  And
+[&#35;#repeat (sublist)##] ... [&#35;#between##] ... [&#35;#/repeat##] lets us iterate our template expression over a list in the object.
+And I might implement something like [&#35;#if (eval)##] ... [&#35;#elseif##] ... [&#35;#else##] ... [&#35;#/if##] for conditional evaluation; this would
+be particularly attractive with the insertion tag.
+
+<p></p>
+2004-02-15: Just added a special [&#35;#actions (mode)##] tag to display buttons for the actions available to the user.  This is a pretty low-level
+thing, so we'll probably want some kind of more refined alternative someday.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT char * repos_view_express (XML * repository, XML * list, XML * object, const char * view)
+{
+   XML  * scratch = xml_create ("s");
+   char * mark;
+   int    len;
+   char * val;
+   XML  * actions;
+   XML  * xmark;
+   char * viewkey_expressed;
+   char * key;
+   XML  * view_object;
+   char * other_view;
+
+   xml_set (scratch, "s", "");
+
+   mark = strstr (view, "[&#35;#");
+   while (mark) {
+      xml_attrncat (scratch, "s", view, mark - view);
+      view = mark + 3;
+      xml_set (scratch, "name", "");
+      mark = strstr (view, "##]");
+      if (mark) len = mark - view;
+      else      len = strlen (view);
+      xml_attrncat (scratch, "name", view, len);
+
+      /* Evaluate the tag in "name" */
+      val = NULL;
+      if (!strncmp (xml_attrval (scratch, "name"), "input ", 6)) {
+         xmark = repos_form_object_field (repository, list, object, xml_attrval (scratch, "name") + 6); /* This is some cool magic. */
+         val = xml_stringhtml (xmark);
+         xml_free (xmark);
+      } else if (!strncmp (xml_attrval (scratch, "name"), "include ", 8)) {
+         mark = (char *) xml_attrval (scratch, "name") + 8;
+         while (*mark == ' ') mark++;
+
+         viewkey_expressed = xmlobj_format (object, list, mark);
+         key = xml_string_format ("%s_%s", xml_attrval (list, "id"), viewkey_expressed);
+         free (viewkey_expressed);
+
+         repos_log (repository, 6, 0, NULL, "repmgr", "repos_view_find: inserting %s from _views", key);
+         view_object = repos_get (repository, "_views", key);
+         free (key);
+
+         if (view_object) {
+            other_view = xmlobj_get (view_object, NULL, "view");
+            xml_free (view_object);
+            val = repos_view_express (repository, list, object, other_view);
+         } else val = NULL;
+      } else if (!strncmp (xml_attrval (scratch, "name"), "repeat ", 7)) {
+         /* TODO: do. */
+      } else if (!strncmp (xml_attrval (scratch, "name"), "if ", 3)) {
+         /* TODO: do. */
+      } else if (!strncmp (xml_attrval (scratch, "name"), "actions ", 8)) {
+         actions = repos_action_list_object_direct (repository, list, object, xml_attrval (scratch, "name") + 8);
+         for (xmark = xml_firstelem (actions); xmark; xmark = xml_nextelem (xmark)) {
+            xml_attrcat (scratch, "s", "&lt;input type=\"submit\" name=\"_action.");
+            xml_attrcat (scratch, "s", xml_attrval (xmark, "id"));
+            xml_attrcat (scratch, "s", "\" value=\"");
+            xml_attrcat (scratch, "s", xml_attrval (xmark, "label"));
+            xml_attrcat (scratch, "s", "\">&amp;nbsp;&amp;nbsp;");
+         }
+      } else if (!strncmp (xml_attrval (scratch, "name"), "control ", 8)) {
+         xml_attrcat (scratch, "s", "&lt;input type=\"hidden\" name=\"_control.list\" value=\"");
+         xml_attrcat (scratch, "s", xml_attrval (list, "id"));
+         xml_attrcat (scratch, "s", "\">\n");
+         xml_attrcat (scratch, "s", "&lt;input type=\"hidden\" name=\"_control.key\" value=\"");
+         xml_attrcat (scratch, "s", repos_getkey (repository, xml_attrval (list, "id"), object));
+         xml_attrcat (scratch, "s", "\">\n");
+         xml_attrcat (scratch, "s", "&lt;input type=\"hidden\" name=\"_control.mode\" value=\"");
+         xml_attrcat (scratch, "s", xml_attrval (scratch, "name") + 8);
+         xml_attrcat (scratch, "s", "\">\n");
+      } else {
+         if (object) val = xmlobj_get (object, list, xml_attrval (scratch, "name"));
+      }
+
+      if (val) {
+         xml_attrcat (scratch, "s", val);
+         free (val);
+      }
+      view += len;
+      if (*view) view += 3; /* Skip the ending ##] */
+      mark = strstr (view, "[&#35;#");
+   }
+   xml_attrcat (scratch, "s", view); 
+
+   mark = strdup (xml_attrval (scratch, "s"));
+   xml_free (scratch);
+   return (mark);
+}
+</pre></td></tr></table>
+
+At some point, the repmgr API will also be able to redefine lists on the fly.  This is the function which will do it.  This is safely
+in the future at this point.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int   repos_define  (XML * repository, const char * list, XML * defn)
+{
+   printf ("define\n");
+   return 0;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="macros.html">Previous: Macro processing</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="iteration.html">Next: Iterating across list contents</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2005, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

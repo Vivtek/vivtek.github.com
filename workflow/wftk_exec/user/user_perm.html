@@ -1,0 +1,179 @@
+<html><head><title>User module: Actually using all this XML to figure out a user's permissions</title></head>
+<body>
+<h2>Actually using all this XML to figure out a user's permissions</h2>
+<center>
+[&nbsp;<a href="auth.html">Previous: Authentication in a CGI environment</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="listing.html">Next: Listing objects and permissions</a>&nbsp;]
+</center>
+
+<hr>
+I nearly forgot to include this function in the API -- isn't that weird?  Anyway, the whole
+point of all the preceding work is to be able to ask of a given user and a given object,
+whether the user has permission to a given action on that object.  To determine this, we'll
+walk the user and group trees until we find the object (or don't) and a permission level which
+matches.
+<p></p>
+I've decided that rather than leave the permissions completely open to module interpretation,
+it will be simpler to define a couple right at the outset: "own" means automaticallly that the
+user gets any permission.  "write" is greater than "view", and those two are the only official
+permissions defined.  (I.e. if I have write permission, and the question is whether I may view
+an object, then the answer is always "yes".  That might be a little too simple, but I think in
+practice it will work.)
+<p></p>
+Note that since permissions are completely arbitrary strings, a module is perfectly free to
+define anything at all as a permission.  For the wftk, "activate" makes a lot of sense as a
+permission, for instance.  It's just that the user module won't know anything special about
+those permissions.
+<p></p>
+This is by far our most complicated function.
+<p></p>
+There are three things which are "magic" about permissions.  First is that permission "own"
+qualifies you for any permission.  Second is that group "admin" has "own" on everything.
+Third is that everybody belongs to group "everybody", so that granting some privilege to
+group "everybody" makes that privilege public.  And fourth (OK, so I thought up another one
+during subsequent development) -- as I was saying, fourth is that any permission at all is
+sufficient for "view".
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="user_perm.html#userhelpers">Helper functions for that</a></i>
+int user_perm (XML * user, const char * class, const char * object, const char * permission)
+{
+   XML * group;
+   XML * child;
+
+   child = xml_firstelem (user);
+   while (child) {
+      if (!strcmp (child->name, "object")) {
+         if (!strcmp (xml_attrval (child, "class"), class) &amp;&amp;
+             !strcmp (xml_attrval (child, "object"), object)) {
+            if (_user_perm_cmp (xml_attrval (child, "permission"), permission)) return (1);
+         }
+      } else if (!strcmp (child->name, "group")) {
+         if (!strcmp (xml_attrval (child, "name"), "admin")) return (1);
+         group = group_get (xml_attrval (child, "name"));
+         if (group) {
+            if (user_perm (group, class, object, permission)) {
+               xml_free (group);
+               return (1);
+            }
+            xml_free (group);
+         }
+      } else if (!strcmp (child->name, "group-include")) {
+         if (_user_perm_cmp (xml_attrval (child, "permission"), permission)) {
+            group = group_get (xml_attrval (child, "name"));
+            if (group) {
+               if (user_perm (group, class, object, permission)) {
+                  xml_free (group);
+                  return (1);
+               }
+               xml_free (group);
+            }
+         }
+      }
+      child = xml_nextelem (child);
+   }
+   if (strcmp (user->name, "group") &amp;&amp; strcmp (xml_attrval (user, "name"), "everybody")) {
+      group = group_get ("everybody");
+      if (group) {
+         if (user_perm (group, class, object, permission)) {
+            xml_free (group);
+            return (1);
+         }
+         xml_free (group);
+      }
+   }
+   return (0);
+}
+</pre></td></tr></table>
+
+Now the variant, <code>user_perm_group</code>, which just takes the name of a group which owns the object
+in question.  (Thus having the named permission on the group will automatically count as having (at least) that
+permission on the object.)  This saves a great deal of overhead if we can assume that objects always are
+owned by single groups, which works well for the task manager.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int user_perm_group (XML * user, const char * groupname, const char * permission)
+{
+   XML * group;
+   XML * child;
+
+   if (!strcmp (groupname, "everybody")) return (1);
+   if (!strcmp (groupname, "")) return (1);
+
+   child = xml_firstelem (user);
+   while (child) {
+      if (!strcmp (child->name, "group")) {
+         if (!strcmp (xml_attrval (child, "name"), "admin")) return (1);
+         if (!strcmp (xml_attrval (child, "name"), groupname)) return (1);
+
+         group = group_get (xml_attrval (child, "name"));
+         if (group) {
+            if (user_perm_group (group, groupname, permission)) {
+               xml_free (group);
+               return (1);
+            }
+            xml_free (group);
+         }
+      } else if (!strcmp (child->name, "group-include")) {
+         if (_user_perm_cmp (xml_attrval (child, "permission"), permission)) {
+            if (!strcmp (xml_attrval (child, "name"), groupname)) return (1);
+
+            group = group_get (xml_attrval (child, "name"));
+            if (group) {
+               if (user_perm_group (group, groupname, permission)) {
+                  xml_free (group);
+                  return (1);
+               }
+               xml_free (group);
+            }
+         }
+      }
+      child = xml_nextelem (child);
+   }
+   if (strcmp (user->name, "group") &amp;&amp; strcmp (xml_attrval (user, "name"), "everybody")) {
+      group = group_get ("everybody");
+      if (group) {
+         if (user_perm_group (group, groupname, permission)) {
+            xml_free (group);
+            return (1);
+         }
+         xml_free (group);
+      }
+   }
+   return (0);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="userhelpers">
+<i>Helper functions for that</i><br>
+OK, we need to mop up some details now.  First, let's formalize that comparison between
+permissions: if the user has "own", then the user has any permission.  If the permissions
+are the same, the user has permission.  Otherwise, no permission.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int _user_perm_cmp (const char * perm1, const char * permission)
+{
+   if (!strcmp (perm1, "own")) return (1);
+   if (!strcmp (perm1, permission)) return (1);
+   if (!strcmp (permission, "view")) return (1);
+   return (0);
+}
+</pre></td></tr></table>
+
+Um...  OK, that was all the help I needed, I guess.
+
+
+
+<center>
+[&nbsp;<a href="auth.html">Previous: Authentication in a CGI environment</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="listing.html">Next: Listing objects and permissions</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

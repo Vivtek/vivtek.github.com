@@ -1,0 +1,44 @@
+<html><head><title>Repository manager: Asynchronous processing</title></head>
+<body>
+<h2>Asynchronous processing</h2>
+<center>
+[&nbsp;<a href="remote_xact.html">Previous: Transactions</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_workflow.html">Next: Workflow</a>&nbsp;]
+</center>
+
+<hr>
+<i>(January 26, 2003)</i>:  <i>Asynchronous processing</i> is a catchall term for the following kinds of things a complete system
+should be able to do (note that support for this kind of thing requires a complete system, not just the repmgr library.)
+<ul>
+<li>Task timeouts and deadlines
+<li>Queue handling
+<li>Periodic reports
+<li>Deferred processing for publishing
+</ul>
+
+In general, the repos_process call can be thought of as supporting any daemon process which should run in a complete system and do
+work that should be done in the background while a user isn't waiting on the result.  The particular motivator for this feature is
+task timeouts, which allow limits to be placed on the time that objects may spend in particular states and will trigger automatic
+state transitions if those time limits are exceeded.  There is plenty of special logic for that one application built into this
+section.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT char * FN_NAME(repos_process) (XML * repository, const char * list, const char * key);
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="remote_xact.html">Previous: Transactions</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="remote_workflow.html">Next: Workflow</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

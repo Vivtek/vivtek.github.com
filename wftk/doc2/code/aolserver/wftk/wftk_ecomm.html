@@ -1,0 +1,128 @@
+<html><head><title>AOLserver/wftk e-commerce application</title></head>
+<body>
+<h2>AOLserver/wftk e-commerce application</h2>
+<center>
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#
+# E-commerce application based on wftk.
+# Copyright (c) 2003, Vivtek.  Released under GPL.
+#
+</pre></td></tr></table>
+
+Way back in 1997 and 1998, I wrote an e-commerce platform, with a shopping cart and
+administrative facilities (the latter never really finished) and we ran some customer
+catalogs on it for a while, but due to my utter lack of marketing acumen, it never
+really took off.  But I still have some people using it, and frankly, from a
+performance standpoint it's horrible, since it runs on Illustra, a database you
+have never heard of.  (And if you have, then you know what I mean about performance.)
+Back in 1997 it was pretty slick.  In 2003 it is not.
+<p></p>
+So I need to replace it, and as there is <i>still</i> no particularly widespread
+open-source shopping cart that I know of, well, it's a golden opportunity to force
+the wftk into another box and thereby make it grow.
+<p></p>
+My first cut of the ecomm application is going to be somewhat simplified, but
+with luck I'll move into more complexity soon.
+<p></p>
+Also, the first cut is probably going to be pretty hardcoded.  The ultimate
+goal is of course to produce a set of general e-commerce tools for the toolkit
+which will work under any platform, but I'm under a time constraint for the
+first go-around, so I don't know how much of that I'm going to be able to manage.
+Anyway -- down to business.
+
+<h2>Overall organization of an e-commerce system</h2>
+An electronic commerce application essentially consists of three parts.  First,
+there are a series of <i>catalog pages</i> describing goods and products which can be
+purchased.  These pages are just like any website, so there is no mystery in building them,
+just a lot of detail work.  The catalog may be hosted anywhere on the Internet;
+it needn't be on the same server as the other components (and for scalability and
+responsiveness there may be plenty of reasons to host things separately.)
+<p></p>
+The catalog pages contain forms which post to a second component, the <i>shopping
+cart</i>.  The shopping cart builds an open order containing one or more line items,
+collects customer, payment, and shipping information, calculates prices, shipping,
+and tax costs, and sends orders to the owner of the site (the merchant.)
+<p></p>
+The third part of the system is the <i>order fulfillment system</i>, which lists
+active orders, tracks line items which have already been shipped, notifies people
+of what's going on, and provides a point for customers, merchants, and suppliers
+to view all this information.  The order fulfillment system is a general workflow
+application.
+<p></p>
+This application, the wftk_ecomm application, implements the second of those
+three components.  The other two are essentially generic applications of the repository
+manager, which, yes, means that in February 2003 they are still in large part vaporware,
+but they'll be present eventually.  One installation of the wftk_ecomm application
+can serve multiple merchants.  The first thing our code has to do is to find out
+what merchants are served by the installation, and define the appropriate URLs
+for each.  It does this by
+reading the subdirectories of a given directory.  To change it, you need to change
+the code, I guess.  I keep mine in /usr/local/AOLserver/ecomm.  Each subdirectory
+of this directory is going to define a repository for the merchant in question.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>nsv_set wftk_ecomm basedir /usr/local/AOLserver/ecomm
+nsv_set wftk_ecomm hostname https://www.vivtek.com
+cd [nsv_get wftk_ecomm basedir]
+foreach merchant [glob *] {
+   nsv_set wftk_ecomm order_url($merchant) /$merchant/order
+   ns_register_proc POST /$merchant/order wftk_ecomm_order $merchant
+   ns_register_proc GET  /$merchant/order wftk_ecomm_order $merchant
+   ns_register_proc POST /$merchant/add-order wftk_ecomm_addorder $merchant
+   ns_register_proc GET  /$merchant/add-order wftk_ecomm_addorder $merchant
+   ns_register_proc POST /$merchant/submit wftk_ecomm_submit $merchant
+   ns_register_proc GET  /$merchant/submit wftk_ecomm_submit $merchant
+}
+</pre></td></tr></table>
+
+Each merchant has the following URLs, then:
+<ul>
+<b><li>add-order</b> is posted from the catalog pages, and adds one or more line items to the
+current order.  It must find the current order or create one if none is found, modify it,
+recalculate price totals, and then redirect the customer's browser either to the order display
+or back to the page they just came from, which will presumably contain a box of some kind
+to display an overview of the current shopping cart.
+<b><li>order</b> shows the current shopping cart in detail, and allows the customer to enter
+personal information, choose a payment instrument, change or cancel quantities, and of course
+finalize and submit the order.  (A lot of this is glossed over at the moment.)
+<b><li>submit</b> checks the order for consistency and goes through wizard-form questions
+that have not yet been answered (such as credit card numbers and the like), then concludes by
+changing the state of the order from "open" to "active".  Standard state-transition machinery
+can then engage to take care of all remaining processing.  (This is likewise glossed over at the moment.)
+</ul>
+
+Each URL has a function to back it up, defined on separate pages.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="wftk_ecomm_addorder.html">wftk_ecomm_addorder: adding line items to a shopping cart order</a></i>
+<i>See <a href="wftk_ecomm_order.html">wftk_ecomm_order: displaying an order (shopping cart contents)</a></i>
+<i>See <a href="wftk_ecomm_submit.html">wftk_ecomm_submit: processing an order</a></i>
+</pre></td></tr></table>
+
+Additionally, we have some general support routines which are each located on a separate page.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="wftk_ecomm_calculate.html">wftk_ecomm_calculate: calculating total values, taxes, etc.</a></i>
+<i>See <a href="wftk_ecomm_cookie.html">wftk_ecomm_cookie: set and retrieve info via cookie</a></i>
+<i>See <a href="wftk_ecomm_error.html">wftk_ecomm_error: handle errors gracefully</a></i>
+<i>See <a href="wftk_ecomm_format.html">wftk_ecomm_format: format text from ns_set inputs</a></i>
+<i>See <a href="wftk_ecomm_loadfile.html">Load contents of a file with optional merchant override</a></i>
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,143 @@
+<html><head><title>wftk core engine</title></head>
+<body>
+<h2>wftk: wftk core engine</h2>
+<center>
+[ <a href="wftk_engine.zip">download</a> ] [ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+The wftk core library, defined here, is the core workflow functionality of the whole wftk system.  Everything
+else just supports this stuff, basically.  It's implemented as a library so we can build it into other systems.
+<p></p>
+The library consists of: <ul>
+<li> Basic workflow functions.
+<li> The workflow procdef interpreter.
+<li> Places to put adaptors.
+</ul>
+
+So, OK, that list is really short.  The reason is simple: wftk is built almost entirely on adaptors.  The core
+engine, besides defining the interpreter used to figure out what comes next, is really just a wrapper API around
+about ten adaptor classes, which define sets of functionality which can be defined in the context of whatever
+else is going on in the system.<p></p>
+
+<strong><font size=+1>Adaptors</font></strong><br>
+
+The core engine uses the following adaptors (the links go to specific information):<ul>
+<li> <code>action</code>: <a href="action/index.html">Action adaptors (encapsulation of other APIs)</a>.
+<li> <code>datatype</code>: <a href="datatype/index.html">Data types</a>.
+<li> <code>datastore</code>: <a href="datastore/index.html">Data stores</a>.
+<li> <code>dsrep</code>: <a href="dsrep/index.html">Datasheet repository</a>.
+<li> <code>pdrep</code>: <a href="pdrep/index.html">Procdef repository</a>.
+<li> <code>perms</code>: <a href="perms/index.html">Permissions module</a>.
+<li> <code>user</code>: <a href="user/index.html">User management module</a>.
+<li> <code>taskindex</code>: <a href="taskindex/index.html">Task index</a> (really the indexing mechanism for processes and tasks both).
+<li> <code>notify</code>: <a href="notify/index.html">Notification mechanisms</a>.
+</ul>
+
+The point of these adaptors is to create as flexible and modular a system as possible.  The
+<a href="http://www.aolserver.com">AOLserver</a> database driver system has been a great influence on
+me here -- with AOLserver it's almost trivial to write a database driver to allow seamless (well, ideally)
+access to database functionality from scripts, and your scripts don't really change much if you have to
+switch databases or port to a different system.  (Well, except that "standard" query language isn't, of course,
+so there's still work to do when porting, but you get the idea.)
+<p></p>
+I'll explain briefly what each of those adaptor types does -- for more information, please follow
+the individual links, where the precise functionality of each type is enumerated, and links are given
+to actual implementations.
+<p></p>  The <strong>datasheet repository</strong>,
+for example, is where datasheets are stored.  The <strong>procdef repository</strong> is where process definitions are
+stored.  In the prototype, each of these was implemented as a fairly simple system of files and
+directories.  In the case of the procdef repository, however, there are already good solutions to things
+like version control -- CVS is a good example.  Ideally, if CVS is available, the procdef repository
+should be able to use it for "real" version control and also for all the integration possibilities
+which are already there.  Thus the procdef repository is implemented as an adaptor.
+<p></p>
+Another motivating example, this one for the datasheet repository: in the vast majority of systems, we'll want
+a general "processes" table.  Instead of keeping process information in two places (i.e. that table plus a
+directory of XML files) it seems a lot more natural -- and will end up being much more stable and supportable --
+to store the process datasheet as a BLOB right in the process table.  This is easily solved by exposing the
+datasheet repository functionality as another adaptor and telling wftk to use that adaptor.  The upshot of the
+adaptor concept is: if you have a better solution already in the system, then use it.  WFTK just wants to coordinate
+it all so you can call it workflow.
+<p></p>
+The <strong>user</strong> and <strong>perms</strong> adaptors allow the core engine (and its CGI implementations) to ask a directory who the
+current user is and what permissions the current user has.  Naturally, the <a href="../user/index.html">user
+module</a> included with the wftk is the preferred one, if that's the right word, but once I've
+learned something about LDAP I'm sure I'll want to integrate with it.  More to the point, if your
+organization already has something in place that can do user authentication and permission
+definitions, then wftk should work with it.  The permissions model for wftk has turned out to be a really interesting
+affair, since it allows a three-way decision: actions may be permitted, denied, or deferred until an approval
+process has been completed.  This is a sweet, elegant way to do things and I can't wait to actually apply it
+somewhere.
+<p></p>
+The <strong>task index</strong> provides an interface to an index (basically a relational database). 
+The overview talks about the difference between
+core workflow and task management.  Suffice it to say here that the db adaptor allows us to specify a
+set of databases to which current status of tasks and processes can be written so that other systems
+can also use that information.  It's a little counterintuitive to think of process information in a task repository, but
+the idea is that the task-centric viewpoint is what gives the adaptor type its name.
+<p></p>
+The <strong>notification adaptor</strong> provides a way to adapt wftk to existing messaging protocols.  I'm implementing
+email and a database-based task manager notification methods, but you can easily imagine others, like
+Outlook integration or alpanumeric pagers.
+<p></p>
+The <strong>action adaptor</strong> is going to be one of the most exciting parts of wftk.  Particularly once
+I drop this engine into Python, it's going to be nice to be able to run Python snippets from inside a
+process.  The same thing applies to Perl, Java, Tcl, or what have you.  (OK, Java might be a little
+trickier since it's compiled.  I'll see how that all works out.)  The action adaptor also provides a place to
+check permissions and interpose approval processes -- I'm not entirely sure yet how to balance these two
+applications, and maybe I'm wrong to conflate them.  I'm uneasy about allowing scripting in ad-hoc workflow
+without permissions, though, so I think that scripting mechanisms will probably be forced to undergo
+permission checking -- with the idea that specific, permissible scripts may be installed to run with no
+approval (because they're pre-approved.)
+<p></p>
+Likewise, the data manipulation facilities will be extensible via a <strong>datatype adaptor</strong>.  The details of
+this (like the scripting adaptor) are pretty fuzzy at this point.
+<p></p>
+The <strong>datastore adaptor</strong> deserves a special mention, too.  The default storage for values is of course directly 
+in the datasheet.  However, especially if we imagine a datasheet adaptor which stores datasheets into a process
+table, we can easily imagine that we'd much rather have the value itself (or some of them) live directly in
+the table.  Effectively the datavalue in the data sheet would be a pointer to this "real" store, and wftk
+should be smart enough to update the table when the value is updated in the datasheet.  Thus the datastore
+adaptor, which provides a means to tell wftk where things really are.  The datastore adaptor is turning out to be a
+rather convenient integration tool.
+<p></p>
+
+<strong><font size=+1>Data sources used</font></strong><br>
+Besides its commands, the engine has two sources of input: the process definition and the
+datasheet.  The procdef stores information about a class of processes; the datasheet stores
+information about the current instance of that class.  Both documents are XML documents, and
+the core engine interprets these documents using James Clark's
+<a href="http://www.vivtek.com/expat.html">expat parser</a>, a stable and fairly simple parser.
+<p></p>
+Commands can be performed either by calling individual action functions, or passing a <i>very</i>
+simple list of commands in an XML format to a general command doer thingy function.
+<p></p>
+
+<strong><font size=+1>Where the code is</font></strong><br>
+At any rate, the organization of this beast is starting to take shape.  Instead of developing everything in one
+monolithic literate presentation, I found myself breaking everything down into smaller pieces:
+<ul>
+<li><a href="library.html">The library definition</a> is of course where the bulk of the code is.
+<li><a href="wftk_config.html">The example config module</a> shows how config modules are built.
+This example is just hardcoded at the moment, but new ones will be following soon, especially a Registry-based one
+for the Windows environment.
+<li><a href="wftk_adaptors.html">The adaptor handling code</a> is for some reason on its own page.  I'm still
+not entirely sure why, but it made sense at the time.  It's got a little explanation of how adaptors are used.
+<li><a href="wftk_util.html">The code for the command-line wftk utility</a> shows how to use all this stuff.  It's
+still pretty thin, but it'll surely grow with time and nurturing.
+</ul>
+
+So that's it at the moment.  Sky's the limit.
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

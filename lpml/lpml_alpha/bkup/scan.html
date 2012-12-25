@@ -1,0 +1,275 @@
+<html><head><title>lpml alpha: Initial scan</title></head><body><h2>Initial scan</h2><center>[&nbsp;<a href="main.html">Previous: Script file structure</a>&nbsp;][&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;][&nbsp;<a href="tangle.html">Next: Tangle: write code output</a>&nbsp;]</center><hr>The intial scan of the input file is pretty straightforward.  It simply reads everything and
+builds a list of items, keyed by name and containing their labels and their text.  The only
+weird case you have to watch out for is when a piece concatenates to an item that hasn't been
+encountered yet.  In that case, the piece is stashed anyway, then when the item <i>is</i>
+defined, if it has a text piece in it then that piece will be inserted before any text already
+collected.
+
+<p></p>
+Due to the crude nature of my current weave, I have all this in one big blob of text.  This is
+because I can't bring myself to break it onto separate pages.  And of course the other reason
+for this is that I'm still not literate-adapted; I have always tended to write code in a rather
+monolithic fashion (breaking code into subroutines to increase readability has always really
+irritated me.  I guess that's why I'm working on a literate programming system instead.)
+
+<p></p>
+One assumption I'm making here: the input file is open on INPUT.  It will have to be rewound
+before doing the weave.  Tangle won't require a further pass, because this scan step will
+gather everything we need for tangling.  First, let's set up some globals we'll be using.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>@items = ();
+@objects = ();
+@formats = ();
+$name = '';
+$piecename = '';
+$parentname = '';
+$formatname = '';
+</pre></td></tr></table>
+
+The way I'm doing this is that I'm effectively using the name of the current item, and the
+name of the item receiving the current piece, as state variables.  When we leave the element
+in each case, I reset the value to blank, so that the scanner can tell we're not in an item
+or piece respectively.
+<p></p>
+So at the end of the loop, you see the two little chunks that actually read all the interesting
+things in this pass: each line is attached to a piece if the piecename is set, or to a format
+if the formatname is set.  Obviously, the two shouldn't be set at the same time, but there's
+nothing in the code which formally precludes that.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>while (&lt;INPUT>)
+{
+   <i>See <a href="scan.html#handle_tags">Looking for tags</a></i>
+
+   if ($piecename ne '') {
+      $pieces{$piecename} .= $_;
+   }
+   if ($formatname ne '') {
+      $format{$formatname} .= $_;
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="handle_tags">
+<i>Looking for tags</i><br>
+Tag handling is pretty easy: each time we have a line, we check it for a match with one of
+the tags that we know how to handle.  This means that all LPML tags must be on lines by
+themselves, but so far that requirement hasn't been too onerous.  When I build in a real
+XML tokenizer, this whole section will look a lot different.
+<p></p>
+The tags we're looking for are <code>&lt;object&gt;</code>, <code>&lt;item&gt;</code>, and
+<code>&lt;piece&gt;</code>.  Oh, and I've just added <code>&lt;format&gt;</code>.
+<p></p>
+One of the things the tag handlers do is to set and unset various state markers.
+For instance, I terminate the <code>&lt;item&gt;</code> tag by setting the <code>$name</code>
+global to blank.  I also set the <code>$piecename</code> global to blank in case the user
+forgot to terminate the current piece.  I know that violates the principles of XML tokenization,
+but again, later we'll get into real XML tokenization and I don't want to mess with it yet.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   if (/(&lt;object .*>)/i)
+   {
+      <i>See <a href="scan.html#handle_object">Handle object tag</a></i>
+   }
+
+   if (/(&lt;item .*>)/i)
+   {
+      <i>See <a href="scan.html#handle_item">Handling item tags</a></i>
+      next;
+   }
+
+   if (/(&lt;\/item\s*>)/i) {
+      if ($name !~ /\./) { $parentname = $name; }
+      $name = '';
+      $piecename = '';
+      next;
+   }
+
+   if (/(&lt;piece.*>)/i)
+   {
+      next if $name eq ''; # Pieces are silent outside of items.
+      <i>See <a href="scan.html#handle_piece">Handle piece tag within item</a></i>
+      next;
+   }
+   if (/(&lt;\/piece\s*>)/i) {
+      $piecename = '';
+      next;
+   }
+
+   if (/(&lt;format.*>)/i)
+   {
+      <i>See <a href="scan.html#handle_format">Handle format tag</a></i>
+      next;
+   }
+   if (/(&lt;\/format\s*>)/i) {
+      $formatname = '';
+      next;
+   }
+</pre></td></tr></table>
+<br><br>
+<a name="handle_object">
+<i>Handle object tag</i><br>
+The object scanner is a little simpler than the item and piece scanners, so I'll explain it
+first.  As each line is scanned, it's checked for being an <code>&lt;object&gt;</code> tag.
+Note that this is assuming that the tag will be the only thing on the line.  I don't want to
+get into real tokenizing of the XML input, because that will be the province of the QDMT, which
+is my next four-letter vowelless acronym.  The next version of lpml will use the QDMT to tokenize
+its input.
+<p></p>
+At any rate, if the object tag is encountered, I read its attributes into the 
+<code>$thistag</code> hash.  The other handlers reuse this hash.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$tag = $1;
+$tag =~ s/^&lt;object\s+//i;
+$attr = "";
+%thistag = (name => '', language => '', item => '');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+</pre></td></tr></table>
+
+Now that we've loaded the current object's attributes, let's check the attributes for consistency.
+This is kind of a validation of the kind-of DTD.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if ($thistag{name} eq '') {
+   print STDERR "$. : Nameless object encountered.\n";
+   next;
+}
+if ($thistag{item} eq '') {
+   print STDERR "$. : Object '$thistag{item}' has no starting item.\n";
+   next;
+}
+</pre></td></tr></table>
+
+Validation complete, we'll build up a list of objects, and stash the start item of this
+particular object.  The language isn't being used yet, so we won't stash it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>@objects = (@objects, $thistag{name});
+$starter{$thistag{name}} = $thistag{item};
+</pre></td></tr></table>
+<br><br>
+<a name="handle_item">
+<i>Handling item tags</i><br>
+Handling items works pretty much the same way, except that there's more to keep track of.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$tag = $1;
+$tag =~ s/^&lt;item\s+//i;
+$attr = "";
+%thistag = (name => '', label => '', pattern => '', language => '', format => 'default');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+if ($thistag{name} eq '') {
+   print STDERR "$. : Nameless item encountered.\n";
+   next;
+}
+
+$name = $thistag{name};
+$lastchild{$name} = $name;
+$children{$name} = 0;
+if ($name !~ /\./) {
+   $parentname = '';
+   $parent{$name} = '';
+} else {
+   $parentname = $name;
+   $parentname =~ s/\..*?$//;
+   $parent{$name} = $parentname;
+   $lastchild{$parentname} = $name;
+   $children{$parentname} += 1;
+}
+
+push @items, $name;
+
+if (defined $label{$name}) {
+   print STDERR "$. : Duplicate item name '$name'.\n";
+}
+if ($thistag{label} eq '') { $thistag{label} = $name; }
+$label{$name} = $thistag{label};
+if ($parentname eq '') {
+   $url{$name} = "$name.html";
+} else {
+   $n = $name;
+   $n =~ s/^.*?\.//;
+   $url{$name} = $url{$parentname} . '#' . $n;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="handle_piece">
+<i>Handle piece tag within item</i><br>
+And finally, the <code>&lt;piece&gt;</code> tag, which is pretty analogous to 
+<code>&lt;item&gt;</code>.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$tag = $1;
+$tag =~ s/^&lt;piece\s*//i;
+$attr = "";
+%thistag = (add-to => '', language => '');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+
+$piecename = $name;
+$piecename = $thistag{'add-to'} if $thistag{'add-to'} ne '';
+</pre></td></tr></table>
+<br><br>
+<a name="handle_format">
+<i>Handle format tag</i><br>
+The <code>&lt;format&gt;</code> tag simply takes its content and stashes it into a hash, just
+like pieces.  The only attribute we care about in a format tag is its name.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$tag = $1;
+$tag =~ s/^&lt;format\s*//i;
+$attr = "";
+%thistag = (name => '');
+foreach $piece (split /"/, $tag) {
+   if ($attr eq '') {
+      $attr = $piece;
+      $attr =~ s/^\s*//;
+      $attr =~ s/\s*=\s*$//;
+   } else {
+      $thistag{$attr} = $piece;
+      $attr = '';
+   }
+}
+
+if ($thistag{name} eq '') {
+   print STDERR "$. : Nameless format encountered.\n";
+   next;
+}
+
+$formatname = $thistag{name};
+push @formats, $formatname;
+</pre></td></tr></table>
+<center>[&nbsp;<a href="main.html">Previous: Script file structure</a>&nbsp;][&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;][&nbsp;<a href="tangle.html">Next: Tangle: write code output</a>&nbsp;]<br><br><hr width="75%"><table width="75%"><tr><td><font size="-1">This code and documentation are released under the terms of the GNU license.  They areadditionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitlygranted under the terms of the GNU license.</font></td></tr></table></center></body></html>

@@ -1,0 +1,70 @@
+<html><head><title>lpml alpha: Tangle: write code output</title></head><body><h2>Tangle: write code output</h2><center>[&nbsp;<a href="scan.html">Previous: Initial scan</a>&nbsp;][&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;][&nbsp;<a href="weave.html">Next: Weave: Write documentation pages</a>&nbsp;]</center><hr>The tangle step is really pretty easy.  What we do in this step is use the <code>$pieces</code>
+hash we populated during the scan step to generate code.  We insert items in other items by
+using the <code>&lt;insert&gt;</code> tag.
+<p></p>
+Since our coding language is XML, we can't use the character '<code>&lt;</code>' explicitly
+in our code.  Irritating, but that's one of the tiny little disadvantages of using XML, and it's
+offset by so many advantages that living with it isn't so hard.  All we do is use
+'<code>[[</code>' instead (hard-coded in this version, soon to be specifiable.)  So the tangle
+step also takes care of substituting our '<code>&lt;</code>' back in.
+<p></p>
+Tangle is inherently recursive.  I'm dumbly following the whole recursive structure in a
+depth-first manner; the smarter thing would be to cache items as they're tangled in case of
+reuse (then I wouldn't have to retangle that item).  Since I'm working with small files here,
+that probably isn't worth the effort, so I'm not going into it.
+<p></p>
+Note also that since Perl can define subroutines right in the middle of the rest of the code,
+I found it more natural simply to include the recursive routine here right in the middle of
+things, instead of packing it off into some subroutine block.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="tangle.html#tangle_one">Definition of 'tangle_one' subroutine</a></i>
+foreach $obj (@objects) {
+   open OUT, ">$obj";
+   tangle_one ($starter{$obj});
+   close OUT;
+}
+</pre></td></tr></table>
+<br><br>
+<a name="tangle_one">
+<i>Definition of 'tangle_one' subroutine</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub tangle_one {
+   my $item = shift;
+   foreach $_ (split /\n/, $pieces{$item}) {
+      if (/(&lt;insert .*>)/i)
+      {
+         $tag = $1;
+         $tag =~ s/^&lt;insert\s+//i;
+         $attr = "";
+         %thisobject = (name => '');
+         foreach $piece (split /"/, $tag) {
+            if ($attr eq '') {
+               $attr = $piece;
+               $attr =~ s/^\s*//;
+               $attr =~ s/\s*=\s*$//;
+            } else {
+               $thisobject{$attr} = $piece;
+               $attr = '';
+            }
+         }
+         if ($thisobject{name} =~ /^\./) {
+            $thisobject{name} = $item . $thisobject{name};
+         }
+         if ($thisobject{name} eq '') {
+            print STDERR "$. : Item to be inserted not named.\n";
+            next;
+         }
+         tangle_one ($thisobject{name});
+         next;
+      }
+
+      s/\[\[/&lt;/g;
+      print OUT "$_\n";
+   }
+}
+
+</pre></td></tr></table>
+<center>[&nbsp;<a href="scan.html">Previous: Initial scan</a>&nbsp;][&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;][&nbsp;<a href="weave.html">Next: Weave: Write documentation pages</a>&nbsp;]<br><br><hr width="75%"><table width="75%"><tr><td><font size="-1">This code and documentation are released under the terms of the GNU license.  They areadditionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitlygranted under the terms of the GNU license.</font></td></tr></table></center></body></html>

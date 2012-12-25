@@ -1,0 +1,128 @@
+<html><head><title>User editor: Main program</title></head>
+<body>
+<h2>Main program</h2>
+<center>
+[&nbsp;<a href="user_edit.html">Previous: User editor</a>&nbsp;]
+[&nbsp;<a href="user_edit.html">Top: </a>&nbsp;]
+[&nbsp;<a href="user_edit.html">Next: User editor</a>&nbsp;]
+</center>
+
+<hr>
+This is so straightforward I hardly even feel the need to document it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include "user.h"
+#include "xmlcgi.h"
+
+XML * current_user;
+XML * user = NULL;
+XML * edited;
+XML * cgi;
+XML * environment;
+XML * query;
+
+<i>See <a href=""></a></i>
+<i>See <a href=""></a></i>
+
+int main (int argc, char * argv[])
+{
+   ATTR * attr;
+   char * field;
+
+   cgi = cgi_init ();
+   environment = xml_loc (cgi, "cgicall.environment");
+   query = xml_loc (cgi, "cgicall.query");
+
+   current_user = user_authenticate (environment, "wftk workflow");
+   edited = current_user;
+   if (!current_user) {
+      printf ("Content-type: text/html\n\n");
+      printf ("&lt;html>&lt;head>&lt;title>User authentication required&lt;/title>&lt;/head>\n");
+      printf ("&lt;body>&lt;h2>User authentication required &lt;/h2>&lt;hr>\n");
+      printf ("A valid user authentication response is required to access this area.\n");
+      printf ("&lt;/body>&lt;/html>\n");
+      xml_free (cgi);
+      exit(0);
+   }
+
+   if (strcmp ("", xml_attrval (query, "user"))) {
+      user = user_get (xml_attrval (query, "user"));
+      if (!user) {
+         printf ("Content-type: text/html\n\n");
+         printf ("&lt;html>&lt;head>&lt;title>Unknown user '%s'&lt;/title>&lt;/head>\n", xml_attrval (query, "user"));
+         printf ("&lt;body>&lt;h2>Unknown user '%s'&lt;/h2>&lt;hr>\n", xml_attrval (query, "user"));
+         printf ("The system was unable to locate the username you entered.\n&lt;/body>&lt;/html>\n");
+         xml_free (cgi);
+         xml_free (current_user);
+         exit(0);
+      }
+      edited = user;
+      if (!user_perm (current_user, "user", xml_attrval (query, "user"), "edit")) {
+         printf ("Content-type: text/html\n\n");
+         printf ("&lt;html>&lt;head>&lt;title>Insufficient privilege&lt;/title>&lt;/head>\n");
+         printf ("&lt;body>&lt;h2>Insufficient privilege&lt;/h2>&lt;hr>\n");
+         printf ("You don't have permission to edit the personal information for user '%s'.\n", xml_attrval (query, "user"));
+         printf ("&lt;/body>&lt;/html>\n");
+         xml_free (cgi);
+         xml_free (current_user);
+         exit(0);
+      }
+   }
+
+   attr = query->attrs;
+   while (attr) {
+      if (strcmp (attr->name, "user") &amp;&amp; strcmp (attr->name, "name")) {
+         xml_set (edited, attr->name, attr->value);
+      }
+      attr = attr->next;
+   }
+
+   user_save (edited);
+
+   printf ("Content-type: text/html\n\n");
+   printf ("&lt;html>&lt;head>&lt;title>Edit user information for '%s'&lt;/title>&lt;/head>\n", xml_attrval (edited, "name"));
+   printf ("&lt;body>&lt;h2>User information for '%s'&lt;/h2>&lt;hr>\n", xml_attrval (edited, "name"));
+   printf ("&lt;form action=\"%s\" method=post>\n", xml_attrval (environment, "SCRIPT_NAME"));
+   if (strcmp (xml_attrval (query, "user"), "")) {
+      printf ("&lt;input type=hidden name=user value=\"%s\">\n", xml_attrval (query, "user"));
+   }
+   printf ("&lt;table>\n");
+   attr = edited->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, "user") || !strcmp (attr->name, "name")) {
+      } else if (!strcmp (attr->name, "password")) {
+         /*printf ("&lt;tr>&lt;td>Password&lt;/td>&lt;td>&lt;input name=password>&lt;/td>&lt;/tr>\n");*/
+      } else if (!strcmp (attr->name, "fullname")) {
+         printf ("&lt;tr>&lt;td>Full name&lt;/td>&lt;td>&lt;input name=fullname value=\"%s\">&lt;/td>&lt;/tr>\n", attr->value);
+      } else if (!strcmp (attr->name, "email")) {
+         printf ("&lt;tr>&lt;td>Email address&lt;/td>&lt;td>&lt;input name=email value=\"%s\">&lt;/td>&lt;/tr>\n", attr->value);
+      } else {
+         printf ("&lt;tr>&lt;td>%s&lt;/td>&lt;td>&lt;input name=\"%s\" value=\"%s\">&lt;/td>&lt;/tr>\n", attr->name, attr->name, attr->value);
+      }
+      attr = attr->next;
+   }
+   printf ("&lt;tr>&lt;td colspan=2>&lt;center>&lt;input type=submit value=\"Update user info\">&lt;/center>&lt;/td>&lt;/tr>\n");
+   printf ("&lt;/table>\n");
+   printf ("&lt;/form>&lt;/body>&lt;/html>\n");
+
+   xml_free (cgi);
+   if (user) xml_free (user);
+   xml_free (current_user);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="user_edit.html">Previous: User editor</a>&nbsp;]
+[&nbsp;<a href="user_edit.html">Top: </a>&nbsp;]
+[&nbsp;<a href="user_edit.html">Next: User editor</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

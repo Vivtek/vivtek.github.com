@@ -1,0 +1,123 @@
+<html><head><title>wftk: Python OO wrapper</title></head>
+<body>
+<h2>wftk: Python OO wrapper</h2>
+<center>
+[<a href="index.html">wftk-Python</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+This is a set of Python classes for wftk.  It builds on the wrappers for the <a href="py_xmlapi.html">XMLAPI</a>,
+the <a href="py_repmgr.html">repository manager</a>, and the <a href="py_wftk.html">wftk core API</a>.
+Since Python is indentation-sensitive, and the LPML is indentation-challenged, if you change this source,
+be sure not to break up indentation blocks without preserving indentation very carefully.
+<p></p>
+So.  Let's first output a handy comment block.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#######################################################################################################
+#
+# This is a Python implementation of the wftk class schema.  It is the first such implementation.
+#
+# It's frustrating that my LPML tool can't do Python, due to its inability to preserve indentation.
+# Maybe it's time to re-implement LPML....
+#
+# Copyright (c) 2002, Vivtek, and released under the GPL.
+#
+#######################################################################################################
+</pre></td></tr></table>
+
+<p></p>
+Our importation needs are pretty minimal; we import our wrappers, and that's about it.  Note that the
+wftk core wrapper isn't written yet, so we don't import it yet.  (See how this all makes sense?)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>import repmgr
+import xmlapi
+from types import *
+</pre></td></tr></table>
+
+<p></p>
+The "types" module provides a few handy utilities for talking about types when looking at data coming
+in.  Actually, at the moment I don't think I'm using it.  I might take it back out at some point.
+<p></p>
+
+We define one error, <code>ParseError</code>, which I raise when a parse command results in a parse
+error.  The details of the error get passed out of the wrapper, and we toss it right into the error
+we raise.  Neat stuff.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>ParseError = "Error parsing XML"
+</pre></td></tr></table>
+
+<p></p>
+The structure of the wftk class schema is pretty simple, and falls into two basic sections: 
+low-level local data handling (XML and xmlobj classes) and higher-level system interaction
+(starting at the repository class).
+<p></p>
+All data in the wftk is treated as XML data; this is manipulated using the XMLAPI library, which is
+wrapped in the "xml" class:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="class_xml.html">xml: XMLAPI data structure</a></i>
+</pre></td></tr></table>
+
+Record-like data in the wftk is treated as a special case of XML, the "xmlobj", which defines
+field access on top of the XMLAPI library.  The xmlobj class subclasses xml:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="class_xmlobj.html">xmlobj: XML-based record object</a></i>
+</pre></td></tr></table>
+
+<p></p>
+System interaction begins with the <i>repository</i>, which represents a system.  The repository
+organizes all its data into lists, each of which have entries.  Most action in a repository happens
+at the entry level, since that's where the data is actually stored.  The entry has field values and
+optionally can have attached files; when an entry is added, deleted, or changed then the system can
+take arbitrary action, either via the publishing machinery (writing pages for later consumption on
+a website) or via the workflow machinery (creating tasks, doing data manipulation, sending notification,
+and so forth.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="class_repository.html">repository: the system</a></i>
+<i>See <a href="class_list.html">list: a data source</a></i>
+<i>See <a href="class_entry.html">entry: an individual list entry</a></i>
+</pre></td></tr></table>
+
+<p></p>
+
+Likely further extensions to this class structure are as follows, but I'm feeling this out as I go.
+<ul>
+<b><li>Task</b>When I retrieve an entry from a list of tasks, the result is not just an entry,
+it is a task.  Primarily this means that in addition to doing entry-specific things to it, I can also
+complete it, rescind it, and so forth.<br>
+<b><li>Process</b>I'm not yet sure that a process requires a separate object.  Each entry in
+a list in the repository manager has workflow aspects, and is thus a process (the list in the repmgr
+is actually an elaboration on the dsrep of the wftk core API).  So a process object may simply be
+superfluous.<br>
+<b><li>Query</b>Queries will certainly be required; a query is passed to the repmgr to return
+selected ranges of objects.  This may be turned into SQL, or it may be used to search a directory,
+or whatever is appropriate for the list adaptor used by the list in question.<br>
+<b><li>Attachment</b>Attachments are document-sized, optionally versioned values in entries.
+Document management, folks.<br>
+<b><li>Procdef</b>It seems really logical to build procdef-specific manipulation into a
+nice object, even though there aren't any procdef-specific API calls in the wftk yet.  This sort
+of thought is why it's always nice to switch development languages and paradigms.<br>
+</ul>
+
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,406 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: Open-source workflow toolkit</TITLE>
+   <META NAME="description" CONTENT="wftk will be a workflow toolkit including components to define processes as well as an engine to run and track active processes.">
+   <META NAME="Keywords" CONTENT="workflow, open source, wftk">
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td colspan=2>
+<center><h2><u>wftk</u>: Open-source workflow toolkit</h2>
+[&nbsp;<a href=#news>what's&nbsp;new</a>&nbsp;] [&nbsp;<a href=#project>project</a>&nbsp;]
+[&nbsp;<a href=#impl>implementation</a>&nbsp;]
+[&nbsp;<a href=http://www.vivtek.com/wftk/discuss.pl>discuss</a>&nbsp;]
+<br>
+[&nbsp;<a href=#usage>usage&nbsp;scenarios</a>&nbsp;]
+[&nbsp;<a href=#server_design>server&nbsp;overview</a>&nbsp;]
+[&nbsp;<a href=#process_defn>process&nbsp;definition</a>&nbsp;]
+[&nbsp;<a href=#ui>user&nbsp;interface</a>&nbsp;]
+<br>
+[&nbsp;<blink><a href=download/index.html>download</a></blink>&nbsp;]
+</center></td></tr>
+
+<tr><td colspan=2>
+<center><table width=60%><tr><td><font face=arial>
+It's ready for download!  Workflow for everybody!
+</font>
+<p>
+<font size=+1>Notice as of April 14, 2001: The new version is a complete
+rewrite of the prototype, and I've resisted writing too much documentation until that is complete.  The new version
+rearranges everything into a library which can be statically or dynamically linked, and it has a well-defined adaptor
+interface so that you can integrate with (for example) whatever database you like.  You <i>will</i> like this.  More
+as I get the chance to start writing documentation.</font>
+
+</td></tr></table>
+</center>
+</td></tr>
+
+<tr><td valign=top>
+<center>
+<a name=news>
+<font face=arial><b>STATUS / NEWS</b></font>
+</td><td>
+<table cellpadding=0 cellspacing=0>
+ <tr>
+  <td valign=top>
+   <i>17 Jan 2000</i>
+  </td><td>
+   Creating this page, researching the workflow industry, and laying out <a href=#usage>usage scenarios</a> for typical workflow applications.
+   As I figure out more of the industry, I'll start filling in a workflow topic.  I'll link to it when I start that page.
+  </td>
+ </tr>
+ <tr>
+  <td valign=top>
+   <i>21 Jan 2000</i>
+  </td><td>
+   Added server design.
+  </td>
+ </tr>
+ <tr>
+  <td valign=top>
+   <i>1 Feb 2000</i>
+  </td><td>
+   Finished up the usage scenarios.  It's time to start on UI design and the specification of an XML DTD for process definition!
+  </td>
+ </tr>
+ <tr>
+  <td valign=top>
+   <i>11 Feb 2000</i>
+  </td><td>
+   Started in with process definition.  I have lots of things written on paper but it'll take a couple of days to get it all updated.
+  </td>
+ </tr>
+ <tr>
+  <td valign=top>
+   <i>13 Feb 2000</i>
+  </td><td>
+   First XML process definition example is ready to look at!
+  </td>
+ </tr>
+ <tr>
+  <td valign=top>
+   <i>21 Feb 2000</i>
+  </td><td>
+   All six usage scenarios are now expressed in XML.  I'm working on a DTD that includes all of them.
+  </td>
+ </tr>
+ <tr>
+  <td valign=top>
+   <i>24 Feb 2000</i>
+  </td><td>
+   DTD complete.  On to the UI!
+  </td>
+ </tr>
+ <tr>
+  <td valign=top>
+   <i>3 Mar 2000</i>
+  </td><td>
+   UI is starting to take shape now.  As usual I'm realizing plenty of shortcomings in the design so far.
+  </td>
+ </tr>
+ <tr>
+  <td valign=top>
+   <i>9 Mar 2000</i>
+  </td><td>
+   OK, with the completion of the <a href=/wftk/user_interface.html>mockup UI</a>, initial analysis is now complete.
+   Coding is now beginning.  I've put together a kind of <a href=/wftk/analysis_sitemap.html>sitemap of the analysis
+   documentation</a> for your perusal.
+  </td>
+ </tr>
+ <tr>
+  <td valign=top>
+   <i>20 Apr 2000</i>
+  </td><td>
+   Loong pause there.  But finally, the first component of the wftk is implemented.  I decided to start with the
+   task list manager portion of the user interface, just to have something to hang things on.  I've got an implementation
+   overview <a href=/wftk/implementation.html>here</a> and the code documentation for the task list manager is
+   <a href=/wftk/todomgr/index.html>here</a>.  The demo version of the task list manager is <a href=/todomgr/>here</a>.
+  </td>
+ </tr>
+ <tr>
+  <td valign=top>
+   <i>13 May 2000</i>
+  </td><td>
+   Datasheet attachment of values is now working, and that means I now have the power to
+   parse XML!  Long live expat!  The new functionality is integrated with the task manager,
+   so go look.
+  </td>
+ </tr>
+ <tr>
+  <td valign=top>
+   <i>15 May 2000</i>
+  </td><td>
+   I just installed a <a href=/wftk/discuss.pl>discussion board</a> here on the site.
+   Go mouth off!
+  </td>
+ </tr>
+ <tr>
+  <td valign=top>
+   <i>27 May 2000</i>
+  </td><td>
+   Finally!  The workflow project does workflow!  Last week or so I kind of completed the first bare-bones version of the
+   core engine, but as I hadn't yet integrated it with the task manager I didn't see much point in shouting about it.
+   But now it's integrated.  We have a workflow system.  A crude one, but it's getting there!
+  </td>
+ </tr>
+ <tr>
+  <td valign=top>
+   <i>10 July 2000</i>
+  </td><td>
+   The prototype of the procdef editor is now working.  The code is <a href="http://www.vivtek.com/workflow/wftk_exec/pdm/">here</a>
+   and the working version starts <a href="http://www.vivtek.com/workflow/wftk_exec/pdm/pdm.cgi">here</a>, with the test
+   user demo/demo as per normal procedures.
+  </td>
+ </tr>
+ 
+ <tr>
+  <td valign=top>
+   <i>4 October 2000</i>
+  </td><td>
+   My first release-ish version is ready to <a href=download/index.html>bake</a>.  It's
+   still pretty wobbly and there's more baling twine in its metabolism than I like, but
+   it's getting better.  There's a <i>lot</i> still to do.  I've also been working on a
+   reorganization of this site, and that should be ready to go soon.  Enjoy!
+  </td>
+ </tr>
+ <tr><td colspan=2>&nbsp;</td></tr>
+</table>
+</td></tr>
+
+<tr><td valign=top>
+<center>
+<a name=project>
+<font face=arial><p><b>PROJECT</b></font><br>
+<a href=/linkout/www.sourcexchange.com><img src=/images/sXc.jpg border=0></a>
+</td><td>
+  Now this is just plain cool.  wftk is an open-source project funded by 
+  <a href=/linkout/www.galacticmarketing.com>Galactic Marketing</a> through 
+  <a href=/linkout/www.sourcexchange.com>SourceXchange</a>.
+  SourceXchange is a new organization devoted to kicking off open-source projects by finding corporate sponsors.  So far,
+  speaking for myself, it seems to be working.  Actually, as of 17 Jan 2000, there is one complete project and four
+  active ones including this one, so it really <i>is</i> working.  It's an exciting concept.  Go look.
+  <p>
+  (1/17/00) As for wftk itself, the project will provide a workflow engine and at least one client for defining process classes.
+  Planned platform will be C (maybe Perl) for the server, running via adapter as any one of a number of component types
+  under AOLserver or IIS.  Initial coding will be for CGI and maybe an ActiveX object.  I'll see about that last.
+  XML will be used for definition
+  of process classes and for storage of process values for active processes.  The DTD for process classes is one of the
+  early deliverables for the project, and I've already got some good plans but I'm concentrating on the usage scenarios
+  first.
+  The database will be configurable via adapter;
+  initial code will include PostgreSQL and MS SQLServer.  Document management will be configurable via adapter;
+  initial coding will include the Unix and NT filesystems and FileNet Panagon.
+  <p>
+  This is an ambitious project.  Yeah, I'm getting paid.  But <a href="/wftk/discuss.pl">your support and encouragement</a> will go a long way towards
+  helping me get through this.  This will be a sweet solution for a vast number of applications.  Join in!
+  <p>&nbsp;
+</td></tr>
+
+<tr><td valign=top>
+<center>
+<a name=usage>
+<font face=arial><p><b><a href=/wftk/usage_scenarios.html>USAGE SCENARIOS</a></b></font>
+</td><td>
+  (1/17/00) This is the currently active phase of the project.  At this point, I'm just trying to define what it is we're actually
+  doing.  The usage scenarios should be of great help.  Each one consists of a brief description of the process being
+  modelled, an attempt at a RAD (Role-Action Diagram) and/or PERT (Program Evaluation and Review Technique) chart, and then
+  some musings about what variables might be defined for the process, what deliverables result from each task to be included
+  in the final package, and so forth.  It's all pretty raw.  I'd appreciate comments.  Usage scenarios done or planned:<ul>
+  <li><a href=/wftk/usage/chair.html>Purchase of a chair by corporate peon</a>, ahem, pe<i>rs</i>on.  Excuse me. <i>(1/18/00)</i>
+  <li><a href=/wftk/usage/tradeshow.html>Organization of a trade show.</a> <i>(1/21/00)</i>
+  <li><a href=/wftk/usage/openproj.html>Open-source software project management.</a> <i>(1/29/00)</i>
+  <li><a href=/wftk/usage/closedproj.html>Closed-source software project management.</a> <i>(1/30/00)</i>
+  <li><a href=/wftk/usage/ecomm.html>E-commerce order placement.</a> <i>(1/31/00)</i>
+  <li><a href=/wftk/usage/sxc.html>The SourceXchange process.</a> <i>(2/1/00)</i>
+  </ul>
+  Each of these usage scenarios will be modelled as a business process in the next phase of this project.<br>
+  <a href=/wftk/usage_scenarios.html>Go read up on them now.</a>
+</td></tr>
+
+<tr><td valign=top>
+<center>
+<a name=server_design>
+<font face=arial><p><b><a href=/wftk/server_design.html>SERVER DESIGN</a></b></font>
+</td><td>
+  (1/24/00) Since I've already written the usage scenarios (even though they're not all
+  typed up) I have a fairly good picture of the overall design of the server, so I'm going
+  ahead with that part of the initial documentation.  Here are the overall design goals I
+  see for this project:<ul>
+  <li>Ease of use
+  <li>Ease of deployment
+  <li>Adaptability to local software environment
+  <li>Ability to handle and document ad-hoc workflow
+  <li>Adherence to the few emerging standards of the industry
+  <li>Scalability <i>(1/28/00)</i>
+  </ul>
+  I elaborate a little on those goals and provide an overview of the system in the <a
+  href=/wftk/server_design.html>server design document</a>.
+</td></tr>
+
+
+<tr><td valign=top>
+<center>
+<a name=process_defn>
+<font face=arial><p><b><a href=/wftk/process_defn.html>PROCESS DEFINITION</a></b></font>
+</td><td>
+  (2/11/00) Process definitions are expressed in XML.  The process definition language is
+            rich, so there's a lot to cover.<br>
+  (2/13/00) I'm starting on example process definitions to make sure I'm not completely offbase.<br>
+  (2/21/00) Lots of insight in the six process definitions.  <a href=/wftk/process_defn.html#examples>Give'em a read.</a><br>
+  (2/24/00) The DTD is complete and available for your perusal  <a href=/wftk/process_defn/xml_dtd.html>here</a>.
+</td></tr>
+
+
+<tr><td valign=top>
+<center>
+<a name=ui>
+<font face=arial><p><b><a href=/wftk/user_interface.html>USER INTERFACE</a></b></font>
+</td><td>
+  (3/3/00) <a href=/wftk/user_interface.html>This page</a> is the overview of the user interface design process, and
+           <a href=/wftk/ui_mockup>here</a> is the user interface mockup that I'm putting together.<br>
+</td></tr>
+
+<tr><td valign=top>
+<center>
+<a name=impl>
+<font face=arial><p><b><a href=/wftk/implementation.html>IMPLEMENTATION</a></b></font>
+</td><td>
+  (4/20/00) <a href=/wftk/implementation.html>This page</a> is the overview of the implementation of the prototype,
+            and <a href=/wftk/todomgr/index.html>this</a> is the homepage for the first component, the task list
+            manager.<br>
+  (5/27/00) The second major component, the <a href=/wftk/wftk/index.html>core engine</a>, is now engining.<br>
+  (5/27/00) The third major component, the <a href=/wftk/pdm/index.html>process definition manager</a>, has
+            begun construction and is used in the integration of the task manager with the core engine.<br>
+  (7/10/00) The third major component, the <a href=/workflow/wftk_exec/pdm/index.html>process definition manager</a>, is
+            now much, much more capable, in addition to being stand-alone CGI enabled.<br>
+</td></tr>
+
+</table>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

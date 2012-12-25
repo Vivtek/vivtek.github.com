@@ -1,0 +1,98 @@
+<html><head><title>xmlapi: xml_assemble: Putting together SOAP responses</title></head>
+<body>
+<h2>xml_assemble: Putting together SOAP responses</h2>
+<center>
+[&nbsp;<a href="xml_sort.html">Previous: xml_sort: Sorting children</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_read.html">Next: xml_read: Using expat to parse XML files into memory</a>&nbsp;]
+</center>
+
+<hr>
+<i>(September 9, 2003)</i>: OK, it's probably not very logical to include xml_assemble at this
+level, but what the hey, it's not that complex.  The idea is this: when a complex structure
+is passed via SOAP, it is flattened out, and references are passed as "href" attributes within
+the document.  So this:
+<pre>
+&lt;item&gt;
+&lt;rec&gt;
+&lt;order&gt;1&lt;/order&gt;
+&lt;/rec&gt;
+&lt;/item&gt;
+</pre>
+is instead passed as this:
+<pre>
+&lt;item&gt;
+&lt;rec href="#i1"/&gt;
+&lt;/item&gt;
+&lt;rec id="1"&gt;
+&lt;order&gt;1&lt;/order&gt;
+&lt;/rec&gt;
+</pre>
+And of course this can go as many levels as necessary.  The benefit is ... well, frankly I'm not
+sure what the benefit is, but it sure as heck is necessary to be able to reassemble those
+structures.  So let's do so.
+<p></p>
+The function takes a starting structure and a source XML.  It begins by copying the starting structure,
+then checking it for "href" attributes.  If there are any, they're recursively fixed up and copied into
+the structure we're checking.  In order to avoid repetition of searching effort, though, we want to keep
+a list of locations we know need fixup.  Since the fixups won't affect loc locations, we're safe in doing
+a search-all first, then going through that list to find things to fix.
+<p></p>
+To make that work, I first needed to implement xml_search_all for C (I'd formerly only really thought it
+made sense in higher-level languages, but it sure does insinuate itself into your consciousness once it exists.)
+Once that worked, the assembly itself is really straightforward.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xml_assemble (XML * start, XML * src)
+{
+   XML * copy;
+   XML * hrefs;
+   XML * href;
+   const char * ref;
+   XML * assembled;
+   XML * repl;
+
+   if (*xml_attrval (start, "href") == '#') {
+      assembled = xml_assemble (xml_search (src, xml_name (start), "id", xml_attrval (start, "href") + 1), src);
+      xml_unset (assembled, "id");
+      xml_unset (assembled, "SOAP-ENC:root");
+      return (assembled);
+   }
+
+   copy = xml_copy (start);
+   hrefs = xml_search_all (copy, NULL, "href", NULL);
+   href = xml_firstelem (hrefs);
+   while (href) {
+      repl = xml_loc (copy, xml_attrval (href, "loc"));
+      ref = xml_attrval (repl, "href");
+      if (*ref == '#') {
+         assembled = xml_assemble (xml_search (src, NULL, "id", ref + 1), src);
+         xml_rename (assembled, xml_name (repl));
+         xml_unset (assembled, "id");
+         xml_unset (assembled, "SOAP-ENC:root");
+         xml_replace (repl, assembled);
+      }
+      href = xml_nextelem (href);
+   }
+
+   xml_free (hrefs);
+   return copy;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_sort.html">Previous: xml_sort: Sorting children</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_read.html">Next: xml_read: Using expat to parse XML files into memory</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

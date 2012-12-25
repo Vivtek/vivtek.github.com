@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk -- repository manager API</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+<hr>
+
+<h3>Overview</h3>
+The repository manager (repmgr) API is the set of C-language routines you can call from your code, assuming you're
+working in some language that can deal with calling C-language routines.  Under Windows, these are
+contained in the repmgr or repmgr_rt DLLs (depending on which runtime library you link against).  Under
+Unix you generally static-link to the wftk.
+<p>
+This API is roughly object-oriented, making it relatively easy to embed in an object-oriented language.
+Notes on the class structure planned for the wftk are <a href="../classes.html">here</a>.  These classes
+are more or less language-agnostic, in that they will be substantially identical whether you're writing
+Python, Java, or C++.
+<p>
+In the repository manager, the universe of discourse is represented by the repository object.  This
+is defined in XML (like everything else); the command-line repmgr utility assumes this to be stored
+in a file called "site.opm" for historical reasons, in a directory the repository manager can use as
+its own.  However, in your application, you can build the repository object any way you need to.
+<p>
+<h3>Data structures</h3>
+<i>All</i> data structures for the wftk are built as internal XML objects using the XMLAPI.
+These are the various things you will encounter while working with the wftk:
+<ul>
+<li>Repository
+<li>List objects (records)
+<li>List definitions
+</ul>
+<h3>Areas of functionality</h3>
+The functions in the repository manager API fall into the following categories.  Some of the
+functions listed here seemed like good ideas at the time, and have yet to be implemented at all,
+while others have seen daily use for more than a year in multiple production environments.
+<ul>
+<li><a href="repos.html"><font size=+1>Defining the repository</font></a><ul>
+  <li>repos_open
+  <li>repos_open_file
+  <li>repos_close
+</ul>
+<li><a href="publish.html"><font size=+1>Publishing pages and objects</font></a><ul>
+  <li>repos_publish_all
+  <li>repos_publish_list
+  <li>repos_publish_obj
+  <li>repos_publish_pages
+  <li>repos_publish_page
+  <li>repos_get_layout
+</ul>
+<li><a href="lists.html"><font size=+1>Working with data at the list level</font></a><ul>
+  <li>repos_create
+  <li>repos_drop
+  <li>repos_defn
+  <li>repos_form
+  <li>repos_form_direct
+  <li>repos_define
+</ul>
+<li><a href="objects.html"><font size=+1>Working with data objects</font></a><ul>
+  <li>repos_get
+  <li>repos_add
+  <li>repos_del
+  <li>repos_mod
+  <li>repos_merge
+  <li>repos_getkey
+  <li>repos_getvalue
+  <li>repos_setvalue
+</ul>
+<li><a href="reports.html"><font size=+1>Report objects</font></a><br>
+The report API is something I did in a feverish haze one day when I decided I really needed a way
+to open up objects by name and have them hang around in the session until I finished them, at which
+point they'd magically turn into objects or attachments.  A neat API.
+  <ul>
+  <li>repos_report_start
+  <li>repos_report_close
+  <li>repos_report_cancel
+  <li>repos_report_log
+  <li>repos_report_getobj
+</ul>
+<li><a href="retrieval.html"><font size=+1>Retrieving lists of objects</font></a><ul>
+  <li>repos_list
+  <li>repos_list_first
+  <li>repos_list_next
+  <li>repos_changes
+  <li>repos_snapshot
+</ul>
+<li><a href="synch.html"><font size=+1>Synchronization with remote repository</font></a><ul>
+  <li>repos_push
+  <li>repos_push_all
+  <li>repos_pull
+  <li>repos_pull_all
+  <li>repos_synch
+  <li>repos_mark_time
+</ul>
+<li><a href="attachments.html"><font size=+1>Attaching and retrieving attachments</font></a><ul>
+  <li>repos_attach_open
+  <li>repos_attach_write
+  <li>repos_attach_cancel
+  <li>repos_attach_close
+  <li>repos_attach
+  <li>repos_retrieve_open
+  <li>repos_retrieve_read
+  <li>repos_retrieve_close
+  <li>repos_retrieve
+</ul>
+</ul>
+<p>
+<h3>Examples</h3>
+For now, you can look at the code in the command-line utility, but at some point I want to snip some
+working bits of code out as examples.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2002 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

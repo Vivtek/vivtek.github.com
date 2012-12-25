@@ -1,0 +1,60 @@
+<html><head><title>wftk core: procdef repository adaptor</title></head>
+<body>
+<h2>wftk core: procdef repository adaptor</h2>
+<center>
+[ <a href="../index.html">back to the core</a> ] [ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+A <i>procdef repository adaptor</i> is responsible for interfacing with a storage system in order
+to store process definitions.  A process definition or procdef, as far as the library is concerned, is an XML construct
+which contains the current version of how a process is to be handled.  Once a process is started, the version of the
+procdef which it uses must remain constant, because the process state, active tasks, and so forth make pervasive reference
+to the structure of the procdef.  For this reason, the procdef repository <i>must</i> be a versioning repository, or the
+users must accept the possibility of ensuing havoc.  I'm not sure what the justification would be for admitting havoc, but
+who knows?  That's why these adaptor thingies exist.
+<p>
+At any rate, where the procedure definition is actually stored is irrelevant for the library; indeed, it may be "stored" in
+multiple places.  Finding the pieces and putting them together are the business of the procdef repository adaptor.
+<p>
+The simplest of all possible pdrep adaptors, of course (and the one which was used for the
+prototype, again of course) is one which stores all procdefs as explicit XML files
+in a central directory.  That's the PDREP_localxml adaptor.  Other pdrep adaptors may retrieve current versions from
+an Internet connection, build them on the fly using tables, I don't know.  We'll find out.
+<p>
+These are the functions exposed by a procdef repository adaptor (and this list will grow):
+<table>
+<tr><td><i><u>Function</i></u></td><td><i><u>Parameters</i></u></td><td><i><u>Purpose</i></u></td></tr>
+<tr bgcolor=eeeeee><td valign=top>0: init</td>
+    <td valign=top>&nbsp;</td>
+    <td>Initialize adaptor instance</td></tr>
+<tr bgcolor=ffffff><td valign=top>1: free</td>
+    <td valign=top>&nbsp;</td>
+    <td>Clean up instance before shutting down</td></tr>
+<tr bgcolor=eeeeee><td valign=top>2: info</td>
+    <td valign=top>&nbsp;</td>
+    <td>Return XML describing the adaptor</td></tr>
+<tr bgcolor=ffffff><td valign=top>3: version</td>
+    <td valign=top>Procdef ID</td>
+    <td>Return current version ID for the identified process.</td></tr>
+<tr bgcolor=eeeeee><td valign=top>4: load</td>
+    <td valign=top>Procdef ID, version ID</td>
+    <td>Load specified version of procdef into memory.  Returns procdef XML structure.</td></tr>
+</table>
+
+<p>
+Implementations:<ul>
+<li><a href="PDREP_localxml.html">PDREP_localxml</a> (stores XML files in local directory)
+</ul>
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

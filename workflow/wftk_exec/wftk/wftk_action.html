@@ -1,0 +1,217 @@
+<html><head><title>wftk core library: Taking action and interpreting command streams</title></head>
+<body>
+<h2>Taking action and interpreting command streams</h2>
+<center>
+[&nbsp;<a href="library.html">Previous: Function definitions</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_interpreter.html">Next: The interpreter: figuring out what to do next</a>&nbsp;]
+</center>
+
+<hr>
+Interpreting commands and interpreting process definitions in order to complete tasks and advance processes
+is, of course, the whole point of workflow.  And really, it's not all that hard.
+Let's start with the individual actions, and then we'll do a little command list interpreter.  Command lists
+are simply XML structures containing command elements which correspond to calls to the individual action
+functions, so there's not a lot to that.
+<p></p>
+The way I'm implementing state bears mentioning.  Each active task has an entry in a task queue.  As tasks get
+activated, they are added to this queue.  The queue is an element in a state, which is itself a top-level
+element of the datasheet.  Thus the state and queue are in-memory structures during interpretation, but
+get saved out to the datasheet repository after each round of processing.
+<p></p>
+A processing round is initiated by calling one of the action functions.  Of the four, 'create' and 'setvalue'
+don't initiate processing, but 'complete' and 'abort', since they change task status, do -- if an active
+task is closed, then processing proceeds by removing it from the queue, finding its description in the procdef,
+and activating whatever comes next (or doing notifications, or closing sequences, continuing loops, whatever.)
+<p></p>
+The action functions in this section are the chief component of the UI (along with wftk_task_requirements).
+In general, to "do workflow" a calling application will take the following steps:
+<ol>
+<li> Call <code>wftk_action_create</code> to create a datasheet.
+<li> Call <code>wftk_action_define</code> to attach a procdef to the datasheet.
+<li> Call <code>wftk_task_requirements</code> with NULL as the task ID, in order to find out
+what the process requires for initial startup data.
+<li> Call <code>wftk_action_setvalue</code> zero or more times to write the initial data.
+<li> Call <code>wftk_action_complete</code> with NULL as the task ID.  This starts the process.
+</ol>
+
+Now the process is fully active and tasks are active.  To continue, the application completes tasks as they're
+ready.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="wftk_action.html#wftk_action_create">Definition of wftk_action_create</a></i>
+<i>See <a href="wftk_action.html#wftk_action_define">Definition of wftk_action_define</a></i>
+<i>See <a href="wftk_action.html#wftk_action_complete">Definition of wftk_action_complete</a></i>
+<i>See <a href="wftk_action.html#wftk_action_abort">Definition of wftk_action_abort</a></i>
+<i>See <a href="wftk_action.html#wftk_action_setvalue">Definition of wftk_action_setvalue</a></i>
+<i>See <a href=""></a></i>
+
+/* TODO: Implement wftk_action, if anybody really cares. */
+void wftk_action (XML * datasheet, XML * procdef, XML * command) {}
+</pre></td></tr></table>
+<br><br>
+<a name="wftk_action_create">
+<i>Definition of wftk_action_create</i><br>
+Creating a datasheet is really simple.  In fact, it's incredibly simple as far as the core library is
+concerned: we just call the datasheet repository adaptor and poof!  It happens.  The result is the
+new datasheet, and the repository makes sure that the ID for the datasheet will be unique.
+<p></p>
+If there's a problem, NULL is returned.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * wftk_action_create (char * dsrep, char * datasheet_id)
+{
+   WFTK_ADAPTOR * ad;
+
+   ad = wftk_get_adaptor (DSREP, dsrep);
+   if (!ad) return NULL;
+
+   return (wftk_call_adaptor (ad, "create", datasheet_id));
+}
+</pre></td></tr></table>
+<br><br>
+<a name="wftk_action_define">
+<i>Definition of wftk_action_define</i><br>
+Attaching a process definition to a datasheet is likewise simple (actually it's almost the
+same thing, with a different adaptor.)  You might be asking why it makes sense to split datasheet
+creation and attachment to a procdef into two steps -- why not just define a datasheet from the
+procdef directly?  The answer is that ad-hoc processes may <i>have</i> no definition, but they
+still need data storage, and at some point, an ad-hoc process may be attached to a procdef for
+completion.
+<p></p>
+Note the use of a value holder for the version: a value holder is just a little HTML element like
+this: &lt;value name="name" value="value"&gt;.  It's a cheap and tawdry way to encapsulate
+values without having to worry about managing buffers.  The current version of the XMLAPI does
+a lousy job of buffer management, but when I improve it, the improvement will help us out
+here, too.
+<p></p>
+It's been said that any sufficiently complex program implemented in C contains most of an
+implementation of LISP.  (The implication being that you might as well save time and write
+LISP to start with.)  I'm starting to believe this.  But I <i>still</i> think this code is
+much more readable than the equivalent LISP would be.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int wftk_action_define (XML * datasheet, char * pdrep, char * procdef_id)
+{
+   WFTK_ADAPTOR * ad;
+   XML * version;
+
+   ad = wftk_get_adaptor (PDREP, pdrep);
+   if (!ad) return 0;
+
+   version = wftk_call_adaptor (ad, "version", procdef_id);
+   if (!version) return 0;
+
+   xml_set (datasheet, "pdrep", pdrep);
+   xml_set (datasheet, "procdef", procdef_id);
+   xml_set (datasheet, "version", xml_attrval (version, "value"));
+
+   xml_free (version);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="wftk_action_complete">
+<i>Definition of wftk_action_complete</i><br>
+OK.  Here's some actual workflow.  When we complete an action, we do two things, basically: we
+update any databases which are associated with the process, and we mark the task as complete in the
+queue.  Then we run the procdef (if any) until it all blocks again.
+If the 
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void wftk_action_complete (XML * datasheet, XML * procdef, char * task_id)
+{
+   XML * state;
+   XML * queue;
+   int  queue_fresh = 0;
+   char tasklocbuf[64];
+   XML * item;
+
+   /* TODO: Inform databases of change to task status. */
+
+   state = xml_loc (datasheet, "datasheet.state");
+   if (!state) {
+      state = xml_create ("state");
+      xml_append (datasheet, state);
+   }
+   queue = xml_loc (datasheet, "datasheet.state.queue");
+   if (!queue) {
+      queue = xml_create ("queue");
+      xml_append (state, queue);
+      queue_fresh = 1;
+   }
+
+   if (task_id &amp;&amp; *task_id) {
+      sprintf (tasklocbuf, "queue.item[%s]", task_id);
+      item = xml_loc (queue, tasklocbuf);
+      if (item) {
+         xml_set (item, "block", "resume");
+      }
+   } else {
+      if (queue_fresh) {
+         queue_procdef (datasheet, state, queue, procdef);
+      } else {
+         /* TODO: Ask queued tasks who's now satisfied. */
+      }
+   }
+
+   process_procdef (datasheet, state, queue, procdef);
+
+   /* TODO: Inform databases of any changes to process status. */
+}
+</pre></td></tr></table>
+<br><br>
+<a name="wftk_action_abort">
+<i>Definition of wftk_action_abort</i><br>
+Well, I'm still not quite sure what to do about aborting tasks.  So this won't do anything yet.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void wftk_action_abort (XML * datasheet, XML * procdef, char * task_id)
+{
+
+}
+</pre></td></tr></table>
+<br><br>
+<a name="wftk_action_setvalue">
+<i>Definition of wftk_action_setvalue</i><br>
+To complete our bag of tricks, we have the setvalue function.  All this does is to take a named value
+and write it to the datasheet.  If necessary it will create the value.  In the prototype task manager,
+values could be associated with either the process as a whole or with individual tasks.  At this point
+that seems a needless complication, especially if tasks now know their own requirements.  So for now,
+anyway, we're just going to have process values.  That may change in the future.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void wftk_action_setvalue (XML * datasheet, char * name, char * value)
+{
+   XML * data;
+   char valuelocbuf[128];
+
+   sprintf (valuelocbuf, "datasheet.data[%s]", name);
+   data = xml_loc (datasheet, valuelocbuf);
+
+   if (!data) {
+      data = xml_create ("data");
+      xml_set (data, "id", name);
+      xml_append (datasheet, data);
+   }
+
+   xml_append (data, xml_createtext (value));
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="library.html">Previous: Function definitions</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_interpreter.html">Next: The interpreter: figuring out what to do next</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

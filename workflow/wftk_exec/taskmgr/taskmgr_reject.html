@@ -1,0 +1,131 @@
+<html><head><title>Task manager: Definition of taskmgr_reject</title></head>
+<body>
+<h2>Definition of taskmgr_reject</h2>
+<center>
+[&nbsp;<a href="taskmgr_complete.html">Previous: Definition of taskmgr_complete</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="user.html">Next: User functionality</a>&nbsp;]
+</center>
+
+<hr>
+Task rejection works almost identically to task completion.  But I'm just not sure what to do
+with a rejected task.  Processes with rejected tasks won't complete, by the way, at this point.
+If you have any thoughts, I'd like to hear them.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>global taskmgr_pool
+set db [ns_db gethandle $taskmgr_pool]
+<i>See <a href="user.html#check">Checking authuser</a></i>
+set form [ns_conn form $conn]
+set task ""
+if {$form != ""} { set task [ns_set get $form task] }
+if {$task == ""} {
+   set tags(title) "No task specified"
+   set tags(body) "Task rejection requires a task identifier."
+   return [taskmgr_pageout $conn message.html]
+}
+</pre></td></tr></table>
+
+The first thing we'll do is to retrieve the task and make sure that the current user has the
+right to reject it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "select * from task where id='[sql_safe_string $task]'"
+if {[catch {set row [ns_db select $db $query]} result] || ![ns_db getrow $db $row]} {
+   set tags(title) "Task unknown"
+   set tags(body) "The task you specified (&lt;code>$task&lt;/code>) could not be found in the database."
+   return [taskmgr_pageout $conn message.html]
+}
+
+if [string compare $user [ns_set get $row owner]] {
+   set tags(title) "Insufficient privilege"
+   set tags(body) "You are not the owner of this task.  Only the owner may reject a task."
+   return [taskmgr_pageout $conn message.html]
+}
+</pre></td></tr></table>
+
+So now we have that out of the way, we can get down the to business of rejecting the task.
+If we're lucky, it's a standalone task and we can simply reject it and go on.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set process [ns_set get $row process]
+if {$process == ""} {
+   set query "update task set status='rejected'"
+   append query " where id='[sql_safe_string $task]'"
+   ns_db dml $db $query
+   if [string compare [ns_set get $form back] ""] {
+      return [ns_returnredirect $conn [ns_set get $form back]]
+   }
+   set tags(title) "Task rejected"
+   set tags(body) "The task has been marked as rejected"
+   return [taskmgr_pageout $conn message.html]
+}
+</pre></td></tr></table>
+
+Ah, well.  We do have a process to work on after all.  OK, let's look it up.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "select * from process where id='[sql_safe_string $process]'"
+set row [ns_db select $db $query]
+if ![ns_db getrow $db $row] {
+   set query "update task set status='rejected'"
+   append query " where id='[sql_safe_string $task]'"
+   ns_db dml $db $query
+   if [string compare [ns_set get $form back] ""] {
+      return [ns_returnredirect $conn [ns_set get $form back]]
+   }
+   set tags(title) "Task rejected"
+   set tags(body) "The task has been marked as rejected"
+   return [taskmgr_pageout $conn message.html]
+}
+</pre></td></tr></table>
+
+(If the process isn't in existence for some reason, it seems to me that the easiest way to
+handle the situation is to treat the task as a standalone task.)
+<p>
+If the process has a definition, then we need to hand things off to wftk.  As the core engine
+hasn't been written yet, I'll punt and do <i>absolutely nothing</i>.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if [string compare "" [ns_set get $row definition]] {
+   set tags(title) "wftk must handle rejection"
+   set tags(body) "This task must be rejected by the wftk engine."
+   return [taskmgr_pageout $conn message.html]
+}
+</pre></td></tr></table>
+
+Which leaves us with the case of a task which belongs to a process which <i>we</i> have to
+check for completion.  All we do is mark the task as rejected (unlike completion, there is
+nothing to do to the process.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "update task set status='rejected' where id='[sql_safe_string $task]'"
+ns_db dml $db $query
+
+if [string compare [ns_set get $form back] ""] {
+   return [ns_returnredirect $conn [ns_set get $form back]]
+}
+set tags(title) "Task complete"
+set tags(body) "The task has been marked as complete"
+return [taskmgr_pageout $conn message.html]
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="taskmgr_complete.html">Previous: Definition of taskmgr_complete</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="user.html">Next: User functionality</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

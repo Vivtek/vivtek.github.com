@@ -1,0 +1,57 @@
+<html><head><title>Repository manager "remote client"</title></head>
+<body>
+<h2>Repository manager "remote client"</h2>
+<center>
+[ <a href="repmgr_remote.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+The <a href="library.html">repository manager library</a> manages software systems from the point of
+view of data management.  It's very versatile and provides a lot of alternative solutions to common problems,
+but it can be pretty heavyweight.  Once I got serious about writing an <a href="../mail-handler/index.html">incoming
+email handler</a>, I realized that this was a classical application of a client-server architecture, with the
+heavy code and state in a server process which was accessed by many small, lightweight clients, one per incoming
+message.  There's naturally the added benefit that the two processes can thus also be on separate machines, you
+can do load-balancing, whatever.  Lots of flexibility.
+<p></p>
+So I decided as a part of that to split out the remote-server access code already present in the repository manager
+into this repmgr_remote thingy.  Naturally, I wanted to reuse it in the repmgr library as well, but I also wanted
+to create a situation in which I could use the self-same API for the remote library, so that client apps could be
+written to run against either a remote repository or a local one (the latter being heavier, but it's still a valid
+option.)  The resulting strategy was a tricky one, using the C preprocessor to put a namespace identifier onto the
+start of each function name.  This lets us compile the same C code twice, once with a prefix on each function name.
+I kinda like it.
+<p></p>
+Links to the pieces:
+<ul>
+<li> <a href="remote_index.html">Repository manager</a>
+<li> <a href="remote.html">Repository management remote client</a>
+<li> <a href="remote_repositories.html">Working with repository objects</a>
+<li> <a href="remote_publishing.html">Publishing objects: internals</a>
+<li> <a href="remote_lists.html">Creating and administering lists</a>
+<li> <a href="remote_iteration.html">Iterating across list contents</a>
+<li> <a href="remote_objects.html">Working with individual objects</a>
+<li> <a href="remote_reports.html">Working with individual objects as reports</a>
+<li> <a href="remote_retrieval.html">Data retrieval and display</a>
+<li> <a href="remote_users.html">User authentication and group membership</a>
+<li> <a href="remote_context.html">Context/user session handling</a>
+<li> <a href="remote_xact.html">Transactions</a>
+<li> <a href="remote_processing.html">Asynchronous processing</a>
+<li> <a href="remote_workflow.html">Workflow</a>
+<li> <a href="remote_repository.html">Repository queries</a>
+<li> <a href="remote_synching.html">Synching data with remote data sources</a>
+<li> <a href="remote_attachments.html">Working with attachments</a>
+</ul>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

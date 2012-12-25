@@ -1,0 +1,767 @@
+<head>
+<title>wftk perl - Workflow::wftk::Record</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk perl - Workflow::wftk::Record</div>
+
+<p><a name="__index__"></a></p>
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<p>Workflow::wftk::Record - Provides common code for working with single records, which basically underlie everything in the wftk.</p>
+<p>
+</p>
+<hr />
+<!-- INDEX BEGIN -->
+
+
+	<ul>
+
+		<li><a href="#new__new_for_list__new_in_session">new, new_for_list, new_in_session</a></li>
+		<li><a href="#make_record">make_record</a></li>
+		<li><a href="#tiehash__scalar__clear__firstkey__nextkey">TIEHASH, SCALAR, CLEAR, FIRSTKEY, NEXTKEY</a></li>
+		<li><a href="#fields">fields</a></li>
+		<li><a href="#values">values</a></li>
+		<li><a href="#kind">kind</a></li>
+		<li><a href="#get__get_one">get, get_one</a></li>
+		<li><a href="#get_kind">get_kind</a></li>
+		<li><a href="#search">search</a></li>
+		<li><a href="#put__append__put_full">put, append, put_full</a></li>
+		<li><a href="#set_default">set_default</a></li>
+		<li><a href="#putlist">putlist</a></li>
+		<li><a href="#parse">parse</a></li>
+		<li><a href="#as_text">as_text</a></li>
+	</ul>
+
+	<li><a href="#copyright___license">COPYRIGHT &amp; LICENSE</a></li>
+<hr>
+<p>Version 0.01</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   our $VERSION = '0.01';
+</pre><p>
+</p>
+<hr />
+<p>The <code>Workflow::wftk::Record</code> module organizes a record's worth of data into something more or less like a hash.  But it's a hash
+with power.  In addition to a series of named fields, the wftk record can have attachments (i.e. large binary objects or documents),
+it can have explicit links or references to other records in the repository, it can contain lists or subrecords, and so on.</p>
+<p>
+</p>
+<hr />
+<hr>
+<p>
+</p>
+<h2><a name="new__new_for_list__new_in_session">new, new_for_list, new_in_session</a></h2>
+<p>A <code>new</code> record is a blank one created from thin air.  It doesn't belong to a list, or even a session.  The <code>new_for_list</code> constructor
+is told which list it will be for, and <code>new_in_session</code> is a blank one not associated with a list (the "anonymous" list will probably
+end up getting stored in the working directory or something).</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub new {
+      my $classname = shift;
+
+      my $self = {};
+      bless($self, $classname);
+      $self-&gt;{repos} = undef;
+      $self-&gt;{listname} = '&lt;anonymous&gt;';
+      $self-&gt;{values} = {};
+      $self-&gt;{meta} = {};
+      $self-&gt;{white} = {};
+      $self-&gt;{fields} = [];
+      $self-&gt;{types} = {};
+      $self-&gt;{kind} = ";
+      $self-&gt;{body} = ";
+      $self-&gt;{parent} = undef;
+
+      my $in = shift;
+      return $self unless $in;
+
+      if (not ref $in) {
+         $self-&gt;parse($in);
+         return $self;
+      }
+
+      if (ref $in eq 'HASH') {
+         while (my ($k, $v) = each (%$in)) {
+            $self-&gt;{$k} = $v;
+         }
+      }
+
+      if ($self-&gt;{file}) {
+         my $fh;
+         if (open $fh, $self-&gt;{file}) {
+            $self-&gt;parse ($fh) if $fh;
+            close $fh;
+         }
+      }
+      return $self;
+   }
+
+   sub new_for_list {
+      my $self = new(shift);
+      $self-&gt;{list} = shift;
+      my $level = shift;
+      $self-&gt;{repos} = $self-&gt;{list}-&gt;{repos};
+      $self-&gt;{listname} = $self-&gt;{list}-&gt;{list};
+      if (!$level) {
+         my @fields = $self-&gt;{list}-&gt;fields;
+         $self-&gt;{fields} = \@fields;
+      } else {
+         $self-&gt;{fields} = $self-&gt;{list}-&gt;{fields};
+      }
+      $self-&gt;{body} = $self-&gt;{list}-&gt;{body};
+      foreach my $f (@{$self-&gt;{fields}}) {
+         $self-&gt;{values}-&gt;{$f} = undef;
+      }
+      return $self;
+   }
+
+   sub new_in_session {
+      my $self = new(shift);
+      $self-&gt;{repos} = shift;
+      return $self;
+   }
+</pre><p>
+</p>
+<h2><a name="make_record">make_record</a></h2>
+<p>The <code>make_record</code> is a fourth class method that takes any object and tries to build a <code>Workflow::wftk::Record</code> object out of it.
+If it's a hashref, this is easy.  If it's an arrayref, it will use the fields of the list supplied (if any) and make up new names
+for any fields left over by generating "fieldn" names that haven't already been used.  If it's a scalar reference, it will deference it,
+and if it's a scalar, it passes it to the parser to handle as a string.</p>
+<p>If none of that works, it returns an empty record.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub make_record {
+      my ($classname, $object, $list) = @_;
+      return $object if ref $object eq $classname;
+
+      my $ret;
+      if ($list) {
+         $ret = new_for_list ($classname, $list);
+      } else {
+         $ret = new($classname);
+      }
+
+      if (ref $object eq 'HASH') {
+         while (my ($k, $v) = each %$object) {
+            $ret-&gt;put($k, $v);
+         }
+         return $ret;
+      }
+      if (ref $object eq 'ARRAY') {
+         my @fields = $list-&gt;fields if $list;
+         my $count = 1;
+         while (@fields &lt; @$object) {
+            push @fields, &quot;field$count&quot; unless grep { $_ eq &quot;field$count&quot;} @fields;
+            $count++;
+         }
+         foreach (@$object) {
+            $ret-&gt;put(shift @fields, $_);
+         }
+         return $ret;
+      }
+      if (ref $object eq 'SCALAR') { $object = $$object; }
+      if (!ref $object) {
+         $ret-&gt;parse($object);
+         return $ret;
+      }
+      return $ret;  # TODO: if it's a &quot;record&quot; of a different type, maybe we should try tying it?
+   }
+</pre><p>
+</p>
+<h2><a name="tiehash__scalar__clear__firstkey__nextkey">TIEHASH, SCALAR, CLEAR, FIRSTKEY, NEXTKEY</a></h2>
+<p>The usual hash-tying functions are all defined.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub TIEHASH  { new(@_); }
+   sub SCALAR   { 'wftk record: ' . $_[0]-&gt;{listname}}
+   sub CLEAR    { $_[0]-&gt;{values} = {}; }
+   sub FIRSTKEY { my $a = scalar keys %{$_[0]-&gt;{values}}; each %{$_[0]-&gt;{values}}; }
+   sub NEXTKEY  { each %{$_[0]-&gt;{values}}; }
+   sub FETCH    { $_[0]-&gt;get($_[1]); }
+   sub EXISTS   { exists $_[0]-&gt;{values}-&gt;{$_[1]}; }
+   sub STORE    { $_[0]-&gt;put($_[1], $_[2]); }
+   sub DELETE   { delete $_[0]-&gt;{values}-&gt;{$_[1]} }
+</pre><p>
+</p>
+<h2><a name="fields">fields</a></h2>
+<p>The <code>fields</code> method returns a list of the fields (column names) defined for the record.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub fields {
+      my $self = shift;
+      return @{$self-&gt;{fields}};
+   }
+</pre><p>
+</p>
+<h2><a name="values">values</a></h2>
+<p>The <code>values</code> method returns a list of the values stored in this record in the same order as the field list.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub values {
+      my $self = shift;
+      return map { $self-&gt;{values}-&gt;{$_} } @{$self-&gt;{fields}};
+   }
+</pre><p>
+</p>
+<h2><a name="kind">kind</a></h2>
+<p>The <code>kind</code> method gets or sets the record's 'kind', which is a string more or less labeling its informal type.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub kind {
+      my ($self, $kind) = @_;
+      $self-&gt;{kind} = $kind if defined $kind;
+      $self-&gt;{kind};
+   }
+</pre><p>
+</p>
+<h2><a name="get__get_one">get, get_one</a></h2>
+<p>The <code>get</code> method returns a field value if given one field name, or a list if given more than one.
+Given a dotted field name, it treats each part except the last as a subrecord, then gets the corresponding field from that
+subrecord.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub get {
+      my $self = shift;
+
+      return $self-&gt;get_one($_[0]) if @_ eq 1;
+      return map { $self-&gt;get_one($_) } @_;
+   }
+
+   sub get_one {
+      my ($self, $key, $what) = @_;
+      $what = 'values' unless $what;
+
+      if ($key =~ /^(.+?)\.(.*)/) {
+         my ($start, $rest) = ($1, $2);
+         my $subrec = $self-&gt;get_one($start);
+         return undef unless $subrec;
+         return undef unless ref $subrec;
+         if (ref $subrec eq 'ARRAY') {
+            my @map = map {
+               $self-&gt;get_one($_)-&gt;get_one($rest, $what);
+            } @{$subrec};
+            return @map;
+         }
+         return undef unless $subrec-&gt;can('get_one');
+         return $subrec-&gt;get_one($rest, $what);
+      }
+
+      if ($key =~ /^(.*)\((.*)\)$/) {
+         my $index;
+         ($key, $index) = ($1, $2);
+         my $r = ref $self-&gt;{$what}-&gt;{$key};
+         return $self-&gt;{$what}-&gt;{$key} unless $r;
+         return ${$self-&gt;{$what}-&gt;{$key}}[$index] if $r eq 'ARRAY';
+         return $self-&gt;{$what}-&gt;{$key}-&gt;get_one($index) if $self-&gt;{$what}-&gt;{$key}-&gt;can('get_one');
+      }
+
+      if ($key =~ /^\?\?(.*)$/) {
+         $key = $1;
+         return $self-&gt;search($key, 1);
+      }
+
+      if ($key =~ /^\?(.*)$/) {
+         $key = $1;
+         return $self-&gt;get_kind($key, 1);
+      }
+
+      if (wantarray &amp;&amp; $what eq 'values' &amp;&amp; ref ($self-&gt;{values}-&gt;{$key}) eq 'ARRAY') {
+         return @{$self-&gt;{values}-&gt;{$key}};
+      }
+      return $self-&gt;{$what}-&gt;{$key};
+   }
+</pre><p>
+</p>
+<h2><a name="get_kind">get_kind</a></h2>
+<p>The <code>get_kind</code> method finds all the immediate children of the current record which are of the kind given.  Later, we might want to consider
+caching this list or something, but for now, we just search each time.  The return is the hash of fields which are of the kind in question.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub get_kind {
+      my ($self, $kind, $namesonly) = @_;
+
+      my @return = ();
+
+      foreach my $f (@{$self-&gt;{fields}}) {
+         next unless ref $self-&gt;{values}-&gt;{$f};
+         next if ref $self-&gt;{values}-&gt;{$f} eq 'ARRAY';
+         next unless $self-&gt;{values}-&gt;{$f}-&gt;can('kind');
+         next unless $self-&gt;{values}-&gt;{$f}-&gt;kind() eq $kind;
+
+         push @return, $f;
+         push @return, $self-&gt;{values}-&gt;{$f} unless $namesonly;
+      }
+
+      return @return if wantarray;
+      return \@return;
+   }
+</pre><p>
+</p>
+<h2><a name="search">search</a></h2>
+<p>The <code>search</code> method does the same as <code>get_kind</code>, but recursively into the subrecord structure.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub search {
+      my ($self, $kind, $namesonly) = @_;
+
+      my @return = ();
+
+      foreach my $f (@{$self-&gt;{fields}}) {
+         next unless ref $self-&gt;{values}-&gt;{$f};
+         next if ref $self-&gt;{values}-&gt;{$f} eq 'ARRAY';
+
+         if ($self-&gt;{values}-&gt;{$f}-&gt;can('kind') &amp;&amp; $self-&gt;{values}-&gt;{$f}-&gt;kind() eq $kind) {
+            push @return, $f;
+            push @return, $self-&gt;{values}-&gt;{$f} unless $namesonly;
+         }
+
+         if ($self-&gt;{values}-&gt;{$f}-&gt;can('search')) {
+            my $name = 1;
+            foreach ($self-&gt;{values}-&gt;{$f}-&gt;search($kind, $namesonly)) {
+               if ($name) {
+                  push @return, &quot;$f.$_&quot;;
+               } else {
+                  push @return, $_;
+               }
+               $name = not $name unless $namesonly;
+            }
+         }
+      }
+
+      return @return if wantarray;
+      return \@return;
+   }
+</pre><p>
+</p>
+<h2><a name="put__append__put_full">put, append, put_full</a></h2>
+<p>The <code>put</code> method takes a value and writes it to the record.  If the value is a known list value, <code>put</code> appends the value to the list.
+The <code>append</code> method does the same thing, except that if the field is already there, it will append its value to the one already there.
+Both of these methods actually just for <code>put_full</code>.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub put {
+      my ($self, $key, $value, $what) = @_;
+      $self-&gt;put_full($key, $value, $what, '&gt;');
+   }
+   sub append {
+      my ($self, $key, $value, $what) = @_;
+      $self-&gt;put_full($key, &quot;$value\n&quot;, $what, '&gt;&gt;');
+   }
+
+   sub put_full {
+      my ($self, $key, $value, $what, $mode) = @_;
+      if (not $key) {
+         $key = 'body';   # TODO: allow the list to define the &quot;body&quot; field's name.
+         $self-&gt;{body} = $key;
+      }
+      $what = 'values' unless $what;
+
+      if ($key =~ /^(.+?)\.(.*)/) {
+         my ($start, $rest) = ($1, $2);
+         my $type = $self-&gt;{types}-&gt;{$start} || 0;
+         return if $type eq 1 || $type eq 2;
+
+         my $subrec = $self-&gt;{values}-&gt;{$start};
+         if (not defined $subrec) {
+            $subrec = new(ref $self, {parent =&gt; $self});
+            $self-&gt;{values}-&gt;{$start} = $subrec;
+            push @{$self-&gt;{fields}}, $start;
+         }
+         $subrec-&gt;put($rest, $value, $what);
+         return;
+      }
+
+      my $type = 1;
+      $type = 2 if ref $value eq 'ARRAY';
+
+      unless (my @match = grep {lc $_ eq lc $key} @{$self-&gt;{fields}}) {
+         # This is a new field.
+         push @{$self-&gt;{fields}}, $key;
+         $self-&gt;{$what}-&gt;{$key} = $value;
+         $self-&gt;{types}-&gt;{$key} = $type;
+      } else {
+         # An old field.  If it's a list, push the incoming value(s).
+         if (defined $self-&gt;{types}-&gt;{$match[0]} &amp;&amp; $self-&gt;{types}-&gt;{$match[0]} eq 2) {
+            if ($type eq 2) {
+               foreach (@{$value}) {
+                  push @{$self-&gt;{$what}-&gt;{$match[0]}}, $_;
+               }
+            } else {
+               push @{$self-&gt;{$what}-&gt;{$match[0]}}, $value;
+            }
+         } elsif ($mode eq '&gt;&gt;') {
+            # If we're in append mode, append to the existing value.
+            $self-&gt;{$what}-&gt;{$match[0]} = " if not defined $self-&gt;{$what}-&gt;{$match[0]};
+            $self-&gt;{$what}-&gt;{$match[0]} .= $value;
+            $self-&gt;{types}-&gt;{$match[0]} = $type;
+         } else {
+            $self-&gt;{$what}-&gt;{$match[0]} = $value;
+            $self-&gt;{types}-&gt;{$match[0]} = $type;
+         }
+      }
+
+      if ($self-&gt;{persist}) {
+         my $fh; 
+         open $fh, &quot;&gt;&quot;, $self-&gt;{file};
+         print $fh $self-&gt;as_text;
+         close $fh;
+      }
+   }
+</pre><p>
+</p>
+<h2><a name="set_default">set_default</a></h2>
+<p>The <code>set_default</code> method takes a hash value of field values.  If the fields in question are already defined in the record,
+<code>set_default</code> does nothing; if they are not defined, it sets the values as specified.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub set_default {
+      my ($self, $fields) = @_;
+
+      while (my ($k, $v) = each %{$fields}) {
+         next if defined ($self-&gt;get($k));
+         $self-&gt;put($k, $v);
+      }
+   }
+</pre><p>
+</p>
+<h2><a name="putlist">putlist</a></h2>
+<p>The <code>putlist</code> method takes a list of values, creates a new list value to contain them (or clobbers any existing value of that name),
+and puts all the values to the field.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub putlist {
+      my ($self, $key, @values) = @_;
+      $self-&gt;put($key, \@values);
+   }
+</pre><p>
+</p>
+<h2><a name="parse">parse</a></h2>
+<p>The <code>parse</code> method takes a string in the standard wftk record format and writes the fields contains therein into the record.
+This format is intended to handle simple records in a simple way, so it doesn't cover everything.  To cover everything, you
+really need to use XML to serialize a record.</p>
+<p>The file format is as follows:</p>
+<pre class="code">
+   field1: value
+   field2: value
+   long_field: &lt;&lt;EOF
+   This is text
+   with line breaks.
+   EOF
+</pre><p><em>Implementation</em>:</p>
+<pre class="code">
+   sub parse {
+      my ($self, $input) = @_;
+
+      my $alt = ";
+      if (ref $input eq 'GLOB') {
+         while (&lt;$input&gt;) {
+            $alt .= $_;
+         }
+         $_ = $alt;
+      } else {
+         $_ = $input;
+      }
+
+      # Taken from the Perl recipes:
+      my ($white, $leader);  # common whitespace and common leading string
+      if (/^\s*(?:([^\w\s]+)(\s*).*\n)(?:\s*\1\2?.*\n)+$/) {
+          ($white, $leader) = ($2, quotemeta($1));
+      } else {
+          ($white, $leader) = (/^(\s+)/, ");
+      }
+      $leader = " unless $leader;
+      $white = " unless $white;
+      s/^\s*?$leader(?:$white)?//gm if $leader or $white;
+
+      my $cursubrec = ";
+      my $glom = 0;
+      my ($eof, $field, $val);
+      my $data = ";
+      my %kinds;
+      foreach my $line (split /\n/) {
+         if (!$glom) {
+            next unless $line;
+            next if $line =~ /^#/;  # TODO: cache somewhere for later writing.
+
+            if ($line =~ /^\[(.*)\]/) {
+               my $subrec = $1;
+               $subrec = '..' if $subrec eq '/';  # A little syntactic sugar.
+
+               my $kind;
+               if ($subrec =~ /^(.*?) *: *(.*)$/) {
+                  $subrec = $1;
+                  $kind = $2;
+               } else {
+                  $kind = ";
+               }
+
+               if ($subrec =~ /^\./) {
+                  while ($subrec =~ /^\.\./) {
+                     last if $subrec eq '.';
+                     if ($cursubrec =~ /\./) {
+                        $cursubrec =~ s/\..*?$//;
+                     } else {
+                        $cursubrec = ";
+                     }
+                     $subrec =~ s/^\.//;
+                  }
+                  if ($subrec ne '.') {
+                     $cursubrec .= '.' if $cursubrec and $subrec !~ /^\./;
+                     $cursubrec .= $subrec;
+                  }
+               } else {
+                  $cursubrec = $subrec;
+               }
+
+               $kinds{$cursubrec} = $kind if $kind and not $kinds{$cursubrec};
+               next;
+            }
+
+            if ($line =~ /^\+/) {
+               $line =~ s/^\+*//;
+               $line =~ s/:.*$//;
+               $line .= ': 1';
+            }
+
+            if ($line =~ /^\-/) {
+               $line =~ s/^\-*//;
+               $line =~ s/:.*$//;
+               $line .= ': 0';
+            }
+
+            if ($line =~ /^@/ || $line =~ /^\*/) {
+               $line =~ s/^[@\*]//;
+               ($field, $val) = split (/: */, $line, 2);
+               my @words = quotewords ('\s+', 0, $val);
+               $self-&gt;putlist(_subrec_field($cursubrec, $field), @words);
+               next;
+            }
+
+            if ($line =~ /:/) {
+               ($field, $val) = split (/: */, $line, 2);
+               if ($val =~ /&lt;&lt;(.*)/) {
+                  $eof = $1;
+                  $glom = 1;
+                  $data = ";
+                  next;
+                }
+                $self-&gt;put(_subrec_field($cursubrec, $field), $val);
+            } else {
+                $data = &quot;$line\n&quot;;
+                $eof = ";
+                $glom = 1;
+                $field = ";
+            }
+         } else {
+            if ($eof and ($line eq $eof)) {
+               $glom = 0;
+               $self-&gt;put(_subrec_field($cursubrec, $field), $data);
+            } else {
+               $data .= &quot;$line\n&quot;;
+            }
+         }
+      }
+      if ($glom) {
+         $self-&gt;put(_subrec_field($cursubrec, $field), $data);
+      }
+
+      foreach (keys %kinds) {
+         my $subrec = $self-&gt;get($_);
+         eval { $subrec-&gt;kind($kinds{$_}); }
+      }
+   }
+
+   sub _subrec_field {
+      my ($subrec, $field) = @_;
+
+      $field =~ s/^\.+//;
+      $subrec .= '.' if $subrec;
+      return $subrec . $field;
+   }
+</pre><p>
+</p>
+<h2><a name="as_text">as_text</a></h2>
+<p>The <code>as_text</code> method builds a string formatted just like the <code>parse</code> method expects.  The two together provide a convenient
+serialization format which is very easy to comprehend and modify by hand.  The idea here is quick and easy.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   sub as_text {
+      my ($self) = @_;
+
+      my $ret = ";
+      foreach my $f (@{$self-&gt;{fields}}) {
+         next if $self-&gt;{body} and $f eq $self-&gt;{body};
+         $ret .= &quot;$f: &quot;;
+         if (not defined $self-&gt;{values}-&gt;{$f}) {
+            $ret .= &quot;\n&quot;;
+         } elsif ($self-&gt;{values}-&gt;{$f} =~ /\n/) {
+            $ret .= &quot;&lt;&lt;EOF\n&quot;;
+            $ret .= $self-&gt;{values}-&gt;{$f};
+            if ($self-&gt;{values}-&gt;{$f} =~ /\n*/) {
+            } else {
+               $ret .= &quot;\n&quot;;
+            }
+            $ret .= &quot;EOF\n&quot;;
+         } else {
+            $ret .= $self-&gt;{values}-&gt;{$f} . &quot;\n&quot;;
+         }
+      }
+      if ($self-&gt;{body} and $self-&gt;{values}-&gt;{$self-&gt;{body}}) {
+         $ret .= $self-&gt;{values}-&gt;{$self-&gt;{body}};
+      }
+
+      return $ret;
+   }
+</pre><p>
+</p>
+<hr />
+<p>Michael Roberts, <code>&lt;michael at vivtek.com&gt;</code></p>
+<p>
+</p>
+<hr />
+<p>Please report any bugs or feature requests to <code>bug-workflow-wftk at rt.cpan.org</code>, or through
+the web interface at <a href="http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Workflow-wftk">http://rt.cpan.org/NoAuth/ReportBug.html</a>.  I will be notified, and then you'll
+automatically be notified of progress on your bug as I make changes.</p>
+<p>
+</p>
+<hr />
+<p>You can find documentation for this module with the perldoc command.</p>
+<pre class="code">
+    perldoc Workflow::wftk::Record
+</pre><p>
+</p>
+<hr />
+<p>Copyright 2008 Vivtek, all rights reserved.</p>
+<p>This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.</p>
+<p><em>Implementation</em>:</p>
+<pre class="code">
+   1; # End of Workflow::wftk::Record
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

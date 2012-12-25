@@ -1,0 +1,714 @@
+<html><head><title>wftk core library: Dealing with tasks</title></head>
+<body>
+<h2>Dealing with tasks</h2>
+<center>
+[&nbsp;<a href="wftk_process.html">Previous: Dealing with processes</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_request.html">Next: Dealing with requests</a>&nbsp;]
+</center>
+
+<hr>
+So we know how we work with processes; the much more interesting question is how we work with individual tasks.  A great
+deal of what I want to do with tasks is still not implemented, but at least it's getting obvious where the implementation
+should go, and that's some progress.
+<p></p>
+As explained on the previous page, processes are basically things which are in the system's "awareness".  Tasks are the
+actions which people (or programs) have to take as a result of that awareness.  The wftk also supports <i>ad-hoc tasks</i>,
+which are simply entries in a person's to-do list.  These may or may not be associated with processes.  In addition, ad-hoc
+tasks may be grouped into ad-hoc processes, which are weak versions of regular workflow processes.
+<p></p>
+When an ad-hoc task completes, its status is updated to complete.  Period.  When a workflow task completes, though, that's
+when things get interesting.  At that point, the workflow procdef interpreter is invoked in order to do whatever comes
+next.  This is typically the scheduling of new tasks, but may also be automatic notification, manipulation of data values,
+the invocation of scripts or programs, or whatever else is specified.  That old workflow magic.
+<p></p>
+But wait, there's more.  Besides normal or <i>explicit</i> tasks, there are also what I call <i>potential</i> tasks.  A
+potential task hasn't actually been assigned or even activated, but could be chosen by someone.  Potential tasks have
+visibility criteria, so that a potential task will appear, for instance, only when the process is in a particular state.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int    wftk_task_subproc   (XML * session, XML * task, XML * subproc_datasheet) {};
+WFTK_EXPORT int    wftk_task_attach    (XML * session, XML * task, XML * datasheet) {};
+</pre></td></tr></table>
+
+The most basic thing to do with tasks is to retrieve one.  To retrieve a task, the calling function must build a dummy
+task object, then call <code>wftk_task_retrieve</code> on it.  The library then checks either the named datasheet or the
+named task index, and fills in the task object with various details, which include the data objects which the
+task either displays or requires.  This task object may then be used to generate something to be presented to a user.
+<p></p>
+This function also includes a few shortcuts.  For instance, if the "task object" is really a datasheet, then the currently
+afforded potential task will be returned, if any.  This is effectively a shortcut for creating a task object which refers to
+the datasheet.
+<p></p>
+Note that the datasheet may not even contain the data items required for the task yet, if the requirements are determined
+by the procdef.
+<p></p>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * wftk_task_retrieve (XML * session, XML * task)
+{
+   XML * datasheet = NULL;
+   XML * workflow = NULL;
+   XML * procdef = NULL;
+   XML * mark;
+   XML * mark2;
+   XML * data;
+   const char * state;
+   WFTK_ADAPTOR * ad;
+   const char *task_id;
+
+   if (!task) return task;
+   if (xml_is (task, "datasheet")) {
+      datasheet = task;
+      task = xml_create ("task");
+      xml_set (task, "process", xml_attrval (datasheet, "id"));
+      xml_set (task, "dsrep", xml_attrval (datasheet, "repository"));
+   } else {
+      if (*xml_attrval (task, "process")) {
+         datasheet = wftk_process_load (session, xml_attrval (task, "dsrep"), xml_attrval (task, "process"));
+         xml_set (task, "process", xml_attrval (datasheet, "id"));
+         xml_set (task, "dsrep", xml_attrval (datasheet, "repository"));
+      }
+   }
+
+   if (!datasheet) {
+      /* TODO: retrieval of non-datasheet tasks. (Needs doing in the ODBC adaptor, too.) */
+      /* ad = wftk_get_adaptor (session, TASKINDEX, NULL);
+      mark = wftk_call_adaptor (ad, "get", task);*/
+      return 0;
+   }
+
+   /*procdef = _procdef_load (session, datasheet);*/
+
+   task_id = xml_attrval (task, "id");
+   if (*task_id) { /* Explicit task, or at least could be. */
+      /* Let's look for an ad-hoc task with this ID. */
+      mark = xml_locf (datasheet, ".task[%s]", task_id);
+      if (mark) {
+         xml_set_nodup (task, "label", wftk_value_interpreta (session, datasheet, xml_attrval (mark, "label")));
+         xml_set (task, "status", "active");
+         xml_set (task, "role", xml_attrval (mark, "role"));
+         xml_set (task, "user", xml_attrval (mark, "user"));
+         xml_set_nodup (task, "loc", xml_getlocbuf (mark));
+         mark = xml_firstelem (mark);  /* Copy data references over and that whole nine yards. */
+         while (mark) {
+            if (xml_is (mark, "data")) {
+               data = xml_create ("field");
+               xml_set (data, "id", xml_attrval (mark, "id"));
+               xml_set (data, "type", xml_attrval (mark, "type"));
+               xml_set_nodup (data, "value", wftk_value_get (session, datasheet, xml_attrval (data, "id")));
+               xml_set (data, "mode", *xml_attrval (data, "value")? "edit" : "input");
+               xml_append_pretty (task, data);
+            }
+            mark = xml_nextelem (mark);
+         }
+         if (!session) {
+            if (procdef) xml_free (procdef);
+            xml_free (datasheet);
+         }
+         return (task); /* TODO: proper cleanup. */
+      }
+
+      /* Not found?  Then on to the workflow status, and retrieve active tasks from the procdef. */
+      mark = xml_locf (datasheet, ".state.queue.item[%s]", xml_attrval (task, "id"));
+      if (mark) {
+         xml_set (task, "role", xml_attrval (mark, "role"));
+         xml_set (task, "user", xml_attrval (mark, "user"));
+         workflow = xml_loc (datasheet, xml_attrval (mark, "where"));
+         if (!workflow) return 0;
+         procdef = _procdef_load (session, workflow);
+         if (!procdef) return 0;
+         mark = xml_loc (procdef, xml_attrval (mark, "loc"));
+      }
+      if (mark) {  /* Mark is now the task definition, whether in procdef or ad-hoc in datasheet. */
+         xml_set_nodup (task, "label", wftk_value_interpreta (session, datasheet, xml_attrval (mark, "label")));
+         xml_set (task, "status", "active");
+         if (!*xml_attrval (task, "user")) { /* Get role/user from procdef if the datasheet ain't talkin. */
+            xml_set (task, "role", xml_attrval (mark, "role"));
+         }
+         if (!*xml_attrval (task, "user")) {
+            xml_set (task, "user", xml_attrval (mark, "user"));
+         }
+         xml_set_nodup (task, "loc", xml_getlocbuf (mark));
+         mark = xml_firstelem (mark);  /* Copy data references over and that whole nine yards. */
+         while (mark) {
+            if (xml_is (mark, "data")) {
+               data = xml_create ("field");
+               xml_set (data, "id", xml_attrval (mark, "id"));
+               xml_set (data, "type", xml_attrval (mark, "type"));
+               xml_set_nodup (data, "value", wftk_value_get (session, datasheet, xml_attrval (data, "id")));
+               xml_set (data, "mode", *xml_attrval (data, "value")? "edit" : "input");
+               xml_append_pretty (task, data);
+            }
+            mark = xml_nextelem (mark);
+         }
+         if (!session) {
+            if (procdef) xml_free (procdef);
+            xml_free (datasheet);
+         }
+         return (task); /* TODO: proper cleanup. */
+      }
+
+      /* Still nothing.  No task. */
+      xml_set (task, "status", "none");
+   }
+
+   /* Let's see if there's a potential task available which meets the ID given (if none, we return the *first* potential task.) */
+   if (!*task_id || *task_id == '!') {
+      state = wftk_status_get (session, datasheet);
+      workflow = xml_firstelem (datasheet);
+      while (workflow) {
+         if (xml_is (workflow, "workflow") &amp;&amp; !strcmp (xml_attrval (workflow, "state"), "yes")) {
+            procdef = _procdef_load (session, workflow);
+            mark = xml_firstelem (procdef);
+            while (mark) {
+               if (xml_is (mark, "state") &amp;&amp; !strcmp (xml_attrval (mark, "id"), state)) {
+                  mark2 = xml_firstelem (mark);
+                  while (mark2) {
+                     if (xml_is (mark2, "to") &amp;&amp; (!*task_id || !strcmp (task_id + 1, xml_attrval (mark2, "id")))) {
+                        if (!*task_id) xml_setf (task, "id", "!%s", xml_attrval (mark2, "id"));
+                        xml_set_nodup (task, "label", wftk_value_interpreta (session, datasheet, xml_attrval (mark2, "label")));
+                        xml_set (task, "status", "potential");
+                        if (!*xml_attrval (task, "role")) { /* Get role/user from procdef if the datasheet ain't talkin. */
+                           xml_set_nodup (task, "role", wftk_value_interpreta (session, datasheet, xml_attrval (mark2, "role")));
+                        }
+                        if (!*xml_attrval (task, "user")) {
+                           xml_set_nodup (task, "user", wftk_value_interpreta (session, datasheet, xml_attrval (mark2, "user")));
+                        }
+                        xml_set_nodup (task, "loc", xml_getlocbuf (mark2));
+                        mark2 = xml_firstelem (mark2);  /* Copy data references over and that whole nine yards. */
+                        while (mark2) {
+                           if (xml_is (mark2, "data")) {
+                              data = xml_create ("field");
+                              xml_set (data, "id", xml_attrval (mark2, "id"));
+                              xml_set (data, "type", xml_attrval (mark2, "type"));
+                              xml_set_nodup (data, "value", wftk_value_get (session, datasheet, xml_attrval (data, "id")));
+                              if (!xml_attrval (data, "value")) xml_set (data, "value", "");
+                              xml_set (data, "mode", (*xml_attrval (data, "value")) ? "edit" : "input");
+                              xml_append_pretty (task, data);
+                           }
+                           mark2 = xml_nextelem (mark2);
+                        }
+                        return (task);
+                     }
+                     mark2 = xml_nextelem (mark2);
+                  }
+               }
+               mark = xml_nextelem (mark);
+            }
+         }
+         workflow = xml_nextelem (workflow);
+      }
+   }
+
+   /* TODO: if status="none" then check the enactment history for the named task.  It might be complete already. */
+
+   return (task);
+}
+</pre></td></tr></table>
+
+Task completion is probably the most complicated task function.  It'll be worse once we bring the task index into
+play, but it's already bad enough with explicit versus potential tasks.  Note: a task retrieval is assumed to have been
+done before calling this function, as required data will be expected to be set in the task object itself.  As updating
+the task is part of the completion, I'm defining them together.  Hmm.  Well, <code>wftk_task_update</code> is also called
+when assigning a user.  So it's taking on a little more form.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int wftk_task_update (XML * session, XML * task)
+{
+   XML * datasheet = NULL;
+   XML * mark;
+   const char * task_id;
+   int   datachange = 0;
+   int   taskchange = 0;
+   WFTK_ADAPTORLIST * adlist;
+   char * value;
+   char * orig_value;
+
+   if (!task) return 0;
+   if (*xml_attrval (task, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (task, "dsrep"), xml_attrval (task, "process"));
+   }
+   if (datasheet) {
+      mark = xml_firstelem (task);
+      while (mark) {
+         if (xml_is (mark, "field")) {
+            value = xmlobj_get_direct (mark);  if (!value) value = strdup ("");
+            orig_value = wftk_value_get (session, datasheet, xml_attrval (mark, "id"));  if (!value) value = strdup ("");
+            if (strcmp (value, orig_value)) {
+               wftk_value_set (session, datasheet, xml_attrval (mark, "id"), value);
+               datachange = 1;
+            }
+            free (value);
+            free (orig_value);
+         }
+         mark = xml_nextelem (mark);
+      }
+   }
+
+   task_id = xml_attrval (task, "id");
+   if (*task_id &amp;&amp; *task_id != '!') { /* Explicit task, either ad-hoc or workflow. */
+      /* Let's look for an ad-hoc task with this ID. */
+      mark = xml_locf (datasheet, ".task[%s]", task_id);
+      if (mark) {
+         if (strcmp (xml_attrval (mark, "role"), xml_attrval (task, "role"))) {
+            xml_set (mark, "role", xml_attrval (task, "role"));
+            taskchange = 1;
+         }
+         if (strcmp (xml_attrval (mark, "user"), xml_attrval (task, "user"))) {
+            xml_set (mark, "user", xml_attrval (task, "user"));
+            wftk_user_retrieve (session, datasheet, xml_attrval (task, "user"));
+            
+            taskchange = 1;
+         }
+      } else {
+         mark = xml_locf (datasheet, ".state.queue.item[%s]", xml_attrval (task, "id"));
+         if (mark) {
+            if (strcmp (xml_attrval (mark, "role"), xml_attrval (task, "role"))) {
+               xml_set (mark, "role", xml_attrval (task, "role"));
+               taskchange = 1;
+            }
+            if (strcmp (xml_attrval (mark, "user"), xml_attrval (task, "user"))) {
+               xml_set (mark, "user", xml_attrval (task, "user"));
+               taskchange = 1;
+            }
+         }
+      }
+   }
+
+   if (taskchange) { /* Update the task indices. */
+      adlist = wftk_get_adaptorlist (session, TASKINDEX);
+      wftk_call_adaptorlist (adlist, "taskput", task);
+      wftk_free_adaptorlist (session, adlist);
+   }
+
+   if (datachange || taskchange) wftk_process_save (session, datasheet);
+   return 1;
+}
+
+WFTK_EXPORT int wftk_task_complete (XML * session, XML * task)
+{
+   XML * datasheet = NULL;
+   XML * procdef = NULL;
+   XML * state;
+   XML * queue;
+   XML * mark;
+   const char * task_id;
+   int adhoc = 0;
+   int complete = 1;
+   WFTK_ADAPTORLIST * adlist = wftk_get_adaptorlist (session, TASKINDEX);
+
+   if (!task) return 0;
+   if (*xml_attrval (task, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (task, "dsrep"), xml_attrval (task, "process"));
+   }
+
+   if (!datasheet) {
+      wftk_call_adaptorlist (adlist, "taskcomplete", "", xml_attrval (task, "id"));
+      wftk_free_adaptorlist (session, adlist);
+      return 1; /* The task was ad-hoc with no process, so there's nothing left to do. */
+   }
+
+   wftk_task_update (session, task);
+
+   /* Log enactment of task. */
+
+   /* If task is ad-hoc, it needs to be deleted. */
+   task_id = xml_attrval (task, "id");
+   if (*task_id) {
+      mark = xml_locf (datasheet, ".task[%s]", xml_attrval (task, "id"));
+      if (mark) {
+         xml_delete (mark);
+         adhoc = 1;
+         wftk_call_adaptorlist (adlist, "taskcomplete", xml_attrval (task, "process"), xml_attrval (task, "id"));
+      }
+   }
+
+   if (adhoc) {  /* If the task is ad-hoc, we aren't going to do the queue thing below. */
+      if (*task_id == '!') { /* This is an explicit transition task.  So perform the transition. */
+         _status_set (session, datasheet, task_id + 1, 1);
+      } else {
+         /* Check for completion: no active ad-hoc tasks, nothing left on the queue. */
+         mark = xml_loc (datasheet, ".task");
+         if (mark) complete = 0;
+         if (complete) {
+            mark = xml_loc (datasheet, ".state.queue.item");
+            if (mark) complete = 0;
+         }
+         mark = xml_firstelem (datasheet);  /* Ad-hoc tasks can't complete state-based processes. */
+         while (mark) {
+            if (xml_is (mark, "workflow") &amp;&amp; !strcmp (xml_attrval (mark, "state"), "yes")) {
+               complete = 0;
+               break;
+            }
+            mark = xml_nextelem (mark);
+         }
+         if (complete) _status_set (session, datasheet, "complete", 1);
+      }
+
+      /* Now save everything and clean up. */
+      wftk_enactment_write (session, datasheet, task, "action", "complete");
+      wftk_process_save (session, datasheet);
+      wftk_free_adaptorlist (session, adlist);
+      return 1;
+   }
+
+   if (*task_id == '!') { /* The task is a state transition. */
+      _status_set (session, datasheet, task_id + 1, 1);
+
+      /* Now save everything and clean up. */
+      wftk_enactment_write (session, datasheet, task, "action", "complete");
+      wftk_process_save (session, datasheet);
+      wftk_free_adaptorlist (session, adlist);
+      return 1;
+   }
+
+   /* The process is a regular workflow process, with procdef.  Let's find (or create) the state queue. */
+   state = xml_loc (datasheet, ".state");
+   if (!state) {
+      state = xml_create ("state");
+      xml_append_pretty (datasheet, state);
+   }
+   queue = xml_loc (datasheet, ".state.queue");
+   if (!queue) {
+      queue = xml_create ("queue");
+      xml_append_pretty (state, queue);
+   }
+
+   if (*task_id &amp;&amp; *task_id != '!') { /* Explicit task, either ad-hoc or workflow. */
+      mark = xml_locf (queue, ".item[%s]", task_id);
+      if (mark) { /* Workflow task. */
+         xml_set (mark, "block", "resume");
+         wftk_call_adaptorlist (adlist, "taskcomplete", xml_attrval (task, "process"), xml_attrval (task, "id"));
+      }
+   } else {
+      if (!strcmp ("start", wftk_status_get (session, datasheet))) {
+         /* Special case: start state starts process. */
+         queue_procdef (session, datasheet, procdef, "procdef", 0); /* TODO: ? */
+         _status_set (session, datasheet, "active", 0); /* TODO: is this appropriate for state-based processes? */
+      } else {
+         /* TODO: Find potential task based on state, and complete that. */
+      }
+   }
+
+   process_procdef (session, datasheet, state, queue);
+
+   /* Check for completion: no active ad-hoc tasks, nothing left on the queue. */
+   mark = xml_loc (datasheet, ".task");
+   if (mark) complete = 0;
+   if (complete) {
+      mark = xml_loc (datasheet, ".state.queue.item");
+      if (mark) complete = 0;
+   }
+   if (complete) _status_set (session, datasheet, "complete", 0);
+
+   wftk_enactment_write (session, datasheet, task, "action", "complete");
+   wftk_process_save (session, datasheet);
+   wftk_free_adaptorlist (session, adlist);
+
+   return 1;
+}
+</pre></td></tr></table>
+
+Showing lists of tasks (like lists of data) is an ... OK, it's maybe <i>the</i> most important part of a working workflow
+user interface.  Note that due to our dichotomy of storage, we have two types of datasource to ask for lists of tasks: the
+individual datasheet, and the task index (i.e. database).  Which source is used to list tasks depends on the initial
+setup of the list request; if a datasheet is known, then we use the datasheet and ignore the task index.  If no
+datasheet is given, then we just format a query to the database and return whatever it gives us.
+<p></p>
+
+Like task retrieval, list retrieval is a kind of fill-out process.  The caller creates a list object using the XMLAPI, then
+passes it in.  The library fills it out by adding task elements.  The function returns the number of tasks which match the
+criteria.
+<p></p>
+
+The criteria which seem useful would be: <ul>
+<li>Show tasks for a specific process
+<li>Show tasks for a given user
+<li>Show tasks in one or more states (i.e. completed, active, or potential)
+<li>Maybe tasks within particular dates, once I start assigning dates?  I don't know.  Tasks for me today, that's useful
+</ul>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int wftk_task_list (XML * session, XML * list)
+{
+   int count = 0;
+   const char * state;
+   const char * status;
+   const char * userid;
+   XML * datasheet = NULL;
+   XML * workflow;
+   XML * procdef;
+   XML * mark;
+   XML * mark2;
+   XML * hit;
+   WFTK_ADAPTOR * ad;
+
+   if (!list) return 0;
+
+   if (*xml_attrval (list, "process")) {
+      /* This is a process list. */
+      state = xml_attrval (list, "state");
+      if (!*state) state = "a";
+      userid = xml_attrval (list, "user");
+
+      datasheet = wftk_process_load (session, xml_attrval (list, "dsrep"), xml_attrval (list, "process"));
+      if (!datasheet) { return 0; }
+
+      if (strchr (state, 'a')) { /* Active tasks are included. */
+         /* Find ad-hoc tasks. */
+         mark = xml_firstelem (datasheet);
+         while (mark) {
+            if (xml_is (mark, "task") &amp;&amp; (!*userid || !strcmp (userid, xml_attrval (mark, "user")))) {
+               hit = xml_create ("task");
+               xml_set (hit, "id", xml_attrval (mark, "id"));
+               xml_set_nodup (hit, "label", wftk_value_interpreta (session, datasheet, xml_attrval (mark, "label")));
+               xml_set (hit, "role", xml_attrval (mark, "role"));
+               xml_set (hit, "user", xml_attrval (mark, "user"));
+               xml_append (list, hit);
+            }
+            mark = xml_nextelem (mark);
+         }
+
+         /* Find active workflow tasks. */
+         mark = xml_loc (datasheet, ".state.queue");
+         if (mark) {
+            mark = xml_firstelem (mark);
+            while (mark) {
+               if (!strcmp (xml_attrval (mark, "type"), "task")) {
+                  hit = xml_create ("task");
+                  xml_set (hit, "id", xml_attrval (mark, "id"));
+                  xml_set (hit, "user", xml_attrval (mark, "user"));
+                  workflow = xml_loc (datasheet, xml_attrval (mark, "where"));
+                  procdef = _procdef_load (session, workflow);
+                  mark2 = xml_loc (procdef, xml_attrval (mark, "loc"));
+                  if (mark2) {
+                     xml_set_nodup (hit, "label", wftk_value_interpreta (session, datasheet, xml_attrval (mark2, "label")));
+                     xml_set (hit, "role", xml_attrval (mark2, "role"));
+                  }
+                  xml_append (list, hit);
+               }
+               mark = xml_nextelem (mark);
+            }
+         }
+
+         /* Find potential tasks.  Potential tasks are state transitions legal from the current state.  If there are no
+            state workflows associated with the process, there are no potential tasks.  (Easy, eh?) */
+         state = wftk_status_get (session, datasheet);
+         workflow = xml_firstelem (datasheet);
+         while (workflow) {
+            if (xml_is (workflow, "workflow") &amp;&amp; !strcmp (xml_attrval (workflow, "state"), "yes")) {
+               procdef = _procdef_load (session, workflow);
+               mark = xml_firstelem (procdef);
+               while (mark) {
+                  if (xml_is (mark, "state") &amp;&amp; !strcmp (xml_attrval (mark, "id"), state)) {
+                     mark2 = xml_firstelem (mark);
+                     while (mark2) {
+                        if (xml_is (mark2, "to") &amp;&amp; strcmp (xml_attrval (mark2, "mode"), "task")) {
+                           hit = xml_create ("task");
+                           xml_copyinto (hit, mark2);
+                           xml_set_nodup (hit, "label", wftk_value_interpreta (session, datasheet, xml_attrval (mark2, "label")));
+                           xml_setf(hit, "id", "!%s", xml_attrval (mark2, "id"));
+                           xml_append (list, hit);
+                        }
+                        mark2 = xml_nextelem (mark2);
+                     }
+                  }
+                  mark = xml_nextelem (mark);
+               }
+            }
+            workflow = xml_nextelem (workflow);
+         }
+      }
+
+      if (strchr (state, 'c')) { /* Closed tasks are included. */
+         /* TODO: Find enactment history matches. */
+      }
+
+      if (strchr (state, 'p')) { /* Pending tasks (i.e. those defined in the procdef(s) but not yet queued) are included.  (!) */
+         /* TODO: Find pending matches. */
+      }
+
+      /* TODO: Sort the list. */
+   } else {
+      /* No process means we have to ask a task index.  Fortunately this is *very easy*.
+         (Note that potential tasks are not returned by the index, because they aren't indexed.) */
+      ad = wftk_get_adaptor (session, TASKINDEX, NULL);
+      count = 0;
+      if (ad) {
+         wftk_call_adaptor (ad, "tasklist", list);
+         wftk_free_adaptor (session, ad);
+         count = xml_attrvalnum (list, "count");
+      }
+   }
+
+   return count;
+}
+</pre></td></tr></table>
+
+
+Dealing with ad-hoc tasks involves us in two new functions, <code>wftk_task_new</code> to create them, and
+<code>wftk_task_rescind</code> to delete them.  They each use the same setup that task retrieval does (so that
+a retrieved task can be reused in this way.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int wftk_task_new (XML * session, XML * task)
+{
+   XML * datasheet = NULL;
+   XML * newtask;
+   XML * data;
+   XML * newdata;
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!task) return 0;
+   if (*xml_attrval (task, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (task, "dsrep"), xml_attrval (task, "process"));
+      if (!datasheet) return 0;
+   }
+
+   if (datasheet &amp;&amp; !*xml_attrval (task, "user") &amp;&amp; *xml_attrval (task, "role")) {
+      xml_set (task, "user", wftk_role_user (session, datasheet, xml_attrval (task, "role")));
+   }
+
+   /* Inform task indices of new ad-hoc task. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "tasknew", task);
+   wftk_free_adaptorlist (session, adlist);
+
+   if (!datasheet) return 1; /* The task was ad-hoc with no process, so there's nothing left to do. */
+
+   newtask = xml_create ("task");
+   xml_set (newtask, "id", xml_attrval (task, "id"));
+   xml_set (newtask, "tag", xml_attrval (task, "id"));
+   xml_set (newtask, "label", xml_attrval (task, "label"));
+   xml_set (newtask, "role", xml_attrval (task, "role"));
+   xml_set (newtask, "user", xml_attrval (task, "user"));
+   data = xml_firstelem (task);
+   while (data) {
+      if (xml_is (data, "data")) {
+         newdata = xml_create ("field");
+         xml_set (newdata, "id", xml_attrval (data, "id"));
+         xml_set (newdata, "mode", xml_attrval (data, "mode"));
+         xml_append_pretty (newtask, newdata);
+      }
+      data = xml_nextelem (data);
+   }
+   xml_append_pretty (datasheet, newtask);
+   wftk_process_save (session, datasheet);
+
+   return 1;
+}
+
+
+WFTK_EXPORT int wftk_task_rescind (XML * session, XML * task)
+{
+   XML * datasheet = NULL;
+   XML * mark;
+   WFTK_ADAPTORLIST * adlist;
+
+   if (!task) return 0;
+   if (*xml_attrval (task, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (task, "dsrep"), xml_attrval (task, "process"));
+      if (!datasheet) return 0;
+   }
+
+   /* Inform task indices of rescinded ad-hoc task. */
+   adlist = wftk_get_adaptorlist (session, TASKINDEX);
+   wftk_call_adaptorlist (adlist, "taskdel", xml_attrval (task, "process"), xml_attrval (task, "id"));
+   wftk_free_adaptorlist (session, adlist);
+
+   if (!datasheet) return 1; /* The task was ad-hoc with no process, so there's nothing left to do. */
+
+   mark = xml_locf (datasheet, ".task[%s]", xml_attrval (task, "id"));
+   if (mark) {
+      xml_delete_pretty (mark);
+   }
+   wftk_enactment_write (session, datasheet, task, "action", "rescind");
+   wftk_process_save (session, datasheet);
+
+   return 1;
+}
+</pre></td></tr></table>
+
+
+Task rejection is something I've been glossing over from the prototype on.  Now that I can offer ad-hoc workflow as a way for
+an administrator to get things back on track, I feel a little better about just tossing the process into an error state upon
+task rejection.  For things to work out really well, though, there needs to be a "task rejection process" which is invoked when
+a task is rejected.  Actually, task rejection should be a full-fledged action.
+<p></p>
+For v1.0, though, I'm going simpler than that.  I'm just writing a rejection to the enactment and setting the status of the
+process to "error".  And fairly quickly post-v1.0 I need to do things better.  This will involve situation handlers (still
+unimplemented, you'll note) -- with the understanding that a system-wide situation handler can be installed.... TODO: do this.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int    wftk_task_reject    (XML * session, XML * task)
+{
+   XML * datasheet = NULL;
+   XML * procdef = NULL;
+   XML * mark;
+   const char * task_id;
+   int adhoc = 0;
+   int complete = 1;
+   WFTK_ADAPTORLIST * adlist = wftk_get_adaptorlist (session, TASKINDEX);
+
+   if (!task) return 0;
+   if (*xml_attrval (task, "process")) {
+      datasheet = wftk_process_load (session, xml_attrval (task, "dsrep"), xml_attrval (task, "process"));
+      procdef = _procdef_load (session, datasheet);
+   }
+
+   if (!datasheet) {
+      wftk_call_adaptorlist (adlist, "taskreject", "", xml_attrval (task, "id"));
+      wftk_free_adaptorlist (session, adlist);
+      return 1; /* The task was ad-hoc with no process, so there's nothing left to do. */
+   }
+
+   wftk_task_update (session, task);
+
+   /* If task is ad-hoc, it needs to be marked as rejected (I'm not really comfortable with this.) TODO: think. */
+   task_id = xml_attrval (task, "id");
+   if (*xml_attrval (task, "id")) {
+      mark = xml_locf (datasheet, ".task[%s]", xml_attrval (task, "id"));
+      if (mark) {
+         xml_set (mark, "status", "rejected");
+         adhoc = 1;
+         wftk_call_adaptorlist (adlist, "taskreject", xml_attrval (task, "process"), xml_attrval (task, "id"));
+      }
+   }
+
+   _status_set (session, datasheet, "error", 0);
+
+   /* Now save everything and clean up. */
+   wftk_enactment_write (session, datasheet, task, "action", "reject");
+   wftk_process_save (session, datasheet);
+   if (!session) {
+      if (procdef) xml_free (procdef);
+      xml_free (datasheet);
+   }
+   wftk_free_adaptorlist (session, adlist);
+   return 1;
+}
+</pre></td></tr></table>
+
+Boy, that just doesn't seem quite right.  <a href="mailto:wftk@vivtek.com">Tell me your ideas.</a>
+
+
+
+
+<center>
+[&nbsp;<a href="wftk_process.html">Previous: Dealing with processes</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_request.html">Next: Dealing with requests</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

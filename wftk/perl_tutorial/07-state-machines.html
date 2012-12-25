@@ -1,0 +1,159 @@
+<head>
+<title>wftk tutorial - 07 State-based workflow (state machines)</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk tutorial - 07 State-based workflow (state machines)</div>
+
+<p>
+</p>
+<p>So here we are at Chapter 07, and we finally get to specify some workflow!  There are two basic models of workflow: state machines and procedural
+definitions.  It's really arbitrary which we cover first, but state machines are more familiar to the open-source community, so I chose to start there.
+Besides, they're somewhat simpler than the procedural model, since their only elements are states and transitions.</p>
+
+<p>Each process has a <b>state</b>, as you'll recall from Chapter 05.  The state is a privileged variable that is stored in the process
+index, and changes to the state are called <b>transitions</b>.  There is plenty of literature about state machines, so ask Mr. Google if you're interested
+in more detail.  From the perspective of the wftk, that's basically all you need to know.</p>
+
+<p>In state-based workflow, the system uses the process's state to decide what <b>potential tasks</b> exist.  The difference between the concrete tasks
+covered in Chapter 05 and a potential task is straightforward: a concrete task is a specific statement that a given action <i>must</i> be
+carried out, whereas a potential task is a statement that a task <i>can</i> be carried out (or, as we'll see in the next chapter, that the task
+<i>might</i> be carried out).</p>
+
+<p>When a potential task is carried out, the system changes the state, and the other potential tasks in that transition <i>go away</i>, to be replaced with
+whatever potential tasks are provided by the new state.  In purely state-based workflow, each potential task represents a possible
+state transition, and the sequence of transitions (i.e. tasks completed) describes the process's trajectory around the network defining the process.
+It would be nice if
+the wftk also provided convenient tools for generating said diagrams, but so far that is not on the table.</p>
+
+<p>Note that I said "purely state-based workflow" back there.  In actual practice, the exclusive use of transitions is somewhat restrictive, so most actual
+workflow systems using the state-based paradigm end up defining hooks for actions to be taken before or after the transition.  These hooks are
+convenient, but the wftk uses a full procedural paradigm in this case -- see the next chapter for more information.</p>
+
+<p>Here is an index to the information in this chapter:</p>
+
+(unresolved tag 07-index)
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

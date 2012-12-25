@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk: status</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk: getting and setting status</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="index.html">wftk programmer's guide home</a> ]
+<hr>
+
+<h3>Status</h3>
+The status (or state) of a process, you would think, is a simple thing.  It's not.  The status of a
+process is a string, which may be "active", "complete", or any other arbitrary value.  The "complete"
+value has special meaning, of course, and when status is set to complete, a task index has the option
+of deleting the process entry, a datasheet repository may archive the datasheet, and so forth.  But
+just as importantly, different <i>implicit tasks</i> may be exposed depending on the status of the
+process.  The most important of the implicit tasks is "!start", which allows a newly defined process
+to start its defined workflow up.  (The reason workflow isn't started immediately upon definition, of
+course, is that initial data may be required, and the list of required data is available only after
+the process is defined.)
+<p>
+At any rate, even though the status of the process is stored in the datasheet XML, you need to use
+these functions to get or set that value, just in case the wftk needs to do something along the way.
+<p>
+<h3>Functions</h3>
+<pre>
+const char * wftk_status_get (void * session, XML * datasheet);
+int    wftk_status_set (void * session, XML * datasheet, const char *status);
+</pre>
+
+<h3>Details</h3>
+<a name="wftk_status_get"></a>
+<font size=+1>wftk_status_get</font> returns <code>const char *</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>
+</blockquote>
+Returns a pointer to the current status of the process.  This is a
+string.  Special values include "start" and "complete".
+
+<br><br>
+
+<a name="wftk_status_set"></a>
+<font size=+1>wftk_status_set</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * datasheet</code>,<br>
+<code>const char * status</code>
+</blockquote>
+Sets the status of a process.  Specially meaningful values are acted
+upon by the wftk (like 'complete').
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

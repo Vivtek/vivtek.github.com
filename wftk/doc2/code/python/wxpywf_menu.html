@@ -1,0 +1,127 @@
+<html><head><title>Repository manager: wxPyWf: menu class</title></head>
+<body>
+<h2>wxPyWf: menu class</h2>
+<center>
+[&nbsp;<a href="wxpywf.html">Previous: wxPyWf: wxPython tools for the wftk</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wxpywf.html">Next: wxPyWf: wxPython tools for the wftk</a>&nbsp;]
+</center>
+
+<hr>
+A menu has a definition (which is an XML document), a command-line handler for its events (or a list thereof),
+and of course the window its menu is attached to.  At some point we'll want to work out the difference
+between fixed and popup menus (generally the popup menu has a context object, so that'll probably need
+some kind of tracking.)
+<p></p>
+Upon creation of the object, we already create and display our menubar and menu items.
+<p></p>
+Different parts of the menu may talk to different CLI objects.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class menu(wftk.xml):
+</pre></td></tr></table>
+
+Upon initialization, we immediately create a menubar and build the menu specified by the XML we're
+given.
+<p></p>
+The <code>_iterparent</code> attribute is used for the iteration functions below.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def __init__ (self, defn, window, context, handler):
+      self._window = window
+      self._context = context
+      if handler==None:
+         self._handlers = []
+      elif type(handler) == type([]):
+         self._handlers = handler
+      else:
+         self._handlers = [handler]
+      self.defn = defn.new_copy()
+
+
+      self.refresh()
+
+      self._window.SetMenuBar (self._menubar)
+
+
+
+</pre></td></tr></table>
+
+When a menu event occurs, menu_handler is invoked.  This takes the menu ID of the event, and
+searches the menu definition for that ID to retrieve the command associated with the menu entry.
+Then it tries each handler in its list of handlers until one of them accepts the command.  If
+none accepts the command (returns something other than None) then it just does nothing.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def menu_handler (self, event):
+      d = self.defn.search(None, "id", `event.GetId()`)
+      cmd = d['cmd']
+      print "Executing command %s" % cmd
+      for h in self._handlers:
+         rslt = h.do(self._context, cmd)
+         if rslt: break
+</pre></td></tr></table>
+
+After each action which affects the structure of the XML, the menu structure must be refreshed to
+mirror changes back out to the UI.  I had thought of hooking all the XML functions to make sure that
+happened automatically, but I don't know whether it's possible to do so (I think it probably isn't.)
+Even if I override all the change functions, the location and iteration functions still return 'xml'
+objects, not 'menu' objects -- so if I change pieces of XML, I wouldn't invoke my specialized
+versions anyway.
+
+<p></p>
+To cut corners, this initial "refresh" doesn't actually refresh -- it just creates a new menu.
+Technically, this will work, as the old menu should be garbage collected, but it seems rather
+expensive to me.  Probably I'll regret this.
+
+<p></p>
+The initial (Oct. 24, 2002) implementation is pretty thin.  Really I should be building wxMenuItem
+objects so that the XML can specify fonts and other attributes of fancy menus.  But this will be
+relatively easy to pick up later.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def refresh (self):
+      self._menubar = wxMenuBar()
+      for e in self.defn.elements():
+         self.init_menu (self._menubar, e)
+
+   def init_menu (self, parent, d):
+      if d.is_a('menu'):
+        if d['id'] == '': d['id'] = wxNewId()
+        d.menu=wxMenu()
+        if d.parent().is_a ('menubar'):
+           parent.Append (d.menu, d['label'])
+        else:
+           parent.AppendMenu (int(d['id']), d['label'], d.menu, d['help'])
+           pass
+        for e in d.elements():
+           self.init_menu (d.menu, e)
+        return
+      if d.is_a('item'):
+        if d['id'] == '': d['id'] = wxNewId()
+        parent.Append (int(d['id']), d['label'], d['help'])
+        EVT_MENU(self._window, int(d['id']), self.menu_handler)
+        return
+      if d.is_a('separator'):
+        parent.AppendSeparator()
+        return
+      if d.is_a('break'):
+        parent.Break()
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wxpywf.html">Previous: wxPyWf: wxPython tools for the wftk</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wxpywf.html">Next: wxPyWf: wxPython tools for the wftk</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

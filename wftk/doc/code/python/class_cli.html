@@ -1,0 +1,83 @@
+<html><head><title>Repository manager: cli: a command-line interface definer</title></head>
+<body>
+<h2>cli: a command-line interface definer</h2>
+<center>
+[&nbsp;<a href="class_entry.html">Previous: entry: an individual list entry</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_oo.html">Next: wftk Python OO wrapper</a>&nbsp;]
+</center>
+
+<hr>
+The wftk.cli class is really just some basic mechanisms for a CLI definition class.  A CLI definition class must define a command
+dictionary and the actual command handlers.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class cli:
+   """ Implements a CLI framework for handling action in either a GUI or a non-GUI context.
+   """
+
+</pre></td></tr></table>
+
+<p>
+A more mature CLI implementation will have some introspection mechanisms, for
+the discovery and reporting of commands available and such, but at the moment I don't care about those.
+I'm going to ignore them completely.  Let's cut to the chase and implement our "do" and "mode" methods.
+The mode is inanely simple.  "Do" checks argument list lengths and hands off to the command method defined
+as the handler for the command.  Easy as pie.
+</p>
+<p>
+<i>May 13, 2006</i>: It now seems best to me to take an XML action <i>or</i> a command line string.  If the
+latter is passed in, we'll ask the xmlobj library to convert it into an XML action for us.  That parser is
+currently pretty naive, but later we can always make it better as needed.
+<p>
+<i>January 1, 2007</i>: I've added the "set_frame" method here because it makes a lot of sense in most
+WxPyWf applications.  You can't pass the frame in when initializing the CLI, because the CLI has to be passed
+to the frame when it's created.  So the frame will introduce itself to the CLI during its own initialization.
+For that to work, we have to know that every CLI will be able to deal with that.  So it's logically right here.
+(This cleans up the individual CLI implementations, as well.)
+</p>
+<p>
+Also today, I split out the "do" and "handle" functionality, so that I can ramify action objects and pass them
+around within the CLI list.  Eventually this will take on frightening complexity.
+</p>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def mode(self, mode):
+      self.mode = mode
+
+   def do(self, context, action, obj=None):
+      if type(action)==type(''):
+         action = xmlobj(cmd=action)
+      try:
+         cmd = self.commands[action['command']]
+      except:
+         return None
+
+      if int(action['parms']) < cmd[2] or (cmd[3] > 0 and int(action['parms']) > cmd[3]):    # TODO: eliminate the need for 'parms' as a command length value
+         return [1, 'Usage: %s %s' % (cmd[0], cmd[4])]
+
+      self.handle(context, cmd[1], action, obj=obj)
+
+   def handle(self, context, cmd, action, obj=None): return cmd(context, action, obj)
+
+   def set_frame(self, frame):
+      self.frame = frame
+
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="class_entry.html">Previous: entry: an individual list entry</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_oo.html">Next: wftk Python OO wrapper</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,50 @@
+There is no include file for this, as the wftk_internals takes care of definition.  So I'll just cut to the chase
+with the source file -- and all on this one page, too!
+<p></p>
+The whole thing, as I envision it, is pretty dumb.  An API consists of a table of functions, a table of names of the
+functions, and the number of entries in each table.  Each function takes a vararg list of parameters, and returns an
+XMLAPI pointer.  There is no error checking done by the adaptor code.
+<p></p>
+This is pretty much a poor man's ActiveX; the point of ActiveX is to make interchangeable implementations
+of adaptor APIs, and this is one of the reasons I actually respect Microsoft's programming work.  Of course, given the
+resources, I would have done a better job.  And in fact this module is a first implementation of something that could
+someday be a better job.
+<p></p>
+So.  We've got two main functions to define: <code>wftk_get_adaptor</code> retrieves a pointer to an adaptor structure
+by type and name.  The type is an integer defined at compile-time.  The other function, <code>wftk_call_adaptor</code>,
+naturally provides a call interface for functions in the API.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;varargs.h>
+#include &lt;string.h>
+#include &lt;malloc.h>
+#include "xmlapi.h"
+
+typedef struct wftk_adaptor WFTK_ADAPTOR;
+typedef XML * (*WFTK_API_FUNC) (WFTK_ADAPTOR * ad, ...);
+
+struct wftk_adaptor {
+   int num;                /* Supplied by the adaptor. */
+   XML * parms;            /* Supplied by the caller. */
+   char * names;           /* Supplied by the adaptor. */
+   WFTK_API_FUNC * vtab;   /* Supplied by the adaptor driver. */
+}
+</pre></td></tr></table>
+
+Notice that one-element array of API entries.  That's an old trick I learned from some of the DOS and 16-bit Windows
+APIs.  The wftk_adaptor structure is malloc'd (or simply declared) to be whatever size is necessary, but the struct
+can't represent that.  This is the dodge you use to make everybody happy.  The only drawback is that the compiler
+doesn't like it for literal values.  We're going to get around that by hard-coding a different definition of the
+wftk_adaptor structure for each adaptor we define.  A little ugly but functional.
+
+<p></p>
+The way this works is that each type of adaptor has a list of function names that drivers implement.  Each driver has
+a list of functions implementing those names.  When the calling program calls <code>wftk_get_adaptor</code>, it first
+determines the type of adaptor (using the type number), then splits the specifier on a colon to get the name of the
+driver to use.  Anything after that optional colon is passed to the initialization function to build into the arbitrary
+parameters (which are of course an in-memory XML structure.  I'm really getting attached to that data structure.)
+
+<p></p>
+How the actual drivers are found and initialized is up to the config module; in the first run, it'll just be hardcoded.
+

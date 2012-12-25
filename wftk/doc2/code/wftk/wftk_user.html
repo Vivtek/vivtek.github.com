@@ -1,0 +1,187 @@
+<html><head><title>wftk core library: Working with users</title></head>
+<body>
+<h2>Working with users</h2>
+<center>
+[&nbsp;<a href="wftk_role.html">Previous: Working with roles</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_enactment.html">Next: Working with the enactment history</a>&nbsp;]
+</center>
+
+<hr>
+The user facilities at this level are pretty slim.  Basically, the core engine only knows about a user what its caller
+tells it.  No authentication, no directory work, nothing.  The list of users should be considered a list of involvement.
+Contact information in the user entry may get out of synch with a global directory, and that's really the only thing
+that worries me about this setup.  I guess I'll just try it out and see if it plays in Peoria.
+<p></p>
+If a user retrieval fails (that is, the userid given isn't involved with the process) then I'm going to consider that
+evidence of involvement.  So a very thin user profile will get built.  This is basically to simplify the workings of
+role assignment.  If the caller says "assign this user to this role" then by golly it will happen.
+<p></p>
+All this stuff is kind of falling into the same pattern: list, create, retrieve, update, delete.  So you don't get a lot
+of running commentary in this section.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int wftk_user_list (XML * session, XML * datasheet, XML * list)
+{
+   int count = 0;
+   XML * mark;
+   XML * hit;
+   XML_ATTR * attr;
+
+   if (!list) return 0;
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (xml_is (mark, "user")) {
+         hit = xml_create ("user");
+         attr = xml_attrfirst (mark);
+         while (attr) {
+            xml_set (hit, xml_attrname (attr), xml_attrvalue (attr));
+            attr = xml_attrnext (attr);
+         }
+         xml_append (list, hit);
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   return count;
+}
+
+WFTK_EXPORT int    wftk_user_add      (XML * session, XML * datasheet, XML * user)
+{
+   XML * mark;
+
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (xml_is (mark, "user") &amp;&amp; !strcmp (xml_attrval (mark, "id"), xml_attrval (user, "id"))) {
+         return 0;
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   xml_append_pretty (datasheet, user);
+   return 1;
+}
+
+WFTK_EXPORT XML  * wftk_user_retrieve (XML * session, XML * datasheet, const char * userid)
+{
+   XML * mark;
+
+   if (!userid) return 0;
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (xml_is (mark, "user") &amp;&amp; !strcmp (xml_attrval (mark, "id"), userid)) {
+         return (mark);
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   mark = xml_create ("user");
+   xml_set (mark, "id", userid);
+   xml_append_pretty (datasheet, mark);
+   wftk_user_synch (session, mark);
+   wftk_process_save (session, datasheet);
+   return (mark);
+}
+
+WFTK_EXPORT int    wftk_user_update (XML * session, XML * datasheet, XML * user)
+{
+   XML * mark;
+
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (xml_is (mark, "user") &amp;&amp; !strcmp (xml_attrval (mark, "id"), xml_attrval (user, "id"))) {
+         xml_replace (mark, user);
+         return 1;
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   return 0;
+}
+
+WFTK_EXPORT int    wftk_user_remove (XML * session, XML * datasheet, const char * userid)
+{
+   XML * mark;
+
+   if (!userid) return 0;
+   mark = xml_firstelem (datasheet);
+   while (mark) {
+      if (xml_is (mark, "user") &amp;&amp; !strcmp (xml_attrval (mark, "id"), userid)) {
+         xml_delete (mark);
+         return 1;
+      }
+      mark = xml_nextelem (mark);
+   }
+
+   return 0;
+}
+</pre></td></tr></table>
+
+Besides the normal stuff up there for maintaining involved users in a datasheet, we also have a user-synch function
+which goes to the user's registered directory and grabs fresh information, if available.  This is also used to involve
+new users, etc.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int wftk_user_synch (XML * session, XML * user)
+{
+   XML * directory_entry;
+   XML_ATTR * attr;
+   WFTK_ADAPTOR * ad;
+
+   if (!user) return 0;
+
+   ad = wftk_get_adaptor (session, USER, xml_attrval (user, "directory"));
+   if (!ad) return 0;
+
+   directory_entry = wftk_call_adaptor (ad, "get", xml_attrval (user, "id"));
+   wftk_free_adaptor (session, ad);
+
+   if (directory_entry) {
+      attr = xml_attrfirst (directory_entry);
+      while (attr) {
+         xml_set (user, xml_attrname (attr), xml_attrvalue (attr));
+         attr = xml_attrnext (attr);
+      }
+   }
+   return 1;
+}
+</pre></td></tr></table>
+
+And we might as well expose user authorization via the adaptor as well.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int wftk_user_auth (XML * session, XML * user, const char * password)
+{
+   WFTK_ADAPTOR * ad;
+   XML * ret;
+
+   if (!user) return 0;
+
+   ad = wftk_get_adaptor (session, USER, xml_attrval (user, "directory"));
+   if (!ad) return 0;
+
+   ret = wftk_call_adaptor (ad, "auth", user, password);
+   wftk_free_adaptor (session, ad);
+
+   if (ret) return 1;
+   return 0;
+}
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="wftk_role.html">Previous: Working with roles</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_enactment.html">Next: Working with the enactment history</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

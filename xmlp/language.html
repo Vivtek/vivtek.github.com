@@ -1,0 +1,195 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>xmlp -- Language definition</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>xmlp</u> -- Language definition</h2>
+[&nbsp;<a href=/xmlp.html>xmlp&nbsp;home</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+As is perhaps obvious from the application's name, xmlp takes a literate programming presentation which is coded in XML.
+The XML in question is somewhat questionable, perhaps, as the presentation items allow free embedding of arbitrary markup,
+but I really don't care, as the whole thing does what I need it to do, which is define pieces of code contiguous with
+nicely formatted documentation.  If somebody else knows more about XML and can tell me how I can specify arbitrary markup
+in an element, then maybe I'll be able to write a DTD.  Otherwise I guess we're just kinda out of luck.
+<p>
+The quick and dirty markup tokenizer (qdmt) will really not care one whit about whether all this is valid XML, so maybe I'm
+just coding myself into some remote corner of the quasi-XML universe.
+<p>
+Anyway, I've defined a few elements which I'm using here.  They are:
+<ul>
+<li><a href="#litprog"><code>&lt;litprog&gt;</code></a>
+<li><a href="#object"><code>&lt;object&gt;</code></a>
+<li><a href="#item"><code>&lt;item&gt;</code></a>
+<li><a href="#piece"><code>&lt;piece&gt;</code></a>
+<li><a href="#variant"><code>&lt;variant&gt;</code></a>
+<li><a href="#insert"><code>&lt;insert&gt;</code></a>
+</ul>
+They work as follows:
+<ul>
+<a name="litprog">
+<b><li><code>&lt;litprog&gt;</code></b><br>
+This is simply the root element.  Takes no attributes.
+<br><br>
+<a name="object">
+<b><li><code>&lt;object name="NAME" language="LANGUAGE" item="START" variant="VARIANT"/&gt;</code></b><br>
+The object element defines an output file.  The list of output files is available to the index page in the <code>[&#35;#objectlist#&#35;]</code>
+tag.  The file will be written to "NAME" relative to the current directory, and the tangle will start at the item called
+"START".  All pretty obvious.
+<p>
+The language will come later, probably after QDMT is integrated with the application.  It
+will specify the base language of the object as a default language for each item along the
+line.  Knowing the language of a stream will allow tangle to generate indices of defined
+data structures and so forth which weave will then be able to use to organize the code.
+But right now it's still blue-sky.
+<p>
+The variant feature isn't done yet either (although I'm working on it.)  What this will do is to allow selection of certain pieces
+and rejection of others when tangling multiple objects from a single presentation.  If a piece is shared by two variants, then
+it won't have a variant tag.  I think the variant feature will be pretty cool, but that remains to be seen.  Watch this
+space for further details.  I want to develop QDMT in both C and Perl using a variant
+structure, but again I don't have much time to do that and I <i>do</i> need QDMT in C, and
+quickly, so that will all have to wait for later.
+<br><br>
+
+<a name="item">
+<b><li><code>&lt;item name="NAME" label="LABEL"&gt;</code></b><br>
+Each main item defines a page of documentation; subitems may follow each main item.  A subitem is defined as an item whose
+name has a period in it, so I may have an item "tangle" and a subitem "tangle.tangle_one".  Subitems <i>must</i> follow
+their parents immediately or you will have some odd behavior.  The documentation and code for a subitem is appended to
+its parent's page under an italicized heading, and a link anchor is created using the post-period part of its name, so that
+in the above example, the page "tangle.html" will have a link anchor <code>&lt;a name="tangle_one"&gt;</code>.
+<p>
+The list of items is available to the index page in the <code>[&#35;#itemlist#&#35;]</code> tag; subitems are in a second
+level of list.  Each item's list heading contains a link to its documentation page, so it's an effective table of contents.
+Eventually I'd like to do some more formatting of the table of contents, but that's pretty far down on my to-do list at
+the moment.
+<br><br>
+
+<a name="piece">
+<b><li><code>&lt;piece variant="VARIANT" add-to="ADDTO"&gt;</code></b><br>
+Items define the documentation, and pieces define the code output.  Each piece must be embedded in an item or it gets roundly
+ignored.  (Yes, yes, a DTD would simply make that illegal but remember that the alpha version doesn't <i>really</i>
+understand XML.)
+<p>
+If a piece has a variant attribute, then it will only be included in objects for which it matches the variant spec.  It will
+be filtered out of others.  This will allow a single presentation to produce specific code for, say, Unix and Win32 variants
+of a single codebase.  For finer control over variants, you can also embed a <code>&lt;variant&gt;</code> tag into a piece.
+<p>
+The other application for the variant system is documentation of porting projects.  Both variants (even in widely different
+languages) can thus be tangled from the same presentation, while patterns shared by both may be shared explicitly.  Again,
+once the feature is complete and I've tried it on a certain project I have in mind (involving Common LISP and Java, so we're
+at least talking about widely different languages) then we'll see how effective the whole idea is.
+<p>
+The add-to attribute is optional; if present, it causes the piece to be added, not to the
+currently active item, but to the item named.  This makes it convenient for presenting
+cleanup code adjacent to allocation code, for instance.  I'm still not entirely convinced
+it's a good idea, but I'm reserving judgment until I've tried it out in a couple of
+presentations.
+<br><br>
+
+<a name="variant">
+<b><li><code>&lt;variant name="VARIANT"&gt;</code></b><br>
+When used within a <code>&lt;piece&gt;</code>, makes a part of the piece subject to suppression.  So if the object I'm
+currently tangling is variant "unix" and I encounter a variant "win32" in the current piece, the contents of that tag will
+not appear in the object.
+<br><br>
+
+<a name="insert">
+<b><li><code>&lt;insert name="NAME"/&gt;</code></b><br>
+Used to do literate programming in the traditional sense, of course.  The occurrence of the tag is replaced with the contents
+of the named item.  This operation is recursive and is called <i>tangling</i> if you're not familiar with literate programming.
+Come to think of it, if you <i>are</i> familiar with literate programming, it's still called tangling.
+</ul>
+
+Well, that's the lot.  As I implement more stuff, if it impacts the element set at all, I'll update this page.  I hope.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

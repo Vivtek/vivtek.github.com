@@ -1,0 +1,137 @@
+<html><head><title>Repository manager: Notifications</title></head>
+<body>
+<h2>Notifications</h2>
+<center>
+[&nbsp;<a href="processing.html">Previous: Actions and synchronous processing</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="workflow.html">Next: Workflow</a>&nbsp;]
+</center>
+
+<hr>
+<i>(March 13, 2004)</i>: Surely I'll be done with this API someday, but apparently not yet.  Notification is the latest thing I
+realized needed to be done better in the repository manager than it was in core workflow and the prototype.  Notification basically
+combines two things: response to events, and outgoing email or similar things.  There are two "simplest notifications" one can
+imagine.  One is simply the assertion that some event has occurred; in this case, the system should Do The Right Thing to tell
+interested parties that this is the case (this may depend on an object associated with the event, etc.)  The other minimal
+case is simply the ability to, as I put it, just send a fricking email.  It's a simple enough thing.  It should be simple to do.
+But it's amazing sometimes how very non-simple these things are.
+<p></p>
+At any rate, there are a number of complicating factors between these two minimal cases.  Do we log events?  Do we log notifications
+sent?  For a given user, do we send email or just make an entry to be seen when the user logs in?  Do we send messages every time
+something happens, or just a daily digest?  I think you could put an arbitrary amount of work into perfecting a really good
+notification facility.
+
+<p></p>
+The first of our two notification API functions is the named-notification model.  Given a notification ID, it looks the notification
+up and then calls the direct version below to actually do the dirty work.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void repos_notify (XML * repository, const char * list, const char * key, XML * obj, const char * notification_id,
+                               const char * subject, const char * recipient)
+{
+   XML * notification;
+
+   notification = repos_get (repository, "_notifications", notification_id);
+   if (notification) {
+      repos_notify_direct (repository, list, key, obj, notification, subject, recipient);
+      xml_free (notification);
+   } else {
+      repos_log (repository, 2, 2, NULL, "notification", "repos_notify: can't find named notification %s", notification_id);
+   }
+}
+</pre></td></tr></table>
+
+Once we have our notification (or of course if we already have a notification structure, say, from the workflow we're running),
+then we can execute it.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void repos_notify_direct (XML * repository, const char * list_key, const char * key, XML * obj, XML * notification,
+                               const char * subject, const char * recipient)
+{
+   char * text_view;
+   char * html_view;
+   XML * list = repos_defn (repository, list_key);
+   XML * obj_in = obj;
+   char * subject_in;
+   char * from_in;
+   char * recipient_in;
+   WFTK_ADAPTOR * ad;
+
+   if (*xml_attrval (notification, "lookup")) repos_notify (repository, list_key, key, obj, xml_attrval (notification, "lookup"), subject, recipient);
+
+   if (!obj_in) obj_in = repos_get (repository, list_key, key);
+
+   repos_log (repository, 6, 2, NULL, "notification", "repos_notify: notification going out (%s) (%s)", recipient, subject);
+
+   /* 1. Get text and HTML views required by notification. */
+   text_view = xmlobj_get (notification, NULL, "text");
+   html_view = xmlobj_get (notification, NULL, "html");
+   if (!text_view &amp;&amp; !html_view) {
+      if (xml_first (notification) &amp;&amp; !xml_firstelem (notification)) {
+         text_view = xml_stringcontent (notification);
+      }
+   }
+   if (!text_view &amp;&amp; !html_view) {
+      xml_set (notification, "textmode", *xml_attrval (notification, "viewmode") ? xml_attrval (notification, "viewmode") : "notification");
+      xml_set (notification, "htmlmode", *xml_attrval (notification, "viewmode") ? xml_attrval (notification, "viewmode") : "notification");
+      xml_attrcat (notification, "textmode", "_text");
+      xml_attrcat (notification, "textmode", "_html");
+      text_view = repos_view_find (repository, list, obj_in, xml_attrval (notification, "textmode"));
+      html_view = repos_view_find (repository, list, obj_in, xml_attrval (notification, "htmlmode"));
+   }
+
+   if (!text_view &amp;&amp; !html_view) {
+      text_view = xml_strdup ("\n");
+   }
+
+   /* Express said views. */
+   if (text_view) text_view = repos_view_express (repository, list, obj_in, text_view);
+   if (html_view) html_view = repos_view_express (repository, list, obj_in, html_view);
+
+   /* Prepare extra info (subject and recipient) */
+   /*repos_log (repository, 6, 2, NULL, "notification", "repos_notify: notification structure:\n%s\n", xml_string (notification));*/
+   xml_set_nodup (notification, "subject", xmlobj_get (notification, NULL, "subject"));
+   xml_set_nodup (notification, "to", xmlobj_get (notification, NULL, "to"));
+   xml_set_nodup (notification, "from", xmlobj_get (notification, NULL, "from"));
+
+   if (subject) subject_in = xmlobj_format (obj_in, list, subject);
+   else         subject_in = xmlobj_format (obj_in, list, xml_attrval (notification, "subject"));
+   if (recipient) recipient_in = xmlobj_format (obj_in, list, recipient);
+   else           recipient_in = xmlobj_format (obj_in, list, xml_attrval (notification, "to"));
+   from_in = xmlobj_format (obj_in, list, xml_attrval (notification, "from"));
+
+   /* Get the appropriate adaptor and send the message. */
+   /* TODO: message logging, in-repository rich messaging. */
+   ad = wftk_get_adaptor (repository, NOTIFY, xml_attrval (notification, "type")); /* TODO: all that cool preference logic from wftk-bare. */
+   if (ad) {
+      wftk_call_adaptor (ad, "send", recipient_in, from_in, subject_in, text_view, html_view);
+      wftk_free_adaptor (repository, ad);
+   } else {
+      repos_log (repository, 1, 2, NULL, "notification", "repos_notify: attempted notification with unknown adaptor");
+   }
+   /* TODO: ability to send mail with attachments -- for this, need to think out attachment specification formalism. */
+
+   /* Clean up. */
+   free (text_view);
+   if (html_view) free (html_view);
+   free (from_in);
+   free (recipient_in);
+   free (subject_in);
+   if (!obj) xml_free (obj_in);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="processing.html">Previous: Actions and synchronous processing</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="workflow.html">Next: Workflow</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,51 @@
+<html><head><title>wftk core: datatype adaptor</title></head>
+<body>
+<h2>wftk core: datatype adaptor</h2>
+<center>
+[ <a href="../index.html">back to the core</a> ] [ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+
+A <i>datatype adaptor</i> allows the wftk to use complex semantics for data values; all data
+is stored as strings in the underlying XML (well, unless it's stored somewhere else in a data
+store, but it has to go <i>through</i> string formatting in the XML) -- but those strings
+may represent any number of things, such as dates.  A datatype adaptor will do formatting of
+data-entry HTML and at some point might be cleverer (incrementing or adding or something?)
+<p>
+These are the functions exposed by a datatype adaptor:
+<table>
+<tr><td><i><u>Function</i></u></td><td><i><u>Parameters</i></u></td><td><i><u>Purpose</i></u></td></tr>
+<tr bgcolor=eeeeee><td valign=top>0: init</td>
+    <td valign=top>&nbsp;</td>
+    <td>Initialize adaptor instance</td></tr>
+<tr bgcolor=ffffff><td valign=top>1: free</td>
+    <td valign=top>&nbsp;</td>
+    <td>Clean up instance before shutting down</td></tr>
+<tr bgcolor=eeeeee><td valign=top>2: info</td>
+    <td valign=top>&nbsp;</td>
+    <td>Return XML describing the adaptor</td></tr>
+<tr bgcolor=ffffff><td valign=top>3: html</td>
+    <td valign=top>XML * datasheet<br>XML * data</td>
+    <td>Format a field for input</td></tr>
+<tr bgcolor=eeeeee><td valign=top>2: info</td>
+    <td valign=top>XML * datasheet<br>XML * data</td>
+    <td>Return a blank field format</td></tr>
+</table>
+
+<p>
+Implementations:<ul>
+<li><a href=DATATYPE_option.html>DATATYPE_option</a> - allows specification of an option list for a field.
+<li>(TODO) DATATYPE_date (works with dates)
+</ul>
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

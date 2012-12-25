@@ -1,0 +1,169 @@
+<html><head><title>WFTK PDM: Splash page: list of open items</title></head>
+<body>
+<h2>Splash page: list of open items</h2>
+<center>
+[&nbsp;<a href="complain.html">Previous: complain(): Returning error messages</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The procdef manager</a>&nbsp;]
+[&nbsp;<a href="list.html">Next: list: Displaying the procdef directory</a>&nbsp;]
+</center>
+
+<hr>
+The page displayed when no command is given is the splash page.  If we go from the example
+in the UI mockup, then we want to show open versions owned by the current user, and a
+folder-like system of items which are editable by the current user.  Lots of permissions
+involved here.
+<p></p>
+So anyway, this page is the reason I spun off the
+<a href="http://www.vivtek.com/wftk/user/">user module</a>.  No surprise there.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>printf ("Content-type: text/html\n\n");
+printf ("&lt;html>&lt;head>&lt;title>WFTK PDM works in progress&lt;/title>&lt;/head>\n");
+printf ("&lt;body bgcolor=\"ffffff\">\n");
+printf ("&lt;h2>Open process definition&lt;/h2>&lt;hr>\n");
+printf ("&lt;font size=+1>Work in progress&lt;/font>\n");
+
+xml = user_list (current_user, "wftkpdm", NULL, "edit");
+<i>See <a href="list.html#load_index">Loading the repository index from index.xml</a></i>
+holder = xml_firstelem (xml);
+while (holder) {
+   strcpy (sbuf, xml_attrval (holder, "object"));
+   mark = strrchr (sbuf, '_');
+   if (mark) {
+      *mark++ = '\0';
+   } else {
+      mark = "";
+   }
+   item = xml_firstelem (directory);
+   while (item) {
+      if (!strcmp (xml_attrval (item, "id"), sbuf)) {
+         xml_set (holder, "title", xml_attrval (item, "title"));
+         break;
+      }
+      item = xml_nextelem (item);
+   }
+   if (!strcmp ("", xml_attrval (holder, "title"))) {
+      xml_set (holder, "title", xml_attrval (holder, "object"));
+   }
+   holder = xml_nextelem (holder);
+}
+
+/* Here we'll sort things.  Later. */
+
+printf ("&lt;form action=\"%s?command=delete\" method=POST>\n", xml_attrval (environment, "SCRIPT_NAME"));
+holder = xml_firstelem (xml);
+while (holder) {
+   if (!strcmp (holder->name, "object")) {
+      strcpy (sbuf, xml_attrval (holder, "object"));
+      mark = strrchr (sbuf, '_');
+      if (mark) {
+         *mark++ = '\0';
+      } else {
+         mark = "";
+      }
+      printf ("&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;input type=checkbox name=\"itemver_%s_%s\">&amp;nbsp;", sbuf, mark);
+      printf ("&lt;a href=\"%s?command=edit&amp;item=%s&amp;ver=%s\">%s&lt;/a>",
+              xml_attrval (environment, "SCRIPT_NAME"), sbuf, mark,
+              xml_attrval (holder, "title"));
+      printf (" (ver '%s')<br>\n", mark);
+   }
+   holder = xml_nextelem (holder);
+}
+xml_free (xml);
+printf ("&lt;input type=submit value=\"Delete selected working versions\">\n");
+printf ("&lt;/form>\n");
+
+
+printf ("&lt;p>\n");
+printf ("&lt;font size=+1>Process definitions&lt;/font>\n");
+
+holder = xml_create ("temp");
+xml = xml_create ("temp");
+show_list (current_user, "workflow", NULL, "view");
+xml_free (holder);
+xml_free (xml);
+
+
+printf ("&lt;/body>&lt;/html>\n");
+</pre></td></tr></table>
+<br><br>
+<a name="show_list">
+<i>show_list: Showing lists of permitted objects</i><br>
+Here's a little recursive function to build up lists of objects that we have permission to,
+in a folder format which reflects the structure of <code>group-include</code>s.  It assumes
+that the directory is already loaded.  It makes use of the global 'holder' to mark items as
+already displayed, and 'xml' to track which subfolders it's already displayed (the latter
+serves to prevent problems should we have a cycle in our folder structure.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void show_list (XML * for_whom, const char * class, const char * object, const char * permission)
+{
+   XML * list;
+   XML * listee;
+   XML * item;
+   XML * included;
+
+   list = user_list (for_whom, class, object, permission);
+   listee = xml_firstelem (list);
+   while (listee) {
+      item = xml_firstelem (directory);
+      while (item) {
+         if (!strcmp ("object", listee->name) &amp;&amp;
+             !strcmp (xml_attrval (item, "id"), xml_attrval (listee, "object"))) {
+            if (strcmp ("", xml_attrval (holder, xml_attrval (item, "id")))) {
+               xml_set (listee, "invalid", "yep");
+               break;
+            }
+            xml_set (holder, xml_attrval (item, "id"), "!");
+            xml_set (listee, "title", xml_attrval (item, "title"));
+            break;
+         }
+         item = xml_nextelem (item);
+      }
+      if (!strcmp ("", xml_attrval (listee, "title"))) {
+         xml_set (listee, "invalid", "yep");
+      }
+      listee = xml_nextelem (listee);
+   }
+
+   /* Here we'll sort things.  Later. */
+
+   printf ("&lt;ul>\n");
+   listee = xml_firstelem (list);
+   while (listee) {
+      if (!strcmp ("group-include", listee->name)) {
+         if (!strcmp ("", xml_attrval (xml, xml_attrval (listee, "name")))) {
+            xml_set (xml, xml_attrval (listee, "name"), "!");
+            included = group_get (xml_attrval (listee, "name"));
+            if (included) {
+               printf ("&lt;li> Via group &lt;i>%s&lt;/i>:\n", xml_attrval (included, "name"));
+               show_list (included, class, object, permission);
+               xml_free (included);
+            }
+         }
+      } else if (!strcmp ("", xml_attrval (listee, "invalid"))) {
+         printf ("&lt;li> &lt;a href=\"%s?command=view&amp;item=%s\">%s&lt;/a>\n",
+                 xml_attrval (environment, "SCRIPT_NAME"), xml_attrval (listee, "object"),
+                 xml_attrval (listee, "title"));
+      }
+      listee = xml_nextelem (listee);
+   }
+   xml_free (list);
+   printf ("&lt;/ul>\n");
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="complain.html">Previous: complain(): Returning error messages</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href="list.html">Next: list: Displaying the procdef directory</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,70 @@
+<html><head><title>xmlapi: Children: xml_first and xml_last</title></head>
+<body>
+<h2>Children: xml_first and xml_last</h2>
+<center>
+[&nbsp;<a href="xml_delete.html">Previous: Deleting pieces: xml_delete</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_next.html">Next: Siblings: xml_next and xml_prev</a>&nbsp;]
+</center>
+
+<hr>
+Finding the first child is, of course, <i>very</i> easy.  The last is less so.
+<p></p>
+I've also tossed in a function <code>xml_firstelem</code> which is just like <code>xml_first</code>
+except that it doesn't see plain text elements.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xml_first(XML * xml)
+{
+   if (xml == NULL) return NULL;
+   if (xml->children == NULL) return NULL;
+   return (xml->children->element);
+}
+XMLAPI XML * xml_firstelem(XML * xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return NULL;
+   list = xml->children;
+   while (list != NULL) {
+      if (list->element->name != NULL) break;
+      list = list->next;
+   }
+   if (list != NULL) return (list->element);
+   return NULL;
+}
+
+XMLAPI XML * xml_last(XML *xml)
+{
+   if (xml == NULL) return NULL;
+   if (xml->lastchild == NULL) return NULL;
+   return (xml->lastchild->element);
+}
+XMLAPI XML * xml_lastelem(XML *xml)
+{
+   ELEMENTLIST *list;
+   if (xml == NULL) return NULL;
+   list = xml->lastchild;
+   while (list != NULL) {
+      if (list->element->name != NULL) break;
+      list = list->prev;
+   }
+   if (list != NULL) return (list->element);
+   return NULL;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_delete.html">Previous: Deleting pieces: xml_delete</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_next.html">Next: Siblings: xml_next and xml_prev</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

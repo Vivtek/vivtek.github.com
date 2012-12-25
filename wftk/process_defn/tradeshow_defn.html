@@ -1,0 +1,176 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Process definition example -- trade show organization</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Process definition example -- trade show organization</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/process_defn.html>process&nbsp;definition</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+This is an attempt at the basic process outlined in the <a href=../usage/tradeshow.html>trade
+show scenario</a>.  Note that some of the tasks here must be regarded as subprocesses, but that the
+"subprocess nature" of these is not visible to this level.  (This won't always be the case, but I think it
+is in this scenario.  Doubtlessly some of you people will disagree.)
+<p>
+This XML doesn't correspond perfectly with the scenario.  You've been warned.
+<p>
+Another thing I feel impelled to mention at the outset is that for some reason it seems right to me to include
+the organizer (i.e. the initiator) in the process for this example.  I think that this is because in this case, the
+organizer has a lot more ownership of the process than in the chair purchase example.
+
+<pre>
+
+&lt;?xml version="1.0"?>
+
+&lt;<b>workflow</b> name="Tradeshow org" author="Michael: michael@vivtek.com">
+  &lt;<b>role</b> name="Organizer">&lt;/role>
+  &lt;<b>role</b> name="Hotel person">&lt;/role>
+  &lt;<b>role</b> name="Schedule person">&lt;/role>
+  &lt;<b>role</b> name="Catering person">&lt;/role>
+  &lt;<b>role</b> name="Floor layout person">&lt;/role>
+  &lt;<b>role</b> name="Brochure person">&lt;/role>
+
+  &lt;<b>data</b> name="Show name" type="text">&lt;/data>
+  &lt;<b>data</b> name="Planned date" type="text">&lt;/data>
+
+  &lt;<b>sequence</b>>
+    &lt;<b>parallel</b>>
+      &lt;<b>sequence</b>>
+        &lt;<b>task</b> label="Book hotel" role="Hotel person">
+          &lt;<b>data</b> name="Hotel booking record" type="something"/>
+        &lt;/task>
+        &lt;<b>parallel</b>>
+          &lt;<b>task</b> label="Plan floor layout" role="Floor layout person">
+            &lt;<b>data</b> name="Floor layout" type="document"/>
+          &lt;/task>
+          &lt;<b>task</b> label="Rough schedule" role="Schedule person">
+            &lt;<b>data</b> name="Schedule" type="document"/>
+          &lt;/task>
+        &lt;/parallel>
+      &lt;/sequence>
+      &lt;<b>task</b> label="Book caterer" role="Catering person">
+        &lt;<b>data</b> name="Catering service" type="text"/>
+      &lt;/task>
+    &lt;/parallel>
+    &lt;<b>task</b> label="Create brochure" role="Brochure person">
+      &lt;<b>data</b> name="Floor layout" readonly="yes">&lt;/data/>
+      &lt;<b>data</b> name="Schedule" readonly="yes">&lt;/data>
+      &lt;<b>data</b> name="Brochure" type="document">&lt;/data>
+    &lt;/task>
+  &lt;/sequence>
+&lt;/workflow>
+</pre>
+
+Oddly, this process worked out cleaner than the chair.  Probably because I didn't clutter it up with explicit alerts,
+among other things.
+<p>
+<i>Data tag</i><br>
+Note that I've used the <code>&lt;data&gt;</code> in the "Create brochure" task in two different ways, to see whether this
+makes sense.  Everywhere else, the data is being elicited during that task, but in this task I also included two readonly
+references to data elicited during other tasks.  This should have the effect of highlighting those pieces of data for the
+person doing that task -- other data about the process shouldn't be considered hidden by this, it's just kind of a
+documentation thing more than anything else.
+<p>
+<i>Document data type</i><br>
+Remember that data types are to be considered as supplied by adapter, so that the specific data types I'm talking about
+here aren't too important.  However, in the case where the data is effectively a standalone document (a deliverable, really)
+then I'm using the data type "document" to indicate that the document in question is stored in the deliverable repository.
+Maybe really using a data type "deliverable" would be more appropriate.
+<p>
+<i>That hotel booking record</i><br>
+OK, I'm getting sloppy there.  It seems that I really want to consider something like records -- but I haven't figured
+out the most parsimonious way of doing it yet.  So I'm kind of considering the booking record as something structured which
+would include a hotel name, contact there, reservation number, who knows?  It would presumably be stored in a database, but
+it could be a little XML document.  All in all, the whole data-association thing needs work.
+<p>
+Well, that's all I got from this example.  On this level it's just not that interesting -- the whole point of the scenario
+was to show how useful decentrally defined subprocesses could be, and since they're all distributed, there's nothing much
+to see.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

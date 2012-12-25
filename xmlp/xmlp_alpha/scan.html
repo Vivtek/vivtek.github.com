@@ -1,0 +1,210 @@
+<html><head><title>xmlp alpha: Initial scan</title></head>
+<body>
+<h2>Initial scan</h2>
+<center>
+[&nbsp;<a href=main.html>Previous: Script file structure</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: xmlp alpha</a>&nbsp;]
+[&nbsp;<a href=tangle.html>Next: Tangle: write code output</a>&nbsp;]
+</center>
+
+<hr>
+The intial scan of the input file is pretty straightforward.  It simply reads everything and
+builds a list of items, keyed by name and containing their labels and their text.  The only
+weird case you have to watch out for is when a piece concatenates to an item that hasn't been
+encountered yet.  In that case, the piece is stashed anyway, then when the item <i>is</i>
+defined, if it has a text piece in it then that piece will be inserted before any text already
+collected.
+
+<p>
+Due to the crude nature of my current weave, I have all this in one big blob of text.  This is
+because I can't bring myself to break it onto separate pages.  And of course the other reason
+for this is that I'm still not literate-adapted; I have always tended to write code in a rather
+monolithic fashion (breaking code into subroutines to increase readability has always really
+irritated me.  I guess that's why I'm working on a literate programming system instead.)
+
+<p>
+One assumption I'm making here: the input file is open on INPUT.  It will have to be rewound
+before doing the weave.  Tangle won't require a further pass, because this scan step will
+gather everything we need for tangling.  First, let's set up some globals we'll be using.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>@items = ();
+@objects = ();
+$name = '';
+$piecename = '';
+$parentname = '';
+</pre></td></tr></table>
+
+The way I'm doing this is that I'm effectively using the name of the current item, and the
+name of the item receiving the current piece, as state variables.  When we leave the element
+in each case, I reset the value to blank, so that the scanner can tell we're not in an item
+or piece respectively.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>while (&lt;INPUT>)
+{
+   if (/(&lt;object .*>)/i)
+   {
+      $tag = $1;
+      $tag =~ s/^&lt;object\s+//i;
+      $attr = "";
+      %thisobject = (name => '', language => '', item => '');
+      foreach $piece (split /"/, $tag) {
+         if ($attr eq '') {
+            $attr = $piece;
+            $attr =~ s/^\s*//;
+            $attr =~ s/\s*=\s*$//;
+         } else {
+            $thisobject{$attr} = $piece;
+            $attr = '';
+         }
+      }
+      if ($thisobject{name} eq '') {
+         print STDERR "$. : Nameless object encountered.\n";
+         next;
+      }
+      if ($thisobject{item} eq '') {
+         print STDERR "$. : Object '$thisobject{item}' has no starting item.\n";
+         next;
+      }
+      @objects = (@objects, $thisobject{name});
+      $starter{$thisobject{name}} = $thisobject{item};
+   }
+
+</pre></td></tr></table>
+
+The object scanner is a little simpler than the item and piece scanners, so I'll explain it
+first.  As each line is scanned, it's checked for being an <code>&lt;object&gt;</code> tag.
+Note that this is assuming that the tag will be the only thing on the line.  I don't want to
+get into real tokenizing of the XML input, because that will be the province of the QDMT, which
+is my next four-letter vowelless acronym.  The next version of XMLP will use the QDMT to tokenize
+its input.
+<p>
+At any rate, if the object tag is encountered, I read its attributes into the 
+<code>$thisobject</code> hash.   Then I use that hash to build an object list, mark the starting
+item for each object, and so on.
+<p>
+The pattern for items is similar, except that while <i>in</i> an <code>&lt;item&gt;</code> tag,
+I have the name of the tag in the <code>$name</code> global.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   if (/(&lt;item .*>)/i)
+   {
+      $tag = $1;
+      $tag =~ s/^&lt;item\s+//i;
+      $attr = "";
+      %thisitem = (name => '', label => '', pattern => '', language => '');
+      foreach $piece (split /"/, $tag) {
+         if ($attr eq '') {
+            $attr = $piece;
+            $attr =~ s/^\s*//;
+            $attr =~ s/\s*=\s*$//;
+         } else {
+            $thisitem{$attr} = $piece;
+            $attr = '';
+         }
+      }
+      if ($thisitem{name} eq '') {
+         print STDERR "$. : Nameless item encountered.\n";
+         next;
+      }
+
+      $name = $thisitem{name};
+      $lastchild{$name} = $name;
+      $children{$name} = 0;
+      if ($name !~ /\./) {
+         $parentname = '';
+         $parent{$name} = '';
+      } else {
+         $parentname = $name;
+         $parentname =~ s/\..*?$//;
+         $parent{$name} = $parentname;
+         $lastchild{$parentname} = $name;
+         $children{$parentname} += 1;
+      }
+
+      @items = (@items, $name);
+
+      if (defined $label{$name}) {
+         print STDERR "$. : Duplicate item name '$name'.\n";
+      }
+      if ($thisitem{label} eq '') { $thisitem{label} = $name; }
+      $label{$name} = $thisitem{label};
+      if ($parentname eq '') {
+         $url{$name} = "$name.html";
+      } else {
+         $n = $name;
+         $n =~ s/^.*?\.//;
+         $url{$name} = $url{$parentname} . '#' . $n;
+      }
+      next;
+   }
+</pre></td></tr></table>
+
+And then I terminate the <code>&lt;item&gt;</code> tag by setting the <code>$name</code>
+global to blank.  I also set the <code>$piecename</code> global to blank in case the user
+forgot to terminate the current piece.  I know that violates the principles of XML tokenization,
+but again, QDMT will do real XML tokenization and I don't want to mess with it yet.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   if (/(&lt;\/item\s*>)/i) {
+      if ($name !~ /\./) { $parentname = $name; }
+      $name = '';
+      $piecename = '';
+      next;
+   }
+
+</pre></td></tr></table>
+
+And finally, the <code>&lt;piece&gt;</code> tag, which is pretty analogous to 
+<code>&lt;item&gt;</code>.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   if (/(&lt;piece.*>)/i)
+   {
+      next if $name eq ''; # Pieces are silent outside of items.
+      $tag = $1;
+      $tag =~ s/^&lt;piece\s*//i;
+      $attr = "";
+      %thispiece = (add-to => '', language => '');
+      foreach $piece (split /"/, $tag) {
+         if ($attr eq '') {
+            $attr = $piece;
+            $attr =~ s/^\s*//;
+            $attr =~ s/\s*=\s*$//;
+         } else {
+            $thispiece{$attr} = $piece;
+            $attr = '';
+         }
+      }
+
+      $piecename = $name;
+      $piecename = $thispiece{'add-to'} if $thispiece{'add-to'} ne '';
+      next;
+   }
+   if (/(&lt;\/piece\s*>)/i) {
+      $piecename = '';
+      next;
+   }
+   if ($piecename ne '') {
+      $pieces{$piecename} .= $_;
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href=main.html>Previous: Script file structure</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: xmlp alpha</a>&nbsp;]
+[&nbsp;<a href=tangle.html>Next: Tangle: write code output</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

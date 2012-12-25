@@ -1,0 +1,45 @@
+<html><head><title>xmlapi: xml_create: Creating an empty element</title></head>
+<body>
+<h2>xml_create: Creating an empty element</h2>
+<center>
+[&nbsp;<a href="xml_set.html">Previous: Working with attributes: xml_set and xml_attrval</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_createtext.html">Next: xml_createtext: a shortcut for plain text</a>&nbsp;]
+</center>
+
+<hr>
+Creation of an element is nothing more than allocating the space, then allocating space for
+a copy of the name and copying it.
+<p></p>
+For extra credit, determine how omitting the initialization of <code>ret->parent</code>
+would screw up <code>xml_read</code> later on.  But only sometimes.  That stupid omission
+cost me a rather horrible evening in July of 2000.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xml_create (const char * name)
+{
+   XML * ret;
+
+   ret = (XML *) MALLOC (sizeof (struct _element));
+   memset (ret, 0, sizeof (struct _element));
+   ret->name = xml_strdup (name);
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_set.html">Previous: Working with attributes: xml_set and xml_attrval</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_createtext.html">Next: xml_createtext: a shortcut for plain text</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,123 @@
+<html><head><title>wftk command-line utility: Dealing with processes</title></head>
+<body>
+<h2>Dealing with processes</h2>
+<center>
+[&nbsp;<a href="tester.html">Previous: main()</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_task.html">Next: Working with tasks</a>&nbsp;]
+</center>
+
+<hr>
+What can we do with processes and datasheets?  Create them and delete them, define a process by attaching a procdef, and that's
+about it.
+<br><br>
+<a name="create">
+<i>create: Creating a new datasheet</i><br>
+Creation of a process is almost <i>too</i> easy.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>datasheet = wftk_process_new (session, argsleft > 0 ? PERIOD_TO_NULL(argv[argp]) : (char *) 0, argsleft > 1 ? PERIOD_TO_NULL(argv[argp+1]) : (char *) 0);  argp++; argp++;
+if (datasheet) {
+   wftk_process_save (session, datasheet);
+   printf ("Created process %s\n", xml_attrval (datasheet, "id"));
+}
+</pre></td></tr></table>
+
+A caveat: if I specify an ID which is already taken, I'll get another (but unique) ID, because the semantics of the
+wftk library consider the specified ID as a request, not a demand.  Obviously, you can code around that if you're using
+the library yourself, but the command-line utility is a very thin and simple wrapper, so it just goes with the flow.
+<br><br>
+<a name="delete">
+<i>delete: Deleting an existing process</i><br>
+Here's one place where I start to ask, where should I refuse to do things?  At what point can a process say, "No, I'm active,
+you can't delete me?"  I'm not sure yet.  Another bridge to burn when I get to it.  In the meantime, this is a good way to
+clean up after testing.  But somewhere, either here or in <code>wftk_process_delete</code>, we really need to look aside at
+a defined deletion process instead of deleting willy-nilly.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 2) {
+   printf ("wftk delete: repository and ID required (use . for default repository)\n");
+   exit(1);
+}
+
+wftk_process_delete (session, argsleft > 0 ? PERIOD_TO_NULL(argv[argp]) : (char *) 0, argv[argp+1]); argp++; argp++;
+</pre></td></tr></table>
+<br><br>
+<a name="define">
+<i>define: Attach a procdef</i><br>
+Defining a process means attaching a process definition to it.  The procdef is stored in a procdef repository, and the
+current version is always attached to new processes.  A process will thus always work from the same version of the procdef;
+if new versions are created, they apply only to newly created processes.  Otherwise havoc would ensue.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 4) {
+   printf ("wftk define: dsrep and ID, pdrep and ID are all required (use . for default repositories)\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+} else {
+   if (wftk_process_define (session, datasheet, PERIOD_TO_NULL (argv[argp]), argv[argp+1])) {
+      wftk_process_save (session, datasheet);
+      printf ("Procdef %s, current version %s\n", xml_attrval (datasheet, "procdef"), xml_attrval (datasheet, "version"));
+   }
+}
+<br><br>
+<a name="show">
+<i>show: Displaying process information</i><br>
+<br><br>
+<a name="adhoc">
+<i>adhoc: Running ad-hoc workflow</i><br>
+Ad-hoc workflow is something that most workflow systems handle only begrudgingly.  I'm finding that it's a convenient way
+to handle a lot of things, though, like requests, error situations, and so on.  Basically, the <code>adhoc</code> command
+just reads a file or stdin, and routes the XML there to <code>wftk_process_adhoc</code>, which tosses it into the datasheet
+and starts it up.  The ad-hoc code is really ad-hoc, that is, any valid workflow structure can be in it, and once it's 
+queued, we really don't care where it resides.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 2) {
+   printf ("wftk adhoc: dsrep and ID are required.  Use . for default repository\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL(argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+} else {
+   file = stdin;
+   if (argsleft > 0) {
+      file = fopen (argv[argp], "r");
+      if (!file) {
+         printf ("Can't open ad-hoc code file %s\n", argv[argp]);
+      }
+   }
+   if (file) {
+      mark = xml_read (file);
+      if (!mark) {
+         printf ("Can't read XML in ad-hoc input file %s\n", argv[argp]);
+      }
+      if (file != stdin) fclose (file);
+      if (mark) {
+         wftk_process_adhoc (session, datasheet, mark);
+      }
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="tester.html">Previous: main()</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_task.html">Next: Working with tasks</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,69 @@
+<html><head><title>Popup UI framework</title></head>
+<body>
+<h2>Popup: simple UI framework for wftk or anything else</h2>
+<center>
+[ <a href="popup.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+The popup UI framework started out as a separate project concept, but <a href="..">wftk</a> subsumed it, as it ultimately
+subsumes everything I think of nowadays.  The initial project is a simple popup tool for <a href="http://www.proz.com">ProZ.com</a>,
+a translation job bidding database through which I find paying work from time to time.  This tool will provide a lightweight
+interface to ProZ in order to pop up new job listings, provide a quick query interface for KudoZ questions (these are questions to
+fellow translators; it's a convenient way to get translations for sticky phrases), and also provide a quick query interface for
+Web-accessible dictionaries such as EuroDicAutom.
+<p>
+The framework itself is based on <a href="http://www.wxwindows.org">wxWindows</a> and is a simple UI from which
+to hang queries and event listeners.  Effectively it is a general IM client, except that instead of handling
+a single kind of unstructured message it is capable of handling structured messages corresponding to structured
+interactions with arbitrary systems.  (Note that this means it'd make a <i>fine IM client</i>....)
+<p>
+It is unusual in the wftk in that it is written in C++.  This allows it to interface with wxWindows,
+which is a C++ library.  In addition, the window-UI style of programming is indeed a naturally
+object-oriented paradigm, so (sigh) I guess I'll go with the flow on this one.  But most
+of the meat is in adaptors, and they remain ANSI C.  So there.
+<p></p>
+The UI does three things, basically: it queries data sources using <a href="../wftk/query/index.html">QUERY</a> and 
+<a href="../wftk/connect/index.html">CONNECT</a> adaptors, it listens for and processes
+events and query replies using <a href="../wftk/listen/index.html">LISTEN</a> and 
+<a href="../wftk/event/index.html">EVENT</a> adaptors, and it stores and lists old messages using 
+<a href="../wftk/list/index.html">LIST</a> adaptors in a folder
+paradigm.  The reason this is still involved in the wftk is that all these adaptor classes will be immediately useful for
+the wftk itself and for its applications.  I'm particularly looking forward to wrapping a very thin daemon wrapper around a
+LISTEN adaptor and the wftk library itself and getting a wftk workflow engine daemon as a result.  This will be a Good Thing.
+<p></p>
+The popup UI doesn't use the wftk library directly at this point; it uses the wftk adaptor code to load adaptors
+directly and talks to them instead.  This may change or it may not; for the current application I don't need the
+wftk library.  There will later be query and event adaptors for talking to the workflow engine daemon listed above, and at
+that point it's going to be possible to do things like putting up screenshots -- people might think wftk is a real program
+or something!
+<p></p>
+At any rate, the five impinging adaptor classes will be where most of the meat of a given popup UI program will be.  That's why
+this particular module here is the "popup UI framework."  See?  It all makes sense, doesn't it?  Those adaptors again are as
+follows:
+<ul>
+<li><a href="../wftk/query/index.html">QUERY</a> adaptors for immediate or delayed queries
+<li><a href="../wftk/event/index.html">EVENT</a> adaptors for processing incoming events
+<li><a href="../wftk/connect/index.html">CONNECT</a> adaptors for talking to external servers
+<li><a href="../wftk/listen/index.html">LISTEN</a> adaptors for listening for incoming events
+<li><a href="../wftk/list/index.html">LIST</a> adaptors for storing queries and messages
+</ul>
+<p></p>
+That leaves two pages worth of actual program for the framework:
+<ul>
+<li> <a href="classes.html">Class outline</a>
+<li> <a href="implementation.html">Implementation of the classes</a>
+</ul>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

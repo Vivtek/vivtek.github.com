@@ -1,0 +1,129 @@
+<html><head><title>To-do manager: File organization of todomgr.tcl</title></head>
+<body>
+<h2>File organization of todomgr.tcl</h2>
+<center>
+[&nbsp;<a href=index.html>Previous: index</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=schema.html>Next: Database schema of the task list</a>&nbsp;]
+</center>
+
+<hr>
+Most people are familiar with the Apache/CGI model of active content, where an action is
+defined as a file (the CGI program) which is activated when selected via URL.  AOLserver
+does things a little differently.  Well, you can do things that way by putting your Tcl
+code into a plain ol' Tcl file.  But I use the <i>ns_register</i> call to define some
+URLs as active URLs, and tell the server what Tcl procedure to call when a request is
+made to that URL.  It's a slick mechanism.
+<p>
+AOLserver/Tcl code of this type consists of calls to <code>ns_register</code>, perhaps some
+settings for global variables, and <code>proc</code> definitions.
+<p>
+Let's start our file off with a little copyright info:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre># To-do manager, take 1.
+# Copyright (c) 2000, Vivtek.
+# Released under the terms of the GNU license.
+
+</pre></td></tr></table>
+
+And let's set two globals: the home directory and the base URL for the application.  Oh, and
+the database connection pool to use.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set todomgr_home /usr/local/AOLserver/vivtek/pages/todomgr/
+set todomgr_root /todomgr
+set todomgr_pool wftk
+</pre></td></tr></table>
+
+Now let's define the URLs we want to use:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>ns_register_proc GET  $todomgr_root/create todomgr_create
+ns_register_proc POST $todomgr_root/create todomgr_create
+ns_register_proc GET  $todomgr_root/start todomgr_start
+ns_register_proc POST $todomgr_root/start todomgr_start
+ns_register_proc GET  $todomgr_root/show todomgr_show
+ns_register_proc POST $todomgr_root/show todomgr_show
+ns_register_proc GET  $todomgr_root/complete todomgr_complete
+ns_register_proc POST $todomgr_root/complete todomgr_complete
+ns_register_proc GET  $todomgr_root/reject todomgr_reject
+ns_register_proc POST $todomgr_root/reject todomgr_reject
+ns_register_proc GET  $todomgr_root/update todomgr_update
+ns_register_proc POST $todomgr_root/update todomgr_update
+
+ns_register_proc GET  $todomgr_root/overview todomgr_overview
+</pre></td></tr></table>
+
+(Notice that in Tcl you don't have to enclose strings in quotes if the interpreter can figure
+things out from context.  This causes me no end of grief when coding Perl.)
+<p>
+And let's go ahead and define each of our procedures that we're referring to up there.  The
+bodies of these procedures will be filled in later.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>proc todomgr_create {conn ignore} {
+  <i>See <a href="todomgr_create.html">Definition of todomgr_create</a></i>
+}
+
+proc todomgr_start {conn ignore} {
+  <i>See <a href="todomgr_start.html">Definition of todomgr_start</a></i>
+}
+
+proc todomgr_show {conn ignore} {
+  <i>See <a href="todomgr_show.html">Definition of todomgr_show</a></i>
+}
+
+proc todomgr_complete {conn ignore} {
+  <i>See <a href="todomgr_complete.html">Definition of todomgr_complete</a></i>
+}
+
+proc todomgr_reject {conn ignore} {
+  <i>See <a href="todomgr_reject.html">Definition of todomgr_reject</a></i>
+}
+
+proc todomgr_update {conn ignore} {
+  <i>See <a href="todomgr_update.html">Definition of todomgr_update</a></i>
+}
+
+proc todomgr_overview {conn ignore} {
+  <i>See <a href="todomgr_overview.html">Definition of todomgr_overview</a></i>
+}
+</pre></td></tr></table>
+
+And there are a few utility functions that I'll be using throughout:
+<code>todomgr_pageout</code> is what I'll use to write pages, and there are some others in the
+final section of the presentation.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="pageout.html">How I'm writing pages out</a></i>
+<i>See <a href="util.html">Miscellaneous utility functions</a></i>
+<i>See <a href="user_admin.html">User administration screens</a></i>
+<i>See <a href="login_admin.html">Login management stuff</a></i>
+<i>See <a href="keywords.html">Keyword/permission management</a></i>
+<i>See <a href="wftk_interpret.html">Interpreting the results that wftk sends back</a></i>
+</pre></td></tr></table>
+
+<i>(5/10/2000)</i> Let's toss in a couple more procs to deal with datasheet manipulation (the
+getting and setting of values attached to the process and to tasks.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="datasheet_stuff.html">Datasheet interface</a></i>
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href=index.html>Previous: index</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=schema.html>Next: Database schema of the task list</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

@@ -1,0 +1,100 @@
+<html><head><title>Task manager: Login management stuff</title></head>
+<body>
+<h2>Login management stuff</h2>
+<center>
+[&nbsp;<a href="user.html">Previous: User functionality</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="wftk_user.html">Next: Interfacing with the wftk user module for permissions</a>&nbsp;]
+</center>
+
+<hr>
+Once I had the login functionality coded, I realized there's no good way to log <i>out</i>
+short of closing your browser if you're using authuser logins.  (Please correct me if you
+know of a way.)  So I wrote a quick little login management routine.  If called with no
+parameters, it will report the login user (if any) and present a form to be used to select
+a user to switch to, and also a form to update personal information.  If called with a username,
+it forces a new login.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>ns_register_proc GET $taskmgr_root/login taskmgr_login
+
+proc taskmgr_login {conn ignore} {
+   set userid [ns_conn authuser $conn]
+   if ![string compare $userid ""] {
+      return [taskmgr_pageout $conn nologin.html]
+   }
+</pre></td></tr></table>
+
+At this point we know that the user is logged in and which user it is.  Let's ask the
+database for information about this user.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   global taskmgr_pool
+   set db [ns_db gethandle $taskmgr_pool]
+   set row [ns_db select $db "select * from users where userid='[sql_safe_string $userid]'"]
+   ns_db getrow $db $row
+   foreach field {userid password name email website} {
+      set tags($field) [ns_set get $row $field]
+   }
+</pre></td></tr></table>
+
+(Apologies for the egregious lack of error handling here.  After it's all working I'll have
+to go back and fix that sort of thing up.)  So we have the user's information -- let's get the
+form and see what we're supposed to do.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   set form [ns_conn form $conn]
+   if {$form == ""} {
+      <i>See <a href="login_admin.html#showlogin">Showing the current login</a></i>
+   } else {
+      <i>See <a href="login_admin.html#modlogin">Switching logins</a></i>
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="showlogin">
+<i>Showing the current login</i><br>
+If our login is known, then we simply display the login.html page in order to give the user
+a chance to switch logins.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set tags(title) "Current login user: $tags(userid) ($tags(name))"
+return [taskmgr_pageout $conn login.html]
+</pre></td></tr></table>
+<br><br>
+<a name="modlogin">
+<i>Switching logins</i><br>
+To switch login userids, we simply check the <code>user</code> parameter and return a 401
+if the authuser doesn't match.  This forces login with the given userid.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if [string compare [string tolower $userid] [string tolower [ns_set get $form user]]] {
+   ns_set put [ns_conn outputheaders $conn] WWW-Authenticate "BASIC realm=\"task list manager\""
+   return [taskmgr_pageout $conn auth.html 401]
+}
+</pre></td></tr></table>
+
+If they <i>do</i> match, then we'll just do the same as the showlogin.  In fact, let's just
+use the exact same code.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="login_admin.html#showlogin">Showing the current login</a></i>
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="user.html">Previous: User functionality</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="wftk_user.html">Next: Interfacing with the wftk user module for permissions</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

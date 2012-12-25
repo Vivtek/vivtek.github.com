@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk Application Examples</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Applying the wftk workflow toolkit</h2>
+<hr>
+
+The most effective documentation of any system is descriptions of ways to build working systems with it.
+With the addition of the repository manager, the wftk has finally reached the point where it is
+practical to talk about real-life systems, and so I want to start sketching out (and wherever possible
+actually building) some sample systems, so that you can get some idea of what you can actually do with
+this stuff.
+
+<br><br>
+
+I've identified six basic things I've wanted to be able to do with wftk, and they can now all be built.
+As I consolidate more information about each of these applications, I'll be filling in the blanks, but
+these six systems are what I'm concentrating on.
+
+<ul>
+<li><b>Web-enabled submission</b><br>
+My chief example for this is the <a href="lartmeister.html">LARTmeister</a>, which allows public submission
+of Net abuse incidents and subsequent workflow-based tracking.  This is far too complex, of course, but will
+surely spin off a few much smaller example configurations before it goes too much further.
+
+<li><b>Content-based website</b><br>
+Another track of development of wftk which has recently started bearing fruit is data and content
+management.  The content-based website is the whole idea here, starting from simple management of
+articles posted at various times, to event calendars, weblogs, searchable archives, and the whole nine
+yards.  Everybody does this stuff by hand, but it gets out of control if you do that for too long.
+A more advanced version of the content-based website is the searchable online database, and that model
+also falls under this category.  A good example of a non-free application which aims at this category
+is Microsoft's Sharepoint.
+
+<li><b>Simple document management</b><br>
+Although the content-based website can involve document management (for example, in managing images
+used in the site), it makes sense to highlight some of the explicitly document-management-oriented features of
+the new repository manager portion of the wftk.  This isn't necessarily even an Internet-enabled
+application; essentially you can imagine a drag-and-drop client which allows you to submit documents
+to an EDMS (electronic document management system) from your desktop.  Once the document is in the
+repository, it can trigger whatever workflow processes are needed, and it can be version-controlled,
+meaning that people can check it out, make changes, and check it back in, all tracked at each step.
+
+<li><b>Customer service manager</b><br>
+This is nearly the classic workflow application.  Each trouble ticket is a case; as a case progresses
+through various stages it must be brought to the attention of different people.  Cases which have been
+open too long need to trigger emergency handling.  The customer needs to be notified of various actions
+taken, or possibly needs to supply additional data.  This system architecture can also be used as a
+bug tracker in software development; it's the same thing.
+
+<li><b>E-commerce server</b><br>
+The shopping cart/order server was one of the original prototype scenarios, and that hasn't changed.
+From a repository standpoint (data management), you have a hierarchical set of SKUs in each merchant's
+catalog, you have a list of customers, you have an arbitrary number of suppliers which may drop-ship
+ordered items, and you have any number of arbitrary procedures to trigger when something happens.  There
+are a number of variations on all this, with the result that an implementation of a shopping cart that's
+built on something less flexible than wftk is going to have surprising limitations just when you least
+expect it.  Trust me, this is the voice of painful experience speaking here.
+
+<li><b>Session-based website</b><br>
+This will possibly be the most involved example, but the idea is to present a website in which the
+navigational aids reflect the system's knowledge of who you are and what you are doing.  This is based
+on the new templating system built into the repository manager, and it is quite powerful technology.
+
+</ul>
+
+I really, really hope to have at least basic descriptions and diagrams of these systems online during
+January of 2002.  Please, if you have any words of encouragement, <a href=mailto:wftk@vivtek.com>they
+do help</a>.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2002 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

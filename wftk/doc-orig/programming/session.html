@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk: sessions</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk: working with sessions</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="index.html">wftk programmer's guide home</a> ]
+<hr>
+
+<h3>Sessions</h3>
+Sessions are unfortunately one place where my thinking was caught in flux.  I originally started
+designing the API on a stateless, sessionless model, then realized I wanted to be able to cache
+things like datasheets so they didn't have to be loaded from disk for each operation.  So I started
+putting a session parameter in every call, but with guards, so that given a NULL session handle, the
+API would still Do the Right Thing (i.e. act stateless).  Then I realized that the session was the
+only place to hang configuration, at which point I threw up my hands and decided a session was probably
+required for all access to the wftk.  Maybe it's not, and you can still get away with a NULL session
+handle if all your parameters are compiled in, but don't blame me if it doesn't work, because I haven't
+tested it and frankly doubt you'll get three steps in.
+<p>
+All that was by way of saying, sorry for the ambivalence about sessions.  They're really useful.
+<p>
+<h3>Functions</h3>
+<pre>
+void * wftk_session_alloc      ();
+void   wftk_session_free       (void * session);
+void   wftk_session_current    (void * session, XML * object);
+void   wftk_session_configure  (void * session, XML * config);
+void   wftk_session_setuser    (void * session, char * userid);
+XML  * wftk_session_getuser    (void * session);
+XML  * wftk_session_stashvalue (void * session, const char * value);
+void   wftk_session_freevalue  (void * session, const char * value);
+XML  * wftk_session_cache      (void * session, XML * key, int * found);
+XML  * wftk_session_cachecheck (void * session, XML * key);
+</pre>
+
+<h3>Details</h3>
+<a name="wftk_session_alloc"></a>
+<font size=+1>wftk_session_alloc</font> returns <code>void *</code>
+<blockquote>
+</blockquote>
+The <code>wftk_session_alloc</code> simply allocates a fresh wftk session.  You must free the session with
+<code>wftk_session_free</code>.
+
+<br><br>
+
+<a name="wftk_session_free"></a>
+<font size=+1>wftk_session_free</font> returns nothing
+<blockquote>
+<code>void * session</code>
+</blockquote>
+The <code>wftk_session_alloc</code> frees a session object and cleans up any associated configuration, cached objects,
+and stashed values it may have.
+
+<br><br>
+
+<a name="wftk_session_current"></a>
+<font size=+1>wftk_session_current</font> returns nothing
+<blockquote>
+<code>void * session</code>,<br>
+<code>XML * object</code>
+</blockquote>
+Sets the given object as the "current" member of its class.  This function should be considered deprecated, as it was
+an initial stab at caching.  I don't think it makes a lot of sense at this point.
+
+<br><br>
+
+<a name="wftk_session_configure"></a>
+<font size=+1>wftk_session_configure</font> returns nothing
+<blockquote>
+<code>void * session</code>,<br>
+<code>XML * config</code>
+</blockquote>
+Sets the given XML as the configuration structure for the session.  The configuration structure is used by the internal
+library and by adaptors to retrieve various named values for the session.  Eventually we need to document those.
+
+
+<br><br>
+
+<a name="wftk_session_setuser"></a>
+<font size=+1>wftk_session_setuser</font> returns nothing
+<blockquote>
+<code>void * session</code>,<br>
+<code>const char * userid</code>
+</blockquote>
+Sets the given userid as the current user of the session.  This value will be used by the permissions database to determine
+permission levels, will be used as the "Requestor" role in processes started via action, and will be used to look up
+user information for <code>wftk_session_getuser</code>.
+
+<br><br>
+
+<a name="wftk_session_getuser"></a>
+<font size=+1>wftk_session_getuser</font> returns <code>XML *</code>
+<blockquote>
+<code>void * session</code>
+</blockquote>
+Returns an XML user structure encoding everything wftk knows about the current user.  This is pretty much limited to the
+userid and contact information at this point.
+
+<br><br>
+
+<a name="wftk_session_stashvalue"></a>
+<font size=+1>wftk_session_stashvalue</font> returns <code>XML *</code>
+<blockquote>
+<code>void * session</code>,<br>
+<code>const char * value</code>
+</blockquote>
+Stashes a string value so that the heap manager (such as it is) can clean it up when the session is killed.  The other
+benefit to this is that duplicated values can be managed together; if a value is already in the stash, then the same XML
+will be returned.  This saves a lot of hassle about who should do the freeing of malloc'd strings.  The XML returned is
+in the form of &lt;value value="(string)"&gt;, where "(string)" is of course the value you supply.
+
+<br><br>
+
+<a name="wftk_session_freevalue"></a>
+<font size=+1>wftk_session_freevalue</font> returns nothing
+<blockquote>
+<code>void * session</code>,<br>
+<code>const char * value</code>
+</blockquote>
+If you want to avoid growing your session value stash, you can suggest that the session free your value when you know
+you're done with it.  This decrements a reference count; values won't be freed if somebody else was using them.  The
+values will all be freed when you free the session anyway, but if you have a long-term session this might come in handy.
+
+<br><br>
+
+<a name="wftk_session_cache"></a>
+<font size=+1>wftk_session_cache</font> returns <code>XML *</code>
+<blockquote>
+<code>void * session</code>,<br>
+<code>XML * key</code>,<br>
+<code>int * found</code>
+</blockquote>
+The object cache is another useful feature of the session.  The way you use it is simple.  If you have the type (element
+name) and id (id attribute) of an object, you can create XML to that effect.  An example would be &lt;datasheet id="48"&gt;.
+Supply this "key" object to the cache, and if the object is found, your key will be freed and the cached version will be
+returned.  If the object isn't cached, then the key will be kept in the cache (just in case it's a full object) and also
+returned.  The "found" parameter can be used to signal whether the returned value is the original key or not; in many cases
+you won't care, so if this parameter is NULL, the function won't fail.
+
+<br><br>
+
+<a name="wftk_session_cachecheck"></a>
+<font size=+1>wftk_session_cachecheck</font> returns <code>XML *</code>
+<blockquote>
+<code>void * session</code>,<br>
+<code>XML * key</code>
+</blockquote>
+The <code>wftk_session_cachecheck</code> function never adds anything to the cache.  It returns NULL if the given key doesn't
+find anything in the cache.
+
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

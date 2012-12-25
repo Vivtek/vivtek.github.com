@@ -1,0 +1,94 @@
+<html><head><title>wftk core library: Taking external action</title></head>
+<body>
+<h2>Taking external action</h2>
+<center>
+[&nbsp;<a href="wftk_notify.html">Previous: Sending notifications</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_decide.html">Next: Making decisions: wftk_decide</a>&nbsp;]
+</center>
+
+<hr>
+Actions encapsulate both scripts and anything which requires permissions to be done.  Logically I'll want some way of
+suppressing permissions calculations on scripts, but I'm not sure how best to do that.  It could be that the adaptor
+itself would say, "I'm a scripting adaptor, don't check permissions."  All in all, this is a sticky wicket given the
+availability of ad-hoc workflow; you don't want just any schmuck running ad-hoc workflow with malicious scripts
+embedded, which are then run just because they're embedded scripts.  So I really don't know how to approach security yet.
+If you're reading this, and you have a good idea, please <a href="mailto:wftk@vivtek.com">feel free to tell me</a>.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int wftk_action (void * session, XML * action) {
+   XML * permission;
+   WFTK_ADAPTOR * ad;
+   XML * approval;
+   XML * start;
+   XML * user;
+
+   if (!action) return 0;
+
+   /* First, we check permissions. */
+   ad = wftk_get_adaptor (session, PERMS, "localxml");  /* The specific permission adaptor is ignored anyway. */
+   user = wftk_session_getuser (session);
+   permission = wftk_call_adaptor (ad, "perm", action, user);
+   wftk_free_adaptor (session, ad);
+   if (!permission) {
+      xml_set (action, "status", "error");
+      return 0;
+   }
+
+   if (!strcmp (xml_attrval (permission, "value"), "ok")) {
+      ad = wftk_get_adaptor (session, ACTION, xml_attrval (action, "handler"));
+      wftk_call_adaptor (ad, "do", action);
+      wftk_free_adaptor (session, ad);
+      xml_set (action, "status", "ok");
+      xml_set (action, "status.reason", xml_attrval (permission, "reason"));
+      xml_free (permission);
+      return 1;
+   }
+
+   if (!strcmp (xml_attrval (permission, "value"), "no")) {
+      xml_set (action, "status", "no");
+      xml_set (action, "status.reason", xml_attrval (permission, "reason"));
+      xml_free (permission);
+      return 1;
+   }
+
+   /* Start up approval process. */
+   approval = wftk_process_new (session, NULL, NULL);
+   xml_append (approval, xml_copy (action));
+   wftk_process_define (session, approval, NULL, xml_attrval (permission, "value"));
+   wftk_process_save (session, approval);
+   if (user) {
+      wftk_user_add (session, approval, user);
+      wftk_role_assign (session, approval, "Requester", xml_attrval (user, "id"));
+   }
+   start = wftk_task_retrieve (session, approval);
+   wftk_task_complete (session, start);
+   xml_free (start);
+
+   /* Tell the user what happened. */
+   xml_set (action, "status", "deferred");
+   xml_set (action, "status.reason", xml_attrval (permission, "reason"));
+   xml_set (action, "dsrep", xml_attrval (approval, "repository"));
+   xml_set (action, "process", xml_attrval (approval, "id"));
+
+   xml_free (permission);
+   return 1;
+}
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="wftk_notify.html">Previous: Sending notifications</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_decide.html">Next: Making decisions: wftk_decide</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

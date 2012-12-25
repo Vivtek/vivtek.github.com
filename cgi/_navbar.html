@@ -1,0 +1,178 @@
+<html><head><title>lpml alpha: _navbar</title></head>
+<body>
+<h2>_navbar</h2>
+<center>
+[&nbsp;<a href=cgi.html>Previous: Main CGI script nav.pl</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href=index.html>Next: index</a>&nbsp;]
+</center>
+
+<hr>
+Most of the smarts of the navbar is in _navbar for easy inclusion into whatever we want.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre># Any of this stuff can be overridden between the time that "require" is called to load
+# this file, and the actual call to navbar_print.
+
+# HTML to indent each line.
+$linestart = "";
+$spacer = "&amp;nbsp\;&amp;nbsp\;";
+
+# Formatting for links.
+$prelabel = "";
+$postlabel = "";
+
+# Formatting for headers.
+@prehead = ("&lt;b>", "&lt;i>");
+@posthead = ("&lt;/b>", "&lt;/i>");
+
+# Line breaking scheme.
+$labelbreak = "&lt;br>";
+$headerprebreak = "&lt;p>";
+$headerbreak = "&lt;br>";
+
+# URL to use for myself.  Rule: state is appended to this.
+$navurl = "nav.pl?state=";
+$target = "";
+
+
+# Drumroll please: there is some actual code in here as well!
+sub navbar_print {
+   my $conf = shift;
+   my $state = shift;
+   my $url;
+   my $label;
+   my $plusses;
+
+   open CONF, $conf or die "&lt;i>Can't open navbar configuration file $conf: $!&lt;/i>\n";
+
+   my $indent = 0;
+   my @place = (0);
+
+   my $hiding = 0;
+
+   while (&lt;CONF>) {
+      chop;
+      s/^\s*//;
+      next if /^#/ or length == 0;
+      if (/^!/) {
+         if (open INC, substr($_, 1)) {
+            while (&lt;INC>) { print; }
+            close INC;
+         }
+      } elsif (/^\+/) {
+         ($plusses, $label) = split /[^+]/, $_, 2;
+         $indent = length ($plusses) - 1;
+         while ($#place &lt; $indent + 1) { @place = (@place, 0); }
+         $#place = $indent + 1;
+
+         if ($hiding &lt; 0 || $hiding >= $indent) {
+            print $headerprebreak;
+            print $linestart;
+            print $spacer x $indent;
+            print $prehead[$indent] . '&lt;a href="';
+            print $navurl . navbar_switchstate ($state, @place);
+            print '">' . substr ($_, length $plusses) . '&lt;/a>' . $posthead[$indent];
+            print $headerbreak . "\n";
+
+            if (navbar_getstate ($state, @place)) { $hiding = -1; } else { $hiding = $indent; }
+         }
+
+         $place[$indent]++;
+         $indent ++;
+      } elsif ($hiding == -1) {
+         ($url, $label) = split /\s+/, $_, 2;
+         print $linestart;
+         print $spacer x $indent;
+         print '&lt;a href="' . $url . '" '. $target . '>';
+         print  $prelabel . $label . $postlabel;
+         print '&lt;/a>' . $labelbreak. "\n";
+      }
+   }
+
+   close CONF;
+}
+
+sub navbar_switchstate {
+   my $state = shift; # Remainder of @_ is place.  The sign at that place should be toggled.
+   my $ret;
+   my $i, $j;
+
+   $c = substr($state,0,1);
+   $state = substr($state,1);
+
+   for ($i=0; $i &lt; length @_; $i++) {
+      for ($j=0; $j &lt; $_[$i]; $j++) {
+         if ($c eq '') {
+            $ret .= '0';
+         } elsif ($c eq '[') {
+            $ret .= '[';
+            while ($state ne '' &amp;&amp; substr($state,0,1) ne ']') {
+               $ret .= substr($state,0,1);
+               $state = substr($state,1);
+            }
+            $ret .= ']';
+            $state = substr($state,1);
+         } else {
+            $ret .= $c;
+         }
+         $c = substr($state,0,1);
+         $state = substr($state,1);
+      }
+   }
+
+   if ($c eq '0' or $c eq '') { $ret .= '1'; }
+   elsif ($c eq '1') { $ret .= '0'; }
+   else { $ret .= $c; }
+
+   return $ret . $state;
+}
+
+sub navbar_getstate {
+   my $state = shift;
+   my $ret;
+   my $i, $j;
+
+   $c = substr($state,0,1);
+   $state = substr($state,1);
+
+   for ($i=0; $i &lt; length @_; $i++) {
+      for ($j=0; $j &lt; $_[$i]; $j++) {
+         if ($c eq '') {
+            $ret .= '0';
+         } elsif ($c eq '[') {
+            $ret .= '[';
+            while ($state ne '' &amp;&amp; substr($state,0,1) ne ']') {
+               $ret .= substr($state,0,1);
+               $state = substr($state,1);
+            }
+            $ret .= ']';
+            $state = substr($state,1);
+         } else {
+            $ret .= $c;
+         }
+         $c = substr($state,0,1);
+         $state = substr($state,1);
+      }
+   }
+
+   if ($c eq '') { return 0; }
+   return $c;
+}
+
+1;
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href=cgi.html>Previous: Main CGI script nav.pl</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href=index.html>Next: index</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

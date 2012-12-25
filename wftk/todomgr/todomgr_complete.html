@@ -1,0 +1,154 @@
+<html><head><title>To-do manager: Definition of todomgr_complete</title></head>
+<body>
+<h2>Definition of todomgr_complete</h2>
+<center>
+[&nbsp;<a href=todomgr_update.html>Previous: Definition of todomgr_update</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=todomgr_reject.html>Next: Definition of todomgr_reject</a>&nbsp;]
+</center>
+
+<hr>
+Task completion (and rejection, in the next section) is really the only point where task list
+management has anything to do with workflow, oddly enough.  (Since this is a component of
+the workflow toolkit, you'd think there would be more intersection.)  
+<p>
+But given that this is a standalone application as well as a workflow component, we can't
+simply hand task completion off to the wftk entirely.  Instead, we have to check for three
+cases.  The first, and easiest, is a standalone task that isn't associated with a process
+at all.  If such a task is completed, it's simply marked as complete, and we're done.
+<p>
+If the task belongs to a process, then we retrieve the process.  If the process has a 
+definition, that's our sign that the wftk will handle completion.  If there is no definition,
+then we're managing the process, and so we'll see whether the process has any additional
+active tasks -- if not, we'll mark the process itself as complete.
+<p>
+Let's handle the overhead first:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>global todomgr_pool
+global todomgr_home
+set db [ns_db gethandle $todomgr_pool]
+<i>See <a href="user.html#check">Checking authuser</a></i>
+set form [ns_conn form $conn]
+set task ""
+if {$form != ""} { set task [ns_set get $form task] }
+if {$task == ""} {
+   set tags(title) "No task specified"
+   set tags(body) "Task completion requires a task identifier."
+   return [todomgr_pageout $conn message.html]
+}
+</pre></td></tr></table>
+
+The first thing we'll do is to retrieve the task and make sure that the current user has the
+right to complete it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "select * from task where id='[sql_safe_string $task]'"
+if {[catch {set row [ns_db select $db $query]} result] || ![ns_db getrow $db $row]} {
+   set tags(title) "Task unknown"
+   set tags(body) "The task you specified (&lt;code>$task&lt;/code>) could not be found in the database."
+   return [todomgr_pageout $conn message.html]
+}
+
+if [string compare $user [ns_set get $row owner]] {
+   set tags(title) "Insufficient privilege"
+   set tags(body) "You are not the owner of this task.  Only the owner may complete a task."
+   return [todomgr_pageout $conn message.html]
+}
+</pre></td></tr></table>
+
+So now we have that out of the way, we can get down the to business of completing the task.
+If we're lucky, it's a standalone task and we can simply complete it and go on.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set process [ns_set get $row process]
+if {$process == ""} {
+   set query "update task set status='complete',complete='[now]'"
+   append query " where id='[sql_safe_string $task]'"
+   ns_db dml $db $query
+   if [string compare [ns_set get $form back] ""] {
+      return [ns_returnredirect $conn [ns_set get $form back]]
+   }
+   set tags(title) "Task complete"
+   set tags(body) "The task has been marked as complete"
+   return [todomgr_pageout $conn message.html]
+}
+</pre></td></tr></table>
+
+Ah, well.  We do have a process to work on after all.  OK, let's look it up.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "select * from process where id='[sql_safe_string $process]'"
+set row [ns_db select $db $query]
+if ![ns_db getrow $db $row] {
+   set query "update task set status='complete', complete='[now]'"
+   append query " where id='[sql_safe_string $task]'"
+   ns_db dml $db $query
+   if [string compare [ns_set get $form back] ""] {
+      return [ns_returnredirect $conn [ns_set get $form back]]
+   }
+   set tags(title) "Task complete"
+   set tags(body) "The task has been marked as complete"
+   return [todomgr_pageout $conn message.html]
+}
+</pre></td></tr></table>
+
+(If the process isn't in existence for some reason, it seems to me that the easiest way to
+handle the situation is to treat the task as a standalone task.)
+<p>
+If the process has a definition, then we need to hand things off to wftk.  After that, we'll
+do whatever wftk tells us, then mark the current task as complete.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if [string compare "" [ns_set get $row definition]] {
+   set pipe [open "|${todomgr_home}wftk complete $process $task" "r"]
+   set wf [split [read $pipe] \n]
+   close $pipe
+   wftk_interpret $db $process $wf
+}
+</pre></td></tr></table>
+
+Which leaves us with the case of a task which belongs to a process which <i>we</i> have to
+check for completion.  First off, let's go ahead and mark our task complete.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "update task set status='complete',complete='[now]' where id='[sql_safe_string $task]'"
+ns_db dml $db $query
+</pre></td></tr></table>
+
+OK, let's ask the database how many non-complete tasks still belong to our process, and mark the
+process as complete if no more remain.  (We can't just look at active tasks, because we could
+have some pending requests still outstanding.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "select count(*) as ct from task where status<>'complete' and process='[sql_safe_string $process]'"
+set row [ns_db select $db $query]
+ns_db getrow $db $row
+if {[ns_set get $row ct] == 0} {
+   set query "update process set status='complete' where id='[sql_safe_string $process]'"
+   ns_db dml $db $query
+}
+
+if [string compare [ns_set get $form back] ""] {
+   return [ns_returnredirect $conn [ns_set get $form back]]
+}
+return [ns_returnredirect $conn "overview?process=$process"]
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href=todomgr_update.html>Previous: Definition of todomgr_update</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=todomgr_reject.html>Next: Definition of todomgr_reject</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

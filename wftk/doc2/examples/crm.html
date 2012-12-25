@@ -1,0 +1,76 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Applying the wftk: CRM</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Applying the wftk: CRM</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+<hr>
+
+<h3>Issue tracking</h3>
+<i>Issue tracking</i> is arguably the core of workflow.  In issue tracking, the description of an
+issue (a bug in a programming system, or a problem experienced by a customer) is entered into the
+system, tasks are proposed to solve the problem, tasks are completed, and the problem is solved.
+Along the way, many variations on this basic plan may occur: the issue may be a standard one, so that
+certain tasks are predetermined.  Further requirements may be discovered after a solution is already
+underway -- or much later, requiring an issue to be re-awakened (or a new one to be created which
+refers back to an old one thought to be solved.)
+<p>
+There may be one single "customer" (the "user base"),
+which is the typical situation for a traditional bug tracking system in software development -- or
+there may be many potential customers with many different issues, which is what is generally referred
+to as a customer relationship management (or CRM) system these days.  (A CRM must also store general
+information about individual customers as well -- but one of the things we know about each customer
+is the issues that customer has had, and their resolutions.)
+<p>
+So a customer relationship management system effectively consists of a single list of issues, each of
+which serves as an anchoring point for tasks, and then also permits an optional list of customers.
+There are additional bells and whistles which may be attached to this system (such as notification
+schemes whereby customers are automatically informed when issues are resolved, or deadline schemes
+whereby the priority of an issue or task is at least partially determined by its age and management
+is notified when a trigger date is exceeded) but all these are extraneous to the basic work of
+issue tracking.  And many issue tracking systems also give users the option of assigning issues to
+one or more systems or departments.  Since this relationship is essentially identical to that of
+issue-to-customer, I don't see it as extending the model any further.
+<p>
+<h3>Building an issue tracking system (CRM or bug tracker)</h3>
+There will at some point be three links here, as follows:
+<ul>
+<li><a href="crm_techspex.html">Techspex.com (no-frills bug tracking)</a>
+<li>wftk project issue tracker
+<li>Despammed.com CRM system
+</ul>
+My first stab at a wftk-based issue tracking system started on Christmas Day, 2002 (yes, I'm a pathetic
+loser and my wife and children are all very understanding of my weaknesses).  To simplify the task given
+the absence of many of the modules, I chose to forego multiple customers at first and implement a
+pure bug tracking system for my work with <a href="http://www.techspex.com">Techspex</a>, a searchable
+machine tool database.  Since I'm the only programmer involved, but the number of issues easily eclipses
+my rudimentary organizational abilities, an issue tracking system will be of immediate use.
+<p>
+I'm going to chronicle that effort <a href="crm_techspex.html">here</a>; this isn't meant to be a
+full-featured CRM yet, just a simple bug tracker.  But at some point I'd like to explore integrating
+it with CVS (which is what I use to maintain the code versioning between test and production systems
+there), for instance.
+<p>
+Once that system is up and running to my satisfaction, then I'll set up a bug tracker for the wftk
+as a whole.  Since the wftk has a more interesting subsystem structure, and since I intend to allow
+issues to be maintained <i>using</i> CVS for wftk, I think that system is going to be a lot more 
+interesting in many ways.  But it still doesn't address the multiple-customer nature of a true CRM
+system.
+<p>
+So after the bug tracker for wftk is up and running, I'm going to move over to my <a href="http://www.despammed.com">spam
+filtration service</a> and set up a bona fide customer relationship management system for spam reporting
+there.  Once that's reasonably stable, I can think about ways to build cookbooks for wftk systems of
+this type, so that setting up a new CRM can be really simple.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2002 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

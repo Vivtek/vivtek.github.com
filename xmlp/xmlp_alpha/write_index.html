@@ -1,0 +1,82 @@
+<html><head><title>xmlp alpha: Write index page</title></head>
+<body>
+<h2>Write index page</h2>
+<center>
+[&nbsp;<a href=weave.html>Previous: Weave: Write documentation pages</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: xmlp alpha</a>&nbsp;]
+[&nbsp;<a href=process_args.html>Next: Process arguments and open source file</a>&nbsp;]
+</center>
+
+<hr>
+Writing the index file is quite simple; we use &lt;project&gt;_index.html as our template, and
+we have the following tags available:<ul>
+<li>itemlist
+<li>objectlist
+</ul>
+
+First, the code which will build our item and object indices.  Each of these is hardwired to
+be a bullet point list at the moment; that would be a nice thing to open up to configuration
+but that sort of enhancement will come later.
+<p>
+The use of the <code>tags</code> hash has to do with the way I do template printing.
+<p>
+The item list has a variable <code>$level</code> which keeps track of the table of contents
+level.  Subitems are indented under their parents.  When a non-subitem is encountered and the
+<code>$level</code> is 1, then we have to terminate the sublevel.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$level = 0;
+$tags{itemlist} = "&lt;ul>\n";
+foreach $item (@items) {
+   if (!$level &amp;&amp; $parent{$item} ne '') {
+      $level = 1;
+      $tags{itemlist} .= "&lt;ul>\n";
+   }
+   if ($level &amp;&amp; $parent{$item} eq '') {
+      $level = 0;
+      $tags{itemlist} .= "&lt;/ul>\n";
+   }
+   $tags{itemlist} .= "&lt;li> &lt;a href=\"$url{$item}\">$label{$item}&lt;/a>\n";
+}
+$tags{itemlist} .= "&lt;/ul>\n";
+$tags{objectlist} = "&lt;ul>\n";
+foreach $obj (@objects) {
+   $tags{objectlist} .= "&lt;li> &lt;code>$obj&lt;/code>:";
+   $tags{objectlist} .= "&lt;a href=\"$url{$starter{$obj}}\">$label{$starter{$obj}}&lt;/a>\n";
+}
+$tags{objectlist} .= "&lt;/ul>\n";
+</pre></td></tr></table>
+
+Now, to use the bits of HTML we just built, we'll do a template application operation.
+This looks for tags delimited by [&#35;# and ##] and uses the tag name to reference into the
+<code>%tags</code> hash we used above to store our lists.  We'll do the same thing again
+for writing out our item pages.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>open OUT, ">index.html";
+open TEM, $index_html;
+while (&lt;TEM>) {
+   while (/\[&#35;#(.*?)##\]/) {
+      $tag=$1;
+      s/\[&#35;#$tag##\]/$tags{$tag}/e;
+   }
+   print OUT;
+}
+close TEM;
+close OUT;
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href=weave.html>Previous: Weave: Write documentation pages</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: xmlp alpha</a>&nbsp;]
+[&nbsp;<a href=process_args.html>Next: Process arguments and open source file</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

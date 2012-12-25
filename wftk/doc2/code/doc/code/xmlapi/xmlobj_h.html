@@ -1,0 +1,75 @@
+<html><head><title>xmlobj: xmlobj include file</title></head>
+<body>
+<h2>xmlobj include file</h2>
+<center>
+[&nbsp;<a href="xmlobj.html">Previous: XML object storage</a>&nbsp;]
+[&nbsp;<a href="xmlobj.html">Top: xmlobj library</a>&nbsp;]
+[&nbsp;<a href="xmlobj_c.html">Next: xmlobj library</a>&nbsp;]
+</center>
+
+<hr>
+The include file is as follows:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include "xmlapi.h"
+
+/* Basic functionality: */
+XMLAPI XML  * xmlobj_field     (XML * obj, XML * class, const char * field);
+XMLAPI XML  * xmlobj_is_field  (XML * obj, XML * class, const char * field);
+XMLAPI char * xmlobj_get       (XML * obj, XML * class, const char * field);
+XMLAPI int    xmlobj_getnum    (XML * obj, XML * class, const char * field);
+XMLAPI char * xmlobj_get_direct(XML * field);
+XMLAPI int    xmlobj_set       (XML * obj, XML * class, const char * field, const char * value);
+XMLAPI int    xmlobj_set_nodup (XML * obj, XML * class, const char * field, char * value);
+XMLAPI int    xmlobj_set_direct(XML * field, const char * value);
+XMLAPI int    xmlobj_set_direct_nodup(XML * field, char * value);
+XMLAPI int    xmlobj_set_elem  (XML * obj, XML * class, const char * field, const char * value);
+XMLAPI int    xmlobj_set_elem_nodup (XML * obj, XML * class, const char * field, char * value);
+XMLAPI int    xmlobj_setnum    (XML * obj, XML * class, const char * field, int value);
+
+XMLAPI char * xmlobj_format    (XML * obj, XML * class, const char * format);
+XMLAPI char * xmlobj_formatlong(XML * obj, XML * class, const char * format);
+XMLAPI XML  * xmlobj_template  (XML * obj, XML * class, XML * template);
+XMLAPI char * xmlobj_getkey    (XML * obj, XML * class);
+
+XMLAPI XML *  xmlobj_values    (XML * obj, XML * class, const char * context, const char * userid);
+
+/* Diff/patch functionality: */
+XMLAPI XML *  xmlobj_diff      (XML * obj, XML * class, XML * changed);
+XMLAPI XML *  xmlobj_undiff    (XML * obj, XML * class, XML * diff);
+XMLAPI XML *  xmlobj_patch     (XML * obj, XML * class, XML * diff);
+
+/* Versioning functionality: */
+XMLAPI XML  * xmlobj_ver        (XML * obj, XML * class, const char * field, const char * ver);
+XMLAPI XML  * xmlobj_ver_direct (XML * field, const char * ver);
+XMLAPI char * xmlobj_getver     (XML * obj, XML * class, const char * field, const char * ver);
+XMLAPI const char * xmlobj_curver (XML * obj, XML * class, const char * field);
+XMLAPI XML  * xmlobj_setver     (XML * obj, XML * class, const char * field, const char * ver);
+XMLAPI XML  * xmlobj_newver     (XML * obj, XML * class, const char * field);
+XMLAPI XML  * xmlobj_newver_direct (XML * field);
+
+/* Value list functionality: */
+XMLAPI XML *  xmlobj_getlist   (XML * obj, XML * class, const char * field);
+XMLAPI int    xmlobj_addval    (XML * obj, XML * class, const char * field, const char * value);
+XMLAPI int    xmlobj_delval    (XML * obj, XML * class, const char * field, const char * value);
+
+/* Sorting lists of xmlobj records: */
+XMLAPI XML *  xmlobj_list_sort (XML * list, XML * class, const char * order);
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="xmlobj.html">Previous: XML object storage</a>&nbsp;]
+[&nbsp;<a href="xmlobj.html">Top: xmlobj library</a>&nbsp;]
+[&nbsp;<a href="xmlobj_c.html">Next: xmlobj library</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

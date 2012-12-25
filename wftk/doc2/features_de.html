@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: Features</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>wftk: Features</h2>
+[ <a href="index.html">wftk documentation home</a> ] [ <a href="features.html">in english</a> ]
+<hr>
+
+Das WFTK-System besteht aus folgenden Komponenten:
+
+<ul>
+<li><b>Repository:</b> Eine Menge von Datenquellen und eine Beschreibung ihrer
+Beziehungen untereinander
+<li><b>Repository Manager:</b> stellt Verwaltungsfunktionen zur Verf&uuml;gung und
+handhabt den Datentransport
+<li><b>wftk-Kern:</b> verwaltet Arbeitsabl&auml;ufe in Form von Aufgaben und Prozessen
+<li><b>Adapter:</b> stellt die Verbindung von Repository-Manager und WFTK-Kern zur
+"Au&szlig;enwelt" dar. Zur Zeit existieren Speicher-Adapter zu Flat-File und strukturierten
+Dateien (XML), sowie g&auml;ngigen relationalen Datenbanken (u.a. Oracle) zur
+Verf&uuml;gung.
+</ul>
+
+Eigenschaften von WFTK sind:
+<ul>
+<li><b>Bibliotheken-basierte Implementation</b><br>
+Der wftk-Kern und der Repository-Manager k&ouml;nnen in jede Web-Applikation
+eingebettet werden. Der Zugriff kann einfach &uuml;ber Script-Sprachen erfolgen
+(u.a. Python, Perl, Tcl, usw.).
+<br><br>
+<li><b>Adapter Architektur</b><br>
+WFTK kommuniziert mit anderen System &uuml;ber Adapter. Einfache Code-Module
+kapseln die Basis-Funktionalit&auml;ten, die notwendig sind um
+Arbeitsablauf-Logik zu unterst&uuml;tzen. Adaptor k&ouml;nnen einfach implementiert
+werden um jede Art von notwendigen Interaktion mit externen Systemen zu
+realisieren, die wftk ben&ouml;tigt. Ein typisches Beispiel  sind die
+Datenbank-Adapter, z.B. f&uuml;r den Zugriff auf Oracle-Datenbanken. Weitere
+Adapter-Klassen sind der Prozess-Speicher (f&uuml;r die persistente Speicherung
+von Arbeitsablauf/Prozess-Instanzen), die Prozess-Definitionen,
+Benachrichtigungs-Methoden (Email, SMS, etc.), Datentypen, usw.
+<br><br>
+<li><b>Einfache Mechanismen zur Delegation und Anforderung von Aufgaben</b><br>
+WFTK unterst&uuml;tzt Aufgaben innerhalb programmierter/vordefinierter
+Arbeitsabl&auml;ufe, sog. Adhoc-Aufgaben (Aufgaben au&szlig;erhalb eines definierten
+Arbeitsablaufs ), Anforderungen (die zu Aufgaben werden sofern Sie von einem
+Benutzer akzeptiert werden) und  Delegation (eine zugeordnete Aufgabe kann
+per Anforderung an einen anderen Benutzer weitergeleitet/zugeordnet werden,
+der die Anforderung wiederum weiterleiten kann). Diese Architektur wird auch
+"Token"-basierte genannt
+<br><br>
+<li><b>Umfangreich Programmierschnittstelle f&uuml;r Berechtigungen</b><br>
+&Uuml;ber Das Berechtigungs-Modul von wftk k&ouml;nnen angeforderte Aktionen mit einer
+Berechtigungs-Datenbank abgeglichen werden. &Uuml;ber den Aktions-Adapter kann
+wftk so als Berechtigungs-Plugin f&uuml;r jedes System benutzt werden. Die
+Berechtigungs-Struktur von WFTK erlaubt drei Vertrauens-Stufen: neben dem
+sofortigen Erteilen und Verweigern von Aktions-Anforderungen &uuml;ber die
+Berechtigungsdatenbank, kann eine Zustimmungs-Prozedur initiiert werden.
+Eine solche Zustimmungs-Prozedur kann ein eigener Arbeitsablauf sein. Das
+Ergebnis dieses Arbeitsablaufs bestimmt, ob die Aktions-Anforderung erteilt
+oder verweigert wird.
+<br><br>
+<li><b>Portabler Code</b><br>
+WFTK wurde in ANSI-C implementiert und ist damit auf jeder Plattform
+lauff&auml;hig die einen ANSI-C Compiler zur Verf&uuml;gung stehen. Entwicklung und
+Tests erfolgten unter Windows, Solaris und Linux.
+<br><br>
+<li><b>Kompaktheit</b><br>
+Die wftk-Bibliothek ist kompakt und verbraucht sehr geringe Resourcen auf
+den meisten Maschinen-Umgebungen.
+<br><br>
+<li><b>Transparente Repr&auml;sentation der Daten</b><br>
+Alle Datenstrukturen in wftk werden &uuml;ber die XMLAPI-Bibliothek manipuliert,
+alle Daten werden in XML-Strukturen gespeichert. Damit ist es sehr einfach
+mit Standard-Werkzeugen die WFTK-Daten zu bearbeiten (MSXML,
+Internet-Explorer, XML-Spy).
+
+</ul>
+
+
+<br><br><br>
+
+Ich danke dem <i>Dominik Kreutz</i> der Firma startext GmbH f&uuml;r die deutsche Version dieser Seite und
+f&uuml;r den Begriff der AAWK (Arbeitsablauf-Werkzeugkasten).
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2000-2003 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

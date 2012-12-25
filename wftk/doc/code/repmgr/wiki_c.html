@@ -1,0 +1,706 @@
+<html><head><title>WikiWikiWftk!: Wiki Compiler</title></head>
+<body>
+<h2>Wiki Compiler</h2>
+<center>
+[&nbsp;<a href="wiki_h.html">Previous: Wiki include file</a>&nbsp;]
+[&nbsp;<a href="wiki.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wiki.html">Next: WikiWikiWftk!</a>&nbsp;]
+</center>
+
+<hr>
+The Wiki compiler is a snazzy little operation which takes Wiki code and builds an XML structure which can be scanned to
+produce Web pages (or indeed other types of content.)  Note that one of the things it does is to scan directories, meaning
+that the code is OS-dependent until I build those OS function wrappers I keep thinking about.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;string.h>
+#ifdef WINDOWS
+#include &lt;io.h>
+#else
+#include &lt;dirent.h>
+#endif
+#include "xmlapi.h"
+#include "xml_template.h"
+</pre></td></tr></table>
+
+This is a departure -- a serious departure -- from the standard Wiki paradigm, because the object isn't just quick editing, it's also
+to provide arbitrary layout in a way which can still be quickly edited.  Thus if I simply enter text, wiki_build will do something
+nice with it, but if I want to get detailed, it can still cope with my needs.
+<p></p>
+The result is a very flexible system, and in many ways it's kind of a "literate HTML programming" concept, I think.  Layout is specified
+separately from content, which makes things much easier to type and read when writing content.  Moreover, the system can maintain things
+for you -- your images, your stylesheets, your external links -- and even build to-do lists for getting things done.
+<p></p>
+So.  Some of the regular Wiki formatting is supported: enclosing something in triple quotes (''') italicizes, while quadruple quotes ('''')
+bold.  Blank lines turn into para breaks.  And indented lines with dashes in front are turned into lists.  So far, so good.  But then I
+get fancy.  Two square brackets [[likethis]] insert a graphic named "likethis.gif" or "likethis.jpg".  Images are assumed to be in the
+"images" subdirectory, or in the directory noted with an "images" attribute in the context.  If an image is there, it will be inserted
+with proper sizing; otherwise a to-do item is returned and no image is inserted.
+<p></p>
+Links and most directives are signalled with an asterisk '*'.  Links may be either internal or external; if internal, they are of the form
+*id, where "id" is the id tag of the page linked to.  If external, they contain a colon: *http://www.vivtek.com.  No link names may contain
+spaces.  If the link runs into a quote mark, whatever's in the quotes is used as the link text; the "text" may contain images or formatting.
+If quotes are in the quoted text, they must be escaped with a backslash.  The format *link:tag may be used for named external links.  This,
+in fact, will generalize to the inclusion of objects in general.
+<p></p>
+External links are logged into the external link list (by means of making a to-do); internal links must exist or they're entered as a to-do.
+<p></p>
+The *-list: directive embeds a list of objects into the page.  Layout for the list either follows or the default is used if the directive
+line ends in a period.  If it doesn't end in a period, then it goes like this:<pre>
+*-list:object(sort column)
+&lt;layout&gt;
+ ...
+&lt;/layout&gt;
+*-EOF
+</pre>
+Easy.  Eventually the directive will also contain sort and selection criteria; for now it's just a raw list.  If the parens are omitted,
+of course, then the default sort order will be used, which is undefined.
+<p></p>
+Styles are indicated using double curly braces: {{style}} translates into &lt;span class="style"&gt; and {{/}} quits the last style.
+Right now, styles are <i>not</i> checked for accuracy, but this is a goal.  If a style is used, then it will be defined as an object
+in the opm_styles list, and later defined at the user's leisure.
+<p></p>
+We'll see how productive this all makes me.  I may end up hating it.  (Although so far I find it a wonderful way to concentrate on writing
+content without worrying too much about form.)
+
+<p></p>
+The whole thing has two steps: the first (wiki_parse) reads a Wiki-style flat text file and returns an internal XML representation of
+the thing.  The second (wiki_build) operates on that XML structure and returns HTML (or actually, the internal XML equivalent, but you
+knew what I meant, didn't you?)  This means, of course, that programs can build Wiki structure as needed and leave the building to the
+library.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>const char * wiki_getline (XML * target, const char * attr, const char * src)
+{
+   const char * mark;
+   mark = src;
+   while (*mark &amp;&amp; *mark != '\n') mark++;
+   xml_attrncat (target, attr, src, mark - src);
+   if (*mark) mark++;
+   return (mark);
+}
+XML * wiki_parse (const char * src)
+{
+   XML * ret;
+   XML * cur;
+   XML * new;
+   XML * check;
+   const char * mark;
+   const char * mark2;
+   int ital = 0;
+   int bold = 0;
+   int list = 0;
+   int oldindent = 0;
+   int listindent = 0;
+   int indent = 0;
+   int blockquote = 0;
+   int link = 0;
+   int nofile;
+
+   int linestart = 1;
+
+   XML * image;
+
+   ret = xml_create ("wiki");
+   cur = ret;
+
+   mark = src;
+   while (*mark) {
+      if (linestart) {
+         /* Deal with line breaks first. */
+         while (*mark == '\r') mark++;
+         while (*mark == '\n') {
+            xml_append (cur, xml_createtextlen (src, mark - src));
+            xml_append (cur, xml_create ("br"));
+            xml_append (cur, xml_create ("br"));
+
+            mark += 1; while (*mark == '\r') mark++;
+            src = mark;
+         }
+
+         /* Now deal with indentation. */
+         oldindent = indent; indent = 0;
+         while (*mark == ' ') {
+            indent++;
+            mark++;
+         }
+
+         if (list) {
+            if (indent &lt; listindent) {
+               xml_append (cur, xml_createtextlen (src, mark - src - indent));
+               if (xml_is (cur, "li")) cur = xml_parent (cur); /* pop */
+               cur = xml_parent (cur); /* pop */
+               list = 0;
+               src = mark;
+            }
+         } else if (blockquote &amp;&amp; indent &lt; oldindent) {
+            xml_append (cur, xml_createtextlen (src, mark - src - indent));
+            cur = xml_parent (cur);  /* pop */
+            blockquote = 0;
+            src = mark;
+         }
+
+         if (indent > oldindent) {
+            if (*mark == '-') {
+               xml_append (cur, xml_createtextlen (src, mark - src - indent));
+               new = xml_create ("ul");
+               xml_append (cur, new);
+               cur = new;
+               list = 1;
+            } else if (!list) {
+               xml_append (cur, xml_createtextlen (src, mark - src - indent));
+               new = xml_create ("blockquote");
+               xml_append (cur, new);
+               cur = new;
+               blockquote = 1;
+            }
+         }
+
+         if (list &amp;&amp; *mark == '-') {
+            if (xml_is (cur, "li")) {
+               xml_append (cur, xml_createtextlen (src, mark - src - indent));
+               cur = xml_parent (cur); /* pop */
+            }
+            new = xml_create ("li");
+            xml_append (cur, new);
+            cur = new; /* push */
+            mark ++;
+            while (*mark &amp;&amp; *mark == ' ') mark++;
+            src = mark;
+         }
+      }
+
+      /* We're past the start of the line now -- let's deal with everything else! */
+      linestart = 0;
+      switch (*mark) {
+         case '\n':
+            if (!strncmp (mark, "\n\n", 2) || !strncmp (mark, "\n\r\n", 3)) {
+               linestart = 1;
+            }
+            break;
+
+         case '\'':
+            if (!strncmp (mark, "''''", 4)) {
+               xml_append (cur, xml_createtextlen (src, mark - src));
+               if (!bold) {
+                  new = xml_create ("b");
+                  xml_append (cur, new);
+                  cur = new;  /* push */
+                  bold = 1;
+               } else {
+                  cur = xml_parent (cur);
+                  bold = 0;
+               }
+               mark += 3;
+               src = mark + 1;
+            } else if (!strncmp (mark, "'''", 3)) {
+               xml_append (cur, xml_createtextlen (src, mark - src));
+               src = mark;
+               if (!ital) {
+                  new = xml_create ("i");
+                  xml_append (cur, new);
+                  cur = new;
+                  ital = 1;
+               } else {
+                  cur = xml_parent (cur);
+                  ital = 0;
+               }
+               mark += 2;
+               src = mark + 1;
+            }
+            break;
+
+         case '{':
+            if (mark[1] == '{') {
+               xml_append (cur, xml_createtextlen (src, mark - src));
+               src = mark + 2;
+               mark = strchr (src, '}');
+               if (mark) {
+                  if (*src == '/') {
+                     /* Terminate last style (and anything else on the way.) */
+                     check = cur;
+                     while (check &amp;&amp; !xml_is (check, "span")) check = xml_parent(check);
+                     if (check) cur = xml_parent(check);
+                  } else {
+                     /* Start new style span. */
+                     new = xml_create ("span");
+                     xml_set (new, "class", "");
+                     xml_attrncat (new, "class", src, mark - src);
+                     xml_append (cur, new);
+                     cur = new;
+                  }
+                  while (*mark == '}') mark++;
+                  src = mark;
+                  mark --;
+               }
+            }
+            break;
+
+         case '*': /* directive or link */
+            if (mark[1] == '-') {
+               xml_append (cur, xml_createtextlen (src, mark - src));
+               /* directive */
+               src = mark + 2;
+               for (mark = src; *mark &amp;&amp; *mark != ':' &amp;&amp; *mark != '\n'; mark++);
+               if (*mark == ':') { /* well-formed directive */
+                  if (mark - src == 4 &amp;&amp; !strncmp (src, "list", 4)) {
+                     new = xml_create ("wiki:embed");
+                     xml_set (new, "type", "list");
+                     xml_set (new, "object", "");
+
+                     src = mark + 1;
+                     mark = src;
+                     while (isalnum(*mark) || *mark == '_') mark++;
+                     xml_attrncat (new, "object", src, mark - src);
+                     while (*mark == ' ') mark++;
+                     if (*mark == '(') { /* Sort column. */
+                        src = mark + 1;
+                        mark++;
+                        while (isalnum (*mark) || *mark == '_') mark++;
+                        xml_set (new, "order", "");
+                        xml_attrncat (new, "order", src, mark - src);
+                        while (*mark == ' ') mark++;
+                        if (*mark == '#') { xml_set (new, "op", "num"); mark ++; while (*mark == ' ') mark++; }
+                        if (*mark == '-') { /* Do something with dir="desc" */ mark++; while (*mark == ' ') mark++; }
+                        if (*mark == ')') { mark++; while (*mark == ' ') mark++; }
+                        src = mark + 1;
+                        while (*mark == ' ') mark++;
+                     }
+                     if (*mark != '.') {
+                        xml_set (new, "content", "<c>");
+                        while (*mark &amp;&amp; strncmp (mark, "*-EOF", 5)) {
+                           mark = wiki_getline (new, "content", mark);
+                           xml_attrcat (new, "content", "\n");
+                        }
+                        xml_attrcat (new, "content", "</c>");
+                        check = xml_parse (xml_attrval (new, "content"));
+                        xml_copyinto (new, check);
+                        xml_free (check);
+                        xml_set (new, "content", "");
+                     }
+                     while (*mark &amp;&amp; *mark != '\n') mark++;
+                     xml_append (cur, new);
+                  }
+                  else if (mark - src == 6 &amp;&amp; !strncmp (src, "layout", 6)) {
+                     src = mark + 1;
+                     new = xml_create ("wiki:embed");
+                     xml_set (new, "type", "layout");
+
+                     mark = src;
+                     while (*mark == ' ') mark++;
+                     if (*mark != '.') {
+                        xml_set (new, "content", "<c>");
+                        while (*mark &amp;&amp; strncmp (mark, "*-EOF", 5)) {
+                           mark = wiki_getline (new, "content", mark);
+                           xml_attrcat (new, "content", "\n");
+                        }
+                        xml_attrcat (new, "content", "</c>");
+                        check = xml_parse (xml_attrval (new, "content"));
+                        xml_copyinto (new, check);
+                        xml_free (check);
+                        xml_set (new, "content", "");
+                     }
+                     while (*mark &amp;&amp; *mark != '\n') mark++;
+                     xml_append (cur, new);
+                  }
+                  else if (mark - src == 4 &amp;&amp; !strncmp (src, "text", 4)) {
+                     new = xml_create ("wiki:text");
+                     xml_set (new, "name", "");
+
+                     src = mark + 1;
+                     mark = src;
+                     while (isalnum(*mark) || *mark == '_') mark++;
+                     xml_attrncat (new, "name", src, mark - src);
+
+                     if (!*xml_attrval (new, "name")) xml_set (new, "name", "text");
+
+                     while (*mark == ' ') mark++;
+                     if (*mark != '.') {
+                        xml_set (new, "content", "");
+                        while (*mark &amp;&amp; strncmp (mark, "*-EOF", 5)) {
+                           mark = wiki_getline (new, "content", mark);
+                           xml_attrcat (new, "content", "\n");
+                        }
+                        check = wiki_parse (xml_attrval (new, "content"));
+                        xml_copyinto (new, check);
+                        xml_free (check);
+                        xml_set (new, "content", "");
+                     }
+                     while (*mark &amp;&amp; *mark != '\n') mark++;
+                     xml_append (cur, new);
+                  }
+               }
+               if (*mark) mark++;
+               src = mark;
+               mark --;
+            } else if (isalnum (mark[1]) || mark[1] == '_') {
+               xml_append (cur, xml_createtextlen (src, mark - src));
+               /* link: internal, external, or tagged? */
+               mark++; src = mark;
+               while (isalnum (*mark) || (*mark == '_')) mark++;
+
+               new = xml_create ("link");
+               xml_append (cur, new);
+               xml_set (new, "linktype", "page");
+
+               if (*mark == ':') {
+                  /* Object specification. */
+                  if (mark - src == 4 &amp;&amp; !strncmp (src, "http", 4)) {
+                     xml_set (new, "linktype", "url");
+                  } else if (mark - src == 5 &amp;&amp; !strncmp (src, "https", 5)) {
+                     xml_set (new, "linktype", "url");
+                  } else if (mark - src == 6 &amp;&amp; !strncmp (src, "mailto", 6)) {
+                     xml_set (new, "linktype", "url");
+                  } else if (mark - src == 3 &amp;&amp; !strncmp (src, "ftp", 3)) {
+                     xml_set (new, "linktype", "url");
+                  } else if (mark - src == 4 &amp;&amp; !strncmp (src, "link", 4)) {
+                     xml_set (new, "linktype", "link");
+                     src = mark + 1;
+                     mark = src;
+                  } else {
+                     xml_set (new, "linktype", "object");
+                     xml_set (new, "object", "");
+                     xml_attrncat (new, "object", src, mark - src);
+                     src = mark + 1;
+                     mark = src;
+                  }
+
+                  while (*mark &amp;&amp;
+                         *mark != ' ' &amp;&amp;
+                         *mark != '\n' &amp;&amp;
+                         *mark != '\r' &amp;&amp;
+                         *mark != '\t' &amp;&amp;
+                         *mark != '"') mark++;
+               }
+ 
+               xml_set (new, "link", "");
+               xml_attrncat (new, "link", src, mark - src);
+
+               if (*mark == '"') {
+                  link ++;
+                  cur  = new;
+                  src  = mark +1;
+                  mark = src;
+                  break;
+               } else {
+                  if (!strcmp (xml_attrval (new, "linktype"), "url")) {
+                     if (strncmp (xml_attrval (new, "link"), "mailto:", 7))
+                        xml_append (new, xml_createtext (xml_attrval (new, "link")));
+                     else
+                        xml_append (new, xml_createtext (xml_attrval (new, "link") + 7));
+                  }
+                  src = mark;
+               }
+            }
+            break;
+
+         case '"':
+            if (link) {
+               xml_append (cur, xml_createtextlen (src, mark - src));
+               src = mark + 1;
+               link--;
+               cur = xml_parent (cur);
+            }
+            break;
+
+         case '[':
+            if (mark[1] == '[') {
+               xml_append (cur, xml_createtextlen (src, mark - src));
+
+               src = mark + 2;
+               mark = src;
+               while (isalnum (*mark) || (*mark == '_')) mark++;
+
+               image = xml_create ("image");
+               xml_set (image, "name", "");
+               xml_attrncat (image, "name", src, mark - src);
+
+               xml_append (cur, image);
+
+               do {
+                  while (*mark == ' ') mark++;
+                  switch (*mark) {
+                     case '"':
+                        src = mark+1; mark = src;
+                        while (*mark &amp;&amp; *mark != '"') mark++;
+                        xml_set (image, "alt", "");
+                        xml_attrncat (image, "alt", src, mark - src);
+                        mark++;
+                        break;
+                     case '!':
+                        src = mark+1; mark = src;
+                        while (isalpha(*mark)) mark++;
+                        xml_set (image, "align", "");
+                        xml_attrncat (image, "align", src, mark - src);
+                        break;
+                  }
+               } while (*mark == ' ');
+
+               while (*mark &amp;&amp; (*mark != ']')) mark++;
+               while (*mark == ']') mark++;
+               src = mark;
+               mark --;
+            }
+            break;
+      }
+
+      if (*mark) mark ++;
+   }
+   xml_append (cur, xml_createtext (src));
+
+   return ret;
+}
+</pre></td></tr></table>
+
+So once that's parsed, what do we do with it?  We pass it to wiki_build, which converts it into HTML and checks that all the references
+are correct.  That kind of stuff.  Since some of the references are files, we have xml_set_firstmatch, which will find files to
+specification -- note that filesystem interaction works different under Windows and Unix, so we have some OS-specific code.  Given that
+this same type of thing is going on in the local-directory adaptor, eventually I'll beef up that list adaptor to work here (but at the
+moment it only looks for XML files, and that's no good.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int xml_set_firstmatch (XML * xml, const char * attr, const char * directory, const char * spec, const char * exclude)
+{
+#ifdef WINDOWS
+   long hFile;
+   struct _finddata_t c_file;
+#else
+   DIR * dir;
+   struct dirent * entry;
+#endif
+
+   char * mark;
+   int  ok;
+   XML * scratch = xml_create ("s");
+
+   xml_setf (scratch, "spec", "%s/%s.*", directory, spec);
+#ifdef WINDOWS
+   hFile = _findfirst (xml_attrval (scratch, "spec"), &amp;c_file);
+   if (hFile < 0L) {
+      xml_free (scratch);
+      return 0;
+   }
+#else
+   dir = opendir (directory);
+   if (!dir) {
+      xml_free (scratch);
+      return 0;
+   }
+   entry = readdir (dir);
+   if (!entry) {
+      xml_free (scratch);
+      return 0;
+   }
+#endif
+
+   do {
+#ifdef WINDOWS
+      ok = 1;
+#else
+      ok = 0;
+      if (!strcmp (entry->d_name, spec)) ok = 1;
+      else if (!strncmp (entry->d_name, spec, strlen(spec)) &amp;&amp; entry->d_name[strlen(spec)] == '.') ok = 1;
+
+      if (!ok) continue;
+#endif
+
+      if (exclude) {
+#ifdef WINDOWS
+         mark = strrchr (c_file.name, '.');
+#else
+         mark = strrchr (entry->d_name, '.');
+#endif
+         if (mark) {
+            if (strstr (exclude, mark)) ok = 0;
+         }
+      }
+
+      if (ok) {
+#ifdef WINDOWS
+         xml_setf (xml, attr, "%s/%s", directory, c_file.name);
+         _findclose (hFile);
+#else
+         xml_setf (xml, attr, "%s/%s", directory, entry->d_name);
+         closedir (dir);
+#endif
+         xml_free (scratch);
+         return 1;
+      }
+#ifdef WINDOWS
+   } while (_findnext (hFile, &amp;c_file));
+#else
+   } while (entry = readdir (dir));
+#endif
+
+#ifdef WINDOWS
+   _findclose (hFile);
+#else
+   closedir (dir);
+#endif
+   xml_free (scratch);
+   return 0;
+}
+XML * wiki_build (XML * context, XML * wiki, XML * todo)
+{
+   XML * ret;
+   XML * cur;
+   XML * new;
+   XML * check;
+   XML * image;
+   int nofile;
+   int downone;
+   char * stash;
+   XML * parent;
+   XML * mark;
+   XML * mark2;
+   XML * list;
+   int count;
+
+   ret = xml_create ("html");
+   cur = ret;
+
+   while (wiki) {
+      downone = 0;
+      new = NULL;
+
+
+      if (xml_is (wiki, "wiki")) {
+         wiki = xml_first (wiki);
+         continue;
+      } else if (xml_is (wiki, "image")) {
+         image = xml_create ("img");
+
+
+         if (!xml_set_firstmatch (image, "src",
+                                  *xml_attrval (context, "images") ? xml_attrval (context, "images") : "images",
+                                  xml_attrval (wiki, "name"), ".txt.xml.html")) {
+            /* To-do! */
+            new = xml_create ("todo");
+            xml_setf (new, "id", "image!%s", xml_attrval (wiki, "name"));
+            check = xml_locf (todo, ".todo[%s]", xml_attrval (new, "id"));
+            if (!check) xml_append (todo, new);
+            xml_free (image);
+         } else {
+            xml_append (cur, image);
+            if (*xml_attrval (wiki, "alt")) xml_set (image, "alt", xml_attrval (wiki, "alt"));
+            if (*xml_attrval (wiki, "align")) xml_set (image, "align", xml_attrval (wiki, "align"));
+         }
+      } else if (xml_is (wiki, "link")) {
+         if (!strcmp (xml_attrval (wiki, "linktype"), "page")) {
+            /* Link to managed page. */
+            check = xml_search (context, "page", "id", xml_attrval (wiki, "link"));
+            if (check) {
+               new = xml_create ("a");
+               xml_set (new, "href", xml_attrval (check, "page"));
+               xml_append (cur, new);
+               if (!xml_first (wiki)) {
+                  if (*xml_attrval (check, "name")) {
+                     xml_replacecontent (wiki, xml_createtext (xml_attrval (check, "name")));
+                  } else {
+                     xml_replacecontent (wiki, xml_createtext (xml_attrval (check, "id")));
+                  }
+               }
+               downone = 1;
+            } else {
+               new = xml_create ("todo");
+               xml_setf (new, "id", "page!%s", xml_attrval (wiki, "link"));
+               check = xml_locf (todo, ".todo[%s]", xml_attrval (new, "id"));
+               if (!check) xml_append (todo, new);
+            }
+         } else if (!strcmp (xml_attrval (wiki, "linktype"), "url")) {
+            /* Raw URL. */
+            new = xml_create ("a");
+            xml_set (new, "href", xml_attrval (wiki, "link"));
+            xml_append (cur, new);
+            downone = 1;
+         } else if (!strcmp (xml_attrval (wiki, "linktype"), "link")) {
+            /* managed link */
+         } else if (!strcmp (xml_attrval (wiki, "linktype"), "object")) {
+            /* object embedding */
+         }
+      } else if (xml_is (wiki, "wiki:embed")) {
+         if (!strcmp (xml_attrval (wiki, "type"), "list")) {
+            list = xml_create ("list");
+            xml_set (list, "id", xml_attrval (wiki, "object"));
+            xml_set (list, "select", "*");
+            xml_set (list, "order", xml_attrval (wiki, "order"));
+            xml_set (list, "op", xml_attrval (wiki, "op"));
+            /* Get the list from the repository. */
+            repos_list (context, list);
+            /* Apply the list template to the list. */
+            new = xml_template_apply_list (context, wiki, list, NULL, NULL);
+            /* Et voila -- fini! */
+            mark = xml_firstelem (new);
+            while (mark) {
+               xml_append (cur, xml_copy (mark));
+               mark = xml_nextelem (mark);
+            }
+            xml_free (new);
+            new = NULL;
+         } else if (!strcmp (xml_attrval (wiki, "type"), "layout")) {
+            xml_set (wiki, "type", "done");
+            mark = xml_firstelem (xml_parent (wiki));
+            while (mark) {
+               if (xml_is (mark, "wiki:text")) {
+                  count = 0;
+                  while (check = xml_search (wiki, "template:value", "name", xml_attrval (mark, "name"))) {
+                     if (count++ > 10) break;
+                     xml_replacewithcontent (check, mark);
+                  }
+               }
+               mark = xml_nextelem (mark);
+            }
+            wiki = xml_first (wiki);
+            continue;
+         } else {
+            if (xml_first (wiki)) {
+               wiki = xml_first (wiki);
+               continue;
+            }
+         }
+      } else if (xml_is (wiki, "wiki:text")) {
+         /* Text is ignored unless referenced in an embedded layout. */
+      } else if (xml_is_element (wiki)) {
+         new = xml_create (xml_name (wiki));
+         xml_copyattrs (new, wiki);
+         xml_append (cur, new);
+         downone = 1;
+      } else {
+         xml_append (cur, xml_copy (wiki));
+      }
+
+      if (downone &amp;&amp; xml_first (wiki)) {
+         if (new) cur = new;
+         wiki = xml_first (wiki);
+      } else {
+         while (xml_parent (wiki) &amp;&amp; !xml_next (wiki)) {
+            wiki = xml_parent (wiki);
+            if (!xml_is (wiki, "wiki:embed")) cur = xml_parent (cur);
+         }
+         if (wiki) {
+            wiki = xml_next (wiki);
+         }
+      }
+   }
+
+   return ret;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wiki_h.html">Previous: Wiki include file</a>&nbsp;]
+[&nbsp;<a href="wiki.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wiki.html">Next: WikiWikiWftk!</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2002-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,133 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk: tasks</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk: working with tasks</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="index.html">wftk programmer's guide home</a> ]
+<hr>
+
+<h3>Tasks</h3>
+Tasks are the individual things which users do.  A task involves the collection of data, but from the
+point of view of the workflow engine, a task is simply a place where we stop and wait for a human being.
+When we do so, we also activate the task in all listening task indices -- meaning that a record is
+written to a database that the user can then query.
+<p>
+For the convenience of wftk clients, wftk provides a list function to retrieve tasks in various modes;
+if the list is simply of tasks in a process, then the datasheet is consulted, but if the request is
+for tasks across processes which meet criteria, then wftk builds a query and goes to the database to
+get the information.
+<p>
+The internal representation of a task is (of course) an XML structure; the retrieval of a task is thus
+a little strange.  First you have to build a task structure, then you ask wftk to fill it in for
+you.  This makes sense after you use it a couple of times.  Really.
+<p>
+<h3>Functions</h3>
+<pre>
+int    wftk_task_list      (void * session, XML * list);
+int    wftk_task_new       (void * session, XML * task);
+XML  * wftk_task_retrieve  (void * session, XML * task);
+int    wftk_task_update    (void * session, XML * task);
+int    wftk_task_complete  (void * session, XML * task);
+int    wftk_task_reject    (void * session, XML * task);
+int    wftk_task_rescind   (void * session, XML * task);
+</pre>
+
+<h3>Details</h3>
+<a name="wftk_task_list"></a>
+<font size=+1>wftk_task_list</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a></code>,<br>
+<code>XML * <a href="xml_list.html">list</a></code>
+</blockquote>
+Returns a specified list of tasks.  The way this works is simple.  You first use <code>xml_create</code> to create a list object:
+<blockquote>
+xml_create ("list");
+</blockquote>
+Then you fill in the attributes you know.  For instance, if you want tasks pertaining to a certain process, you fill in the datasheet
+respository and ID of the process.  A full account of what you can specify will have to wait for my next round of documentation; until
+then, see the code for the command-line interface.
+<br><br>
+At any rate, once you've called the function, the results are returned in the same structure, as subelements of type "task".
+
+<br><br>
+
+<a name="wftk_task_new"></a>
+<font size=+1>wftk_task_new</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a></code>,<br>
+<code>XML * task</code>
+</blockquote>
+Adds a new task to the system.  If the dsrep and datasheet are filled in, the new task will be attached to that process.  Otherwise, it
+will be a <i>really</i> ad-hoc to-do list entry and will appear only in the task index (database).
+
+<br><br>
+
+<a name="wftk_task_retrieve"></a>
+<font size=+1>wftk_task_retrieve</font> returns <code>XML *</code>
+<blockquote>
+<code>void * <a href="session.html">session</a></code>,<br>
+<code>XML * task</code>
+</blockquote>
+Retrieves a task definition.  Like <code>wftk_task_list</code>, this function requires you to fill in an element and submit it.  The
+library then fills in the details, including data required or referenced by the task.
+
+<br><br>
+
+<a name="wftk_task_update"></a>
+<font size=+1>wftk_task_update</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a></code>,<br>
+<code>XML * task</code>
+</blockquote>
+Writes a modified task back to the repositories, including all data values it contains.
+
+<br><br>
+
+<a name="wftk_task_complete"></a>
+<font size=+1>wftk_task_complete</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a></code>,<br>
+<code>XML * task</code>
+</blockquote>
+Marks the given task as complete.  Data values are written to the datasheet.  Once the task is complete,
+the task is unblocked and the workflow interpreter invoked.  As a result of this, any action may also occur.
+
+<br><br>
+
+<a name="wftk_task_reject"></a>
+<font size=+1>wftk_task_reject</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a></code>,<br>
+<code>XML * task</code>
+</blockquote>
+Marks the given task as rejected.
+
+<br><br>
+
+<a name="wftk_task_rescind"></a>
+<font size=+1>wftk_task_rescind</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a></code>,<br>
+<code>XML * task</code>
+</blockquote>
+Rescinds the given task.  This <i>only</i> works for ad-hoc tasks; you can't rescind tasks which were
+specified from workflow, even from arbitrary workflow, because there would be no way for the wftk to
+know what should come next.  The best you can do is to reject workflow-specified tasks.  Returns 0
+if there's a problem.
+
+<br><br>
+
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

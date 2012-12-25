@@ -1,0 +1,386 @@
+<html><head><title>WFTK PDM: update: Actually changing procdef versions!</title></head>
+<body>
+<h2>update: Actually changing procdef versions!</h2>
+<center>
+[&nbsp;<a href="outline_format.html">Previous: Formatting outlines and such</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The procdef manager</a>&nbsp;]
+[&nbsp;<a href="string_incr.html">Next: Definition of string_incr()</a>&nbsp;]
+</center>
+
+<hr>
+And hey!  Here's the code that makes this whole thing an editor!  You knew it had to come along
+some time, right?  Like the editor presentation code, the update code looks at a switch
+parameter to see what it's supposed to be doing.  It does what it's supposed to do, then it
+has to figure out where to send the user in order to support a usable interface.  (This is the
+hardest part of Web app design; the coordination of frames and when to reload things.)
+<p></p>
+The best mechanism I know of for having one frame reload another in the same frameset is to
+include a piece of Javascript in the first frame's HTML.  This can serve rather well to keep
+frames in synch while working on complex data structures -- but it only works if you have
+Javascript available and enabled.  But I don't see a more usable way of doing things, so you'll
+see a lot of little Javascript snippets here and there in this code.
+<p></p>
+The first thing we're going to do is to check that the current user has the authority to
+update.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sprintf (sbuf, "%s_%s", xml_attrval (query, "item"), xml_attrval (query, "ver"));
+if (!user_perm (current_user, "wftkpdm", sbuf, "edit")) {
+   printf ("&lt;h2>No edit authorization&lt;/h2>&lt;hr>");
+   printf ("Sorry, your current user id (%s) doesn't have permission to edit this item version.",
+           xml_attrval (current_user, "name"));
+   printf ("  You might want to check with the version owner or with an administrator if you think that this is in error.");
+   exit (0);
+}
+</pre></td></tr></table>
+
+So OK, we're authorized to make changes to the version if we've gotten this far.  Let's go
+ahead and load the version file and mark it as dirty so that it'll be saved after we make
+our changes.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sprintf (version_file, "%s%s_%s.xml", PROCESS_DEFINITION_REPOSITORY, xml_attrval (query, "item"), xml_attrval (query, "ver"));
+file = fopen (version_file, "r");
+if (!file) {
+   sprintf (sbuf, "Unable to open procdef version file %s.\n", sbuf);
+   complain();
+}
+version = xml_read (file);
+fclose (file);
+version_dirty = 1;
+</pre></td></tr></table>
+Now let's go ahead and display a heading in case this is being viewed outside a frame or
+something weird like that, and switch off to the various action handling code.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>printf ("Content-type: text/html\n\n");
+printf ("&lt;html>&lt;head>&lt;title>wftk update - %s&lt;/title>&lt;LINK href=\"pdm.css\" rel=\"stylesheet\" type=\"text/css\">&lt;/head>\n", xml_attrval (version, "name"));
+printf ("&lt;body bgcolor=\"ffffff\">\n");
+
+if (!strcmp ("updatedescription", xml_attrval (query, "action"))) {
+   <i>See <a href="update.html#updatedescription">Updating descriptions</a></i>
+} else if (!strcmp ("moveup", xml_attrval (query, "action"))) {
+   <i>See <a href="update.html#moveup">Moving things up in lists</a></i>
+} else if (!strcmp ("movedn", xml_attrval (query, "action"))) {
+   <i>See <a href="update.html#movedn">Moving things down in lists</a></i>
+} else if (!strcmp ("role", xml_attrval (query, "action"))) {
+   <i>See <a href="update.html#role">Adding and modifying roles</a></i>
+} else if (!strcmp ("data", xml_attrval (query, "action"))) {
+   <i>See <a href="update.html#data">Adding and modifying data items</a></i>
+} else if (!strcmp ("task", xml_attrval (query, "action"))) {
+   <i>See <a href="update.html#task">Adding and modifying tasks</a></i>
+} else if (!strcmp ("if", xml_attrval (query, "action"))) {
+   <i>See <a href="update.html#if">Adding and modifying decisions</a></i>
+} else if (!strcmp ("alert", xml_attrval (query, "action"))) {
+   <i>See <a href="update.html#alert">Adding and modifying alerts</a></i>
+} else if (!strcmp ("handle", xml_attrval (query, "action"))) {
+   <i>See <a href="update.html#handle">Adding and modifying situation handlers</a></i>
+} else if (!strcmp ("sequence", xml_attrval (query, "action"))) {
+   <i>See <a href="update.html#sequence">Adding and modifying sequences</a></i>
+} else if (!strcmp ("parallel", xml_attrval (query, "action"))) {
+   <i>See <a href="update.html#parallel">Adding and modifying parallels</a></i>
+} else if (!strcmp ("delete", xml_attrval (query, "action"))) {
+   <i>See <a href="update.html#delete">Deleting pieces</a></i>
+}
+printf ("&lt;/body>&lt;/html>\n\n");
+</pre></td></tr></table>
+<br><br>
+<a name="updatedescription">
+<i>Updating descriptions</i><br>
+As described above in the editor presentation, there are four places where description info
+is stashed in a workflow item.  The first is the name of the item, so I'm going to handle that
+quickly.  We've got "title", "description", "instancetitle", and "instancedescription" coming
+in.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>updated_flag = 0;
+if (strcmp (xml_attrval (version, "name"), xml_attrval (query, "title"))) {
+   xml_set (version, "name", xml_attrval (query, "title"));
+   if (!updated_flag) {
+      printf ("&lt;h2>Description updated&lt;/h2>&lt;hr>&lt;ul>\n");
+   }
+   printf ("&lt;li> Title was changed to '%s'\n", xml_attrval (query, "title"));
+   updated_flag = 1;
+}
+</pre></td></tr></table>
+
+After the update has been made, we need to reload the overview form; otherwise I guess
+displaying an acknowledgement will suffice.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!updated_flag) {
+   printf ("&lt;h2>Description not updated&lt;/h2>&lt;hr>\n");
+   printf ("No update was necessary.\n");
+} else {
+   printf ("&lt;/ul>\n");
+   printf ("&lt;script>parent.frames[0].location = parent.frames[0].location.href;&lt;/script>\n");
+}
+</pre></td></tr></table>
+<br><br>
+<a name="moveup">
+<i>Moving things up in lists</i><br>
+<br><br>
+<a name="movedn">
+<i>Moving things down in lists</i><br>
+<br><br>
+<a name="role">
+<i>Adding and modifying roles</i><br>
+Roles are only found at the top level, so they have special handling.  Actually, I think that
+<i>each</i> separate type of element will end up with special handling.  We'll see.  At any
+rate, I don't simply want to append roles onto the end of the workflow list; I want to have
+all the roles right up at the top.  The easy way out is just to prepend new roles, and I
+suppose that's what I'll do for now.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="update.html#get_location">Finding pieces of the item to update</a></i>
+if (add_flag) xml = xml_create ("role");
+
+xml_set (xml, "name", xml_attrval (query, "name"));
+xml_set (xml, "local", xml_attrval (query, "local"));
+if (!add_flag) {
+   while (holder = xml_first (xml)) xml_delete (holder);
+}
+xml_append (xml, xml_createtext (xml_attrval (query, "content")));
+
+if (add_flag) xml_prepend (version, xml);
+
+printf ("&lt;h2>Role %s %s&lt;/h2>&lt;hr>\n", xml_attrval (xml, "name"), add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("&lt;script>parent.frames[0].location = parent.frames[0].location.href;&lt;/script>\n");
+</pre></td></tr></table>
+<br><br>
+<a name="data">
+<i>Adding and modifying data items</i><br>
+Data items (and data manipulation actions, which are also data elements) may appear basically
+anywhere in the workflow.  I fear that my data item editor is too simple, but until I have
+the prototype finished I don't want to sit down and really think it through.
+<p></p>
+The attribute <code>initial="yes"</code> denotes a required startup data item.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="update.html#get_location">Finding pieces of the item to update</a></i>
+if (add_flag) xml = xml_create ("data");
+
+xml_set (xml, "name", xml_attrval (query, "name"));
+xml_set (xml, "type", xml_attrval (query, "type"));
+if (strcmp ("", xml_attrval (query, "initial"))) {
+   xml_set (xml, "initial", xml_attrval (query, "initial"));
+}
+if (!strcmp ("", xml_attrval (query, "mode"))) {
+   xml_set (xml, "mode", xml_attrval (query, "mode"));
+}
+
+if (!add_flag) {
+   while (holder = xml_first (xml)) xml_delete (holder);
+}
+if (strcmp ("", xml_attrval (query, "content")))
+   xml_append (xml, xml_createtext (xml_attrval (query, "content")));
+
+if (add_flag) xml_append (parent, xml);
+</pre></td></tr></table>
+
+If we just added a non-local data item to a subelement of the workflow (i.e. not top-level) then
+we need to ensure that the same-named top-level data item does indeed exist.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (add_flag &amp;&amp; strcmp (parent->name, "workflow") &amp;&amp; strcmp (xml_attrval (xml, "mode"), "local")) {
+   sprintf (sbuf, "workflow.data[%s]", xml_attrval (query, "name"));
+   holder = xml_loc (version, sbuf);
+   if (!holder) {
+      xml = xml_create ("data");
+      xml_set (xml, "name", xml_attrval (query, "name"));
+      xml_set (xml, "type", xml_attrval (query, "type"));
+      if (strcmp ("", xml_attrval (query, "content"))) 
+         xml_append (xml, xml_createtext (xml_attrval (query, "content")));
+      xml_append (version, xml);
+   }
+}
+</pre></td></tr></table>
+
+And of course, finally we have to notify the user that the change succeeded.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>printf ("&lt;h2>Data item %s %s&lt;/h2>&lt;hr>\n", xml_attrval (xml, "name"), add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("&lt;script>parent.frames[0].location = parent.frames[0].location.href;&lt;/script>\n");
+</pre></td></tr></table>
+<br><br>
+<a name="task">
+<i>Adding and modifying tasks</i><br>
+Tasks consist of two parts: there is a form editor for the name and role of the task, but
+there is also a list of data items gathered during the task.  The list is handled separately;
+this segment of the update is only concerned with the task attributes themselves.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="update.html#get_location">Finding pieces of the item to update</a></i>
+if (add_flag) xml = xml_create ("task");
+
+xml_set (xml, "label", xml_attrval (query, "label"));
+xml_set (xml, "role", xml_attrval (query, "role"));
+
+if (add_flag) xml_append (parent, xml);
+
+printf ("&lt;h2>Task %s %s&lt;/h2>&lt;hr>\n", xml_attrval (xml, "label"), add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("&lt;script>parent.frames[0].location = parent.frames[0].location.href;&lt;/script>\n");
+</pre></td></tr></table>
+<br><br>
+<a name="if">
+<i>Adding and modifying decisions</i><br>
+Like tasks, decisions are two-part items.  Like the task updater, the decision updater only
+fields changes from the form (i.e. the expression to be evaluated.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="update.html#get_location">Finding pieces of the item to update</a></i>
+if (add_flag) xml = xml_create ("if");
+
+xml_set (xml, "if", xml_attrval (query, "if"));
+
+if (add_flag) xml_append (parent, xml);
+
+printf ("&lt;h2>Decision %s&lt;/h2>&lt;hr>\n", add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("&lt;script>parent.frames[0].location = parent.frames[0].location.href;&lt;/script>\n");
+</pre></td></tr></table>
+<br><br>
+<a name="alert">
+<i>Adding and modifying alerts</i><br>
+Alerts are just like data items: some attributes and then the content is just handled as
+text.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="update.html#get_location">Finding pieces of the item to update</a></i>
+if (add_flag) xml = xml_create ("alert");
+
+xml_set (xml, "type", xml_attrval (query, "type"));
+xml_set (xml, "to", xml_attrval (query, "to"));
+if (!add_flag) {
+   while (holder = xml_first (xml)) xml_delete (holder);
+}
+xml_append (xml, xml_createtext (xml_attrval (query, "content")));
+
+if (add_flag) xml_append (parent, xml);
+
+printf ("&lt;h2>Alert %s&lt;/h2>&lt;hr>\n", add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("&lt;script>parent.frames[0].location = parent.frames[0].location.href;&lt;/script>\n");
+</pre></td></tr></table>
+<br><br>
+<a name="handle">
+<i>Adding and modifying situation handlers</i><br>
+Situation handlers have a form editor for the name of the situation they handle.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="update.html#get_location">Finding pieces of the item to update</a></i>
+if (add_flag) xml = xml_create ("handle");
+
+xml_set (xml, "situation", xml_attrval (query, "situation"));
+
+if (add_flag) xml_append (parent, xml);
+
+printf ("&lt;h2>Handler for %s %s&lt;/h2>&lt;hr>\n", xml_attrval (xml, "situation"), add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("&lt;script>parent.frames[0].location = parent.frames[0].location.href;&lt;/script>\n");
+</pre></td></tr></table>
+<br><br>
+<a name="sequence">
+<i>Adding and modifying sequences</i><br>
+The basic sequence is undecorated, but a loop is marked by having repeat="yes" and an optional
+index variable which will contain the number of times the loop has already been executed.
+Remember that loops are terminated by situations, and you can't go wrong.
+<p></p>
+Actually, it's rather fortunate that there is <i>some</i> attribute for sequences and parallels,
+otherwise the UI for adding them would have been ugly.  (And actually, I was going to cut a
+corner on the UI for adding them until I realized that that would have been even uglier...)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="update.html#get_location">Finding pieces of the item to update</a></i>
+if (add_flag) xml = xml_create ("sequence");
+
+xml_set (xml, "repeat", xml_attrval (query, "repeat"));
+xml_set (xml, "index", xml_attrval (query, "index"));
+
+if (add_flag) xml_append (parent, xml);
+
+printf ("&lt;h2>Sequence %s&lt;/h2>&lt;hr>\n", add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("&lt;script>parent.frames[0].location = parent.frames[0].location.href;&lt;/script>\n");
+</pre></td></tr></table>
+<br><br>
+<a name="parallel">
+<i>Adding and modifying parallels</i><br>
+And of course the parallel block, as in all other respects, is handled identically to sequences.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="update.html#get_location">Finding pieces of the item to update</a></i>
+if (add_flag) xml = xml_create ("parallel");
+
+xml_set (xml, "repeat", xml_attrval (query, "repeat"));
+xml_set (xml, "index", xml_attrval (query, "index"));
+
+if (add_flag) xml_append (parent, xml);
+
+printf ("&lt;h2>Parallel %s&lt;/h2>&lt;hr>\n", add_flag ? "added" : "modified");
+printf ("The version has been updated.\n");
+printf ("&lt;script>parent.frames[0].location = parent.frames[0].location.href;&lt;/script>\n");
+</pre></td></tr></table>
+<br><br>
+<a name="delete">
+<i>Deleting pieces</i><br>
+Actually, deletions are pretty simple.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="update.html#get_location">Finding pieces of the item to update</a></i>
+if (add_flag) {
+   printf ("&lt;h2>Huh?&lt;/h2>&lt;hr>Trying to delete without a location doesn't even make sense.\n");
+   exit(0);
+}
+
+xml_delete (xml);
+
+printf ("&lt;h2>Delete complete&lt;/h2>&lt;hr>\n");
+printf ("The version has been updated.\n");
+printf ("&lt;script>parent.frames[0].location = parent.frames[0].location.href;&lt;/script>\n");
+</pre></td></tr></table>
+<br><br>
+<a name="get_location">
+<i>Finding pieces of the item to update</i><br>
+This differs slightly from its edit presentation counterpart.  The location, if given (for
+modification) ends up in <code>xml</code>, just as with editing, but if the parent location is
+given instead, then it is preserved, and is passed in <code>parent</code>.  No dummy XML is
+needed to fool the form builder, so it's not created.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (strcmp ("", xml_attrval (query, "loc"))) {
+   xml = xml_loc (version, xml_attrval (query, "loc"));
+   if (!xml || xml == version) {
+      sprintf (sbuf, "The location %s doesn't exist in this item.", xml_attrval (query, "loc"));
+      complain ();
+   }
+   add_flag = 0;
+} else {
+   parent = xml_loc (version, xml_attrval (query, "parentloc"));
+   if (!parent) {
+      sprintf (sbuf, "The parent location %s doesn't exist in this item.", xml_attrval (query, "parentloc"));
+      complain();
+   }
+   add_flag = 1;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="outline_format.html">Previous: Formatting outlines and such</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href="string_incr.html">Next: Definition of string_incr()</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

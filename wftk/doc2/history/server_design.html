@@ -1,0 +1,283 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Server design overview</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Server design overview</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+In working through the various <a href=usage_scenarios.html>usage scenarios</a> I came up with a list of overall design
+goals, and what I consider a pretty solid server design.  Here are the overall goals I see for this project:<ul>
+<b><li>Ease of use</b><br>
+   As Anthony says, "It has to be easy enough for even a vice-president to use."  This not only applies to the actual
+   running of processes, but it must be simple for an untrained person to design a workflow process.  This is our
+   paramount goal: we need a system which can be used by the small organization with no specialized technical staff.
+   Getting processes designed can't wait for an IT staff to get around to it; it should be as easy to learn as a word
+   processor.  (After all, twenty years ago the formatting of a document was also something usually left to experts.
+   Now my five-year-old does it for fun.)
+<b><li>Ease of deployment</b><br>
+   To be easy to use, the system must also be easy to install.  At least for selected system configurations, installation
+   should be as simple as a typical Windows program: put in the disk, answer some questions, and start using the system.
+   I consider this part of the ease-of-use criterion, but it bears explicit statement.  Specifically, ease of deployment
+   and support means that the code must be extremely stable.  I should be able to install it once and let it run for a 
+   year or two and never need to worry about it.  This can be attained by keeping the code small, simple, and modular.
+   I think.  Ask me again this time next year.
+<b><li>Adaptability to local software environment</b><br>
+   By this I mean that if the local environment already contains a database system, the workflow toolkit should be able
+   to take advantage of the existing database.  This would be achieved by means of <i>adapters</i>, modules written for
+   the specific system in question which present a unified API to the workflow engine.  I'd like to see adapters in use 
+   for the following components, at least: the database system, the Web server, the document management facility (both
+   the repository for process definitions and for deliverable storage, which may well be separate repositories), directory
+   services for users and groups, and messaging services.  Some similar approach may be useful for interpreting
+   process definitions created by other systems.
+<b><li>Ability to handle and document ad-hoc workflow</b><br>
+   This is sort of an ideal goal, as ad-hoc workflow is in large part a research topic still.  But I think that our
+   advantage of starting fresh in 2000 will allow us to address some of the weaknesses of existing technology.  Ad-hoc
+   workflow, instead of focussing on the <i>control</i> of business processes, simply tries to <i>document</i> actual
+   business actions.  Since each business action taken outside the planned workflow weakens the workflow system, I'd like
+   to incorporate an ad-hoc action tracking capability into the system.
+<b><li>Adherence to the few emerging standards of the industry</b><br>
+   The workflow industry is kinda sorta trying to standardize.  They're not getting very far at it, but there are some
+   standards which are actually emerging, chiefly those of the WfMC (the Workflow Management Consortium, a group of 
+   workflow vendors and corporate users).  The WfMC has defined five interfaces to a workflow engine: the process
+   definition interface, the interface to the database, the interface to the user and to invoked applications, and an
+   interface to allow communication between workflow engines, allowing a single process to be distributed across platforms
+   Ideally the wftk would be able to work with all these interfaces.  (A reader suggested the SWAP group as another
+   standards body, but everybody I've talked to says SWAP is dead.  Their ideas were pulled into the WfMC interfaces to a
+   certain extent.)
+<b><li>Scalability</b><br>
+   (Thanks to Thomas Fricke for bringing this up as a design goal.)  Multiple workflow engines should be able to work
+   cooperatively to distribute load over multiple machines.  It might also be a good idea to allow distribution of each
+   individual repository component over multiple machines, but I'm less clear on how that would be implemented.
+</ul>
+
+<p>
+<i>System overview</i><br>
+So here's my picture of the system at the moment.  Explanations for each piece follow.
+<center><img src=sys_overview/overview.gif></center>
+<p>
+Let's talk about these pieces, starting with the manager in the lower left-hand corner and going up and around and down to
+the user in the lower right-hand corner.  If a heading has an asterisk
+next to it, that means that I plan to make that part an adapter (so that it is effectively plug-compatible.)  Once you've
+scanned this list, if you haven't already, go <a href=usage_scenarios.html>read the usage scenarios</a>, because they
+highlight how the various components actually get the job done.
+<p>
+<b>Manager</b><br>
+First, you can tell this one's a manager because of the tie.  See how the user looks happier without a tie?  It's the <i>same
+face</i>, though.  I think my point is made.  The manager is a manager and not a "workflow analyst" because of our design
+goal number 1, remember?  The system is supposed to be easy to use.  So the idea is that anybody can design workflows.
+<p>
+<b>Process definition client UI *</b><br>
+In the framework of the present project, we have to develop a simple Web-based client for simple workflow process definitions.
+This doesn't mean that any number of clients and other tools might not be used to create and manipulate process definitions --
+they will be.  For instance, a graphical tool would be extremely handy.
+<p>
+The screens proposed in the original RFP are pretty straightforward for this.<ul>
+<li>Create a process or process group
+<li>Modify a process
+</ul>
+For more detail at the moment you can read the RFP; I see no reason to repeat it here when I'm going to be doing a mockup
+and screen prints soon anyway.  At that point, I'll add a link to that documentation.
+<p>
+<b>Process definition repository *</b><br>
+All process definitions, regardless of which UI is used to create them, are stored in the process definition repository.
+Part of the initial project will include the development of a very simple repository based on the local file system, but I
+want to leave the door open for adapters written to other document management and/or version control systems.  The
+key characteristic of this repository is that it preserves all versions of a process definition.  This has a simple reason;
+if a process is already active, and somebody comes along and changes it, what should the engine do?  I think the engine should
+use the original version for all processes already under way, and use the new version for newly intiated processes.  In the
+case where a new definition is created and an already active process <i>must</i> proceed with the new version, there's no
+good way for a computer to figure out how to switch, so all changes will end up being human interventions anyway.
+<p>
+I can imagine a set of rules that a designer could specify as to how active processes <i>should</i> switch midstream, but
+that's definitely out of the scope of the present project.
+<p>
+Note that the engine also has an arrow pointing back to the repository.  I envision ad-hoc process documentation and exception
+handling as being the creation of alternate versions of a process.  So in the event that a process doesn't actually follow
+its original definition, the engine should ideally update a special version of the definition back in the repository.
+<p>
+<i>(1/27/00)</i> As Thomas Fricke has noted, the goal of scalability would be well served by allowing multiple repositories
+to cooperate in the system.  I think the best way to implement this is to allow initiation of processes to specify the
+location of the process (that is, to specify the repository in which the process is located.)  Then the active process
+would reference that repository+definition+version.  In fact, since the process definitions are XML, it would be most
+reasonable to allow retrieval over the Internet via HTTP request.  In this case, it would be best to cache the version
+retrieved in a local process definition repository, so that sudden unavailability of the remote repository wouldn't cause
+the process to come to a screeching halt.  And then ad-hoc changes to the active process would be noted in the local
+repository as well.  Updates and feedback could be done via an HTTP POST -- to that end, a process definition should include
+a URL embedded within it which should be used for automated feedback.
+<p>
+Note that this potentially allows the free distribution of useful workflow patterns over the Internet...  That could be,
+well, darned interesting!
+<p>
+<b>Process definition</b><br>
+The process definition will be an XML document.  The DTD will be published soon.  I can't think of anything else to say
+under this point until I can link to the DTD itself and its explanatory documentation.
+<p>
+<b>Workflow engine</b><br>
+This is the part of the system which manages active tasks, decides what tasks will be activated next, manages role
+queues, and so forth.  The current state of each process is maintained in the database, so the workflow engine really
+consists of a program which (1) takes an action, (2) retrieves and parses the process definition, (3) changes the
+state of the process in whatever way is necessary, and (4) notifies people of things if necessary.  It also starts
+applications if they're part of the process.
+<p>
+<i>(1/27/00)</i> Note that consonant with the goal of scalability, this component should actually be considered an arbitrary group of
+individual workflow engines.  This isn't too hard to imagine: each time a task is registered as completed (or rejected, or
+whatever), then instead of a single machine having to handle that update, one of a number of engines is selected based
+on whatever queueing criteria is deemed necessary (probably load balancing or performance monitoring criteria).  The engine
+selected then retrieves the process definition and performs the necessary updates.
+<p>
+One danger I see in this is that two engines could conceivably be updating a process at the same time.  This isn't a
+problem as long as neither needs to do exception handling (thereby modifying the process definition, remember?)  However,
+in the case that the process definition <i>is</i> to be modified, there will have to be some sort of coordination between
+the engines.
+<p>
+<b>Directory *</b><br>
+The directory is the place where information about users and groups is stored.  Again, this may be some files in the
+local file system, or it may be a real live directory (such as defined by the LDAP standard.)  Most organizations already
+have some sort of directory set up, if only an Exchange directory.  The ability to use this directly from the workflow
+engine cuts down on overall maintenance.  (On the other hand, I've read that many existing directories aren't organized
+very well from the standpoint of installation of a workflow system, so some means of augmenting such a directory might also
+be beneficial.)
+<p>
+<b>Deliverable repository *</b><br>
+The deliverable repository is where documents and other files or objects are stored which are associated with or produced
+by a workflow task.  Again, this may simply be a local filesystem or it may be a document management system, or actually
+there's no reason it couldn't be a combination of the two.  The user interacts with this system using whatever tools are
+required; so, for instance, if the organization is using FileNet Panagon, the Panagon desktop or custom applications could
+be used to store documents.  Or some web pages could be constructed which would allow document-management functionality to
+be integrated simply with the process use UI below.
+<p>
+<b><a href=sys_overview/schema.html>Active process repository</a> *</b><br>
+The active process repository is a relational database system.  Well, technically since it's an adapter-based component I
+can imagine being able to write an active process repository module which would <i>not</i> be based on an RDBMS but on
+something else, like ISAM or gdbm or something.  For the extremely small installation that would be a good idea.
+<p>
+At any rate, the active process repository retains information about active processes.  I was going to draw a schema but
+once I started it I realized that it reduced to two boxes, so I just wrote more detailed information about the database
+structure; 
+<a href=sys_overview/schema.html>click here to see it.</a>  If the values for a process are stored as an XML document, those
+could either be stored in a BLOB in the RDBMS, or as a standalone document in the deliverable repository.  Either solution
+would work out fine.
+<p>
+Note there's a grey dotted arrow from the active process repository to the deliverable repository.  This represents the link
+between completed tasks and the deliverables which the user has associated with them.
+<p>
+<b>Process use client UI *</b><br>
+These are the pages used to actually do and record work.  They include such things as the current task list for a given user,
+screens to mark completion of a task, and so forth.  These interact chiefly with the active process database, but when a task
+is completed, the workflow engine itself is invoked.
+<p>
+Again, no surprises on the screens requested here:<ul>
+<li>View active processes (those I started or those I manage), view completed processes.
+<li>View active tasks (those assigned to me: for my subordinates I'd consider that a monitoring function.)
+<li>Initiate a process.
+</ul>
+Again, there is no reason to assume that various UIs couldn't be written again this same workflow engine.  This UI is
+going to be pretty simple.  Many (OK, most) workflow systems will actually integrate with the desktop so that specific
+applications are invoked when working on a task.  At the very least, you can imagine a Java applet being downloaded when a
+task is active, and that applet being used to complete some sort of activity, the results of which would then be stored as
+a deliverable or a value.
+<p>
+<b>Reports and monitors *</b><br>
+To complete the picture, we have reports and monitors.  That's really a sort of redundant phrase, except that "monitors"
+sound so much more dynamic and up-to-the-minute.  In reality, of course, these will be a further set of web pages reflecting
+the database content of the active process repository.
+<p>
+A couple have already been proposed, but of course reporting is one thing we'll learn about as we get into prototyping:<ul>
+<li>View calendar (maybe something with projected dates)
+<li>I'd like Gannt and PERT views of given projects as well -- then we can move in on Micro$oft Office's territory.
+    But certainly various ways of looking at a currently active process will be in order.
+<li>View active tasks for groups of people.  (Say, my department.)
+<li>Ad-hoc queries, maybe.  This will depend somewhat on implementation.  We'll see.
+</ul>
+There are naturally a whole boatload of published techniques for analysis of workflow efficiency, etc., and I'll have to
+wade through a lot of literature to make it make sense, but those will be a few to get us started.  Due to the open-source
+nature of the project, of course, it will be quite easy to produce custom reports and monitoring features.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

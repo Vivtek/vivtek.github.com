@@ -1,0 +1,130 @@
+<html><head><title>xmlapi: Definitions</title></head>
+<body>
+<h2>Definitions</h2>
+<center>
+[&nbsp;<a href="index.html">Previous: index</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="main.html">Next: Functions except for xml_read</a>&nbsp;]
+</center>
+
+<hr>
+I define three basic datastructures for dealing with XML: the element, the attribute, and the
+element list.  Each of these has a <code>struct</code> definition (<code>_element</code>,
+<code>_attr</code>, and <code>_list</code> respectively) and a pointer typedef (<code>XML</code>,
+<code>ATTR</code>, and <code>ELEMENTLIST</code>).  My apologies that the names don't match up,
+but it makes sense to me: the <code>struct</code> names reflect a lower-level appreciation
+for what the objects are, while the typedefs relect a higher-level view of what they're to be
+used for.  Yeah.  Anyway, that's my left-brain rationalization for an essentially right-brained
+nomenclature.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>typedef struct _element XML;
+typedef struct _attr ATTR;
+typedef ATTR XML_ATTR;
+typedef struct _list ELEMENTLIST;
+
+struct _element {
+   char * name;
+   ATTR * attrs;
+   XML * parent;
+   ELEMENTLIST * children;
+};
+
+struct _attr {
+   char * name;
+   char * value;
+   ATTR * next;
+};
+
+struct _list {
+   XML * element;
+   ELEMENTLIST * next;
+   ELEMENTLIST * prev;
+};
+</pre></td></tr></table>
+
+Those datastructures suffice to represent an XML file in memory, semi-efficiently (although
+hash lookup for element and attribute names will be a nice feature at some later date) and
+completely.
+<p></p>
+In Windows, the XMLAPI compiles to a DLL (well, optionally).  Since you need to specify which functions
+should be exported from a DLL (that is, visible to linkers), we need to define a special API spec
+<code>XMLAPI</code>.  If told nothing else, we'll assume that the <code>XMLAPI</code> spec should
+simply be ignored:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifndef XMLAPI
+#define XMLAPI
+#endif
+</pre></td></tr></table>
+
+But we can define <code>XMLAPI</code> on the compiler's command line to export API functions from 
+the DLL.
+
+<p></p>
+Anyway, the XML API itself consists of quite a little list of functions, as follows:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void xml_write (FILE * file, XML * xml);
+XMLAPI void xml_writecontent (FILE * file, XML * xml);
+XMLAPI void xml_writehtml (FILE * file, XML * xml);
+XMLAPI void xml_writecontenthtml (FILE * file, XML * xml);
+XMLAPI char * xml_string (XML * xml);
+XMLAPI char * xml_stringcontent (XML * xml);
+XMLAPI char * xml_stringhtml (XML * xml);
+XMLAPI char * xml_stringcontenthtml (XML * xml);
+XMLAPI void xml_prepend (XML * parent, XML * child);
+XMLAPI void xml_append (XML * parent, XML * child);
+XMLAPI void xml_replace (XML * xml, XML * newxml);
+XMLAPI void xml_replacecontent (XML * parent, XML * child);
+XMLAPI XML * xml_loc (XML * start, const char * loc);
+XMLAPI XML * xml_locf (XML * start, const char * loc, ...);
+XMLAPI void xml_getloc (XML * xml, char *loc, int len);
+XMLAPI char * xml_getlocbuf (XML * xml);
+XMLAPI void xml_set (XML * xml, const char * name, const char * value);
+XMLAPI void xml_setf (XML * xml, const char * name, const char * format, ...);
+XMLAPI void xml_setnum (XML * xml, const char *attr, int number);
+XMLAPI void xml_set_nodup (XML * xml, const char * name, char * value);
+XMLAPI const char * xml_attrval (XML * element,const char * name);
+XMLAPI int xml_attrvalnum (XML * element,const char * name);
+XMLAPI XML_ATTR * xml_attrfirst (XML * element);
+XMLAPI XML_ATTR * xml_attrnext  (XML_ATTR * attr);
+XMLAPI const char * xml_attrname (XML_ATTR * attr);
+XMLAPI const char * xml_attrvalue (XML_ATTR * attr);
+XMLAPI XML * xml_create (const char * name);
+XMLAPI XML * xml_createtext (const char * value);
+XMLAPI XML * xml_createtextf (const char * format, ...);
+XMLAPI XML * xml_createtextlen (const char * value, int len);
+XMLAPI void xml_free (XML * xml);
+XMLAPI void xml_delete(XML * piece);
+XMLAPI XML * xml_first (XML * xml);
+XMLAPI XML * xml_firstelem (XML * xml);
+XMLAPI XML * xml_last (XML * xml);
+XMLAPI XML * xml_lastelem (XML * xml);
+XMLAPI XML * xml_next (XML * xml);
+XMLAPI XML * xml_nextelem (XML * xml);
+XMLAPI XML * xml_prev (XML * xml);
+XMLAPI XML * xml_prevelem (XML * xml);
+XMLAPI XML * xml_copy (XML * xml);
+XMLAPI XML * xml_copyinto (XML * target, XML * source);
+XMLAPI XML * xml_read (FILE * file);
+XMLAPI XML * xml_read_error (FILE * file);
+XMLAPI XML * xml_parse (const char * buf);
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="index.html">Previous: index</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="main.html">Next: Functions except for xml_read</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

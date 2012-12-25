@@ -1,0 +1,217 @@
+<html><head><title>Repmgr CLI: command handler for repository manager</title></head>
+<body>
+<h2>Repmgr CLI: command handler for repository manager</h2>
+<center>
+[<a href="index.html">wftk-Python</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+The <a href="wxpywf.html">wxPyWf GUI framework</a> I'm building for wxPython workflow apps involves
+concentrating bits of functionality into command handlers, so that menus (and presumably other GUI
+events) generate commands, which are then handled by the appropriate registered objects.  I've always
+liked this pattern, which was used by Microsoft Word 6.0 (at least) when I did a <i>whole</i> lot of
+work in the macro language at the time, which later evolved into the whole Visual Basic for Applications
+paradigm.
+<p></p>
+Say what you will about Microsoft's predatory marketing (and I'll agree with you) but I
+do really like some aspects of their design philosophy when it comes to making applications programming
+make more sense.  The command-based paradigm gives us some really nice spinoffs, such as being able
+to compartmentalize functionality in a handy way, being able to build macros without the overhead of
+a scripting language (yeah, OK, so I'm writing this in Python, <i>still</i>), and being able to log
+actions in a coherent manner.  It's just a nice paradigm.
+<p></p>
+As proof of this, I plan to use the <i>same</i> command handler in both the <a href="pypop.html">GUI
+frontend</a> and the <a href="repmgr_server.html">Medusa-based repmgr server</a>.  That's unification
+for ya!  Once both client and server are more or less on a workable basis, I think the whole wftk
+effort is going to start to pay off.
+<p></p>
+So anyway, this implementation of a command handler for the Python repository classes (and by extension
+the rest of the wftk classes, I'm sure) serves as a pilot for the whole paradigm.  Basically,
+a "CLI object" is any object with a "do" method.  This method takes a list of strings, which is the
+command and its arguments, an optional context object (of rather vague provenance at the moment),
+and is governed by a mode flag to determine whether it should return a long text response or a
+data response or neither.  For instance, the repmgr "list" command can return a short acknowledgement
+("50 entries"), a long one (text containing the keys of those entries, which is what the C command-line
+utility returns), or a data response (an XML list containing data descriptive of the entries).  The mode
+flag is set using a "mode" method.
+<p></p>
+I'd like to come up with some coherent way for the command language to refer to contextual or
+session-based information.  That will probably need to come later after I've banged on an initial
+implementation for a while.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>################################################################################################
+#
+# Repmgr CLI: command handler for wftk repository manager
+#
+# Copyright (c) 2003 Vivtek, released under GPL
+#
+################################################################################################
+
+import wftk
+from string import *
+
+class cli:
+</pre></td></tr></table>
+
+I suppose in a more careful implementation, there would be some base class for "CLI" objects -- but
+I honestly can't think at the moment what would be in it, and Python is pretty relaxed when it comes
+to this sort of thing, so for the time being, CLI objects are just going to be plain old generic
+objects.
+<p></p>
+The initialization of a CLI object, among other things, has to supply the context object the CLI is
+supposed to be fronting for.  In this case, of course, it's a wftk repository object.
+
+<p></p>
+Each CLI also has a dictionary of command objects.  At first I was going to gloss over
+this aspect, but then I went away for a few weeks, and coming back to this, it's
+patently obvious that I need to do things right the first time.  Thus the __init__
+function initializes our command dictionary.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def __init__ (self, repository):
+      self.repository = repository
+      self.mode = 0
+      self.commands={}
+      self.commands['publish']  = ['publish',  self.publish,  0, 2, '[list] [key]']
+      self.commands['make']     = ['make',     self.make,     0, 1, '[page]']
+      self.commands['add']      = ['add',      self.add,      2, 2, '[list] [what]']
+      self.commands['del']      = ['del',      self.del_,      2, 2, '[list] [key]']
+      self.commands['mod']      = ['mod',      self.mod,      2, 3, '[list] [file] [key]']
+      self.commands['merge']    = ['merge',    self.merge,    3, 3, '[list] [file] [key]']
+      self.commands['changed']  = ['changed',  self.changed,  2, 2, '[list] [key]']
+      self.commands['diff']     = ['diff',     self.diff,     3, 3, '[list] [key] [file]']
+      self.commands['test']     = ['test',     self.test,     1, 1, '[file]']
+      self.commands['list']     = ['list',     self.list,     1, 1, '[list]']
+      self.commands['changes']  = ['changes',  self.changes,  1, 2, '[date] [list]']
+      self.commands['get']      = ['get',      self.get,      2, 2, '[list] [key]']
+      self.commands['edit']     = ['edit',     self.edit,     2, 2, '[list] [key]']
+      self.commands['display']  = ['display',  self.display,  2, 2, '[list] [key]']
+      self.commands['form']     = ['form',     self.form,     1, 1, '[list]']
+      self.commands['defn']     = ['defn',     self.defn,     1, 1, '[list]']
+      self.commands['define']   = ['define',   self.define,   2, 2, '[list] [file]'] # Maybe...
+      self.commands['push']     = ['push',     self.push,     1, 2, '[list] [remote]']
+      self.commands['push_all'] = ['push_all', self.push_all, 1, 2, '[list] [remote]']
+      self.commands['pull']     = ['pull',     self.pull,     1, 2, '[list] [remote]']
+      self.commands['pull_all'] = ['pull_all', self.pull_all, 1, 2, '[list] [remote]']
+      self.commands['synch']    = ['synch',    self.synch,    1, 2, '[list] [remote]']
+      self.commands['submit']   = ['submit',   self.submit,   2, 2, '[list] [file]']
+      self.commands['store']    = ['store',    self.store,    3, 3, '[list] [fname] [file]']
+      self.commands['attach']   = ['attach',   self.attach,   4, 4, '[list] [key] [fld] [file]']
+      self.commands['retrieve'] = ['retrieve', self.retrieve, 3, 4, '[list] [key] [fld] [file]']
+      self.commands['checkout'] = ['checkout', self.checkout, 2, 3, '[list] [key] [fld]']
+      self.commands['getver']   = ['getver',   self.getver,   2, 3, '[list] [key] [fld]']
+      self.commands['time']     = ['time',     self.time,     0, 0, '']
+</pre></td></tr></table>
+
+A more mature CLI implementation will have some introspection mechanisms, for
+the discovery and reporting of commands available and such, but at the moment I don't care about those.
+I'm going to ignore them completely.  Let's cut to the chase and implement our "do" and "mode" methods.
+The mode is inanely simple.  "Do" checks argument list lengths and hands off to the command method defined
+as the handler for the command.  Easy as pie.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def mode(self, mode):
+      self.mode = mode
+
+   def do(self, context, cmdlist, obj=None):
+      if type(cmdlist)==type(''):
+         cmdlist = split(cmdlist)
+      try:
+         cmd = self.commands[cmdlist[0]]
+      except:
+         return None
+
+      if len(cmdlist) - 1 < cmd[2] or len(cmdlist) - 1 > cmd[3]:
+         return [1, 'Usage: %s %s' % (cmd[0], cmd[4])]
+
+      return cmd[1](context, cmdlist[:1], obj)
+</pre></td></tr></table>
+
+Later, we're going to want a better parser.  The repmgr library is going to provide one, too.  It'll know about quotes, for instance,
+and parse them similarly to Unix shells and such.  So we'll use a better parser then than string.split, which is a pain.
+<p></p>
+
+Anyway, let's get down to the boring business of processing commands.  Each of these commands is nothing more than a thin wrapper
+around the Python repmgr wrapper, which in turn wraps the basic repmgr libraries.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def publish(self, context, args, obj):
+      return 0;
+   def make(self, context, args, obj):
+      return 0;
+   def add(self, context, args, obj):
+      return 0;
+   def del_(self, context, args, obj):
+      return 0;
+   def mod(self, context, args, obj):
+      return 0;
+   def merge(self, context, args, obj):
+      return 0;
+   def changed(self, context, args, obj):
+      return 0;
+   def diff(self, context, args, obj):
+      return 0;
+   def test(self, context, args, obj):
+      return 0;
+   def list(self, context, args, obj):
+      return 0;
+   def changes(self, context, args, obj):
+      return 0;
+   def get(self, context, args, obj):
+      return 0;
+   def edit(self, context, args, obj):
+      return 0;
+   def display(self, context, args, obj):
+      return 0;
+   def form(self, context, args, obj):
+      return 0;
+   def defn(self, context, args, obj):
+      return 0;
+   def define(self, context, args, obj):
+      return 0;
+   def push(self, context, args, obj):
+      return 0;
+   def push_all(self, context, args, obj):
+      return 0;
+   def pull(self, context, args, obj):
+      return 0;
+   def pull_all(self, context, args, obj):
+      return 0;
+   def synch(self, context, args, obj):
+      return 0;
+   def submit(self, context, args, obj):
+      return 0;
+   def store(self, context, args, obj):
+      return 0;
+   def attach(self, context, args, obj):
+      return 0;
+   def retrieve(self, context, args, obj):
+      return 0;
+   def checkout(self, context, args, obj):
+      return 0;
+   def getver(self, context, args, obj):
+      return 0;
+   def time(self, context, args, obj):
+      return 0;
+</pre></td></tr></table>
+
+And that's that.  Our first CLI.
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

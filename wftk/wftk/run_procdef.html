@@ -1,0 +1,223 @@
+<html><head><title>wftk core engine: Interpreting the process definition</title></head>
+<body>
+<h2>Interpreting the process definition</h2>
+<center>
+[&nbsp;<a href="load_datasheet.html">Previous: Loading the datasheet for an active process</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk core index</a>&nbsp;]
+[&nbsp;<a href="globals.html">Next: Global variables: state</a>&nbsp;]
+</center>
+
+<hr>
+Interpretation of the process definition, as explained above, is driven by the commands
+passed in at invocation time.  The commands which interest us primarily are 'start' and
+'complete'; each of these hands off to the procdef interpreter.
+<p></p>
+The procdef interpreter runs largely recursively, reflecting the nature of the XML data
+structure.  It is called with an XML structure and runs in the context of the currently
+loaded datasheet.
+<p></p>
+Note the use of goto to simulate tail recursion.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * queue_procdef (XML * action)
+{
+   XML * item;
+
+   if (action == NULL) return;
+
+   if (state == NULL) {
+      state = xml_create("state");
+      xml_append (datasheet, state);
+   }
+   if (queue == NULL) {
+      queue = xml_create("queue");
+      xml_append (state, queue);
+   }
+   item = xml_create("item");
+   xml_setnum (item, "id", idcount++);
+   xml_set (item, "type", action->name);
+   xml_getloc (action, sbuf, 1023);
+   xml_set (item, "loc", sbuf);
+   xml_append (queue, item);
+   return (item);
+}
+
+void process_procdef()
+{
+   XML * item;
+   XML * def;
+   XML * holder;
+   XML * task;
+   XML * data;
+   XML * next;
+   const char * type;
+   int count;
+   int keep;
+
+   item = xml_first (queue);
+
+   while (item != NULL) {
+      if (!strcmp("yes", xml_attrval(item, "block"))) {
+         item = xml_next(item);
+         continue;
+      }
+      def = xml_loc (procdef, xml_attrval(item, "loc"));
+      type = xml_attrval (item, "type");
+
+      keep = 0;
+      if (!strcmp(type, "workflow") || !strcmp(type, "sequence")) {
+         <i>See <a href="run_procdef.html#sequence">Handling sequence</a></i>
+      } else if (!strcmp (type, "parallel")) {
+         <i>See <a href="run_procdef.html#parallel">Handling parallel</a></i>
+      } else if (!strcmp (type, "task")) {
+         <i>See <a href="run_procdef.html#task">Handling task</a></i>
+      } else if (!strcmp (type, "data")) {
+         <i>See <a href="run_procdef.html#data">Handling data</a></i>
+      } else if (!strcmp (type, "situation")) {
+         <i>See <a href="run_procdef.html#situation">Handling situation</a></i>
+      } else if (!strcmp (type, "if") || !strcmp (type, "elseif")) {
+         <i>See <a href="run_procdef.html#if">Handling if and elseif</a></i>
+      } else if (!strcmp (type, "alert")) {
+         <i>See <a href="run_procdef.html#alert">Handling alerts</a></i>
+      } else if (!strcmp (type, "start")) {
+         <i>See <a href="run_procdef.html#start">start: Starting subprocesses</a></i>
+      }
+
+      if (keep) {
+         xml_set (item, "block", "yes");
+         item = xml_next(item);
+      } else {
+         if (strcmp ("workflow", type)) {
+            sprintf (sbuf, "queue.item[%d]", xml_attrvalnum (item, "parent"));
+            next = xml_loc (queue, sbuf);
+            xml_delete (item);
+            item = next;
+            xml_set (item, "block", "no");
+         } else {
+            xml_delete (item);
+            item = NULL;
+         }
+      }
+   }
+   sprintf (sbuf, "%d", idcount);
+   xml_set (state, "idcount", sbuf);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="sequence">
+<i>Handling sequence</i><br>
+The sequence handler takes care of the sequence tag and also the contents of the outer
+workflow tag (which are executed sequentially).  If the "cur" attribute is not yet yet, then
+this is the first time we've encountered this sequence, and we queue up the first child of
+the sequence (and note its location with "cur", of course).  Otherwise, we find the child
+located by "cur", find its next sibling, and queue that up.
+<p></p>
+If something gets queued, then we block.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!strcmp ("", xml_attrval (item, "cur"))) {
+   next = xml_firstelem (def);
+} else {
+   next = xml_loc (procdef, xml_attrval (item, "cur"));
+   next = xml_nextelem (next);
+}
+
+if (next) {
+   xml_set (queue_procdef (next), "parent", xml_attrval (item, "id"));
+   xml_getloc (next, sbuf, sizeof(sbuf) - 1);
+   xml_set (item, "cur", sbuf);
+   keep = 1;
+} else if (!strcmp (type, "workflow")) {
+   output ('F', "Process %s complete.", process);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="parallel">
+<i>Handling parallel</i><br>
+The parallel item queues up all its children, then blocks.  When a child completes, it counts
+the number of children complete; when its counter decrements to zero, it completes.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (!strcmp ("", xml_attrval (item, "remaining"))) {
+   count = 0;
+   next = xml_firstelem (def);
+   while (next != NULL) {
+      count ++;
+      xml_set (queue_procdef (next), "parent", xml_attrval (item, "id"));
+      next = xml_nextelem (next);
+   }
+} else {
+   count = xml_attrvalnum (item, "remaining");
+   count--;
+}
+xml_setnum (item, "remaining", count);
+if (count > 0) keep = 1;
+</pre></td></tr></table>
+<br><br>
+<a name="task">
+<i>Handling task</i><br>
+Doing a task is nothing more than setting up task data and telling the task manager that the
+task has been activated.  We'll take as the task ID the process ID plus our internal task ID;
+this will make things easier to handle in the task manager, as it means our task IDs will 
+always be unique (well, assuming the task manager always gives us unique process IDs.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (strcmp (xml_attrval (item, "block"), "resume")) {
+   sprintf (sbuf, "%s:%s", process, xml_attrval (item, "id"));
+   task = xml_create ("task");
+   xml_set (task, "id", sbuf);
+   xml_append (datasheet, task);
+   output ('A', "%s-%s-%s", sbuf, xml_attrval (def, "role"), xml_attrval (def, "label"));
+
+   holder = xml_firstelem (def);
+   while (holder != NULL) {
+      if (!strcmp (holder->name, "data")) {
+         data = xml_create ("data");
+         xml_set (data, "id", xml_attrval (holder, "name"));
+         xml_set (data, "type", xml_attrval (holder, "type"));
+         xml_append (task, data);
+      }
+      holder = xml_nextelem (holder);
+   }
+   keep = 1;
+}
+<br><br>
+<a name="data">
+<i>Handling data</i><br>
+<br><br>
+<a name="situation">
+<i>Handling situation</i><br>
+<br><br>
+<a name="if">
+<i>Handling if and elseif</i><br>
+<br><br>
+<a name="alert">
+<i>Handling alerts</i><br>
+For the time being, anyway, we're passing alerts back to the task manager for handling.
+So our output will be an 'L' line containing the recipient, followed by the contents of the
+alert, terminated by a line containing "EOF" by itself.
+The task manager can do whatever it wants with this information.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>output ('L', "%s:%s", xml_attrval(def, "type"), xml_attrval(def, "to"));
+xml_writecontent (stdout, def);
+printf ("\nEOF\n");
+</pre></td></tr></table>
+<br><br>
+<a name="start">
+<i>start: Starting subprocesses</i><br>
+
+
+
+<center>
+[&nbsp;<a href="load_datasheet.html">Previous: Loading the datasheet for an active process</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk core index</a>&nbsp;]
+[&nbsp;<a href="globals.html">Next: Global variables: state</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,197 @@
+<head>
+<title>wftk tutorial - 04 Actors: users, groups, and permissions</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">wftk tutorial</p>
+<p>[ <a href=index.html>00 index</a> ]</p>
+<p>[ <a href=01-intro.html>01 introduction</a> ]</p>
+<p>[ <a href=02-data.html>02 data</a> ]</p>
+<p>[ <a href=03-actions.html>03 actions</a> ]</p>
+<p>[ <a href=04-actors.html>04 actors</a> ]</p>
+<p>[ <a href=05-tasks.html>05 tasks</a> ]</p>
+<p>[ <a href=06-procedures.html>06 procedures</a> ]</p>
+<p>[ <a href=07-state-machines.html>07 state machines</a> ]</p>
+<p>[ <a href=08-workflow.html>08 workflow</a> ]</p>
+<p>[ <a href=09-task-management.html>09 task mgt</a> ]</p>
+<p>[ <a href=/wftk/index.html#project>project home</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk tutorial - 04 Actors: users, groups, and permissions</div>
+
+<p>
+</p>
+<p>If we look at the elements of a workflow system in terms of a sentence, then so far we've looked at the direct object of an action (the data) and
+we've looked at the verb (the action taken) -- the obvious omission is the subject: who performed the action?  Actors are the subject of this chapter.
+</p>
+
+<p>An actor is always a <b>user</b>.  The wftk can handle a variety of different levels of formality of the basic user concept, from simply accepting
+any string as a temporary user name for a given action, to maintaining a special list in the repository which identifies users.  (And that list, of course,
+can be stored anywhere, so you could simply use a table of users in MySQL, or use DBI::CSV to access the Unix /etc/passwd file, or use an LDAP directory
+to keep your user information.)
+</p
+
+<p>An actor is generally human, but the wftk explicitly provides some support for <b>bots</b>, which are automated actors.  Even a bot requires a user
+record, though.
+</p>
+
+<p>Actors can be grouped into <b>groups</b>.  Again, a group can be as simple as a list of attributes claimed by a user or as complex as an LDAP lookup.
+The key is that we can always ask the repository whether a given user is a member of a given group.  In some systems we can also get a list of members
+of a given group, but that's just a bonus; it's not really required.
+</p>
+
+<p>The final concept in this chapter is the notion of <b>permission</b>, sometimes also called "privileges" or "rights".  A permission determines, for
+a given actor and a proposed action to be taken, whether that action will be permitted, not permitted, or permitted subject to approval.  Note that
+the idea of "permitted subject to approval" is the first place where workflow functionality starts to differ from other systems in any significant
+way.  In the standard permission system (file access privileges, or GRANT/REVOKE rights in SQL), we can only decide for a given user whether that user
+is trusted with all actions of a certain category, or not trusted at all.  In a workflow system, we have a third option: we can trust a user to <i>propose</i>
+an action, yet not trust the user to propose it correctly.  The decision whether to take an action is then the responsibility of others, and that
+decision process is amenable to management as a workflow process, because the wftk is, in fact, first and foremost a workflow system even if it has
+taken three previous chapters to get to the point where that can start to be clear.
+</p>
+
+<p>An example of such a level of trust might be the submission of patches to a software product.  We can easily see that there are some people we don't
+trust to check things into CVS.  Just as obviously, every project has an owner who has our implicit trust.
+But if we could invoke workflow for groups of patches, then we could
+do two things: first, we could use CVS update as our standard bug patch submission channel, and everyone would have update permission -- because no
+commit would have any effect on the actual code repository until it had been approved.  But the second benefit is that <i>everyone</i> can be subject
+to that same process of approval, even the owner.  Why?  Well, consider that the approval process might include a run of automated testing.  Even if I
+own the project, if my patch breaks tests, I would prefer that it not be applied until I can address it -- or if I'm really in a hurry for an emergency
+change, I can override the procedure and force approval.  Either way, I have a record of what I've done in the process enactment,
+so I can't forget it later.  This is what
+workflow can give you even in small -- even one-person -- project groups.  It formalizes and manages some aspects of the decision-making process.
+</p>
+
+<p>Another obvious application is collaborative data management.  I might have a class of users empowered to propose changes, and another class of users
+empowered to approve them -- and that facility could easily be integrated with any database search tool.
+</p>
+
+<p>The approval process can incorporate (i.e. formalize) escalation (this is something we'll revisit later).  For instance, consider submissions to
+a forum.  We can easily imagine an approval process which automatically approves many submissions, uses automated spam tools to reject others, and escalates
+to a human moderator in cases of doubt.  The human moderator can in turn escalate to a technical support person in cases where there's even more doubt.
+And that escalation could itself be handled as a separate case, passed from person to person, and the wftk would always be able to keep track of its
+entire history in detail, even though at that level there are few formal procedures.
+</p>
+
+<p>This chapter isn't going to examine any complex workflow yet.  Here, we're just going to look at the permission facility itself -- how it makes the
+decision to allow/deny/submit for approval any proposed action.  As with all things wftk, it uses a modular interface to call a set of rules, and there is
+a default decision engine you can use or override at your leisure.
+</p>
+
+<p>Here is an index to the information in this chapter:</p>
+
+(unresolved tag 04-index)
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

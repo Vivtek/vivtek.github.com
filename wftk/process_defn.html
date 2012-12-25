@@ -1,0 +1,413 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Process definition</TITLE>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Process definition</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+<i>(2/3/00)</i> - At this point it's possible to start specifying what a process definition should look like.  We've already
+decided that since a process definition is a document-like, complex entity, that XML is a good representation (the 
+alternative would have been to define a set of tables which, taken together, would define processes, but I don't see
+process definitions as being all that easy to orthogonalize into neat tables.)
+<p>
+If we look through our <a href=/wftk/usage_scenarios.html>usage scenarios</a> and collect all the requirements for
+processes into one list, we get this:<ul>
+<li>A task is associated with a role and is assigned to an actor when it's activated.
+<li>Roles are queues, and task assignment may be arbitrarily complex. 
+<li>Tasks may be dependent on multiple preconditions (both invoice and chair must be received before we send payment.) 
+<li>Tasks may have complex dependency relationships. 
+<li>Iteration is necessary. 
+<li>Partial fulfillment of tasks seems a reasonable option. 
+<li>Data in external databases may be associated with tasks and with cases. 
+<li>Other values (i.e. values not stored in external data sources) may also be associated with cases (the requesting employee, the item requested.) 
+<li>Tasks may have deliverables. 
+<li>An individual task may represent a subprocess.
+<li>Completion of each task in a given process may itself be a subprocess. 
+<li>Processes exist in a system of processes. Processes must have facilities to affect one another.
+<li>Parameterized invocation of processes and subprocesses. 
+<li>Notification should be specifiable either on the individual task level (as an explicit box) or in some global way across the entire process. These specifications
+    may be mixed in a single process. 
+<li>Some kind of message-handling system would be nice. 
+<li>Exception handling (what to do when things go wrong) must be done, if not perfectly then at least gracefully. 
+<li>Exception handling: a sub-subprocess, in the case of SourceXchange, can cause an exception in the main process. 
+</ul>
+I've deleted some of the requirements as being more applicable to the <a href=/wftk/server_design.html>overall server
+design</a>, but otherwise this list is pretty much pulled verbatim out of the usage scenarios.  So the task before us is
+to create an XML DTD (a document type definition) which covers enough structure to fulfill those requirements.
+<p>
+It's important to consider what exactly a process <i>is</i>.  What should the capabilities be of a workflow engine?  What
+tools do we provide to the process designer?  In my view, a workflow engine should be a system which supports the organization
+of asynchronous processes.  This differs from "regular" programming in that the pieces of these processes are distributed,
+they're sometimes very slow (requiring weeks or even years to complete), they are sometimes automated but sometimes performed
+by regular sloppy human beings, and they can happen in parallel instead of requiring a determinate sequence.  Otherwise, in
+my view, <i>workflow design is just plain programming</i>.  If we leave features out of the language, we will sorely regret
+it later when it turns out we just can't represent a particular process in workflow, thus rendering the entire project
+useless.  But we can't forget goal #1 -- ease of use.  If we provide an entire programming language, then we require
+programming skill to use it, right?  I think this isn't the case; the problem with (most) existing programming languages is
+that the initial learning curve is too steep.  The tools are too hard to get started with.  But remember that gradeschool
+kids can learn how to use Logo to program robotic turtles.  Why is this?  Well, the turtles are fun and they're easy to
+understand.  Likewise, workflow automation should be fun and easy to understand; after all, we all work, we all get things
+done by performing tasks.  Anybody can write a to-do list on an envelope and use it to manage their day, and that's where
+workflow programming will start.
+<p>
+Well, that paragraph may not have been particularly germane to process definitions, but I had to say it somewhere, and it
+serves as justification for some of the decisions you'll see in the following -- to paraphrase Einstein, we should make
+workflow as simple as possible, but no simpler.  The design UI can still be extremely easy to use, and I think we can create
+tools which will allow the incremental elaboration of workflow designs, so that complex designs will end up being easy to
+create.
+<p>
+So what features do we need in process definitions?  I've broken things down into the following subheadings:<ul>
+<li><a href="#workflow">Process definition and miscellaneous glue</a>
+<li><a href="#tasks">Tasks</a>
+<li><a href="#control">Control structures</a>
+<li><a href="#data">Data sources and variables</a>
+<li><a href="#roles">Roles</a>
+<li><a href="#alerts">Alerts and notifications</a>
+<li><a href="#evaluation">Evaluation</a>
+<li><a href="#examples">Examples</a>
+<li><a href="#dtd">XML DTD></a>
+</ul>
+This page as a whole is pretty monolithic.  Sorry.  There's a lot to say.
+<p>
+<a name="workflow">
+<b>Process definition document and some miscellaneous stuff</b><br>
+The document is a file which contains XML.  That's clear.  But what objects are we really defining there?  It seems to me
+that two kinds of things can be located in a document: a <i>workflow</i> or a <i>subprocess</i>.  The difference between
+these is that a workflow is a process which can be seen separately in reporting (even if used as a subprocess elsewhere)
+and a subprocess is something which can be executed only as a subprocess of a named workflow and <i>won't</i> show up
+as a separate process.  The difference is pretty much the same as between a program and a subroutine in BASIC, except
+that the ramifications really extend to how processes are represented in the active process repository.
+<p>
+So each document can contain zero or one workflow, and zero or more subprocesses.  If no workflow is included in the
+document, it is considered a library.  Note that since the version of a document applies to the whole document, it would be
+inadvisable to put more than one workflow into a single document, as we'd lose modularity, not to mention that the
+workflow can most conveniently be identified by its document identifier.
+<p>
+The XML definition of a workflow entity looks like this:<br>
+<code>
+&nbsp;&nbsp;&nbsp&lt;workflow name="Chair purchase" author="Michael" original_date="2000/01/31" last_modified="2000/02/01"&gt;
+</code><br>
+I'll surely realize more attributes later, but those seem to be a good list.  Anyway, the definition of the workflow is
+included inside this tag and its end:<br>
+<code>
+&nbsp;&nbsp;&nbsp&lt;/workflow&gt;
+</code><br>
+One entity which I might as well toss in right now is a description of the workflow.  This could be considered general HTML
+and it would look like this:<br>
+<code>
+&nbsp;&nbsp;&nbsp&lt;note type="description"&gt; (arbitrary HTML here) &lt;/note&gt;
+</code><br>
+The description is not just a comment, it's the text used to describe the workflow in lists, etc.  To facilitate annotation
+and comments, the designer may either use XML comments (which won't be accessible to tools) or another keyword on note.
+I see notes as being attachable to any other entity in a document, and by use of keywords they could be used to build various
+tool helpers, automated documentation systems, whatever.  Only the keyword "description" has meaning for the engine.
+<p>
+Finally, how do we specify a subprocess?  This seems to work for me:<br>
+<code>&nbsp;&nbsp;&nbsp&lt;subprocess name="something"&gt;</code><br>
+Processes and subprocesses are parameterized, but I see parameters as being variables which are set when activated, and so
+I'll cover those later.
+<p>
+<a name="tasks">
+<b><a href=/wftk/process_defn/task.html>Tasks</a></b><br>
+So great, we can define a workflow that doesn't do anything.  The next item we need to be able to represent is the task.
+In normal workflow parlance, a task is an actively doable thing, as opposed to an action, which is the specification of an
+actual concrete task.  I personally think that this distinction is jargon: it's not particularly supported by normal English
+usage of the two words, and it makes workflow harder to understand without adding any real value.  So I talk about "tasks"
+in this whole project as being things to do, whether they're ready to do right now, or not.  If I really need to make a
+distinction, I talk about "active tasks".  This seems sufficiently descriptive.
+<p>
+All that was by way of apology for calling the basic unit of work a "task."  And the XML entity is, well, "task":<br>
+<code>&nbsp;&nbsp;&nbsp&lt;task label="taskname" role="rolename"&gt; ... &lt;/task&gt;</code><br>
+A description tag can be added to the task, and of course arbitrary notes can be added as well.  A task is something to do, a unit
+of work.  As such, a task could be performed by a human being or by a program.  While active, the task maintains a record
+in the active process repository, and its completion can be signalled by various mechanisms.  In the spirit of adaptibility,
+the mechanisms should be completely interchangeable, but two that we'll surely want are HTTP POST and email.  We may think
+of others later.
+<p>
+We also know that a task may set variable values, it may make other data changes, and it may create or modify a deliverable.
+It may create a new subprocess or even a new process (which would run independently of the current process).  So all in
+all the specification of a task will probably turn out to be the most complex aspect of process definition.  I think rather
+than clutter up this page, I'm going to create a <a href=process_defn/task.html>subpage which will describe task definition</a>,
+and I'm going to go on.
+<p>
+<a name="control">
+<b>Control structures</b><br>
+So how are tasks strung together?  There are four control structures that we'll need to combine tasks into a workflow: <ul>
+<b><li>Sequence</b><br>
+   The sequence is the most obvious: do this, then do this.
+<b><li>Parallel</b><br>
+   But parallel execution, I think, is the most natural combination of tasks.  If I have five tasks, then if I could do five
+   things at once, I'd normally do all at once, right?
+   <p>
+   Between sequence and parallel, we can combine tasks that have arbitrary dependencies on one another.  These two
+   aggregates are enough to represent any non-looping PERT chart.
+<b><li><a href=/wftk/process_defn/loop.html>Iteration</a></b><br>
+   Iteration, or looping, is simply doing things repetitively.  The loop is broken conditionally.
+<b><li><a href=/wftk/process_defn/if.html>Conditional</a></b><br>
+   The conditional (do this "if" this is true) completes our set.  Conditionals allow us to perform tasks only when
+   certain conditions are met.  Hence the name.
+</ul>
+So let's design some tags.  Sequence and parallel are easy:<br>
+<code>&nbsp;&nbsp;&nbsp&lt;sequence&gt; (some tasks) &lt;/sequence&gt; <br>
+&nbsp;&nbsp;&nbsp&lt;parallel&gt; (some tasks) &lt;/parallel&gt;</code><br>
+Iteration is complicated enough that I've given it
+<a href=/wftk/process_defn/loop.html>its own page</a>,
+but it's based on a nice construct I found years ago in Knuth and always wanted to build into a language. 
+There is no need for a separate loop tag, as it occurred to me that looping can easily be
+noted by a <code>repeat</code> parameter on the sequence and parallel tags.
+ The conditional <code>&lt;if&gt;</code> is based on the LISP conditional cond and likewise has 
+<a href=process_defn/if.html>its own page</a>.
+<p>
+Any of these constructs has the effect of grouping other blocks together, so ultimately we have four entities that stand
+for "things to do": <code>task</code>, <code>sequence</code>, <code>parallel</code>, and <code>if</code>.  There will be
+a couple of others, such as <code>situation</code> and <code>alert</code>, but those will be dealt with below.
+<p>
+<a name="data">
+<b><a href=/wftk/process_defn/data.html>Data sources and variables</a></b><br>
+The next step up in complexity is letting data be attached to a process.  I see three general ways this makes sense:<ul>
+<b><li>Values internal to the process</b><br>
+   Process values, or variables, would be stored in an XML value sheet associated with the process, and stored as a 
+   document in the deliverable repository.
+<b><li>Files/documents</b><br>
+   Files or documents which are relatively independent of the process would be stored directly in the deliverable
+   repository.  So really the deliverable repository needn't be restricted to things we really want to call deliverables
+   of a process; it's just a place to store associated documents and files.
+<b><li>Relational data</b><br>
+   This is still open, as far as I'm concerned, because I'll have to implement a prototype before I can really understand
+   what will make sense.  But it seems to me that I'd like to be able to associate two things with a process: first, an
+   entire table in a relational database, and second, an individual record.  The entire table may well be a temporary table,
+   for instance, which has been created specifically for the process.
+</ul>
+All these (and probably more) will be available with the tag <code>&lt;data&gt;</code>:<br>
+<code>&nbsp;&nbsp;&nbsp&lt;data name="myvalue" type="type"&gt; (type-specific specification) &lt;/data&gt;</code><br>
+The types available will be at least variable, query, table, record, document, and file.  Note that this is yet another area
+where the adapter concept will save us from having to make too many decisions.
+The <code>&lt;data&gt;</code> tag is covered on <a href=/wftk/process_defn/data.html>its own page</a>.
+<p>
+<i>(2/23/00></i> After some feedback from Thomas Fricke, and some thought on the matter, I think I'm a little closer to
+understanding where we need to go with data.  Since data is pretty crucial to processes, getting data handling write is
+crucial to this project.  So read about the <code>&lt;data&gt;</code> tag to find out what I have in mind.
+<p>
+<a name="roles">
+<b>Roles</b><br>
+I'm still not quite sure of the best way to specify roles, but I'm getting closer.  It seems
+to me that first of all, the name of a role is very process-specific, especially in the case of a remotely-obtained process
+definition.  So the process definition should declare its roles at the front, and the engine should maintain a set of role
+queues, and then <i>somehow</i> process roles need to get matched up with role queues...  The logical way for that to
+happen is a set of rules.  An administrative process, actually.
+<p>
+Whenever a role is defined in a local process, then the designer should be able to pre-pick a local role queue to match up
+with it.  But whenever a remote process definition is obtained, then an administrator needs to make a decision: this "secretary"
+role in this process matches up with our "SecPool" queue.  From that point on, new invocations of that process will use the
+SecPool queue.
+<p>
+So the logical tag definition for a role would be:<br>
+<code>
+&nbsp;&nbsp;&nbsp;&lt;role name="myrole"&gt; &lt;note type="description"&gt; (general description HTML) &lt;/note&gt; &lt;/role&gt;
+</code><br>
+I <i>think</i> this will be enough detail, but the proof will be in the pudding.  The description will be necessary in order
+for the local admin to make a decision.  (Or actually, perhaps the person invoking the process should make this sort of
+decision.  Any opinions?)
+<p>
+<a name="alerts">
+<b><a href=/wftk/process_defn/alert.html>Alerts and notifications</a></b><br>
+I toyed with the idea of considering notifications part of the normal process, but actually I don't think they should be.
+First, a notification is not the same as a task -- it isn't something which hangs on the database until it's complete.
+Instead, it executes conceptually instantaneously, sending a message at a particular point in time.
+<p>
+In general, then, I'd like to see two kinds of alert: one would simply be embedded somewhere (anywhere) and would send a
+message whenever the control flow hit that point.  The other kind would be analogous to a trigger, and would send a message
+whenever a particular situation obtained.  (Naturally, this would require a table of conditions to be maintained by the
+engine, which would be scanned each time anything happened during the process.  This needn't be considered horribly expensive,
+as workflow processes are presumed to be very long in duration anyway.)
+<p>
+Logically it would be reasonable, given the presence of this condition-scanning table, to allow the administrator or
+manager to attach an alert to any process or class of processes.  In fact, it makes sense to allow that functionality to
+<i>anybody</i> who can see a process.  Thus if I'm following a process, I can simply tell the system, "Tell me when this
+step completes" and this will create an alert for this particular process.  If two alerts fire at the same time and should
+go to the same person with the same method, then they are combined into a single message.
+<p>
+Which brings up the question as to how the alerts are actually done.  Email is, of course, the obvious choice, but it may
+also make sense to provide other mechanisms: perhaps a POST to a particular URL (convenient for alerting other systems),
+or simply an entry in a task list local to the system.  Another I've seen is the use of pagers, which would be supportable
+using a POST to a URL but would be convenient to label as "page me".  And another which makes sense to me is simply to
+write some HTML to a file, to provide a status page.  And finally, if we allow an alert to create a process or ad-hoc task,
+then this alert mechanism is an excellent way to specify exception handling.
+<p>
+Anyway, an alert consists of fields, which are values or text.  It also specifies its type (which allows the system to
+find out how to perform the notification) and possibly a condition.  If no condition is specified, then the alert fires
+immediately; otherwise, it waits for its condition to become
+true (or it waits until the block it occurred in goes out of scope; so for instance, a watch can be placed on a
+particular sequence and it will disappear if its condition doesn't occur before the sequence ends.)
+<p>
+So the specification for the <code>&lt;alert&gt;</code> tag is complicated enough that I'm giving it
+ <a href=/wftk/process_defn/alert.html>its own page</a>, too.
+<p>
+<a name="evaluation">
+<b>Evaluation</b><br>
+At various points, then, we've run into things that evaluate variables.  For instance, a conditional construct has to test
+the value of a variable.  Whenever this is the case, we have to evaluate an expression.  So how should expressions be
+encoded?  Well, the short answer at this point is, I don't know.  It's not part of the XML specification, fortunately,
+because XML doesn't support expression syntax well (there's no room for more than one complex parameter, for instance.)
+<p>
+Currently I'm thinking about Tcl.  This is partly because I know it, partly because I'm intending to write the engine in C,
+and partly because Tcl is easy to embed.  However, embedding a full-scale scripting language in the engine means some
+serious thought has to go into how it would interface and what it could do.  So that might be overly ambitious.  But the
+fact remains that <i>some</i> way of expressing calculations like "a > 4 or b < 2" has to be included in a reasonable
+implementation of a conditional.  And if the conditional needs it then it might as well be available to everybody else.
+<p>
+This may have to wait until wftk 2.0, for all I know.  If I come up with a good plan, you'll be the first to know -- and if
+<i>you</i> come up with a good plan, I'd like to hear it.
+<p>
+<a name="examples">
+<b>Examples</b><br>
+The logical examples will be, of course, renderings of our <a href="usage_scenarios.html">usage
+scenarios.</a>  Those are as follows:<ul>
+<li><a href=/wftk/process_defn/chair_defn.html>Chair purchase</a> (2/13/00)
+<li><a href=/wftk/process_defn/tradeshow_defn.html>Tradeshow organization</a> (2/15/00)
+<li><a href=/wftk/process_defn/openproj_defn.html>Open-source project</a>
+<li><a href=/wftk/process_defn/closedproj_defn.html>Closed-source project</a>
+<li><a href=/wftk/process_defn/ecomm_defn.html>Ecomm order placement</a>
+<li><a href=/wftk/process_defn/sxc_defn.html>SourceXchange project</a>
+</ul>
+<p>
+<a name="dtd">
+<b>XML DTD</b><br>
+<i>(2/24/00)</i> The DTD can be found <a href=/wftk/process_defn/xml_dtd.html>here</a>.  I haven't tested it yet.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

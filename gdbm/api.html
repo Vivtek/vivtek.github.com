@@ -1,0 +1,489 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>gdbm API</TITLE>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">gdbm</p>
+<p>[ <a href="/gdbm/">home</a> ]</p>
+<p>[ <a href="/gdbm/api.html">api</a> ]</p>
+<p>[ <a href="/gdbm/example.html">example code</a> ]</p>
+<p>[ <a href="/projects/">other programming</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>gdbm</u> -- Functions and data types</h2>
+[&nbsp;<a href=/gdbm.html>up to gdbm index</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+<center><table width=75%><tr><td>
+<font face=arial size=-1>
+The gdbm library provides three modes, gdbm, dbm, and ndbm, the last two of which are provided
+for reverse compatibility.  All three use the same data structures, but they have different
+file formats.  This API description lists the functions together where they are equivalent in
+the three modes.
+</font>
+</td></tr></table></center>
+</td></tr>
+
+<tr><td>
+<hr width=50%>
+<center><font face=arial size=+1>DATA STRUCTURES</font><br>
+<hr width=50%>
+</td></tr>
+
+<tr><td>
+<a name="GDBM_FILE"><a name="DBM">
+<strong>GDBM_FILE</strong> and <strong>DBM</strong>
+<br>Structures used to identify an open file for gdbm and ndbm modes.  GDBM_FILE is passed as is, not as a pointer
+like stdio's FILE *, but DBM is used exactly like that: DBM *.  The dbm mode has no corresponding
+structure, because only one file may be open at a time in dbm mode.
+<p>
+<a name="datum">
+<strong>datum</strong>
+<br>The datum is a simple structure:
+<pre>
+typedef struct {
+   char *dptr;
+   int  dsize;
+} datum;
+</pre>
+It's used to pass keys and data back and forth from all functions in gdbm.  Note that this means
+you're not dependent on the null terminator, but for ease of use, many programs still include
+the null terminator in keys and data.  If your program must interact with others, be sure you
+understand whether the others are including those terminators or not.
+<p>
+<hr width=50%>
+<a name="gdbm_error">
+<strong>gdbm_error</strong>
+<br>This is an enumerated type, with the following possible values (along with the error messages
+that <a href="#gdbm_strerr">gdbm_strerr</a> returns.)  As you can see, the stock error messages
+don't tell you a lot more than you already know, but fortunately all the error returns are
+pretty obvious after reading the description of the function that returns them.
+<blockquote>
+<table border=0 cellpadding=0 cellspacing=0>
+<tr><td>0</td><td rowspan=21 width=8>&nbsp;</td><td>GDBM_NO_ERROR</td><td rowspan=21 width=8>&nbsp;</td><td><code>No error</code></td></tr>
+<tr><td>1</td><td>GDBM_MALLOC_ERROR</td><td><code>Malloc error</code></td></tr> 
+<tr><td>2</td><td>GDBM_BLOCK_SIZE_ERROR</td><td><code>Block size error</code></td></tr> 
+<tr><td>3</td><td>GDBM_FILE_OPEN_ERROR</td><td><code>File open error</code></td></tr>
+<tr><td>4</td><td>GDBM_FILE_WRITE_ERROR</td><td><code>File write error</code></td></tr> 
+<tr><td>5</td><td>GDBM_FILE_SEEK_ERROR</td><td><code>File seek error</code></td></tr> 
+<tr><td>6</td><td>GDBM_FILE_READ_ERROR</td><td><code>File read error</code></td></tr>
+<tr><td>7</td><td>GDBM_BAD_MAGIC_NUMBER</td><td><code>Bad magic number</code></td></tr> 
+<tr><td>8</td><td>GDBM_EMPTY_DATABASE</td><td><code>Empty database</code></td></tr> 
+<tr><td>9</td><td>GDBM_CANT_BE_READER</td><td><code>Can't be reader</code></td></tr> 
+<tr><td>10</td><td>GDBM_CANT_BE_WRITER</td><td><code>Can't be writer</code></td></tr>
+<tr><td>11</td><td>GDBM_READER_CANT_DELETE</td><td><code>Reader can't delete</code></td></tr> 
+<tr><td>12</td><td>GDBM_READER_CANT_STORE</td><td><code>Reader can't store</code></td></tr> 
+<tr><td>13</td><td>GDBM_READER_CANT_REORGANIZE</td><td><code>Reader can't reorganize</code></td></tr>
+<tr><td>14</td><td>GDBM_UNKNOWN_UPDATE</td><td><code>Unknown update</code></td></tr> 
+<tr><td>15</td><td>GDBM_ITEM_NOT_FOUND</td><td><code>Item not found</code></td></tr> 
+<tr><td>16</td><td>GDBM_REORGANIZE_FAILED</td><td><code>Reorganize failed</code></td></tr>
+<tr><td>17</td><td>GDBM_CANNOT_REPLACE</td><td><code>Cannot replace</code></td></tr>
+<tr><td>18</td><td>GDBM_ILLEGAL_DATA</td><td><code>Illegal data</code></td></tr> 
+<tr><td>19</td><td>GDBM_OPT_ALREADY_SET</td><td><code>Option already set</code></td></tr>
+<tr><td>20</td><td>GDBM_OPT_ILLEGAL</td><td><code>Illegal option</code></td></tr>
+</table>
+
+</td></tr>
+
+<tr><td>
+<p>
+<hr width=50%>
+<center><font face=arial size=+1>EXTERN VARIABLES</font><br>
+<hr width=50%>
+</td></tr>
+
+<tr><td>
+<a name="gdbm_errno">
+<code>extern <a href="#gdbm_error">gdbm_error</a> <strong>gdbm_errno</strong></code>
+<br>Contains the error number of the last error encountered.
+<p>
+<a name="gdbm_version">
+<code>extern char *<strong>gdbm_version</strong></code>
+<br>Points to a version string suitable for framing.
+</td></tr>
+
+<tr><td>
+<p>
+<hr width=50%>
+<center><font face=arial size=+1>FUNCTIONS</font><br>
+[&nbsp;<a href="#gdbm_open">open</a>&nbsp;]
+[&nbsp;<a href="#gdbm_close">close</a>&nbsp;]
+[&nbsp;<a href="#gdbm_store">store</a>&nbsp;]
+[&nbsp;<a href="#gdbm_fetch">fetch</a>&nbsp;]
+[&nbsp;<a href="#gdbm_exists">key&nbsp;existence</a>&nbsp;]
+[&nbsp;<a href="#gdbm_delete">delete</a>&nbsp;]
+[&nbsp;<a href="#gdbm_firstkey">first&nbsp;key</a>&nbsp;]
+[&nbsp;<a href="#gdbm_nextkey">next&nbsp;key</a>&nbsp;]
+<hr width=50%>
+</td></tr>
+
+<tr><td>
+<a name="gdbm_open"><a name="dbminit"><a name="dbm_open">
+<a href="#GDBM_FILE">GDBM_FILE</a>
+     <font size=+1><strong>gdbm_open</strong></font> (name, block_size, read_write, mode, fatal_func) <i>[gdbm]</i><br>
+int <font size=+1><strong>dbminit</strong></font> (name) <i>[dbm]</i><br>
+<a href="#DBM">DBM</a>
+     *<font size=+1><strong>dbm_open</strong></font> (name, flags, mode) <i>[ndbm]</i><br>
+<blockquote>
+     char * <i>name</i><br>
+     int <i>block_size, read_write, flags, mode</i><br>
+     void (*<i>fatal_func</i>) ();
+</blockquote>
+Each function opens the database file named by <i>name</i>.  In gdbm mode, the file is named
+normally; in dbm and ndbm modes each database consists of two files with extensions .dir and .pag,
+so <i>name</i> refers to the common name without extensions.  So a database named "aliases" 
+resides in the files "aliases.dir" and "aliases.pag", and <i>name</i> is specified as "aliases".
+<p>
+The <i>blocksize</i> is meaningful only when creating a new gdbm database; it is the retrieval
+block size to be used for the file.  If a number less than 256 is given, the system <i>stat</i>
+page size will be used, but if you are storing large chunks of data in your file, you may want
+to consider bumping <i>blocksize</i> up.
+<p>
+The <i>read_write</i> parameter may take the following values:<ul>
+<li>GDBM_READER to open the file as a reader
+<li>GDBM_WRITER to open the file as a writer
+<li>GDBM_WRCREAT to open as a writer and create the file if it doesn't exist
+<li>GDBM_NEWDB to open as a writer and overwrite any existing file
+</ul>
+There may be only one writer at a time, but an arbitrary number of readers.  If a file is
+open for writing, attempts to open it for reading will fail.  For any of the writer variations
+above, you can also bitwise-OR a flag GDBM_FAST into the flags; this causes gdbm to avoid
+writing data to the file until told to do so by <a href="#gdbm_sync">gdbm_sync</a>.  You can
+also get this behavior after opening by using <a href="#gdbm_setopt">gdbm_setopt</a>.
+<p>
+I haven't found documentation for the <i>flags</i> parameter for ndbm.
+<p>
+The <i>mode</i> parameter specifies the mode of a newly created database file; it takes the same
+form as for Unix <code>chmod</i>, so for instance 0666 is read-write access for everybody.
+<p>
+Finally, <i>fatal_func</i> can be used to assign an error handler; the function should take a
+single string.  If you specify 0 for this function, gdbm uses a default handler.
+<p>
+<hr width=50%>
+<a name="gdbm_close"><a name="dbmclose"><a name="dbm_close">
+void <font size=+1><strong>gdbm_close</strong></font> (dbf) <i>[gdbm]</i><br>
+int  <font size=+1><strong>dbmclose</strong></font> () <i>[dbm]</i><br>
+void <font size=+1><strong>dbm_close</strong></font> (file) <i>[ndbm]</i>
+
+<blockquote>
+     <a href="#GDBM_FILE">GDBM_FILE</a> <i>dbf</i><br>
+     <a href="#DBM">DBM</a> *<i>file</i>
+</blockquote>
+These functions close files.  Duh.
+<p>
+<hr width=50%>
+<a name="gdbm_store"><a name="store"><a name="dbm_store">
+     int
+     <font size=+1><strong>gdbm_store</strong></font> (dbf, key, content, flag) <i>[gdbm]</i><br>
+     int
+     <font size=+1><strong>store</strong></font> (key, content) <i>[dbm]</i><br>
+     int
+     <font size=+1><strong>dbm_store</strong></font> (file, key, content, flags) <i>[ndbm]</i>
+<blockquote>
+     <a href="#GDBM_FILE">GDBM_FILE</a> <i>dbf</i><br>
+     <a href="#DBM">DBM</a> *<i>file</i><br>
+     <a href="#datum">datum</a> <i>key, content</i><br>
+     int <i>flag, flags</i>;
+</blockquote>
+Stores a value into a database file with key <i>key</i> and data <i>content</i>.  The <i>flag</i>
+parameter (or <i>flags</i> under ndbm) may be one of:<ul>
+<li>GDBM_INSERT to insert a new record
+<li>GDBM_REPLACE to insert the record but to replace the record if the key is already found.
+</ul>
+Gdbm will never create a duplicate key; if GDBM_INSERT is specified, then a return code of 1 will
+result in the event of a pre-existing key but no new record will be added.  If successful, the
+function returns 0.  If a reader attempts to call this function, a return code of -1 results.
+<p>
+<hr width=50%>
+<a name="gdbm_fetch"><a name="fetch"><a name="dbm_fetch">
+     <a href="#datum">datum</a>
+     <font size=+1><strong>gdbm_fetch</strong></font> (dbf, key) <i>[gdbm]</i><br>
+     <a href="#datum">datum</a>
+     <font size=+1><strong>fetch</strong></font> (key) <i>[dbm]</i><br>
+     <a href="#datum">datum</a>
+     <font size=+1><strong>dbm_fetch</strong></font> (file, key) <i>[ndbm]</i>
+
+<blockquote>
+     <a href="#GDBM_FILE">GDBM_FILE</a> <i>dbf</i><br>
+     <a href="#DBM">DBM</a> *<i>file</i><br>
+     <a href="#datum">datum</a> <i>key</i>
+</blockquote>
+Retrieves the contents of key <i>key</i> into the return value.  If <i>key</i> isn't found in
+the database, then the dptr of the return datum will be NULL.  The dptr points to a data buffer
+which is allocated with <code>malloc</code> so you <i>have to free it</i> when you're done with it.
+If you don't like that kind of discipline, well then, switch to Java, bucko!
+<p>
+<hr width=50%>
+<a name="gdbm_exists">
+     int
+     <font size=+1><strong>gdbm_exists</strong></font> (dbf, key) <i>[gdbm only]</i><br>
+
+<blockquote>
+     <a href="#GDBM_FILE">GDBM_FILE</a> <i>dbf</i><br>
+     <a href="#datum">datum</a> <i>key</i>
+</blockquote>
+Checks for the existence of a key <i>key</i> without the memory allocation required by a fetch.
+If the key exists, the return value will be true, otherwise it's 0.
+<p>
+<hr width=50%>
+<a name="gdbm_delete"><a name="delete"><a name="dbm_delete">
+     int
+     <font size=+1><strong>gdbm_delete</strong></font> (dbf, key) <i>[gdbm]</i><br>
+     int
+     <font size=+1><strong>delete</strong></font> (key) <i>[dbm]</i><br>
+     int
+     <font size=+1><strong>dbm_delete</strong></font> (file, key) <i>[ndbm]</i>
+
+<blockquote>
+     <a href="#GDBM_FILE">GDBM_FILE</a> <i>dbf</i><br>
+     <a href="#DBM">DBM</a> *<i>file</i><br>
+     <a href="#datum">datum</a> <i>key</i>
+</blockquote>
+Deletes a key.  The file will not shrink unless you perform a <a href="#gdbm_reorganize">gdbm_reorganize</a>,
+but will be reused, if possible, by the next store operation.  If the key wasn't present or if
+the file is opened as a reader, then the return code will be -1.
+<p>
+<hr width=50%>
+<a name="gdbm_firstkey"><a name="firstkey"><a name="dbm_firstkey">
+     <a href="#datum">datum</a>
+     <font size=+1><strong>gdbm_firstkey</strong></font> (dbf) <i>[gdbm]</i><br>
+     <a href="#datum">datum</a>
+     <font size=+1><strong>firstkey</strong></font> () <i>[dbm]</i><br>
+     <a href="#datum">datum</a>
+     <font size=+1><strong>dbm_firstkey</strong></font> (file) <i>[ndbm]</i>
+
+<blockquote>
+     <a href="#GDBM_FILE">GDBM_FILE</a> <i>dbf</i><br>
+     <a href="#DBM">DBM</a> *<i>file</i>
+</blockquote>
+Use this along with the <a href="#gdbm_nextkey">nextkey functions</a> for iterating through
+all the keys of a database.  If you've opened the
+database in writer mode, though, be careful.  If you make any changes while iterating, you're
+not guaranteed to visit all the keys!
+<p>
+A NULL value for the dptr of the return value means there are no keys in the file.
+<p>
+<hr width=50%>
+<a name="gdbm_nextkey"><a name="nextkey"><a name="dbm_nextkey">
+     <a href="#datum">datum</a>
+     <font size=+1><strong>gdbm_nextkey</strong></font> (dbf, key) <i>[gdbm]</i><br>
+     <a href="#datum">datum</a>
+     <font size=+1><strong>nextkey</strong></font> (key) <i>[dbm]</i><br>
+     <a href="#datum">datum</a>
+     <font size=+1><strong>dbm_nextkey</strong></font> (file) <i>[ndbm]</i>
+
+<blockquote>
+     <a href="#GDBM_FILE">GDBM_FILE</a> <i>dbf</i><br>
+     <a href="#DBM">DBM</a> *<i>file</i><br>
+     <a href="#datum">datum</a> <i>key</i>
+</blockquote>
+Once you've started an iteration with <a href="#gdbm_firstkey">firstkey</a>, you can supply
+that key to this function to get the next key in the iteration.  If you've given the last
+key in the file, the dptr element of the return value will be NULL, just like firstkey.
+<p>
+<hr width=50%>
+<a name="gdbm_reorganize">
+     int
+     <font size=+1><strong>gdbm_reorganize</strong></font> (dbf) <i>[gdbm only]</i><br>
+
+<blockquote>
+     <a href="#GDBM_FILE">GDBM_FILE</a> <i>dbf</i>
+</blockquote>
+Use this to shrink your database file if you've done a lot of deletions.  This is the only
+way to get a file to shrink.  Ever.
+<p>
+<hr width=50%>
+<a name="gdbm_sync">
+     void
+     <font size=+1><strong>gdbm_sync</strong></font> (dbf) <i>[gdbm only]</i><br>
+
+<blockquote>
+     <a href="#GDBM_FILE">GDBM_FILE</a> <i>dbf</i>
+</blockquote>
+Forces a write to the database if you've used the GDBM_FAST flag with <a href="#gdbm_open">gdbm_open</a>
+or you've set fast mode using <a href="#gdbm_setopt">gdbm_setopt</a>.  Until a sync is done,
+gdbm will work from its memory cache wherever possible.
+<p>
+<hr width=50%>
+<a name="gdbm_strerror">
+     char *
+     <font size=+1><strong>gdbm_strerror</strong></font> (errno) <i>[gdbm only]</i><br>
+
+<blockquote>
+     <a href="#gdbm_error">gdbm_error</a> errno;
+</blockquote>
+Returns a nice error message for the given error.
+<p>
+<hr width=50%>
+<a name="gdbm_setopt">
+     int
+     <font size=+1><strong>gdbm_setopt</strong></font> (dbf, option, value, size) <i>[gdbm only]</i><br>
+
+<blockquote>
+     <a href="#GDBM_FILE">GDBM_FILE</a> <i>dbf</i><br>
+     int <i>option</i><br>
+     int *<i>value</i><br>
+     int <i>size</i>
+</blockquote>
+This can be used to set options, of which only two have been defined so far.  The value must
+be in a buffer pointed to by <i>value</i> and the size of the value given in <i>size</i>.
+
+The valid options are:<ul>
+<li>GDBM_CACHESIZE<br>
+Sets the size of the internal bucket cache, by default 100.  You can reset it once on any
+given file descriptor.
+<li>GDBM_FASTMODE<br>
+This allows you to toggle fast mode, regardless of how you originally opened the database.
+If fast mode is on (a value of TRUE), then gdbm will avoid writing data out to the file unless
+explicitly told to do so by a call to <a href="#gdbm_sync">gdbm_sync</a>.
+</ul>
+<p>
+<hr width=50%>
+<a name="dbm_error"><a name="dbm_clearerr">
+     int
+     <font size=+1><strong>dbm_error</font></strong> (DBM *file) <i>[ndbm only]</i><br>
+     int
+     <font size=+1><strong>dbm_clearerr</font></strong> (DBM *file) <i>[ndbm only]</i><br>
+<p>
+Included in GDBM only for compilation compatibility.  These are defined as macros in the GNU
+version of ndbm.h because gdbm doesn't really support this functionality:
+<pre>
+#define dbm_error(file)  (0)
+#define dbm_clearerror(file)
+</pre>
+<p>
+<hr width=50%>
+<a name="dbm_pagfno"><a name="dbm_dirfno">
+     int
+     <font size=+1><strong>dbm_pagfno</font></strong> (DBM *file) <i>[ndbm only]</i><br>
+     int
+     <font size=+1><strong>dbm_dirfno</font></strong> (DBM *file) <i>[ndbm only]</i><br>
+<p>
+Again, included in gdbm only for compilation compatibility.  They return the file numbers
+for the directory and page files (.dir and .pag) respectively under real ndbm and I frankly
+don't know <i>what</i> they do under gdbm.
+
+</td></tr>
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

@@ -1,0 +1,151 @@
+<html><head><title>To-do manager: Definition of todomgr_start</title></head>
+<body>
+<h2>Definition of todomgr_start</h2>
+<center>
+[&nbsp;<a href=todomgr_create.html>Previous: Definition of todomgr_create</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=todomgr_show.html>Next: Definition of todomgr_show</a>&nbsp;]
+</center>
+
+<hr>
+The <code>/start</code> URL is used to start workflow processes.  (This is in contrast to
+ad-hoc processes, which are not managed by the workflow engine, but rather simply serve as
+a hook to hang tasks on which are then completed in arbitrary order.)
+<p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>global todomgr_pool
+global todomgr_home
+set db [ns_db gethandle $todomgr_pool]
+<i>See <a href="user.html#check">Checking authuser</a></i>
+</pre></td></tr></table>
+
+Now that that's done, we can check our form input to see what we're actually supposed to
+be doing.  If we have an input "procdef" then we should show the starter form; if we have
+"start" and "ver" then we should call pdm to create a datasheet, add the process to the
+database, and ask wftk to start the process for us.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set form [ns_conn form $conn]
+if {$form == ""} { set form [ns_set create] }
+
+if [string compare "" [ns_set get $form procdef]] {
+   <i>See <a href="todomgr_start.html#startform">Show start form for specified procdef</a></i>
+}
+if [string compare "" [ns_set get $form start]] {
+   <i>See <a href="todomgr_start.html#start">Actually starting a new process from a procdef</a></i>
+}
+
+<i>See <a href="todomgr_start.html#showlist">Show list of available procdefs</a></i>
+</pre></td></tr></table>
+<br><br>
+<a name="showlist">
+<i>Show list of available procdefs</i><br>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set pipe [open "|$todomgr_home/pdm list start?procdef=%s" "r"]
+set tags(list) [read $pipe]
+close $pipe
+
+return [todomgr_pageout $conn startlist.html]
+</pre></td></tr></table>
+<br><br>
+<a name="startform">
+<i>Show start form for specified procdef</i><br>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set tags(procdef) [ns_set get $form procdef]
+set pipe [open "|$todomgr_home/pdm starter $tags(procdef)" "r"]
+set tags(title) [gets $pipe]
+set tags(version) [gets $pipe]
+set tags(list) [read $pipe]
+close $pipe
+
+return [todomgr_pageout $conn start.html]
+</pre></td></tr></table>
+<br><br>
+<a name="start">
+<i>Actually starting a new process from a procdef</i><br>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set process $conn[now tag]
+global todomgr_datasheets
+set pipe [open "|${todomgr_home}pdm datasheet [ns_set get $form start] [ns_set get $form ver] $process" "r"]
+set datasheet [read $pipe]
+close $pipe
+
+set pipe [open "$todomgr_datasheets/$process" "w"]
+puts $pipe $datasheet
+close $pipe
+
+set size [ns_set size $form]
+for {set i 0} {$i < $size} {incr i} {
+   if {-1 < [lsearch {start ver} [ns_set key $form $i]]} { continue }
+   datasheet_setvalue $process "" [ns_set key $form $i] "" [ns_set value $form $i]
+}
+
+set pipe [open "|${todomgr_home}wftk start $process" "r"]
+set workflow [read $pipe]
+close $pipe
+
+set wf [split $workflow \n]
+
+set fields [list id status started]
+set values [list '$process' 'active' '[now]']
+
+lappend fields title
+set title [string range [lindex $wf 0] 2 end]
+lappend values "'[sql_safe_string $title]'"
+
+set wf [lrange $wf 2 end]
+while {![string compare "" [lindex $wf 0]]} { set wf [lrange $wf 1 end] }
+
+set desc ""
+while {[string compare EOF [lindex $wf 0]]} {
+   append desc "[lindex $wf 0]<br>"
+   set wf [lrange $wf 1 end]
+}
+set wf [lrange $wf 1 end]
+
+lappend fields description
+lappend values "'[sql_safe_string $desc]'"
+
+lappend fields owner
+lappend values "'[sql_safe_string $user]'"
+
+lappend fields definition
+set procdef "[ns_set get $form start]_[ns_set get $form ver].xml"
+lappend values "'[sql_safe_string $procdef]'"
+
+lappend fields datasheet
+lappend values "'$process'"
+
+set query "insert into process ("
+append query [join $fields ", "]
+append query ") values ("
+append query [join $values ", "]
+append query ")"
+
+ns_db dml $db $query
+
+wftk_interpret $db $process $wf
+
+return [ns_returnredirect $conn overview?process=$process]
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href=todomgr_create.html>Previous: Definition of todomgr_create</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=todomgr_show.html>Next: Definition of todomgr_show</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

@@ -1,0 +1,345 @@
+<html><head><title>Toon-o-Matic!</title></head>
+<body>
+<h2>The amazing Toon-o-Matic</h2>
+<hr>
+So here's how we lay out and draw our panels.  As I've explained, this module is intended
+to be baroque and interesting -- that may mean it will be cantankerous and hard to maintain,
+but as long as it draws cartoons when I tell it to, that's good enough for me.  I'm showing
+you the code just for kicks and in case you find it interesting.
+<p>
+
+Here are a few panel layouts and the graphics they produce when laid out on a small background.  Note that some of them look
+bluish; that's because the little background is a shrunken Boxjam-blue bitmap but in conversion to GIF the blue turned into
+the background color and I don't feel like post-processing.  Sue me.  They look good enough for illustrations.
+<table>
+<tr><td><pre>
+&lt;cartoon background="littlebkgd.bmp">
+&lt;panel/>
+&lt;panel>
+ &lt;panel/>
+ &lt;panel/>
+&lt;/panel>
+&lt;panel/>
+&lt;panel/>
+&lt;/cartoon>
+</pre></td><td><img src=panels1.gif></td></tr>
+<tr><td><pre>
+&lt;cartoon background="littlebkgd.bmp" rowformat="2-2">
+&lt;panel/>
+&lt;panel/>
+&lt;panel/>
+&lt;panel/>
+&lt;/cartoon>
+</pre></td><td><img src=panels2.gif></td></tr>
+<tr><td><pre>
+&lt;cartoon background="littlebkgd.bmp" rowformat="2-1">
+&lt;panel>
+ &lt;panel>
+  &lt;panel/>
+  &lt;panel/>
+ &lt;/panel>
+ &lt;panel/>
+&lt;/panel>
+&lt;panel/>
+&lt;panel/>
+&lt;panel/>
+&lt;panel/>
+&lt;/cartoon>
+</pre></td><td><img src=panels3.gif></td></tr>
+</table>
+
+
+In case you're wondering, this presentation is a simple form of <i>literate programming</i>,
+whereby code and documentation are generated from the same source document.  This version
+is rather straightforward, as I'm not inserting code blocks from other pages, just running
+down the list.  If you find this easy to deal with, you might want to <a href=http://www.vivtek.com/litprog.html>read more</a>.
+My open-source work is all done in a literate style.  (Helps me find problems when I need
+to fix them.)
+<p>
+The first thing we do is load our cartoon.  It's assumed to be in <code>cartoon.xml</code>
+in the main cartooning directory.  This all is supposed to run in one directory, by the way,
+for ease of planning.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>open O, "cartoon.xml" or die "Can't find cartoon.xml";
+$cartoon = xml_read (O);
+close O;
+</pre></td></tr></table>
+
+The cartoon XML notes the background image we'll be using, so let's make sure it exists.  (<i>October 31, 2000</i>) - but
+if we're not using a background, but instead we're using a solid-color generated background, then do that now.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (xml_attrval ($cartoon, 'background') ne '') {
+   $background = xml_attrval ($cartoon, 'background');
+   die "Can't find background $background" if (!-e $background);
+} else {
+   $background = "null:";
+}
+</pre></td></tr></table>
+
+(<i>November 4, 2000</i>)<br>
+If we specify a gradient for the background, this is the place to take care of it.  Otherwise, if the background ended up
+as <code>null:</code> let's default to a white background.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (xml_attrval ($cartoon, 'gradient') ne '') {
+   $background = "gradient:" . xml_attrval ($cartoon, 'gradient');
+} elsif ($background eq 'null:') {
+   if (xml_attrval ($cartoon, 'color') eq '') {
+      xml_set ($cartoon, 'color', 'white');
+   }
+}
+</pre></td></tr></table>
+
+This phase, at least, operates by taking <code>cartoon.xml</code> and decorating it with
+explicit specifications for the cartoon.  Later some of these will come from the style
+library; for the time being, they're hard-coded.  Note that any of these values may be
+overridden in the original <code>cartoon.xml</code>.  After this phase of processing, we'll
+write the resulting XML to <code>panels.xml</code>.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>xml_set ($cartoon, 'linestyle', 'simple') if !xml_attrval ($cartoon, 'linestyle');
+xml_set ($cartoon, 'rowdir', 'horiz')   if !xml_attrval ($cartoon, 'rowdir');
+xml_set ($cartoon, 'rowformat', '3')    if !xml_attrval ($cartoon, 'rowformat');
+xml_set ($cartoon, 'border', '1')       if !xml_attrval ($cartoon, 'border');
+xml_set ($cartoon, 'gutter', '7')       if !xml_attrval ($cartoon, 'gutter');
+</pre></td></tr></table>
+
+Next step is to use the Image Magick <code>identify</code> program to glean the size of
+the background (if the background is an image). 
+I do that in a function far below, but the results get used here.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>xml_set ($cartoon, 'panel-x', '0');
+xml_set ($cartoon, 'panel-y', '0');
+if (xml_attrval ($cartoon, 'background') ne '') {
+   @size = image_geometry ($background);
+   xml_set ($cartoon, 'panel-w', $size[0]);
+   xml_set ($cartoon, 'panel-h', $size[1]);
+}
+</pre></td></tr></table>
+
+
+(<i>October 31, 2000</i>)<br>
+If the height and width are specified explicitly, then we'll change panel-w and panel-h to match, and we'll
+also include a <code>-size</code> directive in the background specifier for <code>convert</code> to work with.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$height = 200;
+$explicit_size = 0;
+if (xml_attrval ($cartoon, 'height') ne '') {
+   $height = xml_attrval ($cartoon, 'height');
+   $explicit_size = 1;
+   xml_set ($cartoon, 'panel-h', $height);
+}
+$width=500;
+if (xml_attrval ($cartoon, 'width') ne '') {
+   $width = xml_attrval ($cartoon, 'width');
+   $explicit_size = 1;
+   xml_set ($cartoon, 'panel-w', $width);
+}
+if ($explicit_size) {
+   $background = "-size ${width}x$height $background";
+}
+</pre></td></tr></table>
+
+Now, we scan the panel structure of the XML.  As we do, we also mark each and every panel
+with its location and size.  The main cartoon wants to lay out its panels horizontally,
+and subpanels of panels alternate default layout directions (so that unless I tell the
+code otherwise, a subpanels of a top-level panel will be arranged vertically.)  I can use
+the "rowformat" attribute to tell the code how many panels should go in each row.
+<p></p>
+There's a lot to this, and I'm not going to document each piece.  Live with it.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>$panel_number = 0;
+@panel_list = ();
+
+# OK, scan for panels.  Just to make the whole thing more baroque, I'm putting the recursive subroutine
+# right in the middle of our script; more top-level processing goes on below this.  Isn't that cool?
+panel_scan ($cartoon);
+sub panel_scan {
+   my $parent = shift;
+   my @panels = ();
+
+
+   foreach (xml_elements($parent)) {
+      next if $$_{name} ne 'panel';
+      push @panels, $_;
+      push @panel_list, $_;
+   }
+
+   return if (!@panels);
+
+   # Find actual row structure.
+   my @rowformat = split /-/, xml_attrval ($parent, 'rowformat');
+   my @actual = ($#panels + 1);
+   if (xml_attrval ($parent, 'rowformat')) {
+      my $rowoffset = 0;
+      my $actual_offset = 0;
+      $rowformat[$rowoffset] = 1 if !$rowformat[$rowoffset];
+      while ($actual[$actual_offset] > $rowformat[$rowoffset]) {
+         push @actual, $actual[$actual_offset] - $rowformat[$rowoffset];
+         $actual[$actual_offset] = $rowformat[$rowoffset];
+         $actual_offset++;
+         $rowoffset++;
+         $rowoffset = 0 if $rowoffset > $#rowformat;
+         $rowformat[$rowoffset] = 1 if !$rowformat[$rowoffset];
+      }
+   }
+
+   # Stash it for debugging and all-around baroqueness.
+   xml_set ($parent, 'actual-rowformat', join ('-', @actual));
+
+   # Now parcel out horizontal and vertical space based on the actual row structure.
+   my ($row_coord, $row_width, $col_coord, $col_width);
+   if (xml_attrval ($parent, 'rowdir') =~ /^v/) {
+      $row_coord = 'panel-x';
+      $row_width = 'panel-w';
+      $col_coord = 'panel-y';
+      $col_width = 'panel-h';
+   } else {
+      $row_coord = 'panel-y';
+      $row_width = 'panel-h';
+      $col_coord = 'panel-x';
+      $col_width = 'panel-w';
+   }
+
+   my $rowpos = xml_attrval ($parent, $row_coord) + xml_attrval ($parent, 'border');
+   my $rowtotal = xml_attrval ($parent, $row_width) - 2 * xml_attrval ($parent, 'border') - 1
+                                                    - (xml_attrval ($parent, 'gutter') * (@actual - 1));
+   my $rowportion = $rowtotal / @actual;
+   my $row_len;
+   foreach $row_len (@actual) {
+      next if !$row_len;
+      my $colpos = xml_attrval ($parent, $col_coord) + xml_attrval ($parent, 'border');
+      my $coltotal = xml_attrval ($parent, $col_width) - 2 * xml_attrval ($parent, 'border') - 1
+                                                       - (xml_attrval ($parent, 'gutter') * ($row_len - 1));
+      my $colportion = $coltotal / $row_len;
+      for (my $i=0; $i &lt; $row_len; $i++) { # Step along the row...
+         $r = $rowpos;
+         $c = $colpos;
+         $rowpos =~ s/\..*//; # Integer portion only -- IM doesn't render lines well if they span pixel boundaries.
+         $colpos =~ s/\..*//;
+
+         $r -= $rowpos;
+         $c -= $colpos;
+
+         my $panel = shift @panels;
+         $rwidth = $rowportion + 1;
+         $cwidth = $colportion + 1;
+         $rwidth =~ s/\..*//;
+         $cwidth =~ s/\..*//;
+
+         if (xml_attrval ($parent, 'rowdir') eq 'horiz') {
+            $max = xml_attrval ($parent, $row_coord) + xml_attrval ($parent, $row_width);
+            if ($rowpos + $rwidth > $max) { $rwidth = $max - $rowpos; }
+            $max = xml_attrval ($parent, $col_coord) + xml_attrval ($parent, $col_width);
+            if ($colpos + $cwidth > $max) { $cwidth = $max - $colpos; }
+         }
+         
+         xml_set ($panel, $row_coord, $rowpos);
+         xml_set ($panel, $col_coord, $colpos);
+         xml_set ($panel, $row_width, $rwidth);
+         xml_set ($panel, $col_width, $cwidth);
+         xml_set ($panel, 'linestyle', xml_attrval ($parent, 'linestyle')) if xml_attrval ($panel, 'linestyle') eq '';
+
+         $panel_number++;
+         if (xml_attrval ($panel, 'name') eq '') {
+            xml_set ($panel, 'name', "panel$panel_number");
+         }
+
+         if (!xml_attrval ($panel, 'rowdir')) {
+            if (xml_attrval ($parent, 'rowdir') =~ /^v/) {
+               xml_set ($panel, 'rowdir', 'horiz');
+            } else {
+               xml_set ($panel, 'rowdir', 'vert');
+            }
+         }
+         xml_set ($panel, 'gutter', xml_attrval ($parent, 'gutter')) if !xml_attrval ($panel, 'gutter');
+
+         my $panel_list_length = $#panel_list;
+         panel_scan ($panel);
+         if ($panel_list_length != $#panel_list) {
+            # Using a side effect is baroque, isn't it?
+            xml_set ($panel, 'linestyle', 'none');
+         }
+
+         $colpos += $c + $colportion + xml_attrval ($parent, 'gutter');
+      }
+      $rowpos += $r + $rowportion + xml_attrval ($parent, 'gutter');
+   }
+}
+
+</pre></td></tr></table>
+
+
+(<i>November 4, 2000</i>) If any panel is decorated with a gradient, then we take care of that now.  We treat a color
+specification for the panel as a gradient for the purposes of drawing.  (A blue panel is thus a gradient from blue to blue.)
+Gradients in ImageMagick are always top to bottom; an interesting extension would be to be able to specify gradients in any
+direction, but that would require rotating, cropping, and pasting.  I won't get into it today.
+<p></p>
+This first step prepares the background image for the panel -- note that this means that technically we're going to be
+able to use external image for this at some point.  Again, since we're not addressing sizing, I won't get into it today.
+But this would be the place to do it.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>foreach $panel (@panel_list) {
+   # Background color or gradient.
+   $gradient = '';
+   if (xml_attrval ($panel, 'color') ne '') {
+      $gradient = xml_attrval ($panel, 'color') . '-' . xml_attrval ($panel, 'color');
+   }
+   if (xml_attrval ($panel, 'gradient') ne '') {
+      $gradient = xml_attrval ($panel, 'gradient');
+   }
+
+   next if $gradient eq '';
+
+   print "Creating background image for " . xml_attrval ($panel, 'name') . "\n";
+   xml_set ($panel, 'background', xml_attrval ($panel, 'name') . "-bg.gif");
+   system "convert -size " . xml_attrval ($panel, 'panel-w') . "x" . xml_attrval ($panel, 'panel-h') . " gradient:$gradient " . xml_attrval ($panel, 'background');
+}
+</pre></td></tr></table>
+
+
+Now we wrap up by defining how we call <code>identify</code> to get the size measurements
+of our background image.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>sub image_geometry {
+   my $background = shift;
+   print "Determining image geometry of $background.\n";
+   system "identify -verbose $background > outfile.txt"; # This is the baroque way of doing this.
+   open O, "outfile.txt";
+   my @s;
+   while (<O>) {
+      if (/Geometry:/ &amp;&amp; !/Page /) {
+         print $_;
+         chomp;
+         @s = split /:/;
+         my $size = $s[1];
+         $size =~ s/ //g;
+         @s = split /x/, $size;
+         print "Geometry read: @s\n";
+      }
+   }
+   close O;
+   return @s;
+}
+</pre></td></tr></table>
+
+Cool, eh?  I can't wait to see what I do next.
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001-2006, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation prepared using <a href=http://www.vivtek.com/lpml.html>LPML</a>.
+Try literate programming.  You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

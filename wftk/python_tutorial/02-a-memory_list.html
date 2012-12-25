@@ -1,0 +1,434 @@
+<head>
+<title>wftk tutorial - (unresolved tag 02-a-title)</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">wftk tutorial</p>
+<p>[ <a href=index.html>00 index</a> ]</p>
+<p>[ <a href=01-intro.html>01 introduction</a> ]</p>
+<p>[ <a href=02-data.html>02 data</a> ]</p>
+<p>[ <a href=03-actions.html>03 actions</a> ]</p>
+<p>[ <a href=04-actors.html>04 actors</a> ]</p>
+<p>[ <a href=05-tasks.html>05 tasks</a> ]</p>
+<p>[ <a href=06-procedures.html>06 procedures</a> ]</p>
+<p>[ <a href=07-state-machines.html>07 state machines</a> ]</p>
+<p>[ <a href=08-workflow.html>08 workflow</a> ]</p>
+<p>[ <a href=09-task-management.html>09 task mgt</a> ]</p>
+<p>[ <a href=/wftk/index.html#project>project home</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">wftk tutorial - (unresolved tag 02-a-title)</div>
+
+<p><a name="__index__"></a></p>
+<!-- INDEX BEGIN -->
+
+
+	<ul>
+
+		<li><a href="#_direct_list_api_against_the_session">(Direct list API against the session</a></li>
+		<li><a href="#_commandline__shell__interface">(Command-line (shell) interface</a></li>
+		<li><a href="#_sql_interface">(SQL interface</a></li>
+		<li><a href="#_dictionary_access">(Dictionary access</a></li>
+		<li><a href="#_repository_configuration_i__permanently_configuring_a_storage_list">(Repository configuration I: permanently configuring a storage list</a></li>
+	</ul>
+
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<p>Data in the wftk is organized into <strong>lists</strong>.  A list is equivalent to a key-addressed SQL table, more or less; each row must have a unique key,
+and different rows needn't have the same fields, but the SQL table is pretty close.</p>
+<p>A list may simply be a representation of any arbitrary data structure, of course -- besides the obvious (SQL tables), we can also have lines in a file,
+files in a directory, arbitrary action results, the elements in an XML file, and so on.  Part of the organizational work of setting up a wftk
+repository is to define the lists of data it will see, because those lists are its data environment.</p>
+<p>The basic form of list is an arbitrary set of records stored in memory.  So a good way to start getting our feet wet with the wftk is to look at the
+ways we can set up and work with memory lists.  Since this is a toolkit, there are different approaches.  The four basic approaches are the direct
+API against the session object, the string-based command-line interface provided by the shell (but which is also available for direct call), more
+specialized command-based methods for SQL (permitting quoting of parameters and the like),
+and of course Pythonic dictionary access.  In the spirit of making easy things easy, wftk tries to meet you halfway no matter how you
+conceptualize your data.  We'll cover each of these four techniques in the subsections below -- but remember that in your own code there's absolutely
+no reason you can't mix and match any of these four basic access methods.</p>
+<p>In later sections, we'll look at other types of storage for lists which will make our repositories much more useful, but the basic techniques we use
+for those lists will be the same, no matter where the data actually ends up being stored.</p>
+<p>
+</p>
+<h2><a name="_direct_list_api_against_the_session">(Direct list API against the session</a></h2>
+<p>So what can we do with a list?  After simply defining one, we can add records, modify records, or delete records (add/mod/del), we can get a specific
+record by key, or we can iterate through the list.  We can also get a text display of the list, which makes things easy to manage. Here's a demonstration
+of basic list functionality, using a simple memory list:</p>
+<pre class="code">
+   &gt;&gt;&gt; from wftk import wftk;
+</pre><p>Now let's create a list.  The 'open' method takes an optional second parameter for the list definition, but we're not going to mess with that yet.</p>
+<pre class="code">
+   &gt;&gt;&gt; list = wftk.open('mylist');
+
+   # Look at the fields in the list -- it has none;
+   my @fields = $list-&gt;fields();       # Returns a reference to an empty list.
+
+   # Add a record:
+   my $rec = $list-&gt;get_new();         # This returns a Workflow::wftk::Record set up
+                                       # for the list in question.
+
+   $rec-&gt;put ('field1', 'value1');
+   $rec-&gt;put ('field2', 'value2');
+
+   my $key = $list-&gt;add ($rec);        # Easy!  The add() method returns the key of the
+                                       # new record in the list.
+
+   # Look at the fields in the list again:
+   @fields = $list-&gt;fields();          # Returns ('field1', 'field2') now, because a memory
+                                       # list just accretes the fields you give it.
+
+   $rec = $list-&gt;get_new();            # Don't just recycle the existing record!
+   $rec-&gt;put ('field1', 'different value');
+   $rec-&gt;put ('field2', 'value2');
+   my $key2 = $list-&gt;add ($rec);
+   $rec = $list-&gt;get_new();
+   $rec-&gt;put ('field1', 'third value');
+   $rec-&gt;put ('field2', 'value2');
+   my $key3 = $list-&gt;add ($rec);
+
+   # Get a list of keys:
+   my @keys = $list-&gt;keys();           # Returns a list of the keys stored in the list.
+                                       # By default, they're sorted.
+
+   # Iterate through the list:
+   for (my $key = $list-&gt;first_key(); $key; $key = $list-&gt;next_key()) {
+      # ...
+   }
+
+   # Get a record:
+   $rec = $list-&gt;get($key2);
+
+   # Get a value:
+   print &quot;Value is &quot; . $rec-&gt;get('field2');
+
+   # Modify an existing record.
+   $rec-&gt;put ('field1', 'new value 1');
+   $list-&gt;mod ($key2, $rec);
+
+   # Delete a record.
+   $list-&gt;del ($key3);
+
+   # Display the contents of the list:
+   print $list-&gt;as_text;
+
+   # The print statement above will return the following:
+   # +-----+-------------+--------+
+   # | key | field1      | field2 |
+   # +-----+-------------+--------+
+   # | 1   | value1      | value2 |
+   # | 2   | new value 1 | value2 |
+   # +-----+-------------+--------+
+</pre><p>That's the basics of how we work with lists through the direct API.  At some later date, it might be interesting to come back to this
+point and build some more interesting examples.  Drop me a line if you have any suggestions.</p>
+<p>The other methods of working with lists are basically all wrappers for this API, presenting it in various more convenient ways.
+Each of these sections presents the basic summary of how to do more or less the same things, but in four different ``dialects'' representing
+different ways of thinking about the same thing.  The pervasive design philosophy of the wftk has always been to approach workflow and complex
+systems in as general a way as possible, and to formalize a number of different ways of thinking of the same thing.  This makes it easy (in
+theory) to approach a problem from any point of view, and still have convenient tools for writing good code to solve it.</p>
+<p>You'll be the final judge as to how well I've fulfilled that goal.</p>
+<p>
+</p>
+<h2><a name="_commandline__shell__interface">(Command-line (shell) interface</a></h2>
+<p>The second means of working with lists (and everything else in the wftk) is the command-line shell.  Working with the shell is often quicker
+and easier than the direct API, although it's not quite as easy to get data back out (of course, there's no reason not to mix and match).</p>
+<p>You can also pass SQL commands to the command-line interface, and retrieve results through a dynamically-defined memory-stored list.</p>
+<p>Here are the basic command-line equivalents for the actions taken in the last section using the direct API, plus a few more demonstrating
+some convenient features of the command-line interface.</p>
+<pre class="code">
+   my $wftk = Workflow::wftk-&gt;new();
+
+   # Create a list:
+   $wftk-&gt;do('open mylist');           # Side effect: this sets the &quot;current list&quot; to mylist.
+
+   my $curlist = $wftk-&gt;curlist();     # Returns the name of the current list.
+
+   # We can still get an API handle for the new list:
+   my $list = $wftk-&gt;list ();          # Returns a reference to mylist.
+
+   # Or any other open list, by name:
+   $list = $wftk-&gt;list ('mylist');     # Returns undef for a name it doesn't know.
+
+   # (Did I mention we can get a list of the lists open in the session?)
+   my %lists = $wftk-&gt;lists();
+   print keys %lists;
+
+   # We can drop the list, too.
+   $wftk-&gt;do('drop mylist');
+   $list = $wftk-&gt;list('mylist');      # Returns undef now.
+
+   # Let's add it again, but this time with fields:
+   $wftk-&gt;do('open mylist memory:fields=field1,field2');
+
+   # Add a record using an SQL INSERT (this wouldn't work if we hadn't defined fields):
+   $wftk-&gt;do(&quot;insert into mylist values ('value1', 'value2')&quot;);
+                                       # Note: You'll probably want to use the SQL interface
+                                       # for working with values directly, since it knows
+                                       # how to quote values properly.
+                                       # NO side effects from SQL commands except SELECT: 
+                                       # the current list is unchanged.
+
+   # Load a temporary record into the shell record cache for adding later:
+   $wftk-&gt;new_record ();               # Opens a new record in the current list.  You can also name a list.
+   $wftk-&gt;load_record (&lt;&lt;EOF);         # Loads data into the current record.
+   field1: different value
+   field2: value2
+   EOF
+
+   # Add that record from the shell record cache:
+   $wftk-&gt;do (&quot;add&quot;);                  # This tells the shell to add the cache record to the current
+                                       # list.  You can also name a list, as shown below.
+
+   # The 'add' command sets a current key in the shell.
+   # Get the key of the current record:
+   my $key2 = $wftk-&gt;curkey ();        # Returns '2' if all is well.
+
+   # Do it again to get the same data into the list as with the direct API above.
+   $wftk-&gt;new_record ();
+   $wftk-&gt;load_record (&lt;&lt;EOF);
+   field1: third value
+   field2: value2
+   EOF
+
+   # Add that record from the shell record cache:
+   $wftk-&gt;do (&quot;add mylist&quot;);           # This tells the shell to add the cache record to the current
+                                       # list.
+   my $key3 = $wftk-&gt;curkey ();
+
+   # Select some results into a result list:
+   $wftk-&gt;do (&quot;select distinct (field2) from mylist&quot;);
+
+   $curlist = $wftk-&gt;curlist();        # $curlist is now 'result'.
+   %lists = $wftk-&gt;lists();            # We now have two lists open.
+
+   # Select a record:
+   $wftk-&gt;do (&quot;show mylist $key2&quot;);
+
+   # Get a value:
+   print &quot;Value is &quot; . $wftk-&gt;get('field2'); # This works because the &quot;get&quot; method against the
+                                             # session works with the current record in the shell.
+
+   # Modify the current record:
+   $wftk-&gt;load_record (&lt;&lt;EOF);         # Note that missing fields aren't changed in the record.
+   field1: new value 1
+   EOF
+   $wftk-&gt;do (&quot;save&quot;);
+
+   # Delete a record.
+   $wftk-&gt;do (&quot;del $key3&quot;);
+</pre><p>The command-line interface can be convenient for quick coding, but its real value is in its capability to provide a shell
+for text-based interactive use.  It's designed primarily for quick and dirty interaction with prototype repositories.  The
+name-colon-value format for records, for instance, is designed to make it easy to edit records with vi in the filesystem; you're
+not expected to build those strings by script -- you're much better off using the SQL interface for most scripting.</p>
+<p>
+</p>
+<h2><a name="_sql_interface">(SQL interface</a></h2>
+<p>For simple SQL actions and selects, there is a handy simplified SQL interface available.  It can quote parameters in the DBI style, so you don't
+have to be careful with your values containing single quotes and the like, but it eliminates most of the proliferation of handles you need when
+working with the DBI.  If you're comfortable with the handles, by all means just get the dbh from the wftk session and have at it -- but I, for
+one, always have to look everything up when working with DBI, and the SQL interface is designed to allow me to avoid that, and to express
+many common actions more concisely than DBI allows.</p>
+<p>By now, the actions we're taking are going to seem a little boring, but I'll shake things up a little by introducing some of the special
+added features available through the SQL interface.</p>
+<pre class="code">
+   use Workflow::wftk;
+
+   my $wftk = Workflow::wftk-&gt;new();
+
+   # Create a table:
+   $wftk-&gt;execute_sql (&quot;create table mylist (field1 varchar, field2 varchar)&quot;);
+
+   # Insert some data.
+   $wftk-&gt;execute_sql (&quot;insert into mylist values (?, ?)&quot;, 'value1', 'value2');
+   $wftk-&gt;execute_sql (&quot;insert into mylist values (?, ?)&quot;, 'different value', 'value2');
+   $wftk-&gt;execute_sql (&quot;insert into mylist values (?, ?)&quot;, 'third value', 'value2');
+
+   # Here's where it gets interesting.  Let's get the values in the first column
+   # in order -- in one step.
+   my @field1values = $wftk-&gt;sql_get_list ('select field1 from mylist order by field1');
+   # That returns the list ('different value', 'third value', 'value1').  Tell me you don't like that.
+
+   # How about a single value?
+   my $count = $wftk-&gt;sql_get ('select count(*) from mylist where field2=?', 'value2'); # Returns 3, of course.
+   
+   # Select some other stuff.
+   foreach ($wftk-&gt;sql_get_list (&quot;select field1, field2 from mylist&quot;)) {
+      my ($field1, $field2) = @$_;  # Our list entries are now themselves listrefs.
+   }
+
+   my $row = $wftk-&gt;sql_get (&quot;select field1, field2 from mylist&quot;);
+   # Returns an arrayref for the first row if multiple rows are called.
+
+   $wftk-&gt;execute_sql ('delete from mylist where field1=?', 'third value');
+</pre><p>
+</p>
+<h2><a name="_dictionary_access">(Dictionary access</a></h2>
+<p>Finally, you can also tie a list to a hash -- this code is written but not yet tested.  It's conceptually a little confusing, since you can
+also tie the records <em>in</em> the list to a hash, and it's easy to confuse the two levels.</p>
+<pre class="code">
+   use Workflow::wftk;
+   my $wftk = Workflow::wftk-&gt;new();
+
+   my $list = tie %list, 'Workflow::wftk::Data', $wftk, 'mylist';  # Creates mylist as a memory list.
+
+   $list{1} = { field1 =&gt; 'value1', field2 =&gt; 'value2' };     # We need a hashref to name our fields.
+   $list{2} = [ 'different value', 'value2' ];
+   $list-&gt;add (['third value', 'value2']);                    # This accesses the $list object and generates a new key for us.
+
+   print $list-&gt;as_text;    # Syntactic sugar is nice, isn't it?
+
+   my ($field1, $field2) = $list{3}-&gt;get('field1', 'field2'); # Retrieves our third record.
+
+   delete $list{3};                                           # Deletes the third record.
+</pre><p>That's less impressive than it might be, because we haven't covered the hash tying in the <em>record</em> yet.  There's a separate section on that
+later, so consult that for more extensive demonstration of hash tying.</p>
+<p>
+</p>
+<h2><a name="_repository_configuration_i__permanently_configuring_a_storage_list">(Repository configuration I: permanently configuring a storage list</a></h2>
+<p>Up to this point, everything done in the example code has been done ``by hand'', with each list definition being specified when we open the list.
+It's much easier, however, to register definitions for lists in a repository in advance in a central definition.  By default, the wftk looks for
+its configuration in a file named 'wftk.conf' in the repository's main directory, but we can also give it either a different filename or just
+pass it a configuration in a string passed when we initially open the repository session.</p>
+<p>Once a list definition is already registered, the list doesn't need to be explicitly opened. You can implicitly open it simply by retrieving
+a handle to it or otherwise using it in some way.  And if you also specify its datasource (either a file or a local file handle, or simply giving
+the data somewhere) then that data is imported the first time you refer to the list.</p>
+<p>Parsing (and writing) of the configuration file is handled by <code>Workflow::wftk::Record</code>, and you can see a lot of detailed information about
+the format and what you can do with it in 02-h Records.  The main thing you need to know at this point is that there are type-labeled sections of
+configuration data which are used to define lists and the fields within them.  The syntax for that is fairly obvious from the example.</p>
+<pre class="code">
+   use Workflow::wftk;
+
+   my $wftk = Workflow::wftk-&gt;new(&lt;&lt;&quot;   CONF&quot;);
+    ! [mylist: list]
+    ! type: memory:fields=field1,field2
+    !
+    ! [second_list: list]
+    ! type: memory
+    ! *fields: field1 field2 field3
+    ! description: My second list
+    !
+   CONF
+
+   %lists = $wftk-&gt;lists();      # Before opening anything, our list of lists
+                                 # shows us what we have defined.
+
+   $wftk-&gt;execute_sql (&quot;insert into mylist values (?, ?)&quot;, 'some value', 'another value');
+   $wftk-&gt;execute_sql (&quot;insert into mylist values (?, ?)&quot;, 'something else', 'value');
+
+   my @values = $wftk-&gt;sql_get_list ('select field1 from mylist order by field1');
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

@@ -1,0 +1,373 @@
+<html><head><title>xmlapi: xml_write: Writing XML data to disk</title></head>
+<body>
+<h2>xml_write: Writing XML data to disk</h2>
+<center>
+[&nbsp;<a href="main.html">Previous: Functions except for xml_read</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_string.html">Next: xml_string: Writing XML data to strings in memory</a>&nbsp;]
+</center>
+
+<hr>
+Writing the contents of one of our XML structures out into a file is simple.  We've got two
+different variants on this function; one writes the entire element (<code>xml_write</code>)
+and the other writes just the content of the element (<code>xml_writecontent</code>).
+<p></p>
+<i>October 13, 2001</i>: So I've just realized where I cut a corner, and it's bit me painfully.
+I'm simply writing the content of strings without thinking -- but I need to escape any ampersands
+and angle brackets.  Otherwise I can't parse what I write, and that's pretty boneheaded.  And the
+worst of it is, I <i>remember</i> thinking, back a couple years ago, "I need to come back and fix
+this later."  What an idiot I was.  Hear me, past me?  You're an idiot!  So here's a little
+helper function to escape strings.
+<p></p>
+<i>(October 14, 2001)</i>: And now the UTF-8 thing has bitten me.  Expat uses UTF-8 internally, meaning
+that all data returned during the parse is UTF-8 encoded.  I never really realized that.  Anyway,
+when escaping data which is greater than 127, we are really working with multi-byte characters.  See
+the default case in the switch below to see what I mean.
+
+<p></p>
+<i>(April 13, 2002)</i>: Finally I'm to the point where this is getting tested (as the spam trap at
+<a href="http://www.despammed.com">Despammed.com</a>) -- and of course it is completely broken.  My
+reference this time around is <a href="http://cuisung.unige.ch/prod/utf-8.7.html">here</a>.  The
+upshot of UTF-8 is that values over 0x7F are broken into pieces and spread over multiple bytes.
+The first byte contains an indication of how long the whole thing is, and subsequent bytes fill in
+the rest of the data.  Subsequent bytes are all of the form 10xxxxxx, thus giving six bits apiece
+to the end result.  The first byte supplies varying amounts depending on the total length.  The
+whole thing all in all is capable of representing the entire four-byte UCS character space, which
+of course all the language on Earth together don't fill up.  It's a neat system.  Read up on it.
+
+<p></p>
+<i>(March 2, 2004)</i>: Something I've been meaning to do for a while: I'm rewriting all this
+to work with general writer function, much like xml_parse_general uses a general reader function.
+This allows me to write directly to stream-like things (like Oracle LOBs) without first building
+a string in memory, and it'll also help us get independent of runtime dependencies under Windows,
+which have been an irritant for a long time.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _xml_fwrite_escaped (void * data, XMLAPI_DATAWRITE write, char * str) {
+   int len;
+   long value;
+   char * mark;
+   char numbuf[20];
+
+   do {
+      mark = _xml_danger_char (str);
+      if (mark) {
+         if (mark != str) (*write) (str, 1, mark - str, data);
+         len = 1;
+         switch (*mark) {
+            case '&amp;': (*write) ("&amp;amp;", 1, 5, data); break;
+            case '&lt;':  (*write) ("&amp;lt;", 1, 4, data);  break;
+            case '>':   (*write) ("&amp;gt;", 1, 4, data);  break;
+            case '"':   (*write) ("&amp;quot;", 1, 6, data);  break;
+            default:
+              if ((*mark &amp; 0x00E0) == 0xC0) {
+                  /* two bytes:   marker is 110x xxxx */
+                  len = 2;
+                  value = (mark[0] &amp; 0x001F) * 64 + (mark[1] &amp; 0x003F);
+               } else if ((*mark &amp; 0x00F0) == 0xE0) {
+                  /* three bytes: marker is 1110 xxxx */
+                  len = 3;
+                  value = ((mark[0] &amp; 0x000F) * 64 + (mark[1] &amp; 0x003F)) * 64 + (mark[2] &amp; 0x003F);
+               } else if ((*mark &amp; 0x00F8) == 0xF0) {
+                  /* four bytes:  marker is 1111 0xxx */
+                  len = 4;
+                  value = (((mark[0] &amp; 0x0007) * 64 + (mark[1] &amp; 0x003F)) * 64 + (mark[2] &amp; 0x003F)) * 64 + (mark[3] &amp; 0x003F);
+               } else if ((*mark &amp; 0x00FC) == 0xF8) {
+                  /* five bytes:  marker is 1111 10xx */
+                  len = 5;
+                  value = ((((mark[0] &amp; 0x0003) * 64 + (mark[1] &amp; 0x003F)) * 64 + (mark[2] &amp; 0x003F)) * 64 + (mark[3] &amp; 0x003F)) * 64 + (mark[4] &amp; 0x003F);
+               } else if ((*mark &amp; 0x00FE) == 0xFC) {
+                  /* six bytes:   marker is 1111 110x */
+                  len = 6;
+                  value = (((((mark[0] &amp; 0x0001) * 64 + (mark[1] &amp; 0x003F)) * 64 + (mark[2] &amp; 0x003F)) * 64 + (mark[3] &amp; 0x003F)) * 64 + (mark[4] &amp; 0x003F)) * 64 + (mark[5] &amp; 0x003F);
+               } else {
+                  value = 0x20; /* Illegal value, but instead of freaking out we'll do something quasi-normal. */
+               }
+               sprintf (numbuf, "&amp;#%ld;", value);
+               (*write) (numbuf, 1, strlen(numbuf), data);
+         }
+         str = mark + len;
+      }
+   } while (mark);
+   len = strlen (str);
+   if (len) (*write) (str, 1, len, data);
+}
+void _xml_fwrite (void * data, XMLAPI_DATAWRITE write, char * str) {
+   int len;
+   len = strlen (str);
+   if (len) (*write) (str, 1, len, data);
+}
+</pre></td></tr></table>
+
+And here's the actual XML writing function.  Stupid, stupid.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void xml_write (FILE * file, XML * xml) { xml_write_general ((void *) file, (XMLAPI_DATAWRITE) fwrite, xml); }
+XMLAPI void xml_write_general (void * data, XMLAPI_DATAWRITE write, XML * xml) {
+   ATTR * attr;
+   ELEMENTLIST * list;
+
+   if (!xml) return;
+</pre></td></tr></table>
+
+First, if the element we're working on is plain text, we just write it out.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   if (xml->name == NULL) {
+      if (xml->attrs) if (xml->attrs->value) _xml_fwrite_escaped (data, write, xml->attrs->value);
+      return;
+   }
+</pre></td></tr></table>
+
+It's a regular element, so we open the element and write the name.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   _xml_fwrite (data, write, "&lt;");
+   _xml_fwrite (data, write, xml->name);
+   attr = xml->attrs;
+   while (attr != NULL) {
+      _xml_fwrite (data, write, " ");
+      _xml_fwrite (data, write, attr->name);
+      _xml_fwrite (data, write, "=\"");
+      _xml_fwrite_escaped (data, write, attr->value);
+      _xml_fwrite (data, write, "\"");
+      attr = attr->next;
+   }
+</pre></td></tr></table>
+
+If the element has no children (this includes text), then we close the tag as an empty tag,
+and we're finished.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   if (xml->children == NULL) {
+      _xml_fwrite (data, write, "/>");
+      return;
+   } else _xml_fwrite (data, write, ">");
+</pre></td></tr></table>
+
+Otherwise we track down the list of children and write each of them, recursively.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   xml_writecontent_general (data, write, xml);
+</pre></td></tr></table>
+
+And finally, if there were children, then we need to close the tag with the full close.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   _xml_fwrite (data, write, "&lt;/");
+   _xml_fwrite (data, write, xml->name);
+   _xml_fwrite (data, write, ">");
+}
+</pre></td></tr></table>
+
+The weakness of this function currently is that in the absence of plain text there will never
+be a line break.  Not good -- but I don't see a good algorithm for doing it better while
+ruling out the possibility of inserting line breaks where they'll be errors. <i>(May 27, 2001):</i>
+Lately I've just been inserting linefeeds when I want pretty printing.  The problem with <i>that</i>,
+of course, is the Unix/Windows CRLF issue.  I'm still not sure how best to handle it.
+<p></p>
+Oh, well.  Let's go ahead and define our xml_writecontent.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void xml_writecontent (FILE * file, XML * xml) { xml_writecontent_general ((void *) file, (XMLAPI_DATAWRITE) fwrite, xml); }
+XMLAPI void xml_writecontent_general (void * data, XMLAPI_DATAWRITE write, XML * xml)
+{
+   ELEMENTLIST * list;
+
+   if (!xml) return;
+   list = xml->children;
+   while (list) {
+      xml_write_general (data, write, list->element);
+      list = list->next;
+   }
+}
+</pre></td></tr></table>
+
+<i>(May 27, 2001)</i>: we need similar functions to write valid (or pretty good, anyway) HTML given an 
+XML-ish input.  I should probably go look up the XHTML standard, but I'm too busy.  If you use this
+library and want to tell me off, do so.
+<p></p>
+<i>(October 20, 2001)</i>: in order for template expression to work, I've decided that writing HTML is
+<i>not</i> escaped.  The literal text in the XML is written to output; that means it parses back in
+differently from the original data, but that's what we want in this case.  (It's just for XML that
+we expect the written file to parse to the same data structure we started with...)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void xml_writehtml (FILE * file, XML * xml) { xml_writehtml_general ((void *) file, (XMLAPI_DATAWRITE) fwrite, xml); }
+XMLAPI void xml_writehtml_general (void * data, XMLAPI_DATAWRITE write, XML * xml)
+{
+   ATTR * attr;
+   ELEMENTLIST * list;
+
+   if (!xml) return;
+   if (xml->name == NULL) {
+      if (xml->attrs) if (xml->attrs->value) _xml_fwrite (data, write, xml->attrs->value);
+      return;
+   }
+
+   if (xml_is (xml, "nbsp")) {
+      _xml_fwrite (data, write, "&amp;nbsp;");
+      return;
+   }
+
+   _xml_fwrite (data, write, "&lt;");
+   _xml_fwrite (data, write, xml->name);
+   attr = xml->attrs;
+   while (attr != NULL) {
+      _xml_fwrite (data, write, " ");
+      _xml_fwrite (data, write, attr->name);
+      _xml_fwrite (data, write, "=\"");
+      _xml_fwrite_escaped (data, write, attr->value);
+      _xml_fwrite (data, write, "\"");
+      attr = attr->next;
+   }
+</pre></td></tr></table>
+
+If the element has no children (this includes text), then in XML we would close the tag as an empty tag, but in
+HTML we don't.  That's difference number one.  Also, a couple of tags should get full closes even if they're empty,
+so we'll handle that here.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   _xml_fwrite (data, write, ">");
+   if (xml->children == NULL) {
+      if (!strcmp (xml->name, "p") ||
+          !strcmp (xml->name, "a") ||
+          !strcmp (xml->name, "textarea")) {
+         _xml_fwrite (data, write, "&lt;/");
+         _xml_fwrite (data, write, xml->name);
+         _xml_fwrite (data, write, ">");
+      }
+      return;
+   }
+
+   xml_writecontenthtml_general (data, write, xml);
+</pre></td></tr></table>
+
+And finally, if there were children, then only some HTML elements get a close tag, and others don't.  That's the
+other difference, from the point of view of writing.  (From the point of view of parsing, HTML is much, much
+uglier, which is the motivation for XML in the first place, really.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   if (!strcmp (xml->name, "li") ||
+       !strcmp (xml->name, "opt")) {
+   } else {
+      _xml_fwrite (data, write, "&lt;/");
+      _xml_fwrite (data, write, xml->name);
+      _xml_fwrite (data, write, ">");
+   }
+}
+</pre></td></tr></table>
+
+And of course we need the same thing for content-only:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void xml_writecontenthtml (FILE * file, XML * xml) { xml_writecontenthtml_general ((void *) file, (XMLAPI_DATAWRITE) fwrite, xml); }
+XMLAPI void xml_writecontenthtml_general (void * data, XMLAPI_DATAWRITE write, XML * xml)
+{
+   ELEMENTLIST * list;
+
+   if (!xml) return;
+   list = xml->children;
+   while (list) {
+      xml_writehtml_general (data, write, list->element);
+      list = list->next;
+   }
+}
+</pre></td></tr></table>
+
+<i>(July 22, 2001)</i> Due to Microsoft's lovely distinction between the file handles in the
+LIBC and MSVCRT runtimes (static and dynamic linking respectively), a simple xml_write can
+often fail if you've opened the file with a different runtime library than XMLAPI is using.
+Thus I came up with xml_output for handy debugging; I'm sure there are other uses as well, but
+that's what prompted me actually to write the function.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI int xml_output (char * f, XML * xml, int mode)
+{
+   FILE * file;
+
+   file = fopen (f, "w");
+   if (!file) return 0;
+
+   switch (mode) {
+      case 1: xml_writecontent (file, xml); break;
+      case 2: xml_writehtml (file, xml); break;
+      case 3: xml_writecontenthtml (file, xml); break;
+      default: xml_write (file, xml); break;
+   }
+
+   fclose (file);
+   return 1;
+}
+</pre></td></tr></table>
+
+<i>(December 17, 2001)</i> I never use the above function, really; it's too cumbersome to remember
+the modes.  But the basic idea of being able to read and write to/from files without having to
+build the filename -- that's kinda neat.  So I came up with xml_load and xml_save.  These are
+two functions which would be <i>completely</i> superfluous in the Python wrapper, so you won't
+find them there.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI XML * xml_load (const char * spec, ...)
+{
+   va_list args;
+   char * filename;
+   FILE * file;
+   XML * ret;
+
+   va_start (args, spec);
+   filename = xml_string_formatv (spec, args);
+   va_end (args);
+
+   file = fopen (filename, "r");
+   free (filename);
+   if (!file) {
+      return NULL;
+   }
+
+   ret = xml_read_error (file);
+   fclose (file);
+
+   return ret;
+}
+XMLAPI int xml_save (XML * xml, const char * spec, ...)
+{
+   va_list args;
+   char * filename;
+   FILE * file;
+   XML * ret;
+
+   va_start (args, spec);
+   filename = xml_string_formatv (spec, args);
+   va_end (args);
+
+   file = fopen (filename, "w");
+   free (filename);
+   if (!file) {
+      return 1;
+   }
+
+   xml_write (file, xml);
+   fprintf (file, "\n");
+
+   fclose (file);
+   return 0;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="main.html">Previous: Functions except for xml_read</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_string.html">Next: xml_string: Writing XML data to strings in memory</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

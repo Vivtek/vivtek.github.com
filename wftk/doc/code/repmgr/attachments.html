@@ -1,0 +1,619 @@
+<html><head><title>Repository manager: Working with attachments</title></head>
+<body>
+<h2>Working with attachments</h2>
+<center>
+[&nbsp;<a href="synching.html">Previous: Synching data with remote data sources</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="index.html">Next: Repository manager</a>&nbsp;]
+</center>
+
+<hr>
+An attachment is a value stored externally to an object, essentially.  It is presumed to be large and binary, but needn't be.  It may
+be stored using the same adaptor as its containing object, but needn't be.  It can even be a simple reference to some other document.
+The basic operations on attachments are writing, reading, and checkout.  There are two varieties of each set; one opens the attachment
+and provides buffer-oriented read/write functions and a close when done; the other takes a stream and copies that stream to an
+attachment.
+
+<p></p>
+<i>(August 13, 2002)</i>: Finally getting around to implementation of versioned attachments.
+Here's how it works.  In the list definition, we have to specify a "ver-keep" -- the retention
+rule for versions of the attachment on that field.  If there's no ver-keep, the default is "0",
+meaning we don't keep versions at all and we stay at version=0 forever.  (I.e. no versioning.)
+Currently, I'm going to implement a ver-keep as a number of versions to retain (older ones 
+will just get deleted), but I can also see age-related or other criteria as useful retention
+rules.  This is where they'll go.
+<p></p>
+So now, if we're versioning, we have to determine the number of the next version, and we'll
+pass that on to the adaptor.  When we store a versioned attachment, the ver= attribute on the
+field will reflect the current version, and the field's contents will consist of a list
+of version holders.
+
+<p></p>
+<i>(May 24, 2003)</i>: To support the pdrep adaptor for the wftk core, we need to be able
+to get the current version of an attachment, and also to retrieve a specific version.  So the
+API is changing a tad.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_attach_open (XML * repository, const char *list_id, const char * key, const char * field, const char * filename)
+{
+   XML * handle;
+   XML * list;
+   XML * fld;
+   XML * fld_def;
+   XML * object;
+   WFTK_ADAPTOR * ad_l;
+   WFTK_ADAPTOR * ad_f = NULL;
+
+   /* Get list definition. */
+   list = repos_defn (repository, list_id);
+   if (!list) return 0;
+
+   /* Retrieve object. */
+   ad_l = wftk_get_adaptor (repository, LIST, *xml_attrval (list, "id") ? xml_attrval (list, "id") : xml_attrval (list, "storage"));
+   if (!ad_l) return NULL;
+   xml_set (ad_l->parms, "basedir", xml_attrval (repository, "basedir"));
+
+   object = wftk_call_adaptor (ad_l, "get", list, key);
+   if (!object) {
+      wftk_free_adaptor (repository, ad_l);
+      return 0;
+   }
+
+   /* Find appropriate field -- in object first, then if not found, in list definition. */
+   if (field &amp;&amp; *field) {
+      fld = xmlobj_is_field (object, list, field);
+      fld_def = xml_search (list, "field", "id", field);
+      if (!fld) {
+         fld = xml_create ("field");
+         xml_set (fld, "id", field);
+         if (fld_def) {
+            xml_set (fld, "type", xml_attrval (fld_def, "type"));
+         } else {
+            xml_set (fld, "type", "document");
+         }
+         xml_append_pretty (object, fld);
+      }
+   } else {
+      fld = xml_search (object, "field", "type", "document");
+      fld_def = xml_search (list, "field", "type", "document");
+      if (!fld &amp;&amp; !fld_def) {
+         wftk_free_adaptor (repository, ad_l);
+         xml_free (object);
+         return 0;
+      }
+      if (!fld) {
+         fld = xml_create ("field");
+         xml_set (fld, "id", xml_attrval (fld_def, "id"));
+         xml_append_pretty (object, fld);
+      }
+   }
+   field = (char *) xml_attrval (fld, "id");
+
+   /* Perform the actual attachment. */
+   if (fld_def) {
+      if (*xml_attrval (fld_def, "storage")) ad_f = wftk_get_adaptor (repository, LIST, *xml_attrval (fld_def, "id") ? xml_attrval (fld_def, "id") : xml_attrval (fld_def, "storage"));
+      if (ad_f) xml_set (ad_f->parms, "basedir", xml_attrval (repository, "basedir"));
+      if (*xml_attrval (fld_def, "ver-keep")) {
+         if (!*xml_attrval (fld, "ver")) xml_set (fld, "ver", "0");
+         xml_setnum (fld, "next-ver", xml_attrvalnum (fld, "ver") + 1);
+      }
+   } else {
+      if (*xml_attrval (fld, "ver")) {
+         xml_setnum (fld, "next-ver", xml_attrvalnum (fld, "ver") + 1);
+      }
+   }
+
+   handle = wftk_call_adaptor (ad_f ? ad_f : ad_l, "attach_open", list, key, field, filename, xml_attrval (fld, "next-ver"));
+   wftk_free_adaptor (repository, ad_l);
+   if (ad_f) wftk_free_adaptor (repository, ad_f);
+
+   xml_setnum (handle, "size", 0);
+   xml_set (handle, "list", list_id);
+   xml_set (handle, "key", key);
+   xml_set (handle, "field", field);
+
+   xml_free (object);
+
+   return handle;
+}
+WFTK_EXPORT int   repos_attach_write (void * buf, size_t size, size_t number, XML * handle)
+{
+   WFTK_ADAPTOR * ad;
+
+   if (!handle) return 0;
+   if (!buf) return 0;
+   if (!size || !number) return 0;
+
+   ad = wftk_get_adaptor (handle, LIST, xml_attrval (handle, "adaptor"));
+   if (!ad) return 0;
+   wftk_call_adaptor (ad, "attach_write", buf, size, number, handle);
+   wftk_free_adaptor (handle, ad);
+   xml_setnum (handle, "size", xml_attrvalnum (handle, "size") + xml_attrvalnum (handle, "last-write"));
+   return xml_attrvalnum (handle, "last-write");
+}
+WFTK_EXPORT int   repos_attach_cancel (XML * handle)
+{
+   WFTK_ADAPTOR * ad;
+
+   if (!handle) return 0;
+
+   ad = wftk_get_adaptor (handle, LIST, xml_attrval (handle, "adaptor"));
+   if (!ad) return 0;
+   wftk_call_adaptor (ad, "attach_cancel", handle);
+   wftk_free_adaptor (handle, ad);
+   return 0;
+}
+WFTK_EXPORT int   repos_attach_close (XML * repository, XML * handle)
+{
+   WFTK_ADAPTOR * ad;
+   XML * list;
+   XML * fld;
+   XML * fld_def;
+   XML * object;
+   const char * list_id;
+   const char * key;
+   const char * field;
+   WFTK_ADAPTOR * ad_l;
+
+   if (!handle) return 0;
+   list_id = xml_attrval (handle, "list");
+   key = xml_attrval (handle, "key");
+   field = xml_attrval (handle, "field");
+
+   /* Get list definition. */
+   list = repos_defn (repository, list_id);
+   if (!list) return 0;
+
+   /* Retrieve object. */
+   ad_l = wftk_get_adaptor (repository, LIST, *xml_attrval (list, "id") ? xml_attrval (list, "id") : xml_attrval (list, "storage"));
+   if (!ad_l) return 0;
+   xml_set (ad_l->parms, "basedir", xml_attrval (repository, "basedir"));
+
+   object = wftk_call_adaptor (ad_l, "get", list, key);
+   if (!object) {
+      wftk_free_adaptor (repository, ad_l);
+      return 0;
+   }
+
+   /* Find appropriate field -- in object first, then if not found, in list definition. */
+   if (field &amp;&amp; *field) {
+      fld = xmlobj_is_field (object, list, field);
+      fld_def = xml_search (list, "field", "id", field);
+      if (!fld) {
+         fld = xml_create ("field");
+         xml_set (fld, "id", field);
+         if (fld_def) {
+            xml_set (fld, "type", xml_attrval (fld_def, "type"));
+         } else {
+            xml_set (fld, "type", "document");
+         }
+         xml_append_pretty (object, fld);
+      }
+   } else {
+      fld = xml_search (object, "field", "type", "document");
+      fld_def = xml_search (list, "field", "type", "document");
+      if (!fld &amp;&amp; !fld_def) {
+         wftk_free_adaptor (repository, ad_l);
+         xml_free (object);
+         return 0;
+      }
+      if (!fld) {
+         fld = xml_create ("field");
+         xml_set (fld, "id", xml_attrval (fld_def, "id"));
+         xml_append_pretty (object, fld);
+      }
+   }
+   field = (char *) xml_attrval (fld, "id");
+
+   /* Complete attachment process. */
+   ad = wftk_get_adaptor (repository, LIST, xml_attrval (handle, "adaptor"));
+   if (!ad) return 0;
+   wftk_call_adaptor (ad, "attach_close", handle);
+   wftk_free_adaptor (repository, ad);
+
+   /* Update the object. */
+   if (*xml_attrval (fld, "next-ver")) {
+      xml_set (fld, "ver", xml_attrval (fld, "next-ver"));
+      fld = xmlobj_ver_direct (fld, xml_attrval (fld, "ver"));
+   }
+   xml_set (fld, "size", xml_attrval (handle, "size"));
+   xml_set (fld, "mimetype", xml_attrval (handle, "mimetype"));
+   xml_set (fld, "location", xml_attrval (handle, "location"));
+
+   wftk_call_adaptor (ad_l, "update", list, object);
+
+   /* Log the change. */
+   if (strcmp (xml_attrval (list, "logging"), "off")) { /* TODO: check overall setting as well.  Need a setting checker which scans upward. */
+      _repos_log (repository, "mod", list_id, object ? repos_getkey (repository, list_id, object) : key);
+   }
+   _repos_publish_obj (repository, list_id, object);
+
+   /* Free everything up. */
+   wftk_free_adaptor (repository, ad_l);
+   xml_free (object);
+
+   return 0;
+}
+WFTK_EXPORT int   repos_attach (XML * repository, const char * list_id, const char * key, const char * field, const char * filename, FILE * incoming)
+{
+   XML * handle;
+   XML * list;
+   XML * fld;
+   XML * fld_def;
+   XML * object;
+   WFTK_ADAPTOR * ad_l = NULL;
+   WFTK_ADAPTOR * ad_f = NULL;
+   char  buf[1024];
+   int  total = 0;
+   int  number;
+
+   /* Get list definition. */
+   list = repos_defn (repository, list_id);
+   if (!list) return 0;
+
+   /* Retrieve object. */
+   ad_l = wftk_get_adaptor (repository, LIST, *xml_attrval (list, "id") ? xml_attrval (list, "id") : xml_attrval (list, "storage"));
+   if (!ad_l) return 0;
+   xml_set (ad_l->parms, "basedir", xml_attrval (repository, "basedir"));
+
+   object = wftk_call_adaptor (ad_l, "get", list, key);
+   if (!object) {
+      wftk_free_adaptor (repository, ad_l);
+      return 0;
+   }
+
+   /* Find appropriate field -- in object first, then if not found, in list definition. */
+   if (field &amp;&amp; *field) {
+      fld = xmlobj_is_field (object, list, field);
+      fld_def = xml_search (list, "field", "id", field);
+      if (!fld) {
+         fld = xml_create ("field");
+         xml_set (fld, "id", field);
+         if (fld_def) {
+            xml_set (fld, "type", xml_attrval (fld_def, "type"));
+         } else {
+            xml_set (fld, "type", "document");
+         }
+         xml_append_pretty (object, fld);
+      }
+   } else {
+      fld = xml_search (object, "field", "type", "document");
+      fld_def = xml_search (list, "field", "type", "document");
+      if (!fld &amp;&amp; !fld_def) {
+         wftk_free_adaptor (repository, ad_l);
+         xml_free (object);
+         return 0;
+      }
+      if (!fld) {
+         fld = xml_create ("field");
+         xml_set (fld, "id", xml_attrval (fld_def, "id"));
+         xml_append_pretty (object, fld);
+      }
+   }
+
+   field = (char *) xml_attrval (fld, "id");
+
+   /* Perform the actual attachment. */
+   if (fld_def) {
+      if (*xml_attrval (fld_def, "storage")) ad_f = wftk_get_adaptor (repository, LIST, *xml_attrval (fld_def, "id") ? xml_attrval (fld_def, "id") : xml_attrval (fld_def, "storage"));
+      if (ad_f) xml_set (ad_f->parms, "basedir", xml_attrval (repository, "basedir"));
+      if (*xml_attrval (fld_def, "ver-keep")) {
+         if (!*xml_attrval (fld, "ver")) xml_set (fld, "ver", "0");
+         xml_setnum (fld, "next-ver", xml_attrvalnum (fld, "ver") + 1);
+      }
+   } else {
+      if (*xml_attrval (fld, "ver")) {
+         xml_setnum (fld, "next-ver", xml_attrvalnum (fld, "ver") + 1);
+      }
+   }
+
+   handle = wftk_call_adaptor (ad_f ? ad_f : ad_l, "attach_open", list, key, field, filename, xml_attrval (fld, "next-ver"));
+
+   while (number = fread (buf, 1, sizeof (buf), incoming)) {
+      total += number;
+      wftk_call_adaptor (ad_f ? ad_f : ad_l, "attach_write", buf, 1, number, handle);
+      if (number < sizeof(buf)) break;
+   }
+
+   wftk_call_adaptor (ad_f ? ad_f : ad_l, "attach_close", handle);
+   xml_setnum (handle, "size", total);
+
+   /* Update the object. */
+   if (*xml_attrval (fld, "next-ver")) {
+      xml_set (fld, "ver", xml_attrval (fld, "next-ver"));
+      fld = xmlobj_ver_direct (fld, xml_attrval (fld, "ver"));
+   }
+   xml_set (fld, "size", xml_attrval (handle, "size"));
+   xml_set (fld, "mimetype", xml_attrval (handle, "mimetype"));
+   xml_set (fld, "location", xml_attrval (handle, "location"));
+
+   wftk_call_adaptor (ad_l, "update", list, object);
+
+   /* Log the change. */
+   if (strcmp (xml_attrval (list, "logging"), "off")) { /* TODO: check overall setting as well.  Need a setting checker which scans upward. */
+      _repos_log (repository, "att", list_id, object ? repos_getkey (repository, list_id, object) : key);
+   }
+   _repos_publish_obj (repository, list_id, object);
+
+   /* Free everything up. */
+   wftk_free_adaptor (repository, ad_l);
+   if (ad_f) wftk_free_adaptor (repository, ad_f);
+   xml_free (object);
+   xml_free (handle);
+   return total;
+}
+</pre></td></tr></table>
+
+<i>17 Nov 2004</i>: For ease of use in document management, I've defined two new functions, submit and store, each of which can create an
+object and attach a document in one step.  The first takes its document data in memory; the second in a file (not a stream).  Retrieval is
+the same for a document added this way, but the key is that workflow doesn't start until the attachment has been attached -- important for
+proper document management.
+
+<p></p>
+A little special-case handling here: if a field is marked special="document", then it's a text field to be treated as the attachment storage
+area.  This should probably be handled in repos_attach, but for now it makes sense to work with it here (attach won't even be called if
+this is the case.)  TODO: think about this more.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT int repos_submit (XML * repository, const char * list_id, XML * fields, const char * data)
+{
+   const char * key;
+   XML * list;
+   XML * mark;
+
+   list = repos_defn (repository, list_id);
+   if (!list) return 1;
+
+   /* Handle special="document" */
+   mark = xml_search (list, "field", "special", "document");
+   if (mark) {
+      xmlobj_set (fields, list, xml_attrval (mark, "id"), data); /* TODO: this copies the whole thing -- scalability problem! */
+      return (repos_add (repository, list_id, fields));
+   }
+
+   /* Normal case: add object, attach doc, run workflow */
+   xml_set (fields, "no-workflow", "yes");
+   repos_add (repository, list_id, fields);
+   xml_unset (fields, "no-workflow");
+
+   key = repos_getkey (repository, list_id, fields);
+   mark = repos_attach_open (repository, list_id, key, NULL, NULL);
+   repos_attach_write ((void *)data, 1, strlen (data), mark);
+   repos_attach_close (repository, mark);
+
+   xml_set (fields, "only-workflow", "yes");
+   repos_add (repository, list_id, fields);
+   xml_unset (fields, "only-workflow");
+
+   return 0;
+}
+WFTK_EXPORT int repos_store (XML * repository, const char * list_id, XML * fields, const char * data_file)
+{
+   return 0;
+}
+</pre></td></tr></table>
+
+It's really only in retrieval that we need any version awareness.  But of course we also need a function to tell us the current
+version.  When actually retrieving the current version, of course, we don't necessarily need to retrieve the object itself; if
+the attachment field is defined in the list definition instead of in the object, then we can cut right to the chase and retrieve
+the current version from the attachment adaptor.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void repos_attach_getver (XML * repository, const char * list_id, const char * key, const char * field)
+{
+   XML * fld;
+   XML * object;
+   WFTK_ADAPTOR * ad_l;
+
+   xml_set (repository, "result", "");
+
+   object = repos_get (repository, list_id, key);
+   if (!object) return;
+
+   if (field &amp;&amp; *field) {
+      fld = xmlobj_is_field (object, NULL, field);
+   } else {
+      fld = xml_search (object, "field", "type", "document");
+   }
+
+   if (!fld) {
+      xml_free (object);
+      return;
+   }
+   xml_set (repository, "result", xml_attrval (fld, "ver"));
+}
+</pre></td></tr></table>
+
+Note that the version value here is returned as an attribute on the repository data structure.  This is a pretty comfortable way
+to return a string value using the XMLAPI, but I haven't used it widely.  I may start.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_retrieve_open (XML * repository, const char * list_id, const char * key, const char * field, const char * ver)
+{
+   XML * handle;
+   XML * list;
+   XML * fld;
+   XML * object;
+   WFTK_ADAPTOR * ad_l;
+   WFTK_ADAPTOR * ad;
+
+   list = repos_defn (repository, list_id);
+   if (!list) return 0;
+
+   if (field &amp;&amp; *field) {
+      fld = xml_search (list, "field", "id", field);
+   } else {
+      fld = xml_search (list, "field", "type", "document");
+   }
+   if (!fld || (*xml_attrval (fld, "ver-keep") &amp;&amp; (!ver || !*ver))) {
+      /* Retrieve object if necessary. */
+      ad_l = wftk_get_adaptor (repository, LIST, *xml_attrval (list, "id") ? xml_attrval (list, "id") : xml_attrval (list, "storage"));
+      if (!ad_l) return 0;
+      xml_set (ad_l->parms, "basedir", xml_attrval (repository, "basedir"));
+
+      object = wftk_call_adaptor (ad_l, "get", list, key);
+      wftk_free_adaptor (repository, ad_l);
+      if (!object) return 0;
+
+      if (field &amp;&amp; *field) {
+         fld = xmlobj_is_field (object, list, field);
+      } else {
+         fld = xml_search (object, "field", "type", "document");
+      }
+      if (!fld) {
+         xml_free (object);
+         return 0;
+      }
+      ver = xml_attrval (fld, "ver");
+   }
+   field = (char *) xml_attrval (fld, "id");
+
+   ad = wftk_get_adaptor (repository, LIST, *xml_attrval (fld, "storage") ? xml_attrval (fld, "storage") : xml_attrval (list, "storage"));
+   if (!ad) {
+      if (object) xml_free (object);
+      return NULL;
+   }
+   xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+
+   handle = wftk_call_adaptor (ad, "retrieve_open", list, key, fld, ver);
+   wftk_free_adaptor (repository, ad);
+
+   if (object) xml_free (object);
+   return handle;
+}
+WFTK_EXPORT int   repos_retrieve_read (void * buf, size_t size, size_t number, XML * handle)
+{
+   WFTK_ADAPTOR * ad;
+   int (*read_fn) (void *, int, int, void *);
+
+   if (!handle) return 0;
+   if (!buf) return 0;
+   if (!size || !number) return 0;
+
+   ad = wftk_get_adaptor (handle, LIST, xml_attrval (handle, "adaptor"));
+   if (!ad) return 0;
+
+   wftk_call_adaptor (ad, "retrieve_read", buf, size, number, handle);
+
+   wftk_free_adaptor (handle, ad);
+   
+   return xml_attrvalnum (handle, "last-read");
+}
+WFTK_EXPORT int   repos_retrieve_close (XML * handle)
+{
+   WFTK_ADAPTOR * ad;
+
+   if (!handle) return 0;
+
+   ad = wftk_get_adaptor (handle, LIST, xml_attrval (handle, "adaptor"));
+   if (!ad) return 0;
+   wftk_call_adaptor (ad, "attach_close", handle);
+   wftk_free_adaptor (handle, ad);
+   return 0;
+}
+WFTK_EXPORT int   repos_retrieve (XML * repository, const char * list_id, const char * key, const char * field, const char * ver, FILE * outgoing)
+{
+   XML * handle;
+   XML * list;
+   XML * fld;
+   XML * object = NULL;
+   WFTK_ADAPTOR * ad_l;
+   WFTK_ADAPTOR * ad;
+   char  buf[1024];
+   int  total = 0;
+   int  number;
+
+   list = repos_defn (repository, list_id);
+   if (!list) return 0;
+
+   if (field &amp;&amp; *field) {
+      fld = xml_search (list, "field", "id", field);
+   } else {
+      fld = xml_search (list, "field", "type", "document");
+   }
+   if (!fld || (*xml_attrval (fld, "ver-keep") &amp;&amp; (!ver || !*ver))) {
+      /* Retrieve object if necessary. */
+      ad_l = wftk_get_adaptor (repository, LIST, *xml_attrval (list, "id") ? xml_attrval (list, "id") : xml_attrval (list, "storage"));
+      if (!ad_l) return 0;
+      xml_set (ad_l->parms, "basedir", xml_attrval (repository, "basedir"));
+
+      object = wftk_call_adaptor (ad_l, "get", list, key);
+      wftk_free_adaptor (repository, ad_l);
+      if (!object) return 0;
+
+      if (field &amp;&amp; *field) {
+         fld = xmlobj_is_field (object, list, field);
+      } else {
+         fld = xml_search (object, "field", "type", "document");
+      }
+      if (!fld) {
+         xml_free (object);
+         return 0;
+      }
+      ver = xml_attrval (fld, "ver");
+   }
+   field = (char *) xml_attrval (fld, "id");
+
+   ad = wftk_get_adaptor (repository, LIST, *xml_attrval (fld, "storage") ? xml_attrval (fld, "storage") : xml_attrval (list, "storage"));
+   if (!ad) {
+      if (object) xml_free (object);
+      return 0;
+   }
+   xml_set (ad->parms, "basedir", xml_attrval (repository, "basedir"));
+
+   handle = wftk_call_adaptor (ad, "retrieve_open", list, key, fld, ver);
+
+   do {
+      wftk_call_adaptor (ad, "retrieve_read", buf, 1, sizeof(buf), handle);
+      number = xml_attrvalnum (handle, "last-read");
+      if (!number) break;
+      total += number;
+      fwrite (buf, 1, number, outgoing);
+      if (number < sizeof(buf)) break;
+   } while (1);
+
+   wftk_call_adaptor (ad, "retrieve_close", handle);
+
+   if (object) xml_free (object);
+   xml_free (handle);
+   return total;
+}
+</pre></td></tr></table>
+
+<i>(August 13, 2002)</i>: so I've come up with a more convenient way to deal with selected
+attachments.  If they're XML, I've got repos_retrieve_load to load the attachment into an XML
+structure.  This makes it really simple to write simple utilities that can work with attached
+documents.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * repos_retrieve_load (XML * repository, const char * list_id, const char * key, const char * field, const char * ver)
+{
+   XML * handle = repos_retrieve_open (repository, list_id, key, field, ver);
+   XML * ret;
+
+   if (!handle) return NULL;
+
+   ret = xml_parse_general ((void *) handle, (XMLAPI_DATARETRIEVE) repos_retrieve_read);
+   xml_free (handle);
+
+   return ret;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="synching.html">Previous: Synching data with remote data sources</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="index.html">Next: Repository manager</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2005, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

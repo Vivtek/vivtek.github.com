@@ -1,0 +1,344 @@
+<html><head><title>NOTIFY adaptor: smtp for repmgr</title></head>
+<body>
+<h2>NOTIFY adaptor: smtp</h2>
+<hr>
+<p></p>
+This is the SMTP notification adaptor for the wftk's repository manager.  It encapsulates the ability to send
+notifications via SMTP email.  Since the notification system is completely different for the
+repository manager and the wftk core, there are two notification adaptors for SMTP.  Weird, but as usual,
+it kind of makes sense if you don't think about it too hard.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include &lt;string.h>
+#include &lt;sys/types.h>
+#ifdef WINDOWS
+#include &lt;winsock.h>
+#else
+#include &lt;sys/socket.h>
+#include &lt;netinet/in.h>
+#include &lt;netdb.h>
+#endif
+#include "../wftk.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "send"
+};
+
+XML * NOTIFY_smtp_init (WFTK_ADAPTOR * ad, va_list args);
+XML * NOTIFY_smtp_free (WFTK_ADAPTOR * ad, va_list args);
+XML * NOTIFY_smtp_info (WFTK_ADAPTOR * ad, va_list args);
+XML * NOTIFY_smtp_send (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   NOTIFY_smtp_init,
+   NOTIFY_smtp_free,
+   NOTIFY_smtp_info,
+   NOTIFY_smtp_send
+};
+
+static struct wftk_adaptor_info _NOTIFY_smtp_info =
+{
+   4,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct wftk_adaptor_info * NOTIFY_smtp_get_info ()
+{
+   return &amp; _NOTIFY_smtp_info;
+}
+</pre></td></tr></table>
+
+Thus concludes the communication with the config module.  Now on with the actual implementation
+of functionality.  First, the initialization of an adaptor instance.  When given the fresh adaptor,
+the init function has any parameters supplied to the adaptor creator in <code>ad->parms</code> as an
+attribute named "parms".  In this case, we're going to treat that parms attribute as a directory; if
+it's blank we use our compiled default.  We'll leave the directory we actually end up using in an
+attribute called "dir".  Thus I demonstrate my complete and utter addiction to my xmlapi library.
+It really makes coding in C palatable.
+<p></p>
+Note the setting of the "spec" attribute in ad->parms.  This is recommended for adaptors,
+in case the adaptor has been invoked as a default.  If the default is then later changed,
+it's important for things to know where this adaptor was in the first place.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * NOTIFY_smtp_init (WFTK_ADAPTOR * ad, va_list args) {
+   const char * parms;
+
+   parms = xml_attrval (ad->parms, "parm");
+   if (!*parms) parms = wftk_config_get_value (ad->session, "notify.stmp.server");
+   if (!*parms) parms = "localhost";
+
+   xml_setf (ad->parms, "server", parms);
+   xml_setf (ad->parms, "spec", "smtp:%s", xml_attrval (ad->parms, "server"));
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+That wasn't so hard, was it?  Well, freeing up the adaptor is much easier:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * NOTIFY_smtp_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+That was programmer humor.  Ha, ha.  Yeah, it was pretty droll.  How many adaptors have you seen that joke in, so far?
+<p></p>
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * NOTIFY_smtp_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "notify");
+   xml_set (info, "name", "smtp");
+   xml_set (info, "ver", "2.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+<p></p>
+Moving along at breakneck speed, we come to actual functionality: how to send mail, you know?  It's actually pretty easy.
+You need to know the basics of the SMTP protocol, and you need to know how to use sockets.  Sit back and watch.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * NOTIFY_smtp_send  (WFTK_ADAPTOR * ad, va_list args)
+{
+   char * to;
+   char * from;
+   char * subject;
+   char * textview;
+   char * htmlview;
+
+   char hostname[64];
+   struct hostent *server;
+   char line[1024];
+   char buf[1024];
+   char * mark;
+
+   XML * lookup;
+
+   int bytes;
+#ifdef WINDOWS
+   SOCKET sock;
+#  define SOCK_BAD (sock == INVALID_SOCKET)
+#  define CLOSESOCK (closesocket (sock))
+   WSADATA wsa;
+#else
+   int sock;
+#  define SOCK_BAD (sock &lt; 0)
+#  define CLOSESOCK (close (sock))
+#endif
+   struct sockaddr_in name;
+
+   if (args) to = va_arg (args, char *);
+   if (!to) {
+      xml_set (ad->parms, "error", "No recipient specified.");
+      return (XML *) 0;
+   }
+   if (args) from = va_arg (args, char *);
+   if (!from) {
+      xml_set (ad->parms, "error", "No sender specified.");
+      return (XML *) 0;
+   }
+   if (args) subject = va_arg (args, char *);
+   if (args) textview = va_arg (args, char *);
+   if (args) htmlview = va_arg (args, char *);
+   sprintf (line, "SMTP requested to: (%s) from: (%s) subject: (%s)", to, from, subject);
+   (ad->log) (ad->session, ad, 5, line);
+
+#ifdef WINDOWS
+   WSAStartup (MAKEWORD (1, 0), &amp;wsa);
+#endif
+
+   gethostname (hostname, sizeof(hostname));
+
+   server = gethostbyname (xml_attrval (ad->parms, "server"));
+   if (!server) {
+      /* 2005-02-16 - if there's no mailserver specified, we want to figure out a direct-to-MX server to use. */
+      /* 2005-02-22 - So I wrote the DNS action adaptor, which calls res_query so you don't have to. */
+      mark = strchr (to, '@');
+      if (mark) {
+         mark++;
+         lookup = xml_create ("action");
+         xml_set (lookup, "handler", "dns");
+         xml_set (lookup, "action", "lookup");
+         xml_set (lookup, "type", "mx");
+         xmlobj_set (lookup, NULL, "name", mark);
+         repos_action_do (ad->session, lookup);
+         xml_set_nodup (lookup, "mx_server", xmlobj_get (lookup, NULL, "an(0).data"));
+         if (*xml_attrval (lookup, "mx_server")) {
+            sprintf (line, "MX server established as %s", xml_attrval (lookup, "mx_server"));
+            (ad->log) (ad->session, ad, 5, line);
+         } else {
+            (ad->log) (ad->session, ad, 2, "Unable to find MX server");
+         }
+         server = gethostbyname (xml_attrval (lookup, "mx_server"));
+         xml_free (lookup);
+      }
+   }
+   if (!server) {
+      xml_set (ad->parms, "error", "Unable to resolve server name.");
+      return (XML *) 0;
+   }
+
+   sock = socket (AF_INET, SOCK_STREAM, 0);
+   if (SOCK_BAD) {
+      xml_set (ad->parms, "error", "Unable to allocate socket.");
+      return (XML *) 0;
+   }
+
+   memset (&amp;name, 0, sizeof (struct sockaddr_in));
+   name.sin_family = AF_INET;
+   name.sin_port = htons (25);
+   memcpy (&amp;name.sin_addr, server->h_addr_list[0], server->h_length);
+
+   if (connect(sock, (struct sockaddr *) &amp;name, sizeof (struct sockaddr)) < 0) {
+      xml_setf (ad->parms, "error", "Unable to connect to server %s.", server);
+      CLOSESOCK;
+      return (XML *) 0;
+   }
+
+   memset (line, 0, sizeof(line));
+   bytes = recv (sock, line, sizeof(line), 0);
+
+   sprintf (line, "HELO %s", hostname);
+   (ad->log) (ad->session, ad, 5, line);
+   send (sock, line, strlen(line), 0);  /* Send HELO. */
+   send (sock, "\r\n", 2, 0);
+   memset (line, 0, sizeof(line));
+   bytes = recv (sock, line, sizeof(line), 0);
+   if (bytes &lt; 4 || strncmp (line, "250 ", 4)) {
+      xml_setf (ad->parms, "error", "Server refused connection. (%s)", line);
+      CLOSESOCK;
+      return (XML *) 0;
+   }
+
+   mark = strchr (from, '&lt;');
+   if (mark) {
+      strcpy (buf, mark+1);
+      mark = strchr (buf, '>');
+      if (mark) *mark = '\0';
+   } else {
+      strcpy (buf, from);
+   }
+   sprintf (line, "MAIL FROM: &lt;%s>", buf);
+   (ad->log) (ad->session, ad, 5, line);
+   send (sock, line, strlen(line), 0);
+   send (sock, "\r\n", 2, 0);
+   memset (line, 0, sizeof(line));
+   bytes = recv (sock, line, sizeof(line), 0);
+   if (bytes &lt; 4 || strncmp (line, "250 ", 4)) {
+      xml_setf (ad->parms, "error", "Failure on MAIL FROM: (%s)", line);
+      CLOSESOCK;
+      return (XML *) 0;
+   }
+
+   mark = strchr (to, '&lt;');
+   if (mark) {
+      strcpy (buf, mark+1);
+      mark = strchr (buf, '>');
+      if (mark) *mark = '\0';
+   } else {
+      strcpy (buf, to);
+   }
+   sprintf (line, "RCPT TO: &lt;%s>", buf);
+   (ad->log) (ad->session, ad, 5, line);
+   send (sock, line, strlen(line), 0);
+   send (sock, "\r\n", 2, 0);
+   memset (line, 0, sizeof(line));
+   bytes = recv (sock, line, sizeof(line), 0);
+   if (bytes &lt; 4 || strncmp (line, "250 ", 4)) {
+      xml_setf (ad->parms, "error", "Failure on RCPT TO: (%s)", line);
+      CLOSESOCK;
+      return (XML *) 0;
+   }
+
+   send (sock, "DATA\r\n", 6, 0);
+   bytes = recv (sock, line, sizeof(line), 0);
+
+   sprintf (line, "From: %s\n", from);       send (sock, line, strlen(line), 0);
+   sprintf (line, "To: %s\n", to);           send (sock, line, strlen(line), 0);
+   sprintf (line, "Subject: %s\n", subject); send (sock, line, strlen(line), 0);
+
+   if (textview &amp;&amp; !htmlview) {
+      strcpy (line, "Content-Type: text/plain\n"); send (sock, line, strlen(line), 0);
+      send (sock, "\n", 1, 0);
+      send (sock, textview, strlen(textview), 0);
+      send (sock, "\n", 1, 0);
+   } else if (!textview &amp;&amp; htmlview) {
+      strcpy (line, "Content-Type: text/html\n"); send (sock, line, strlen(line), 0);
+      send (sock, "\n", 1, 0);
+      send (sock, htmlview, strlen(htmlview), 0);
+      send (sock, "\n", 1, 0);
+   } else if (textview) {
+      strcpy (line, "Content-Type: multipart/alternative;\n boundary=\"----------wftk7897234hi_mom\""); send (sock, line, strlen(line), 0);
+      send (sock, "\n", 1, 0);
+      strcpy (line, "This is a multi-part message in MIME format.\n------------wftk7897234hi_mom\n"); send (sock, line, strlen(line), 0);
+      strcpy (line, "Content-Type: text/plain;\n\n"); send (sock, line, strlen(line), 0);
+      send (sock, textview, strlen(textview), 0);
+      strcpy (line, "------------wftk7897234hi_mom\n"); send (sock, line, strlen(line), 0);
+      strcpy (line, "Content-Type: text/html;\n\n"); send (sock, line, strlen(line), 0);
+      send (sock, htmlview, strlen(htmlview), 0);
+      strcpy (line, "------------wftk7897234hi_mom--\n"); send (sock, line, strlen(line), 0);
+   } else {
+      send (sock, "\r\n", 2, 0);
+   }
+
+   send (sock, ".\r\n", 3, 0);
+   memset (line, 0, sizeof(line));
+   bytes = recv (sock, line, sizeof(line), 0);
+   if (bytes &lt; 4 || strncmp (line, "250 ", 4)) {
+      xml_setf (ad->parms, "error", "Message not accepted by server. (%s)", line);
+      CLOSESOCK;
+      return (XML *) 0;
+   }
+
+   send (sock, "QUIT\r\n", 6, 0);
+   bytes = recv (sock, line, sizeof(line), 0);
+
+   CLOSESOCK;
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2004-2005, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

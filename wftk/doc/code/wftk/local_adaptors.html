@@ -1,0 +1,32 @@
+<html><head><title>Local adaptor organization</title></head>
+<body>
+<h2>Local adaptor organization</h2>
+<hr>
+In starting the <a href="../mail-handler/index.html">mail handlers</a>, which are effectively the first
+wftk client programs I've ever written independent of the command-line utilities for the two main
+modules, I came to realize that the way
+I was dealing with disseminating information about static-linked adaptors frankly sucks.  So my new plan
+is to create a library system which includes the core code in one library (-lwftk, -lrepmgr), and
+puts the local system's static adaptors into a second library which would be compiled to contain
+the adaptors staticly linked on that system.  This second library would be, say, -lwftk_a and would
+then contain the function <code>wftk_lookup_static_adaptors</code>; this function would be compiled
+uniquely for each installation and would return the usual information about local static adaptors.
+<p>
+At first glance, this scheme seems unlikely to work for Windows -- except that under Windows, most
+adaptors are going to be dynamically linked, not static; they'll be DLLs.  A single standard set
+of adaptors will be organized into wftk_a.dll (possibly split into plain and _rt varieties, to
+denote the runtime they work with.)  It's really only under Unix that static linking is so
+important, and that's mostly because I still haven't figured out dynamic linking under Unix.
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

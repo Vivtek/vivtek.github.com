@@ -1,0 +1,307 @@
+<html><head><title>wftk-j: The Reality</title></head>
+<body>
+<h2>wftk-j: Remote SOAP Repository</h2>
+<center>
+[<a href="index.html">wftk-j</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+The Repository class being defined as a abstract class, we need to define one or more implementations to actually use it.
+The first of these implementations is the RemoteSOAPRepository, which uses the <a href="simple_soap.html">simple SOAP client</a>
+to communicate with a SOAP server providing wftk services via HTTP -- initially the <a href="../python/soap_server.html">Python
+SOAP server</a>, which actually, you know, <i>works</i>.  This strategy was proposed by the indomitable Dominik Kreutz of
+Startext GmbH, and since they were nice enough to give me actually money, I felt it incumbent upon me to do it.
+<p></p>
+The alternative initial implementation is the <a href="repos_jni.html">LocalJNIRepository</a>.  There's a very good chance
+that it will provide more extensive functionality more quickly, even though the SOAP approach will provide minimal functionality
+more quickly.
+<p></p>
+The Repository class, of course, relies on several peripheral classes (entry, list, task) -- but those classes don't care
+about the implementation of the repository, and are defined <a href="repository.html">at the same level as the abstract
+Repository</a>.
+
+<p></p>
+Let's push some boilerplate and get this show on the road.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>// Copyright (c) 2003, Vivtek.
+//
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
+//  
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//  
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+</pre></td></tr></table>
+
+Includes are minimal.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>package org.wftk;
+import java.io.*;
+import java.util.HashMap;
+</pre></td></tr></table>
+
+Now down to business. 
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>public class RemoteSOAPRepository extends Repository {
+   String server;
+
+   public RemoteSOAPRepository (String server) {
+      this.server = server;
+   }
+
+   void _get (Entry e) throws WftkException
+   {
+      //text_log (3, "Get entry " + e.list_id + "[" + e.key + "]");
+
+      simple_soap ss = new simple_soap(server, "get");
+      ss.add_parm ("list_id", e.list_id);
+      ss.add_parm ("key", e.key);
+      if (authtoken != null) ss.add_parm ("auth", authtoken);
+      try {
+         ss.call ();
+      }
+      catch (SimpleSOAPException ex) {
+         throw new WftkException ("Problem calling SOAP server '" + server + "'");
+      }
+
+      //link_log (6, "XML returned", ss.XMLResult);
+
+      e.values = ss.map_value;
+   }
+   void _get_task (Entry e, String list, String key, String local_key) throws WftkException
+   {
+      simple_soap ss = new simple_soap(server, "get");
+      ss.add_parm ("list_id", list);
+      ss.add_parm ("key", key);
+      ss.add_parm ("task_key", local_key);
+      if (authtoken != null) ss.add_parm ("auth", authtoken);
+      try {
+         ss.call ();
+      }
+      catch (SimpleSOAPException ex) {
+         throw new WftkException ("Problem calling SOAP server '" + server + "'");
+      }
+
+      //System.out.println ("XMLResult: " + ss.XMLResult);
+
+      e.values = ss.map_value;
+      //System.out.println (e.values);
+      e.key = e.get("key");
+      // TODO: delete 'key' value.  (Which isn't a field.)
+   }
+
+   String _format (String list_id, String key, String mode) throws WftkException
+   {
+      simple_soap ss = new simple_soap(server, "get");
+      ss.add_parm ("list_id", list_id);
+      ss.add_parm ("key", key);
+      ss.add_parm ("mode", mode);
+      if (authtoken != null) ss.add_parm ("auth", authtoken);
+      try {
+         ss.call ();
+      }
+      catch (SimpleSOAPException e) {
+         throw new WftkException ("Problem calling SOAP server '" + server + "'");
+      }
+
+      return (ss.simple_value);
+   }
+
+   void _add (String list, Entry obj) throws WftkException
+   {
+      simple_soap ss = new simple_soap(server, "add");
+      ss.add_parm ("list_id", list);
+      if (authtoken != null) ss.add_parm ("auth", authtoken);
+
+      java.util.Iterator iterator = obj.values().iterator();
+      String field;
+      while (iterator.hasNext()) {
+         field = (String) iterator.next();
+         ss.add_parm ("fld_" + field, obj.get(field));
+      }
+
+      try {
+         ss.call();
+      }
+      catch (SimpleSOAPException e) {
+         throw new WftkException ("Problem calling SOAP server '" + server + "'");
+      }
+
+      obj.key = ss.simple_value;
+   } 
+
+   void _merge (String list, Entry obj, String key) {}
+
+   void _mod (String list, Entry obj, String key) throws WftkException
+   {
+      simple_soap ss = new simple_soap(server, "merge");
+      ss.add_parm ("list_id", list);
+      ss.add_parm ("key", key);
+      if (authtoken != null) ss.add_parm ("auth", authtoken);
+
+      java.util.Collection keys = obj.values.keySet();
+      java.util.Iterator iterator = keys.iterator();
+      String field;
+      while (iterator.hasNext()) {
+         field = (String) iterator.next();
+         ss.add_parm ("fld_" + field, obj.get(field));
+      }
+      try {
+         ss.call();
+      }
+      catch (SimpleSOAPException e) {
+         throw new WftkException ("Problem calling SOAP server '" + server + "'");
+      }
+
+      obj.key = ss.simple_value;
+   }
+
+   void _del (String list, String key) {}
+
+   void _list (List l) throws WftkException
+   {
+      simple_soap ss = new simple_soap(server, "list");
+      ss.add_parm ("list_id", l.id);
+      if (authtoken != null) ss.add_parm ("auth", authtoken);
+      try {
+         ss.call ();
+      }
+      catch (SimpleSOAPException e) {
+         throw new WftkException ("Problem calling SOAP server '" + server + "'");
+      }
+
+      l.clear();
+
+      if (ss.vector_value != null) {
+         java.util.Iterator it = ss.vector_value.iterator();
+         while (it.hasNext()) {
+            if (ss.return_type == 1) {
+               l.add_entry ((String) it.next());
+            } else {
+               l.add_entry ((HashMap) it.next());
+            }
+         }
+      }
+   }
+
+   void _tasks (List t) throws WftkException {
+      simple_soap ss = new simple_soap(server, "tasks");
+      try {
+         ss.call ();
+      }
+      catch (SimpleSOAPException e) {
+         throw new WftkException ("Problem calling SOAP server '" + server + "'");
+      }
+
+      t.clear();
+
+      if (ss.vector_value != null) {
+         java.util.Iterator it = ss.vector_value.iterator();
+         while (it.hasNext()) {
+            if (ss.return_type == 1) {
+               t.add_entry ((String) it.next());
+            } else {
+               t.add_entry ((HashMap) it.next());
+            }
+         }
+      }
+   }
+</pre></td></tr></table>
+
+<i>October 15, 2003:</i> Gereon Fassbender (working with startext GmbH) had a nice idea: there should be an Entry.tasks().  It seems most logical for 
+me to make this an object-get mode as far as the SOAP interface is concerned, but it fits into the OO schema best as a variant on the tasks call; if we
+call rep.tasks(e) then we get the exact same thing as e.tasks(), which makes perfect sense to me.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   void _tasks (List t, Entry e) throws WftkException {
+      simple_soap ss = new simple_soap(server, "get");
+      ss.add_parm ("list_id", e.list_id);
+      ss.add_parm ("key", e.key);
+      ss.add_parm ("mode", "tasks");
+      if (authtoken != null) ss.add_parm ("auth", authtoken);
+      try {
+         ss.call ();
+      }
+      catch (SimpleSOAPException ex) {
+         throw new WftkException ("Problem calling SOAP server '" + server + "'");
+      }
+
+
+      t.clear();
+
+      if (ss.vector_value != null) {
+         java.util.Iterator it = ss.vector_value.iterator();
+         while (it.hasNext()) {
+            if (ss.return_type == 1) {
+               t.add_entry ((String) it.next());
+            } else {
+               t.add_entry ((HashMap) it.next());
+            }
+         }
+      }
+   }
+
+   void _todo (List t) throws WftkException {
+      simple_soap ss = new simple_soap(server, "todo");
+      try {
+         ss.call ();
+      }
+      catch (SimpleSOAPException e) {
+         throw new WftkException ("Problem calling SOAP server '" + server + "'");
+      }
+      t.clear();
+
+      if (ss.vector_value != null) {
+         java.util.Iterator it = ss.vector_value.iterator();
+         while (it.hasNext()) {
+            if (ss.return_type == 1) {
+               t.add_entry ((String) it.next());
+            } else {
+               t.add_entry ((HashMap) it.next());
+            }
+         }
+      }
+   }
+
+   boolean _auth (String userid, String passwd) throws WftkException {
+      simple_soap ss = new simple_soap(server, "auth");
+      ss.add_parm ("userid", userid);
+      ss.add_parm ("password", passwd);
+      try {
+         ss.call();
+      }
+      catch (SimpleSOAPException e) {
+         throw new WftkException ("Problem calling SOAP server '" + server + "'");
+      }
+      authtoken = ss.simple_value;
+      return true;  // TODO: implement authorization failure, along with, you know, security and stuff.
+   }
+}
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

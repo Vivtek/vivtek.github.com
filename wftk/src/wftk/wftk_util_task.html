@@ -1,0 +1,248 @@
+<html><head><title>wftk command-line utility: Working with tasks</title></head>
+<body>
+<h2>Working with tasks</h2>
+<center>
+[&nbsp;<a href="wftk_util_process.html">Previous: Dealing with processes</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_request.html">Next: Working with requests</a>&nbsp;]
+</center>
+
+<hr>
+<br><br>
+<a name="task">
+<i>task: Show a task, including data requirements</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 2) {
+   printf ("wftk task: dsrep and process ID required (use . for default repository)\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL (argv[argp]), argv[argp+1]); argp++; argp++;
+if (datasheet) {
+   if (argsleft &lt; 1) {
+      task = wftk_task_retrieve (session, datasheet);
+   } else {
+      task = xml_create ("task");
+      xml_set (task, "id", argv[argp++]);
+      xml_set (task, "dsrep", xml_attrval (datasheet, "repository"));
+      xml_set (task, "process", xml_attrval (datasheet, "id"));
+      wftk_task_retrieve (session, task);
+   }
+
+   if (!strcmp (xml_attrval (task, "status"), "none")) {
+      printf ("No task found.\n");
+   } else {
+      printf ("Task '%s'\n", *xml_attrval (task, "label") ? xml_attrval (task, "label") : xml_attrval (task, "id"));
+      if (*xml_attrval (task, "role")) printf ("Role: %s\n", xml_attrval (task, "role"));
+      if (*xml_attrval (task, "user")) printf ("Assigned to %s\n", xml_attrval (task, "user"));
+      mark = xml_firstelem (task);
+      while (mark) {
+         if (!strcmp (mark->name, "data")) {
+            printf (" %c %s: %s\n", strcmp (xml_attrval (mark, "mode"), "input") ? ' ' : '*',
+                                    xml_attrval (mark, "id"), xml_attrval (mark, "value"));
+         }
+         mark = xml_nextelem (mark);
+      }
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="tasks">
+<i>tasks: List tasks</i><br>
+This task list is simply a list of tasks active in a given process.  The list is obtained from the datasheet directly.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 2) {
+   printf ("wftk task: dsrep and process ID required (use . for default repository)\n");
+   exit (1);
+}
+
+list = xml_create ("list");
+if (strcmp (argv[argp++], ".")) xml_set (list, "dsrep", argv[argp-1]);
+xml_set (list, "process", argv[argp++]);
+wftk_task_list (session, list);
+mark = xml_firstelem (list);
+if (!mark) {
+   printf ("No tasks found.\n");
+} else {
+   while (mark) {
+      printf ("%s: %s", xml_attrval (mark, "id"), xml_attrval (mark, "label"));
+      if (*xml_attrval (mark, "role")) printf (" [%s]", xml_attrval (mark, "role"));
+      if (*xml_attrval (mark, "user")) printf (" (%s)", xml_attrval (mark, "user"));
+      printf ("\n");
+      mark = xml_nextelem (mark);
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="todo">
+<i>todo: List indexed tasks</i><br>
+This list of tasks is obtained from the task index (the active task database).  At some point it'll screen for specific
+users or roles; for the time being it will demonstrate working with task list returns (which are done in exactly the same way
+as above, of course.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>list = xml_create ("list");
+if (argsleft > 0) xml_set (list, "user", argv[argp++]);
+xml_set (list, "status", "active");
+wftk_task_list (session, list);
+mark = xml_firstelem (list);
+if (!mark) {
+   printf ("No tasks found.\n");
+} else {
+   while (mark) {
+      printf ("%s > %s: %s", xml_attrval (mark, "process"), xml_attrval (mark, "id"), xml_attrval (mark, "label"));
+      if (*xml_attrval (mark, "role")) printf (" [%s]", xml_attrval (mark, "role"));
+      if (argc == 2 &amp;&amp; *xml_attrval (mark, "user")) printf (" (%s)", xml_attrval (mark, "user"));
+      printf ("\n");
+      mark = xml_nextelem (mark);
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="complete">
+<i>complete: Complete a task (or start the process)</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 2) {
+   printf ("wftk task: dsrep and process ID required (use . for default repository)\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL (argv[argp]), argv[argp+1]); argp++; argp++;
+if (datasheet) {
+   if (argsleft &lt; 1) {
+      task = wftk_task_retrieve (session, datasheet);
+   } else {
+      task = xml_create ("task");
+      xml_set (task, "id", argv[argp++]);
+      xml_set (task, "dsrep", xml_attrval (datasheet, "repository"));
+      xml_set (task, "process", xml_attrval (datasheet, "id"));
+      wftk_task_retrieve (session, task);
+   }
+
+   if (wftk_task_complete (session, task)) {
+      printf ("Completed.\n");
+   } else {
+      printf ("Not completed.\n");
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="reject">
+<i>reject: Reject a task</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 3) {
+   printf ("wftk reject: dsrep, process ID, and task ID required (use . for default repository)\n");
+   exit (1);
+}
+
+datasheet = wftk_process_load (session, PERIOD_TO_NULL (argv[argp]), argv[argp+1]); argp++; argp++;
+if (!datasheet) {
+   printf ("Datasheet repository %s can't find datasheet %s", argv[argp-2], argv[argp-1]);
+} else {
+   task = xml_create ("task");
+   xml_set (task, "id", argv[argp++]);
+   xml_set (task, "dsrep", xml_attrval (datasheet, "repository"));
+   xml_set (task, "process", xml_attrval (datasheet, "id"));
+   wftk_task_retrieve (session, task);
+
+   if (wftk_task_reject (session, task)) {
+      printf ("Rejected.\n");
+   } else {
+      printf ("No action taken.\n");
+   }
+}
+</pre></td></tr></table>
+<br><br>
+<a name="newtask">
+<i>newtask: Create an ad-hoc task</i><br>
+This interface to <code>wftk_task_new</code> is somewhat weak, as it doesn't allow the user to specify data requirements
+for an ad-hoc task.  The library itself has no such limitation.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 3) {
+   printf ("wftk task: dsrep, process ID and task ID required (use . for default repository)\n");
+   exit (1);
+}
+
+task = xml_create ("task");
+if (strcmp (argv[argp++], ".")) xml_set (task, "dsrep", argv[argp-1]);
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "id", argv[argp++]);
+if (argsleft > 0) xml_set (task, "label", argv[argp++]);
+
+if (wftk_task_new (session, task)) {
+   printf ("Task added.\n");
+} else {
+   printf ("No task added.\n");
+}
+</pre></td></tr></table>
+Now that's easy.
+<br><br>
+<a name="rescind">
+<i>rescind: Delete an ad-hoc task</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 3) {
+   printf ("wftk task: dsrep, process ID and task ID required (use . for default repository)\n");
+   exit (1);
+}
+
+task = xml_create ("task");
+if (strcmp (argv[argp++], ".")) xml_set (task, "dsrep", argv[argp-1]);
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "id", argv[argp++]);
+
+if (wftk_task_rescind (session, task)) {
+   printf ("Task rescinded.\n");
+} else {
+   printf ("No task rescinded.\n");
+}
+</pre></td></tr></table>
+Now that's even easier.
+<br><br>
+<a name="assign">
+<i>assign: Attach a user to a task</i><br>
+If the user is omitted from this command, it has the effect of de-assigning the task.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if (argsleft &lt; 3) {
+   printf ("wftk assign: dsrep, process ID and task ID required (use . for default repository)\n");
+   exit (1);
+}
+
+task = xml_create("task");
+xml_set (task, "dsrep", PERIOD_TO_NULL (argv[argp]) ? argv[argp] : ""); argp++;
+xml_set (task, "process", argv[argp++]);
+xml_set (task, "id", argv[argp++]);
+   
+if (!wftk_task_retrieve (session, task)) {
+   printf ("Task %s is not active", argv[argp-1]);
+} else {
+   if (argsleft > 0) {
+      xml_set (task, "user", argv[argp++]);
+   } else {
+      xml_set (task, "user", "");
+   }
+   wftk_task_update (session, task);
+}
+</pre></td></tr></table>
+Note that this function can't assign a task to a role, or assign a role to a user.  These will come later.
+
+
+
+<center>
+[&nbsp;<a href="wftk_util_process.html">Previous: Dealing with processes</a>&nbsp;]
+[&nbsp;<a href="wftk_util.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_util_request.html">Next: Working with requests</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

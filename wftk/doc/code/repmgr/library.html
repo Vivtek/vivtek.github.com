@@ -1,0 +1,93 @@
+<html><head><title>Repository manager: Repository management library</title></head>
+<body>
+<h2>Repository management library</h2>
+<center>
+[&nbsp;<a href="include.html">Previous: #include file for interface (links to code sections, so it's a good place to start understanding the API)</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="repositories.html">Next: Working with repository objects</a>&nbsp;]
+</center>
+
+<hr>
+So let's get down to business.  First, some of the tools we'll be using are defined in separate files.
+For instance, the XML template application procedure is separate.  The Wiki processor is separate.
+This is simply because I think these chunks will be useful even without the full repository to work
+with.  I may, of course, end up being wrong.
+
+<p></p>
+In general, the repository library operates in two modes, local or remote.  The local mode works in the
+current filesystem directory, whereas the remote mode passes all commands through to a remote server.
+The remote server listens on a given TCP port and presents the same <a href="wrapper.html">command-line interface</a>
+that the local command-line interpreter does.  There are other modes of interaction between local and remote
+repositories as well -- for instance, a list may be <i>mirrored</i>, meaning that changes to it are communicated
+to a remote repository, and the remote repository may be queried for changes made elsewhere.
+
+<p></p>
+This is still pretty new stuff and I'll attempt to revisit it as it firms up.
+
+<p></p>
+Here's the layout of the file.  It's broken into pieces for your reading pleasure; just follow the
+links.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include "repmgr.h"
+#include "xml_template.h"
+#include "wiki.h"
+#include "time.h"
+#ifdef WINDOWS
+#include "windows.h"
+#include "winsock.h"
+#else
+#include "sys/socket.h"
+#include "netinet/in.h"
+#include "netdb.h"
+#include "fcntl.h"
+#endif
+#include "../wftk/wftk.h"   /* 2003-05-26 - Look, Ma!  Workflow integration! */
+#include "../wftk/wftk_session.h"
+#include "stdarg.h"
+
+static FILE * _repos_fopen (XML * repos, const char * filename, const char * mode)
+{
+   XML * scratch = xml_create ("s");
+   FILE * ret;
+
+   xml_setf (scratch, "f", "%s%s", xml_attrval (repos, "basedir"), filename);
+   ret = fopen (xml_attrval (scratch, "f"), mode);
+   xml_free (scratch);
+   return (ret);
+}
+
+<i>See <a href="repositories.html">Working with repository objects</a></i>
+<i>See <a href="publishing.html">Publishing objects: internals</a></i>
+<i>See <a href="macros.html">Macro processing</a></i>
+<i>See <a href="lists.html">Creating and administering lists</a></i>
+<i>See <a href="iteration.html">Iterating across list contents</a></i>
+<i>See <a href="objects.html">Working with individual objects</a></i>
+<i>See <a href="values.html">Working with object field values</a></i>
+<i>See <a href="retrieval.html">Data retrieval and display</a></i>
+<i>See <a href="users.html">User authentication and group membership</a></i>
+<i>See <a href="context.html">Context/user session handling</a></i>
+<i>See <a href="repository.html">Repository queries</a></i>
+<i>See <a href="synching.html">Synching data with remote data sources</a></i>
+<i>See <a href="attachments.html">Working with attachments</a></i>
+<i>See <a href="reports.html">Working with individual objects as reports</a></i>
+<i>See <a href="processing.html">Actions and synchronous processing</a></i>
+<i>See <a href="workflow.html">Workflow</a></i>
+<i>See <a href="notification.html">Notifications</a></i>
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="include.html">Previous: #include file for interface (links to code sections, so it's a good place to start understanding the API)</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: Repository manager</a>&nbsp;]
+[&nbsp;<a href="repositories.html">Next: Working with repository objects</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2005, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

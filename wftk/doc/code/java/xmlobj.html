@@ -1,0 +1,84 @@
+<html><head><title>JNI wrapper: XMLAPI and xmlobj</title></head>
+<body>
+<h2>JNI wrapper: XMLAPI and xmlobj</h2>
+<center>
+[<a href="index.html">wftk-j</a> ] [ <a href="xmlobj.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>package org.wftk;
+public class xmlobj extends xml {
+   static {
+      System.loadLibrary("xmlapi_jni");
+   }
+
+   // ---------------------------------------------
+   // Constructors
+   // ---------------------------------------------
+
+   // ---------------------------------------------
+   // Getting and setting list definition.
+   // The list definition is an XML structure which does some of what a DTD should be doing.
+   // We simply provide a reference to a regular old "xml" object for this.
+   // ---------------------------------------------
+   xml _list;
+   void define (xml list) {
+      this._list = list;
+   }
+   public xml defn () {
+      return this._list;
+   }
+
+   // ---------------------------------------------
+   // Field reading.
+   // ---------------------------------------------
+   public native String get (String field);
+   public native String key ();
+   public native String format (String format);
+
+   // ---------------------------------------------
+   // Field writing.  Note that we can choose element or field storage.
+   // ---------------------------------------------
+   public native void set (String key, String value);
+   public native void set_elem (String key, String value);
+
+   // ---------------------------------------------
+   // Diff/patch functionality
+   // ---------------------------------------------
+   public native xmlobj diff (xmlobj changed);
+   public native xmlobj undiff (xmlobj diff);
+   public native xmlobj patch (xmlobj diff);
+
+   // ---------------------------------------------
+   // Versioning functionality
+   // ---------------------------------------------
+
+   // ---------------------------------------------
+   // Value lists
+   // ---------------------------------------------
+
+   // ---------------------------------------------
+   // Sorting lists of xmlobj records
+   // ---------------------------------------------
+   static native xml list_sort (xml[] list, xml defn, String order);
+}
+</pre></td></tr></table>
+
+And that, as they say, was that.  Our first JNI wrapper effort.  W00t.  Let's deal with the details now.
+
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

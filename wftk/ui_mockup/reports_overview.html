@@ -1,0 +1,29 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+
+<h2>Overview report</h2>
+
+<hr>
+
+To be perfectly honest, I don't think it makes a lot of sense to hand-compose a bunch of HTML to describe reports.
+Here are some reports which seem reasonable to include in the system out of the box; I'd like to hear some more:
+
+<ul>
+<li>For the supervisor of a group, a list of all active tasks along with age of the task.  Sort by person, or by age.  Gives
+an overview of how quickly things are getting done.  I wouldn't mind a reference to some metrics, if anybody knows any.
+
+<li>For the supervisor, a list of all active processes which <i>may</i> end up creating an active task for somebody in the
+group before completing.  This would simply look at the roles defined for each process currently active, and show all
+those for which the group is included in one of the roles.  Note that just because a role is defined doesn't automatically
+mean that the task will ever get activated; it could very well be in a conditional, for instance.
+
+<li>For the system administrator I can imagine a number of useful reports, such as traffic, active processes overall,
+and so on.  That probably belongs under the System Admin tab, but it's a blurry area.
+
+</ul>
+
+Comments?  Additions?
+
+</body>
+</html>

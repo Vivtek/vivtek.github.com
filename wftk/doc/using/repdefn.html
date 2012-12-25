@@ -1,0 +1,227 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Using the wftk: repository definition</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Using the wftk: repository definition</h2>
+<hr>
+
+Whenever you talk to the wftk, you are actually talking to a specific <i>repository</i>.  The repository can
+be thought of as the context for an application, and there may be any number of repositories on a single physical machine.
+By default, a wftk repository occupies a directory in the file system of its home machine.  You might be able to use
+the APIs to convince the wftk to work with a dynamically-defined repository which is not bound to a given directory, but
+I've never tried it.  So to simplify the situation, let's just assume that the repository is a directory.
+
+<p>
+Within that directory is the repository definition, a single XML file which defines the data resources (and other things)
+used by that repository.  When you start up a conversation with a wftk system, the first thing the wftk does is to
+read the repository definition so it knows the context in which you will be working.
+
+<p>
+For instance, when starting the command-line repmgr (repository manager) under Windows, you might use the following command:
+<center>
+<table width="90%"><tr><td bgcolor="eeeeee">
+<pre>
+C:\projects\sites\test>repmgr -r site.opm
++000: Repository open.
+repmgr v1.0 listening: type 'help' for help.
+++done++
+</pre>
+</table>
+</center>
+<p>
+Note the use of the <code>-r</code> parameter to name the file containing the repository definition.
+That file is opened and read into an XML structure, which is then kept for the duration of the session.
+If you were speaking to a SOAP system, that file is read when the SOAP server is started; under AOLserver,
+the file is read when the AOLserver is started.  When using the C or Python API, you start by opening a repository,
+and you pass the open repository structure into all subsequent calls to the API.
+<p>
+
+No matter how you end up addressing the repository, the definition file is always in the same format, and the explanation
+of that format is the purpose of this document.
+<p>
+Here is how this document is structured:
+<a name="top"/>
+<ul>
+<li><a href="#simple">The simplest possible repository</a>
+<li><a href="#object">More complex data storage (LIST_localdir storage)</a>
+<li><a href="#rdbms">Storing data in relational databases</a>
+</ul>
+
+<hr>
+<h3>The simplest possible repository</h3>
+[ prev ] [ <a href="#top">top<a/> ] [ <a href="#object">next</a> ]
+<p>
+A repository's basic component is a set of <i>lists</i>.  Each list corresponds to a set of uniquely keyed objects
+made up of fields.  (Objects can also contain things other than fields, but we'll worry about that later.)
+The simplest system possible, then, is a repository with a single list.  To make things <i>very</i> simple, we'll
+store the list as tab-delimited fields in a file.
+
+<center>
+<table width="90%"><tr><td bgcolor="eeeeee">
+<pre>
+&lt;site&gt;
+  &lt;list id="mylist" storage="delim:mylist.txt"&gt;
+    &lt;field id="field1"/&gt;
+    &lt;field id="field2"/&gt;
+  &lt;/list&gt;
+&lt;/site&lt;
+</pre>
+</td></tr></table>
+</center>
+
+<p>
+I'm going to assume you understand the basics of how XML works (if not, this document and the wftk are both going to be tough going).
+Even if you don't, though, this is a pretty simple file.  The key is the <code>&lt;list&gt;</code> tag, which defines the list within
+the repository.  The <code>id</code> attribute identifies the list as <i>mylist</i>, and the <code>storage</code> attribute
+defines where <i>mylist</i> will be stored.
+<p>
+If you look more closely at the <code>storage</code> spec, you'll see that it consists of an adaptor name <code>delim</code>, followed
+by a colon, followed by a filename.  This tells the wftk that the data in this list is managed using the <code>LIST_delim</code> adaptor
+and the adaptor then knows that the file to store the data in should be <code>mylist.txt</code>.  Each adaptor knows how to handle its
+own storage specs; some may also use additional attributes on the list definition to store additional information about the storage
+of the data.
+
+<p>
+The delimited text adaptor <code>LIST_delim</code> is a simple way to store simple objects.  This adaptor stores each record in the list
+as a single line in the text file named.  To illustrate this usage, let's assume the mylist.txt file contains the following,
+where [tab] is replaced by actual tab characters:
+
+<p>
+<center>
+<table width="90%"><tr><td bgcolor="eeeeee">
+<pre>
+# This is a comment line.
+
+First line [tab] second field
+Second line [tab] blah blah
+
+Third line [tab] blorgh
+
+# Maybe another comment
+Here is another [tab] hahaha
+</pre>
+</td></tr></table>
+</center>
+
+<p>
+In this file, note that blank lines are ignored, as are comment lines (those beginning with <code>#</code>).  Any line not a comment
+line or a blank line is assumed to be a record in <i>mylist</i>.
+<p>
+So if we run repmgr from the command line, we can poke around a little.  The following transcript is from Windows.
+
+<center>
+<table width="90%"><tr><td bgcolor="eeeeee">
+<pre>
+C:\projects\sites\test>repmgr -r site.opm
++000: Repository open.
+repmgr v1.0 listening: type 'help' for help.
+++done++
+list
++100: OK, data follows.  1 key(s) found:
+ mylist
++000: OK ++done++
+list mylist
++100: OK, data follows.  4 key(s) found:
+ first_line
+ second_line
+ third_line
+ here_is_another
++000: OK ++done++
+get tabs here_is_another
++200: OK, XML follows.
+&lt;rec id="here_is_another" key="here_is_another" list="mylist"&gt;
+&lt;field id="field1"&gt;Here is another&lt;/field&gt;
+&lt;field id="field2"&gt;hahaha&lt;/field&gt;
+&lt;field id="linenum"&gt;3&lt;/field&gt;
+&lt;/rec&gt;
+&gt;&gt;
+bye
++000: Ciao ragazzo. ++done++
+</pre>
+</td></tr></table>
+</center>
+
+There are some interesting points to be made about this little conversation:
+<ul>
+<li>The "delim" list storage adaptor takes the first field by default and makes it a key.
+<li>Keys in repmgr can't contain uppercase letters, punctuation, or spaces, so the keys are munged to make them work.
+<li>The "list" command without a list ID calls repos_list on the pseudolist "_lists" to get a list of the lists defined in the system.
+<li>The "list" command otherwise calls repos_list on the named list and returns a list of keys.  The repos_list API call, though,
+    actually returns a list of (sometimes simplfied) records, each of which is marked with a key.  Sometimes this is useful, and we'll
+    see why, later.
+<li>The "get" command calls repos_get on the list ID and a key, and retrieves an XML structure which encodes the object.  In this
+    case, this is built from the corresponding line in <code>mylist.txt</code>, but sometimes there may be a lot more involved.
+<li>The "++done++" after every response is for handshaking when a repository defines a list which is actually stored by a remote
+    repository.  We'll get to that later, too.
+</ul>
+
+However, the most crucial point here is that retrieval of data is very simple in the wftk.  You give a key, and you get
+an object back which is an XML structure.  The <code>delim:</code> adaptor has a pretty strictly delineated object structure; other
+adaptors are free to return whatever XML may be appropriate, but since <code>delim:</code> is building the XML for you from the line
+of text it sees, there's not a lot of flexibility.  But for all adaptors, "get" is always the same: give a key, get an object.
+<p>
+<code>delim:</code> always delivers XML that is a <code>&lt;rec&gt;</code> element, containing a list of <code>&lt;field&gt;</code>
+elements <i>precisely as defined in the list definition</i>.  It then tacks another field on the end with the line number; this
+can be used for any purpose.
+<p>
+The wftk allows you not only to read this data, but also to modify it and add new entries.  That will be covered in the data
+storage portion of the User's Manual.
+
+<hr>
+<a name="object"/>
+<h3>More complicated object structures (LIST_localdir storage)</h3>
+[ <a href="#simple">prev</a> ] [ <a href="#top">top<a/> ] [ <a href="#rdbms">next</a> ]
+<p>
+Although <code>delim:</code> is a very easy and flexible way to slap some data into a file and get the wftk to use it, it has some
+limitations.  So it isn't the default storage adaptor.  The default is the <code>localdir:</code> adaptor (local directory), which
+stores each object as a named XML file in a subdirectory of the repository's local directory.  The <code>localdir:</code> adaptor
+can also store attachments as separate files in that same directory, which is used for versioned document management and for
+storage of process definitions for workflow.
+
+<p>
+The <code>localdir:</code> adaptor's XML storage is completely arbitrary.  It can be anything at all.  Let's look at an example.
+
+<hr>
+<a name="rdbms"/>
+<h3>Storing data in relational databases</h3>
+[ <a href="#object">prev</a> ] [ <a href="#top">top</a> ] [ next ]
+<p>
+All fine and well, but let's face it, most data in the world is in relational databases, and for a very good reason: they
+work really well.  The wftk has adaptors for a number of different databases (ODBC under Windows, Oracle, and MySQL) and writing new
+database code is quite easy, so if you have a favorite database in your system environment, you can get the wftk to talk to it without
+a lot of hassle.
+<p>
+At any rate, we'll use MySQL to illustrate database connectivity, with the assurance that any other database will work in the
+exact same way.
+<p>
+The wftk doesn't have the ability to create tables in your database, so essentially what the list definition is doing for a list
+stored in a database is to <i>define</i> the storage, not <i>establish</i> it.  This example will use a MySQL table created using the following
+code.  (If you use a different database, of course, you'll modify this correspondingly.)
+
+<center>
+<table width="90%"><tr><td bgcolor="eeeeee">
+<pre>
+create table mylist (
+  field1 varchar(50),
+  field2 varchar(50)
+);
+</pre>
+</td></tr></table>
+</center>
+<p>
+Given that table, we can now define a list in the repository to access it, as follows:
+
+
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2006 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

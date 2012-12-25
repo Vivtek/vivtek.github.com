@@ -1,0 +1,116 @@
+<html><head><title>xmlapi: xml_sort: Sorting children</title></head>
+<body>
+<h2>xml_sort: Sorting children</h2>
+<center>
+[&nbsp;<a href="xml_charcodings.html">Previous: xml_charcodings: dealing with UTF-8 and systems that don't quite get it</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_read.html">Next: xml_read: Using expat to parse XML files into memory</a>&nbsp;]
+</center>
+
+<hr>
+<i>(November 11, 2001)</i>: Another month, another lack.  This time I want to invoke qsort on the children of an XML element.  Should be
+easy, eh?  Actually, it <i>is</i> pretty easy.  All we do is (1) build an array of information about what we're sorting, (2) call qsort
+in the standard library on the array, passing it our comparison function, and (3) use the finished sorted array to rebuild the element
+pointers for the children.  Done.  Text is ignored; only elements are sorted, and for the time being the actual element name is also
+ignored.  (Maybe that will turn out to be a bad decision.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct _xml_sort_hdl {
+  XML * sort;
+  XML * elem;
+};
+int _xml_sort_comparison (const void * a, const void * b);
+XMLAPI XML * xml_sort (XML * list, XML * sort)
+{
+   int i;
+   XML * child;
+   struct _xml_sort_hdl * array;
+   ELEMENTLIST * elist;
+
+   /* Count the children. */
+   i=0; child = xml_firstelem (list);
+   while (child) {
+      i++;
+      child = xml_nextelem (child);
+   }
+   if (i < 2) return list;
+
+   /* Build the array. */
+   array = (struct _xml_sort_hdl *) malloc (i * sizeof (struct _xml_sort_hdl));
+   i=0; child = xml_firstelem (list);
+   while (child) {
+      array[i].sort = sort;
+      array[i].elem = child;
+      i++;
+      child = xml_nextelem (child);
+   }
+
+   /* Sort the array. */
+   qsort (array, i, sizeof (struct _xml_sort_hdl), _xml_sort_comparison);
+
+   /* Rearrange the children, being very slick about it. */
+   i = 0; elist = list->children;
+   while (elist) {
+      if (elist->element->name) {
+         elist->element = array[i].elem;
+         i++;
+      }
+      elist = elist->next;
+   }
+
+   free ((void *) array);
+
+   return list;
+}
+</pre></td></tr></table>
+
+So let's do the comparison function, and we're done.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int _xml_sort_comparison (const void * a, const void * b)
+{
+   XML * sort;
+   int res;
+   int ia, ib;
+   struct _xml_sort_hdl * _a = (struct _xml_sort_hdl *) a;
+   struct _xml_sort_hdl * _b = (struct _xml_sort_hdl *) b;
+
+   if (a == b) return 0;
+
+   sort = _a->sort;
+   while (sort) {
+      if (!strcmp (xml_attrval (sort, "op"), "num")) {
+         ia = xml_attrvalnum (_a->elem, xml_attrval (sort, "field"));
+         ib = xml_attrvalnum (_b->elem, xml_attrval (sort, "field"));
+         if (ia < ib) res = -1;
+         if (ia > ib) res = 1;
+      } else {
+         res = strcmp (xml_attrval (_a->elem, xml_attrval (sort, "field")), xml_attrval (_b->elem, xml_attrval (sort, "field")));
+      }
+
+      if (!strcmp (xml_attrval (sort, "dir"), "desc")) res = - res;
+      if (res) return res;
+
+      sort = xml_firstelem (sort);
+   }
+   return 0;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_charcodings.html">Previous: xml_charcodings: dealing with UTF-8 and systems that don't quite get it</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_read.html">Next: xml_read: Using expat to parse XML files into memory</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

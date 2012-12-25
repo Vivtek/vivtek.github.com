@@ -1,0 +1,256 @@
+<html><head><title>xmlp alpha: Weave: Write documentation pages</title></head>
+<body>
+<h2>Weave: Write documentation pages</h2>
+<center>
+[&nbsp;<a href=tangle.html>Previous: Tangle: write code output</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: xmlp alpha</a>&nbsp;]
+[&nbsp;<a href=write_index.html>Next: Write index page</a>&nbsp;]
+</center>
+
+<hr>
+The weave step is the other main function of traditional literate programming: it takes the
+items as defined and creates the documentation file.  Since the documentation in this case is
+a set of pages, the philosophy is a little different.  For each main item, we write a separate
+documentation page (subitems are left on the same page as their respective parents, with
+headings.)
+
+<p>
+The file &lt;project&gt;_format.html is used to generate each of these pages; a more elaborate
+formatting control mechanism would be nice later, but this will do the trick for now.  Code
+pieces are written enclosed in <code>&lt;code&gt;</code> tags, and <code>&lt;insert&gt;</code>
+tags are replaced with the label, not the name, of the respective items.
+
+<p>
+The overall code for weave looks a lot like the scan code, because it's doing very similar
+things.  It scans lines of input, using global variables to mark its current state.
+
+<p>
+Setup is straightforward: we rewind the <code>INPUT</code> filehandle, load the template
+into a list (because we'll be scanning it once for each item page) and set some globals to
+blank values.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>seek INPUT, 0, 0;
+
+open TEM, $format_html;
+@template = &lt;TEM>;
+close TEM;
+
+$name = '';
+$item = 0;
+$piece = 0;
+
+while (&lt;INPUT>) {
+</pre></td></tr></table>
+
+So let's get down to business scanning.  The thing <i>weave</i> is interested in is items, so
+let's look for <code>&lt;item&gt;</code> tags first.  For each item we encounter, we'll set
+up replacement tags as follows: <ul>
+<li><code>[&#35;#next##]</code> and <code>[&#35;#prev##]</code><br>
+These contain the URLs of the next and previous items in the list, respectively.  The first
+item has a <code>[&#35;#prev##]</code> pointing to the index, and the last has a
+<code>[&#35;#next##]</code> pointing to the index.
+<li><code>[&#35;#nextlabel##]</code> and <code>[&#35;#prevlabel##]</code><br>
+The labels of the next and previous items, for nice link formatting.
+<li><code>[&#35;#body##]</code><br>
+The body of the item is its documentation and properly formatted code.  In other words, most
+of the work of <i>weave</i> is to build up the <code>[&#35;#body##]</code> tag.
+<li><code>[&#35;#name##]</code>, <code>[&#35;#url##]</code> and <code>[&#35;#label##]</code><br>
+The name, URL and label of the current item.
+</ul>
+Eventually we'll want change dates as well, but we're not tracking it yet, so there's not much
+point.  All in good time.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   if (/(&lt;item .*>)/i)
+   {
+      $tag = $1;
+      $tag =~ s/^&lt;item\s+//i;
+      $attr = "";
+      %thisitem = (name => '', label => '', pattern => '', language => '');
+      foreach $part (split /"/, $tag) {
+         if ($attr eq '') {
+            $attr = $part;
+            $attr =~ s/^\s*//;
+            $attr =~ s/\s*=\s*$//;
+         } else {
+            $thisitem{$attr} = $part;
+            $attr = '';
+         }
+      }
+
+      $name = $thisitem{name};
+
+      if ($parent{$name} eq '') {
+         $tags{name} = $name;
+         $tags{url} = $url{$name};
+         $tags{label} = $label{$name};
+
+         if ($item == 0) {
+            $tags{prev} = "index.html";
+            $tags{prevlabel} = "index";
+         } else {
+            $i = $items[$item-1];
+            if ($parent{$i} ne '') { $i = $parent{$i}; }
+            $tags{prev} = $url{$i};
+            $tags{prevlabel} = $label{$i};
+         }
+
+         $tags{body} = '';
+      } else {
+         $n = $name;
+         $n =~ s/^.*?\.//;
+         $tags{body} .= "&lt;br>&lt;br>\n";
+         $tags{body} .= "&lt;a name=\"$n\">\n";
+         $tags{body} .= "&lt;i>$label{$name}&lt;/i>&lt;br>\n";
+      }
+
+      if ($item == $#items) {
+         $tags{next} = "index.html";
+         $tags{nextlabel} = "index";
+      } else {
+         $tags{next} = $url{$items[$item+1]};
+         $tags{nextlabel} = $label{$items[$item+1]};
+      }
+
+      next;
+   }
+   next if $name eq '';
+</pre></td></tr></table>
+
+And of course we terminate the item similarly to the scanner.  The difference is that we also
+write out the current item's page using the various tags we've accumulated during scanning.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   if (/(&lt;\/item\s*>)/i) {
+      if (($parent{$name} eq '' &amp;&amp; $children{$name} == 0) || $lastchild{$parent{$name}} eq $name)
+      {
+         if ($parent{$name} eq '') {
+            open OUT, ">$url{$name}";
+         } else {
+            open OUT, ">$url{$parent{$name}}";
+         }
+         foreach $line (@template) {
+            $_ = $line;
+            while (/\[&#35;#(.*?)##\]/) {
+               $tag=$1;
+               s/\[&#35;#$tag##\]/$tags{$tag}/e;
+            }
+            print OUT;
+         }
+         close OUT;
+      }
+
+      $name = '';
+      $item++;
+
+      next;
+   }
+</pre></td></tr></table>
+
+While in an <code>&lt;item&gt;</code>, we scan for pieces, just like scan.  Text inside pieces
+is formatted differently (with spacing and linebreaks intact.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   if (/(&lt;piece.*>)/i)
+   {
+      $tag = $1;
+      $tag =~ s/^&lt;piece\s*//i;
+      $attr = "";
+      %thispiece = (add-to => '', language => '');
+      foreach $part (split /"/, $tag) {
+         if ($attr eq '') {
+            $attr = $part;
+            $attr =~ s/^\s*//;
+            $attr =~ s/\s*=\s*$//;
+         } else {
+            $thispiece{$attr} = $part;
+            $attr = '';
+         }
+      }
+
+      $tags{body} .= "&lt;table width=100%>\n";
+      $tags{body} .= "&lt;tr>&lt;td width=30 bgcolor=eeeeee>&amp;nbsp;&lt;/td>&lt;td width=100%>\n";
+      if ($thispiece{'add-to'} ne '') {
+         $tags{body} .= "&lt;i>Add the following to \"$label{$thispiece{'add-to'}}\"&lt;/i>&lt;br>\n";
+      }
+      $tags{body} .= "&lt;pre>";
+      $piece = 1;
+      next;
+   }
+   if (/&lt;\/piece\s*>/i) {
+      $tags{body} .= "&lt;/pre>";
+      $tags{body} .= "&lt;/td>&lt;/tr>&lt;/table>\n";
+      $piece = 0;
+      next;
+   }
+</pre></td></tr></table>
+
+Almost done.  The only remaining thing is to format <code>&lt;insert&gt;</code> tags.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   if (/(&lt;insert\s.*>)/i)
+   {
+      $tag = $1;
+      $before = $`;
+      $after = $';
+
+      $tag =~ s/^&lt;insert\s+//i;
+      $attr = "";
+      %thisinsert = (name => '');
+      foreach $part (split /"/, $tag) {
+         if ($attr eq '') {
+            $attr = $part;
+            $attr =~ s/^\s*//;
+            $attr =~ s/\s*=\s*$//;
+         } else {
+            $thisinsert{$attr} = $part;
+            $attr = '';
+         }
+      }
+      if ($thisinsert{name} =~ /^\./) {
+         $thisinsert{name} = $name . $thisinsert{name};
+      }
+
+      $tags{body} .= $before . "&lt;i>See &lt;a href=\"$url{$thisinsert{name}}\">";
+      $tags{body} .= "$label{$thisinsert{name}}&lt;/a>&lt;/i>$after";
+      next;
+   }
+</pre></td></tr></table>
+
+And finally, any line which doesn't contain an <code>&lt;insert&gt;</code> and which is actually
+within an <code>&lt;item&gt;</code> simply gets tacked onto the current item's body after we
+make sure all the characters are going to display correctly.  Note especially the attention
+to detail with the [&#35;# delimiter -- if we didn't replace that with a version containing an
+HTML entity instead (&amp;#35;) then we'd have a problem with recursion once we get into the
+template application code.  Which, of course, I realized only after having a problem with
+recursion once I got into the template application code.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   s/&amp;/&amp;amp;/g if $piece;
+   s/\[\[/&amp;lt;/g if $piece;
+   s/\[\#\#/[&amp;#35;#/g;
+
+   $tags{body} .= $_ if $name ne '';
+}
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href=tangle.html>Previous: Tangle: write code output</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: xmlp alpha</a>&nbsp;]
+[&nbsp;<a href=write_index.html>Next: Write index page</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

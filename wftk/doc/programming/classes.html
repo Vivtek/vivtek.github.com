@@ -1,0 +1,47 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk -- OO class schema</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+<hr>
+
+The OO schema for the wftk is still young -- in fact, as of this writing, it hasn't been implemented
+in any language yet.  The idea, however, is that all OO languages should see the same objects, 
+attributes, and methods, allowing simple portability of wftk applications and techniques to whatever
+language you're using.
+<p>
+The initial idea of this document (as of 19 Sep 2002) is to lay out and justify the existence of the
+basic objects in the schema; as I have time and motivation, the methods and attributes of all these
+object will be filled in.  If anyone has suggestions as to the best way to graphically present these
+beasts, chip in.
+
+<ul>
+<li>object <b>xmlapi</b><br>The XMLAPI object underlies all data structures used by the wftk.
+<li>object <b>xmlobj</b> is-a <i>xmlapi</i><br>The xmlobj library defines a record structure, with versioned values, a list definition, and so forth.
+<li>object <b>listdefn</b> is-a <i>xmlapi</i><br>The listdefn object defines default values, optional and required fields, attachments, workflow triggers, visibility and permissions, storage (sometimes), and a raft of other things about data objects.
+<li>object <b>repository</b> is-a <i>xmlapi</i><br>The repository object describes the range of lists available to the current application (in listdefn objects), publishers, layouts, etc.
+<li>object <b>layout</b> is-a <i>xmlapi</i><br>Not sure if I even really need this ...
+<li>object <b>publisher</b> is-a <i>xmlapi</i><br> ... or this...
+<li>object <b>datasheet</b> is-a <i>xmlobj</i><br>The datasheet represents a workflow process.  Note
+that a repository manager list object generally corresponds to a datasheet.
+<li>object <b>task</b> is-a <i>xmlobj</i><br>A workflow task.
+<li>object <b>request</b> is-a <i>xmlobj</i><br>A workflow request.
+<li>object <b>user</b> is-a <i>xmlobj</i><br>A user, whether the current one or some other.
+<li>object <b>notification</b> is-a <i>xmlapi</i><br>Again -- not sure where I'm going with this one.
+<li>object <b>query</b> is-a <i>xmlapi</i><br>To retrieve information from the wftk, you create a
+query object, fill it out with some parameters, then you toss it to the wftk to be filled out.
+</ul>
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2002 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

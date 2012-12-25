@@ -1,0 +1,68 @@
+<html><head><title>xmltools: Handling non-element data: charData</title></head>
+<body>
+<h2>Handling non-element data: charData</h2>
+<center>
+[&nbsp;<a href="endElement.html">Previous: Handling elements: endElement</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: xmltools index</a>&nbsp;]
+[&nbsp;<a href="index.html">Next: xmltools index</a>&nbsp;]
+</center>
+
+<hr>
+Handling character data (that's just text which is enclosed in an element but is not itself
+a tag) is pretty straightforward, as there is nothing to do with the stack.
+It still looks ugly due to all the <code>#ifdef</code> stuff, but hey.  It works.
+<p></p>
+There are basically two things going on here.  First, if our enclosing tag is still empty,
+then we close it (as long as we're emitting tags, and we're inside our snip location or
+we're not replacing the tag, same ol same ol on all that stuff.)
+<p></p>
+After that's done, we emit the character data, as long as we're supposed to be emitting 
+character data (and pretty much with the same caveats for xmlsnip and xmlreplace.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void charData (void *userData, const XML_Char *s, int len) {
+   int i;
+   /* If parent is still empty, close its tag. */
+#ifdef XMLSNIP
+   if (!finished &amp;&amp; emit_level > -1 &amp;&amp; top->level - 1 + emit_matching_tag >= emit_level &amp;&amp; top->empty == 1) {
+#else
+#ifdef XMLREPLACE
+   if ((emit_level &lt; 0 || top->level &lt; emit_level) &amp;&amp; top->empty == 1) {
+#else
+   if (top->empty == 1) {
+#endif
+#endif
+      printf (">");
+      top->empty = 0;
+   }
+
+#ifdef XMLSNIP
+   if (!finished &amp;&amp; emit_level > -1 &amp;&amp; top->level >= emit_level) {
+#else
+#ifdef XMLREPLACE
+   if (emit_level &lt; 0 || top->level &lt; emit_level) {
+#else
+   if (1) {
+#endif
+#endif
+      for (i=0; i &lt; len; i++) {
+         putchar (s[i]);
+      }
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="endElement.html">Previous: Handling elements: endElement</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: xmltools index</a>&nbsp;]
+[&nbsp;<a href="index.html">Next: xmltools index</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

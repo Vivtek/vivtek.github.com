@@ -1,0 +1,71 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the wftk: actions</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the wftk: working with actions</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="index.html">wftk programmer's guide home</a> ]
+<hr>
+
+<h3>Actions</h3>
+The <i>action</i> functionality of wftk is really very powerful.  To use it, you first build an action structure, which (like everything
+else in the wftk) is an XML element.  The action structure encodes what is effectively a function call; an action adaptor handles the actual
+processing of the action.  But before it's passed to the action adaptor, the action is compared to a permissions database along with the
+current userid.  The permissions database specifies one of three permission levels for that action for that user: full permission (the action
+is processed immediately), no permission (the action is denied), or subject to approval.  If the action is subject to approval, then the
+permissions database specifies a process to be started in order to get that approval.
+<p>
+The key is this: the action is attached to the approval process.  So when the process completes successfully, the action will be processed
+automatically.  If the process doesn't complete (i.e. it's rejected at some point) then the action is naturally not processed.
+<p>
+So the action functionality presents a very powerful and flexible way to control actions taken.  You can easily specify and parameterize
+an action as an arbitrary request, then build and change permission structures as necessary as your needs change.
+<h3>Action structure</h3>
+The action structure is simple, so I'll just give you an example:
+<pre>
+&lt;action action="procadhoc" handler="wftk" process="42">
+  &lt;task ...>
+&lt;/action>
+</pre>
+The <code>procadhoc</code> action of the wftk action handler attaches ad-hoc workflow to the identified process.  The content of an action
+structure is arbitrary; the action handler should do with it whatever is appropriate.  Many actions will have no content:
+<pre>
+&lt;action action="procstart" handler="wftk" process="chair"/>
+</pre>
+As of this writing (May 17, 2001) I've got two action handlers; the wftk handler encapsulates some of the wftk API itself, and the system
+handler encapsulates system calls.  The system handler is very raw.  Anyway, neither of them is well-documented, so that's yet another thing
+I need to come back to later.  Please <a href="mailto:wftk@vivtek.com">bother me about it</a> if you would.  Thanks.
+<p>
+<h3>Functions</h3>
+<pre>
+int wftk_action (void * session, XML * action);
+</pre>
+
+<h3>Details</h3>
+<a name="wftk_action"></a>
+<font size=+1>wftk_action</font> returns <code>int</code>
+<blockquote>
+<code>void * <a href="session.html">session</a>,</code><br>
+<code>XML * action</code>
+</blockquote>
+Not a lot needs to be said about the actual function beyond what you see above.  You build an action structure using the <a href="xmlapi/index.html">XMLAPI</a>, you allocate a <a href="session.html">session</a>, and you call the function.  The return code
+of the function is nonzero on success, and the action structure itself will be decorated with diagnostic information in the <i>status</i>
+and <i>status.reason</i> attributes.  The <i>status</i> attribute will be "ok" if the action was taken with no approval necessary, "no"
+if no action was permitted, or "deferred" if an approval process was started.  The <i>status.reason</i> is supplied in the permissions
+database and is arbitrary but a nice thing for user interfaces to display.
+<p>
+If the action is deferred, then the action structure is further decorated with attributes <code>dsrep</code> and <code>process</code>, which
+encode the actual process started.
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

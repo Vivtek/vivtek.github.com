@@ -1,0 +1,308 @@
+<html><head><title>Task manager: Definition of taskmgr_overview</title></head>
+<body>
+<h2>Definition of taskmgr_overview</h2>
+<center>
+[&nbsp;<a href="taskmgr_show.html">Previous: Definition of taskmgr_show</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="taskmgr_update.html">Next: Definition of taskmgr_update</a>&nbsp;]
+</center>
+
+<hr>
+The overview URL is used for reporting and listing of tasks.  This is the most complicated
+function in the application, because there are lots of interesting ways to sort and filter
+tasks.  The two input values which control which report we'll generate are <code>filter</code>
+and <code>order</code>.  The <code>filter</code> parameter sets a default order, and can take
+the following values:
+<table border=0>
+<tr bgcolor=eeeeee><td>Filter</td><td>Default order</td><td>What it shows</td></tr>
+<tr><td><code>active</code> (the default)</td><td><code>priority</code></td>
+  <td>Shows all outstanding active tasks.</td></tr>
+<tr><td><code>scheduled</code></td><td><code>schedule</code></td>
+  <td>Shows only tasks for which scheduling information has been entered.</td></tr>
+<tr><td><code>today</code></td><td><code>schedule</code></td>
+  <td>Same as schedule, but includes only those tasks for which the scheduled time
+      is sometime today.</td></tr>
+<tr><td><code>complete</code></td><td><code>process</code></td>
+  <td>Shows all completed tasks.</td></tr>
+<tr><td><code>full</code></td><td><code>process</code></td>
+  <td>Shows everything in the task list.</td></tr>
+</table>
+
+The order parameter which the above makes use of selects among the following orders:
+<table border=0>
+<tr bgcolor=eeeeee><td>Order</td><td>Database order</td><td>What it's used for</td></tr>
+<tr><td><code>priority</code></td><td><code>priority desc, created</code></td>
+  <td>Shows tasks in descending priority order.</td></tr>
+<tr><td><code>schedule</code></td><td><code>sched_date, sched_time</code></td>
+  <td>Shows tasks in order of scheduled time.</td></tr>
+<tr><td><code>process</code></td><td><code>process.title, created</code></td>
+  <td>Shows tasks in order of process, then creation time within the process.</td></tr>
+</table>
+
+So let's figure out all that first:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>global taskmgr_pool
+set db [ns_db gethandle $taskmgr_pool]
+<i>See <a href="user.html#check">Checking authuser</a></i>
+
+set form [ns_conn form $conn]
+if {$form == ""} {
+   set form [ns_set create]
+   set filter active
+   set order priority
+} else {
+   set filter [ns_set get $form filter]
+
+   set order [ns_set get $form order]
+   if ![string compare $order ""] {
+      switch -- $filter {
+         active { set order priority }
+         scheduled { set order schedule }
+         complete { set order process }
+         full { set order process }
+         default { set order priority }
+      }
+   }
+}
+</pre></td></tr></table>
+
+The default filter is active -- except in the case of the process home, where I think the
+default should be full (i.e. show all tasks, whether active, rejected, or complete.)  Let's 
+make that behavior explicit.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set process [ns_set get $form process]
+if ![string compare $filter ""] {
+   if [string compare $process ""] {
+      set filter full
+   } else {
+      set filter active
+   }
+}
+</pre></td></tr></table>
+
+OK, at this point we know at least what we're doing.  Let's go ahead and translate our filter
+and order parameters into actual where and order by clauses suitable for building our query.
+
+set process [ns_set get $form process]
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>switch -- $filter {
+   active    { set where "and task.status='active'" }
+   scheduled { set where "and not sched_date is null" }
+   complete  { set where "and task.status='complete'" }
+   full      { set where "" }
+   default   { set where "and task.status='active'" }
+}
+
+switch -- $order {
+   priority { set orderby "order by priority desc, created" }
+   schedule { set orderby "order by sched_date, sched_time, created" }
+   process  { set orderby "order by title, created" }
+   default  { set orderby "order by created" }
+}
+
+switch -- $filter {
+   active    { set tags(title) "To do" }
+   scheduled { set tags(title) "To do on date" }
+   complete  { set tags(title) "Completed tasks" }
+   full      { set tags(title) "All tasks" }
+   default   { set tags(title) "To do" }
+}
+</pre></td></tr></table>
+
+The <code>who</code> parameter selects the user or users for which we'll be displaying
+tasks.  Default is the login user.  For all tasks, use <code>who=all</code>
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set who [ns_set get $form who]
+if ![string compare $who ""] { set who $user }
+if [string compare $who all] {
+   append where " and task.owner='[sql_safe_string $who]'"
+}
+</pre></td></tr></table>
+
+If there is a process named in the <code>process</code> then this is a process home page
+we're displaying.  In this case, we restrict the task list to tasks with this process, and
+we also display process information (process description and owner contact info.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if [string compare $process ""] {
+   set prow [ns_db select $db "select * from process where id='[sql_safe_string $process]'"]
+   if ![ns_db getrow $db $prow] {
+      set tags(title) "Process not found"
+      set tags(body) "The process <code>$process</code> couldn't be found in the database."
+      return [taskmgr_pageout $conn message.html]
+   }
+   foreach field {title description owner} { set tags($field) [ns_set get $prow $field] }
+
+   <i>See <a href="taskmgr_show.html#getowner">Getting owner info for task/process display</a></i>
+
+   if ![string compare $tags(owner) $user] {
+      set tags(modlink) "show?process=$process"
+      append tags(modlink) "&amp;back=[ns_urlencode [ns_conn url $conn]?[ns_conn query $conn]]"
+      if [perms_check $user [ns_set get $prow groupown] taskadd] {
+         set tags(requestlink) "create?what=task&amp;process=$process"
+         append tags(requestlink) "&amp;back=[ns_urlencode [ns_conn url $conn]?[ns_conn query $conn]]"
+      } else {
+         set tags(requestlink) ""
+      }
+   }
+
+   append where " and task.process='[sql_safe_string $process]'"
+   set tags(process) $process
+}
+</pre></td></tr></table>
+
+Now let's go ahead and build our query.  Since we're working with PostgreSQL, we can't do
+an outer join to get process information only when tasks are associated with processes; instead,
+we are forced to build two selects and join them with a union.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "
+select task.*, text '' as title from task where process is null $where
+union
+select task.*, process.title as title from task, process where task.process=process.id $where
+$orderby"
+</pre></td></tr></table>
+
+The header is easy to build, with the caveat that I only want a Priority column if I'm looking
+at priority.  Otherwise it's just clutter.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set tags(header) "&lt;tr bgcolor=\"cccccc\">&lt;td>Task&lt;/td>&lt;td>Owner&lt;/td>"
+set cols 3
+if ![string compare $process ""] {
+   append tags(header) "&lt;td>Process&lt;/td>"
+   incr cols
+}
+if {$order == "priority"} {
+   append tags(header) "&lt;td>Priority&lt;/td>"
+   incr cols
+}
+
+if {$filter == "scheduled"} {
+   append tags(header) "&lt;td>Scheduled&lt;/td>"
+} else {
+   append tags(header) "&lt;td>Created&lt;/td>"
+}
+
+if {$filter == "full"} {
+   append tags(header) "&lt;td>Status&lt;/td>"
+}
+
+append tags(header) "&lt;/tr>\n"
+</pre></td></tr></table>
+
+Let's build a quick back link (this can be passed to the show screens to allow us to return
+to the current list after doing something with a task.)  This handoff technique is something
+I've always thought was kind of a kludge, but it works in situations where you have different
+URLs doing different tasks and they all have to work togther (a more structured flow of control
+than your standard database-search paradigm.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set back "[ns_conn url $conn]"
+if [string compare "" [ns_conn query $conn]] { append back "?[ns_conn query $conn]" }
+set back [ns_urlencode $back]
+</pre></td></tr></table>
+
+And now we get to the meat of the routine.  We submit the query, and organize the rows as they
+come back.  The formatting of the rows is unfortunately embedded in the code instead of being
+specified in the template file.  I guess I could get around that with style sheets, but I just
+don't use them very often.  This would be a dandy thing to come back to later, after the
+application is basically working.
+<p>
+The <code>rows</code> variable keeps track of whether we're in an even or odd row, so that we
+can make the table stripey.  I do like those stripey tables.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set rows 0
+set tags(table) ""
+if ![catch {set row [ns_db select $db $query]} result] {
+   while {[ns_db getrow $db $row]} {
+      append tags(table) "&lt;tr bgcolor=\""
+      if [expr $rows % 2] {
+         append tags(table) eeeeee
+      } else {
+         append tags(table) ffffff
+      }
+      append tags(table) "\">"
+      append tags(table) "&lt;td>&lt;a href=\"show?task=[ns_set get $row id]&amp;back=$back\">"
+      if [string compare "" [ns_set get $row description]] {
+         append tags(table) [ns_set get $row description]
+      } else {
+         append tags(table) [ns_set get $row id]
+      }
+      append tags(table) "&lt;/a>&lt;/td>"
+      append tags(table) "&lt;td>[ns_set get $row owner]&lt;/td>"
+      if ![string compare $process ""] {
+         if {[ns_set get $row process] != ""} {
+            append tags(table) "&lt;td>"
+            append tags(table) "&lt;a href=\"overview?process=[ns_set get $row process]&amp;who=all&amp;filter=active\">"
+            append tags(table) "[ns_set get $row title]&lt;/a>&lt;/td>"
+         } else {
+            append tags(table) "&lt;td>&amp;nbsp;&lt;/td>"
+         }
+      }
+      if {$order == "priority"} {
+         set p [ns_set get $row priority]
+         if {$p == ""} { set p 1 }
+         append tags(table) "&lt;td>&lt;center>"
+         append tags(table) "&lt;a href=update?task=[ns_set get $row id]"
+         append tags(table) "&amp;priority=[expr $p + 1]&amp;back=$back>up&lt;/a> "
+         append tags(table) "$p "
+         if {$p < 2} {
+            append tags(table) "dn"
+         } else {
+            append tags(table) "&lt;a href=update?task=[ns_set get $row id]"
+            append tags(table) "&amp;priority=[expr $p - 1]&amp;back=$back>dn&lt;/a> "
+         }
+         append tags(table) "&lt;/center>&lt;/td>"
+      }
+      if {$filter == "scheduled"} {
+         append tags(table) "&lt;td>[ns_set get $row sched_date] [ns_set get $row sched_time]&lt;/td>"
+      } else {
+         append tags(table) "&lt;td>[ns_set get $row created]&lt;/td>"
+      }
+      if {$filter == "full"} {
+         append tags(table) "&lt;td>&lt;i>[ns_set get $row status]&lt;/i>&lt;/td>"
+      }
+      append tags(table) "&lt;/tr>\n"
+      incr rows
+   }
+}
+
+if {$rows == 0} {
+   set tags(table) "&lt;tr>&lt;td colspan=$cols>&lt;i>No tasks found&lt;/i>&lt;/td>&lt;/tr>\n"
+}
+
+if [string compare $process ""] {
+   set tags(backhere) "[ns_conn url $conn]?[ns_conn query $conn]"
+   set tags(processdata) [datasheet_showdata view "" $process ""]
+   taskmgr_pageout $conn processhome.html
+} else {
+   taskmgr_pageout $conn overview.html
+}
+</pre></td></tr></table>
+
+
+
+
+<center>
+[&nbsp;<a href="taskmgr_show.html">Previous: Definition of taskmgr_show</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="taskmgr_update.html">Next: Definition of taskmgr_update</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

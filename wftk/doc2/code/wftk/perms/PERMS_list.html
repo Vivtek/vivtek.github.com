@@ -1,0 +1,290 @@
+<html><head><title>PERMS adaptor: list</title></head>
+<body>
+<h2>PERMS adaptor: list</h2>
+<hr>
+<p></p>
+This is the repository-manager-based permissions directory adaptor for the wftk.
+It's basically a clone of the ealier localxml adaptor, itself a very rough first
+cut at permissions.  The entire permission structure of the wftk needs to be
+revisited.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include "repmgr.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "perm"
+};
+
+XML * PERMS_list_init (WFTK_ADAPTOR * ad, va_list args);
+XML * PERMS_list_free (WFTK_ADAPTOR * ad, va_list args);
+XML * PERMS_list_info (WFTK_ADAPTOR * ad, va_list args);
+XML * PERMS_list_perm (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   PERMS_list_init,
+   PERMS_list_free,
+   PERMS_list_info,
+   PERMS_list_perm
+};
+
+static struct wftk_adaptor_info _PERMS_list_info =
+{
+   4,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct wftk_adaptor_info * PERMS_list_get_info ()
+{
+   return &amp; _PERMS_list_info;
+}
+</pre></td></tr></table>
+
+Thus concludes the communication with the config module.  Now on with the actual implementation
+of functionality.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * PERMS_list_init (WFTK_ADAPTOR * ad, va_list args) {
+   const char * parms;
+   XML * mark;
+
+   parms = xml_attrval (ad->parms, "parm");
+   if (!*parms) parms = "";
+
+   if (*parms) {
+      mark = repos_defn (ad->session, parms);
+      if (!mark) xml_setf (ad->parms, "error", "List '%s' is not defined in the repository.", parms);
+      xml_setf (ad->parms, "spec", "list:%s", parms);
+      return NULL;
+   }
+
+   mark = xml_search (ad->session, "list", "perms-default", "yes");
+   if (!mark) mark = xml_search (ad->session, "list", NULL, NULL);
+   if (!mark) {
+      xml_setf (ad->parms, "error", "No lists defined in repository.");
+   } else {
+      xml_set (ad->parms, "list", xml_attrval (mark, "id"));
+      xml_setf (ad->parms, "spec", "list:%s", xml_attrval (mark, "id"));
+   }
+
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+That wasn't so hard, was it?  Well, freeing up the adaptor is much easier:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * PERMS_list_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * PERMS_list_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "perms");
+   xml_set (info, "name", "list");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return info;
+}
+</pre></td></tr></table>
+
+OK.  So now we get down to the actual business of figuring out permissions.  To judge a permission level, the
+API passes in an action and a user, each XML structures of course.  The user may be a NULL value if the action
+is to be performed anonymously; permissions files should thus reflect this contingency.
+<p></p>
+Permission files are indexed by the name of the action.  Eventually, the only real solution for permissions
+is a full-fledge decision rulebase which would be based on propositional logic and indexed appropriately.
+<p></p>
+But that day is not yet here.  So let's cut to the chase.  We just load the appropriate rule object and run with it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _PERMS_list_decide (XML * ret, XML * rules, XML * action, XML * user);
+XML * PERMS_list_perm (WFTK_ADAPTOR * ad, va_list args) {
+   XML *action = (XML *) 0;
+   XML *user = (XML *) 0;
+   XML * rules;
+   XML * ret;
+
+   if (args) action = va_arg (args, XML *);
+   if (!action) {
+      xml_set (ad->parms, "error", "No action given.");
+      return (XML *) 0;
+   }
+   user = va_arg (args, XML *);
+
+   rules = repos_get (ad->session, xml_attrval (ad->parms, "list"), xml_attrval (action, "action"));
+   ret = xml_create ("value");
+
+   /* OK, we've got a perms rulebase for the action in question, and we now have to decide whether we
+      can authorize the action or not. */
+   _PERMS_list_decide (ret, rules, action, user);
+   xml_free (rules);
+
+   /* In the absence of any other rules, we permit action to be taken. */
+   if (!*xml_attrval (ret, "value")) {
+      xml_set (ret, "value", "yes");
+   }
+
+   return (ret);
+}
+</pre></td></tr></table>
+
+So now we have to figure out how to <i>interpret</i> the rulebase.  Fortunately, that can be copied pretty much verbatim from
+<code>wftk_decide</code>, since it's the same syntax.  I debated actually <i>calling</i> <code>wftk_decide</code>, but decided
+against it, because I'd have to build a fake datasheet and so forth, and it still probably wouldn't fit too well.
+<p></p>
+Tests are made in a permissions-specific way using the following function:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int _PERMS_list_test (XML * rule, XML * action, XML * user)
+{
+   int result = 0;
+   const char * value;
+   char * which;
+
+   if (*xml_attrval (rule, "equal")) {  /* Cutting corners.  TODO: maybe some more choices? */
+      which = "equal";
+   } else return result;
+
+   if (!strcmp (xml_attrval (rule, "value"), "user")) {
+      if (user) {
+         value = xml_attrval (user, "id");
+      } else {
+         value = "anonymous";
+      }
+   } else {
+      value = xml_attrval (action, "value");
+   }
+
+   if (!strcmp (which, "equal")) {
+      result = !strcmp (value, xml_attrval (rule, "equal"));
+   }
+
+   if (!strcmp (rule->name, "unless")) return !result;
+   return result;
+}
+</pre></td></tr></table>
+
+That function is still rather rudimentary (if only because it still ignores group memberships), and can be expected to gain complexity
+in the post-v1.0 era <i>but I really want to get this released</i>.  Stop me if I'm repeating myself.
+<p></p>
+So now the computation of the decision itself is pretty straightforward (see <a href="../wftk_decide.html"><code>wftk_decide</code></a>
+for more background):
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void _PERMS_list_decide (XML * ret, XML * rules, XML * action, XML * user)
+{
+   XML * elem;
+   XML * elem2;
+   int fire;
+
+   elem = xml_firstelem (rules);
+   while (elem) {
+      if (!strcmp (elem->name, "if") || !strcmp (elem->name, "unless")) {
+         if (_PERMS_list_test (elem, action, user)) {
+            xml_set (ret, "value", xml_attrval (elem, "result"));
+            xml_set (ret, "reason", xml_attrval (elem, "reason"));
+            return;
+         }
+      } else if (!strcmp (elem->name, "else")) {
+         xml_set (ret, "value", xml_attrval (elem, "result"));
+         xml_set (ret, "reason", xml_attrval (elem, "reason"));
+         return;
+      } else if (!strcmp (elem->name, "any")) {
+         elem2 = xml_firstelem (elem);
+         while (elem2) {
+            fire = 0;
+            if (!strcmp (elem2->name, "if") || !strcmp (elem2->name, "unless")) {
+               if (_PERMS_list_test (elem2, action, user)) {
+                  if (*xml_attrval (elem2, "result")) {
+                     xml_set (ret, "value", xml_attrval (elem2, "result"));
+                     xml_set (ret, "reason", xml_attrval (elem, "reason"));
+                     return;
+                  }
+                  fire = 1;
+               }
+            } else if (!strcmp (elem2->name, "then") &amp;&amp; fire) {
+               xml_set (ret, "value", xml_attrval (elem2, "result"));
+               xml_set (ret, "reason", xml_attrval (elem, "reason"));
+               return;
+            }
+            elem2 = xml_nextelem (elem2);
+         }
+         if (fire) {
+            xml_set (ret, "value", xml_attrval (elem, "result"));
+            xml_set (ret, "reason", xml_attrval (elem, "reason"));
+            return;
+         }
+      } else if (!strcmp (elem->name, "all")) {
+         elem2 = xml_firstelem (elem);
+         while (elem2) {
+            if (!strcmp (elem2->name, "if") || !strcmp (elem2->name, "unless")) {
+               if (!_PERMS_list_test (elem2, action, user)) {
+                  break;
+               }
+            } else if (!strcmp (elem->name, "then")) {
+               xml_set (ret, "value", xml_attrval (elem2, "result"));
+               xml_set (ret, "reason", xml_attrval (elem, "reason"));
+               return;
+            }
+            elem2 = xml_nextelem (elem2);
+         }
+         if (!elem2) {
+            xml_set (ret, "value", xml_attrval (elem, "result"));
+            xml_set (ret, "reason", xml_attrval (elem, "reason"));
+            return;
+         }
+      } else if (!strcmp (elem->name, "decide")) {
+         _PERMS_list_decide (ret, elem, action, user);
+         return;
+      }
+      elem = xml_nextelem (elem);
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

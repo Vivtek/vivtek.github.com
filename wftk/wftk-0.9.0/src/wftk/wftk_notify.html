@@ -1,0 +1,113 @@
+<html><head><title>wftk core library: Sending notifications</title></head>
+<body>
+<h2>Sending notifications</h2>
+<center>
+[&nbsp;<a href="wftk_enactment.html">Previous: Working with the enactment history</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_action.html">Next: Taking external action</a>&nbsp;]
+</center>
+
+<hr>
+I've put a lot of thought into how nofications (alerts) should work.  I've finally come up with the following scheme.
+First, the alert itself is basically the message, with attributes for recipient, sender, subject, etc.  The body of the
+alert is the body of the message.  This is interpreted in the context of a datasheet if one is associated with the
+alert.
+<p></p>
+The datasheet is thus the primary context of an alert, but other objects also make sense.  For instance, if I have a
+user profile, it makes sense to be able to send a message to that user directly.  Similarly, tasks, requests, and procdefs
+all make sense as contexts if you simply send the message to the owner of the object.
+<p></p>
+If an object other than a user is given as the context, then it's searched for a user object in it with the same name
+as the recipient.  Otherwise we treat the user given as the recipient.  Either way, we look at the recipient for a
+preferred modality of notification (say, email), then check our configuration for the adaptor used to address that
+modality (say, smtp:www.vivtek.com).  In addition, we collect an adaptorlist of notification adaptors which the
+system should always copy to; this will allow for logging of notifications, backup to database, and the like.
+<p></p>
+I'm sure that even this fairly complicated rigamarole will get even more complicated once it hits reality...
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int wftk_notify (void * session, XML * context, XML * alert) {
+   WFTK_ADAPTOR * ad;
+   WFTK_ADAPTORLIST * adlist;
+   XML * user = context;
+   XML * from;
+   const char * preferred_modality = "";
+   const char * always_list;
+   char buf[1024]; /* TODO: the usual. */
+
+   if (strcmp (context->name, "user")) {
+      wftk_value_interpret (session, context, xml_attrval (alert, "to"), buf, sizeof(buf));
+      user = xml_firstelem (user);
+      while (user) {
+         if (!strcmp (user->name, "user") &amp;&amp; !strcmp (xml_attrval (user, "id"), buf)) break;
+         user = xml_nextelem (user);
+      }
+   }
+
+   if (*xml_attrval (alert, "from")) {
+      wftk_value_interpret (session, context, xml_attrval (alert, "from"), buf, sizeof(buf));
+      from = wftk_user_retrieve (session, context, buf);
+      preferred_modality = xml_attrval (from, "notifyvia");
+      if (!*preferred_modality) preferred_modality = config_get_value (session, "notify.default");
+      if (*preferred_modality) {
+         xml_set (alert, "from_addr", xml_attrval (from, preferred_modality));
+      }
+      xml_set (alert, "from_name", xml_attrval (from, "name"));
+   } else {
+      xml_set (alert, "from_addr", config_get_value (session, "notify.system_from"));
+      wftk_value_interpret (session, context, config_get_value (session, "notify.system_name"), buf, sizeof(buf));
+      xml_set (alert, "from_name", buf);
+   }
+
+   if (user) {
+      wftk_user_synch (session, user);
+      preferred_modality = xml_attrval (user, "notifyvia");
+      if (!*preferred_modality) preferred_modality = config_get_value (session, "notify.default");
+      if (*preferred_modality) {
+         xml_set (alert, "to_addr", xml_attrval (user, preferred_modality));
+         xml_set (alert, "to_name", xml_attrval (user, "name"));
+
+         sprintf (buf, "notify.%s", preferred_modality);
+         ad = wftk_get_adaptor (session, NOTIFY, config_get_value (session, buf));
+         if (ad) {
+            wftk_call_adaptor (ad, "send", context, alert);
+            wftk_free_adaptor (session, ad);
+         }
+      }
+   } else {
+      preferred_modality = config_get_value (session, "notify.default");
+      wftk_value_interpret (session, context, xml_attrval (alert, "to"), buf, sizeof(buf));
+      xml_set (alert, "to_addr", buf);
+
+      sprintf (buf, "notify.%s", preferred_modality);
+      ad = wftk_get_adaptor (session, NOTIFY, config_get_value (session, buf));
+      if (ad) {
+         wftk_call_adaptor (ad, "send", context, alert);
+         wftk_free_adaptor (session, ad);
+      }
+   }
+
+   adlist = wftk_get_adaptorlist (session, NOTIFY);
+   if (adlist) {
+      wftk_call_adaptorlist (adlist, "send", context, alert);
+      wftk_free_adaptorlist (session, adlist);
+   }
+   return 1;
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_enactment.html">Previous: Working with the enactment history</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_action.html">Next: Taking external action</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

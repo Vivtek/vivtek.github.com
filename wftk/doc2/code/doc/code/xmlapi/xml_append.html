@@ -1,0 +1,74 @@
+<html><head><title>xmlapi: xml_append: Inserting elements</title></head>
+<body>
+<h2>xml_append: Inserting elements</h2>
+<center>
+[&nbsp;<a href="xml_prepend.html">Previous: xml_prepend: Inserting elements</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_replace.html">Next: xml_replace and xml_replacecontent: Replacing an element with another.</a>&nbsp;]
+</center>
+
+<hr>
+It's <i>ap</i>pending where we run into problems.  And indeed my original solution here (scanning the list)
+didn't scale well.  Now (Dec 16, 2001) I'm correcting that flaw.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void xml_append (XML * parent, XML * child)
+{
+   ELEMENTLIST * list;
+   ELEMENTLIST * ch;
+
+   child->parent = parent;
+
+   list = (ELEMENTLIST *) MALLOC (sizeof(struct _list));
+   list->element = child;
+   list->prev = parent->lastchild;
+   if (list->prev) list->prev->next = list;
+   list->next = NULL;
+
+   if (parent->children == NULL) {
+      parent->children = list;
+   }
+   parent->lastchild = list;
+}
+</pre></td></tr></table>
+
+<i>(January 9, 2002):</i> When building up XML which has a need to be read by human eyes, it's nice to add the occasional line break.
+Since it's scanned with xml_firstelem/xml_nextelem, the linebreaks will be invisible to the scanning code.  To build XML this way,
+use xml_append_pretty, which wraps linebreaks around the inserted XML.  (But doesn't duplicate them, so no skipped lines.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void xml_append_pretty (XML * parent, XML * child)
+{
+   if (!xml_first (parent)) xml_append (parent, xml_createtext ("\n"));
+   xml_append (parent, child);
+   xml_append (parent, xml_createtext ("\n"));
+}
+</pre></td></tr></table>
+
+This will save me some work here and there.
+<i>(November 30, 2002):</i> And of course, one <i>always</i> knows that all variants of a function will eventually be needed....
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI void xml_prepend_pretty (XML * parent, XML * child)
+{
+   if (!xml_first (parent)) xml_prepend (parent, xml_createtext ("\n"));
+   xml_prepend (parent, child);
+   xml_prepend (parent, xml_createtext ("\n"));
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_prepend.html">Previous: xml_prepend: Inserting elements</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_replace.html">Next: xml_replace and xml_replacecontent: Replacing an element with another.</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

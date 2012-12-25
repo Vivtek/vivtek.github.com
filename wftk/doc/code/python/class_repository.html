@@ -1,0 +1,161 @@
+<html><head><title>Repository manager: repository: the system</title></head>
+<body>
+<h2>repository: the system</h2>
+<center>
+[&nbsp;<a href="class_xmlobj.html">Previous: xmlobj: XML-based record object</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="class_list.html">Next: list: a data source</a>&nbsp;]
+</center>
+
+<hr>
+The repository object describes the system we're working with.  A repository consists in large part of
+a series of <i>lists</i>, or data sources, each of which contains a series of <i>entries</i>, often
+referred to as "objects" despite the confusion in an object-oriented context.
+<p></p>
+Lists are named with space-free, punctuation-free strings, and list operations are conducted against
+the repository itself.  For convenience, a list object is also defined, but it is not required.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class repository:
+   """Implements a wftk repository.  Define a repository using either a wftk.xml object or a
+      string indicating a filename to read XML from."""
+</pre></td></tr></table>
+
+Initialization for the repository object calls either repos_open or repos_open_file, depending on what
+it's given.  The open_file alternative is the default; this method of opening also makes sure the
+current working directory is set to the repository's directory; lots of repository actions use various
+filesystem things, and so the repmgr's default mode is filesystem-based.  However, you can also build
+your own repository description and pass it in as an XMLAPI structure, in which case you're on your
+own as far as the current working directory is concerned.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def __init__ (self, defn='system.defn'):
+      """Create and optionally open repository object."""
+      self.repos = None
+      if defn:
+         if type(defn) == type(''): # string = filename
+            self.repos = repmgr.open_file (defn)
+         elif defn.__class__ == xml:
+            self.repos = defn._xml
+            repmgr.open (self.repos)
+</pre></td></tr></table>
+
+A great deal of what the repmgr does is to organize datasources into named lists.  A list may be
+stored as lines in a text file, as files in a directory, as records in a table in an RDBMS, or anything
+else you want to write or request an adaptor for.  Most of the list manipulation routines are still
+vaporware, even in the repmgr C API library, but you can pretty much see what will be possible at some
+point.
+<p></p>
+The repmgr defines a number of <i>pseudolists</i> whose names start with underscores (in general, names
+starting with underscores are reserved for use by the repmgr; this isn't enforced, but you should probably
+avoid calling things names starting with underscores to be on the safe side.)  The most interesting
+is <code>_lists</code>, which is the list of lists defined in the repository.
+<p></p>
+There are two ways of querying a list; the first is the "list" method, which returns a list object, which
+can be used to iterate around in the results.  It corresponds roughly to a Recordset object in Microsoft's
+DAO schema.  The second way of querying a list is the "keys" method, which simply returns a Python list
+of keys of entries.  This list can be used to retrieve entries as required.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   # --------------------------------------------------------------
+   # List manipulation.
+   # --------------------------------------------------------------
+   def list (self, list='_lists', query=None, order=None):
+      if self.repos==None: return []
+      return repmgr.list (self.repos, list)
+   def keys (self, list='_lists', query=None, order=None):
+      if self.repos==None: return []
+      return repmgr.list (self.repos, list)
+   def defn (self, list='_lists'):
+      if self.repos==None: return None
+      x = repmgr.defn (self.repos, list)
+      if not x: return None
+      ret = xml()
+      ret._xml = x
+      return ret
+
+   #def create
+   #def drop
+   #def define
+</pre></td></tr></table>
+
+For entry manipulation, there are two routes to take: you can talk to the repository object directly (which you may
+want to do, for instance, when loading an object from a file) or you can create an entry object and talk to it.
+The "get" method creates an entry object for us when called; if there is no entry with the key supplied, it will return
+<code>None</code>.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   # --------------------------------------------------------------
+   # Entry manipulation.
+   # --------------------------------------------------------------
+   def get (self, list, key):
+      ret = entry(self, list, key)
+      ret.load ()
+      if ret.is_element(): return ret
+      return None
+   def add (self, list, xml):
+      ret = entry(self, list)
+      ret.parse (xml)
+      ret.save()
+      return ret
+   #def mod
+   def delete (self, list, key):
+      return repmgr.delete (self.repos, list, key)
+
+   #def merge
+   #def getkey
+   #def form
+   #def edit
+   #def display
+   #def getvalue
+   #def setvalue
+
+   # --------------------------------------------------------------
+   # Publishing
+   # --------------------------------------------------------------
+   #def publish_all
+   #def publish_list
+   #def publish_obj
+   #def publish_pages
+   #def publish_page
+   #def get_layout
+
+   # --------------------------------------------------------------
+   # Change management.
+   # --------------------------------------------------------------
+   #def changes
+   #def snapshot
+   #def push
+   #def push_all
+   #def pull
+   #def pull_all
+   #def synch
+   #def attach (self,:
+   #def retrieve
+
+   # --------------------------------------------------------------
+   # Etc.
+   # --------------------------------------------------------------
+   def user_auth (self, user, password):
+      if self.repos==None: return
+      return repmgr.user_auth (self.repos, user, password)
+     
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="class_xmlobj.html">Previous: xmlobj: XML-based record object</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="class_list.html">Next: list: a data source</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,57 @@
+<html><head><title>wftk core engine: Loading the datasheet for an active process</title></head>
+<body>
+<h2>Loading the datasheet for an active process</h2>
+<center>
+[&nbsp;<a href="interpreter.html">Previous: Interpreting command streams</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk core index</a>&nbsp;]
+[&nbsp;<a href="run_procdef.html">Next: Interpreting the process definition</a>&nbsp;]
+</center>
+
+<hr>
+This is a function, to be called at the beginning of every command except for "start".
+If the datasheet is already loaded, then nothing happens.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void load_datasheet ()
+{
+   FILE * temp;
+   if (datasheet) return;
+
+   sprintf (sbuf, "%s%s", DATASHEET_REPOSITORY, process);
+   temp = fopen (sbuf, "r");
+   if (!temp) {
+      output ('E', "Can't open datasheet for process %s.", process);
+      return;
+   }
+   datasheet = xml_read (temp);
+   fclose (temp);
+   state = xml_loc (datasheet, "datasheet.state");
+   idcount = xml_attrvalnum (state, "idcount");
+   queue = xml_loc (datasheet, "datasheet.state.queue");
+   sprintf (sbuf, "%s%s", PROCESS_DEFINITION_REPOSITORY, xml_attrval (datasheet, "procdef"));
+   temp = fopen (sbuf, "r");
+   if (!temp) {
+      output ('E', "Can't open process definition for process %s.", process);
+      xml_delete (datasheet);
+      datasheet = NULL;
+      return;
+   }
+   procdef = xml_read (temp);
+   fclose (temp);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="interpreter.html">Previous: Interpreting command streams</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk core index</a>&nbsp;]
+[&nbsp;<a href="run_procdef.html">Next: Interpreting the process definition</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

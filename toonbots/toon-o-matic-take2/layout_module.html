@@ -1,0 +1,56 @@
+<html><head><title>Toon-o-Matic!</title></head>
+<body>
+<h2>The amazing Toon-o-Matic</h2>
+<hr>
+OK.  Here we go.  What we do is recurse down through the panel structure (so we're following
+our panels in a time-like fashion), collecting drawing objects as we go.  Characters and
+sound effects will be completely specified as drawing primitives; text will be generated
+into graphic files using <code>_maketext</code>, and each and every object in the lot will
+be fully specified during this phase.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>%characters = ();
+@visible = ();
+@visible_next = ();
+$panelnumber = 0;
+scan_layout ($cartoon);
+
+sub scan_layout {
+   my $panel = shift;
+   <i>See <a href="layout_module_scan_layout.html">Scanning a panel for layout items</a></i>
+}
+<i>See <a href="layout_module_scan_layout.html#helpers">Miscellaneous functions for doing layout</a></i>
+</pre></td></tr></table>
+
+Let's define the <code>instantiate_character</code> subroutine:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="layout_module_instantiate_character.html">Instantiating a visible character</a></i>
+</pre></td></tr></table>
+
+
+
+So now, just for documentation and debugging, we write our final XML out to stdout.  There
+will (later) be a follow-on step which will generate map HTML so we can include links in
+our cartoons, but that'll come later.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>open O, ">layout.xml";
+xml_write (O, $cartoon);
+print O "\n";
+close O;
+</pre></td></tr></table>
+
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001-2006, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation prepared using <a href=http://www.vivtek.com/lpml.html>LPML</a>.
+Try literate programming.  You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

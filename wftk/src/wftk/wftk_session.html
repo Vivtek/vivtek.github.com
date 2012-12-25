@@ -1,0 +1,266 @@
+<html><head><title>wftk core library: Working with sessions</title></head>
+<body>
+<h2>Working with sessions</h2>
+<center>
+[&nbsp;<a href="library.html">Previous: Function definitions</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_process.html">Next: Dealing with processes</a>&nbsp;]
+</center>
+
+<hr>
+The whole session functionality has grown up over the last month or so into something a lot more ambitious than I'd intended.
+Some of the wftk functionality will work with no session -- that is, if you give it a NULL value.  But as I'm not testing that
+mode, I don't recommend you trust it too far.  You're likely to end up with memory leaks at the best, as the session, among other
+things, is charged with maintaining, well, pretty much a heap.  A not-very-well-designed heap, but a heap.
+<p></p>
+The most obvious thing to do with sessions is to establish one and to free one.  Freeing is a touchy thing, because there are all
+kinds of things that wftk stashes in the session, and they all have to be freed <i>if</i> they've been created.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void * wftk_session_alloc ()
+{
+   WFTK_SESSION * sess;
+   sess = (WFTK_SESSION *) malloc (sizeof (struct wftk_session));
+   sess->ads = NULL;
+   sess->datasheet = NULL;
+   sess->procdef = NULL;
+   sess->values = NULL;
+   sess->cache = NULL;
+
+   return (void *) sess;
+}
+WFTK_EXPORT void wftk_session_free (void * session)
+{
+   WFTK_SESSION * sess = session;
+   WFTK_ADAPTOR_LIST * list;
+   WFTK_CACHE_LIST * cachelist;
+   if (!session) return;
+
+   while (sess->ads) {
+      wftk_free_adaptor (NULL, sess->ads->ad);
+      list = sess->ads->next;
+      free (sess->ads);
+      sess->ads = list;
+   }
+
+   while (sess->cache) {
+      xml_free (sess->cache->cached);
+      cachelist = sess->cache->next;
+      free(sess->cache);
+      sess->cache = cachelist;
+   }
+
+   if (sess->user)      xml_free (sess->user);
+   if (sess->config)    xml_free (sess->config);
+   if (sess->datasheet) xml_free (sess->datasheet);
+   if (sess->procdef)   xml_free (sess->procdef);
+   if (sess->values)    xml_free (sess->values);
+}
+</pre></td></tr></table>
+
+The session was originally supposed to hold just the currently used datasheet and procdef, to simplify freeing them up and to avoid
+loading them again and again.  But then I realized it's also the only logical place to store the configuration.  So without a session,
+you can't have a configuration and you're thrown onto the precompiled values for repository directories and such.  Frankly, it probably
+won't work.  If you're brave and really want a rock-bottom wftk configuration, though, give it a shot.  Just don't expect me to come
+pick up the pieces.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void wftk_session_configure (void * session, XML * config)
+{
+   WFTK_SESSION * sess = session;
+   sess->config = config;
+}
+</pre></td></tr></table>
+
+The <code>wftk_session_current</code> call associates a workflow object (in XML format) with the current session so that
+subsequent calls to the library needn't look the object up again.  Ideally this should be transparent.  That makes freeing
+up these objects somewhat confusing -- if you're not using a session, you have to do it yourself; otherwise, the session will
+track things for you.  This stuff is going to be replaced with a better caching mechanism.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void wftk_session_current (void * session, XML * object)
+{
+   WFTK_SESSION * sess = session;
+
+   if (!session) return;
+   if (!object) return;
+
+   if (xml_is (object, "datasheet")) {
+      sess->datasheet = object;
+      return;
+   }
+   if (xml_is (object, "procdef")) {
+      sess->procdef = object;
+      return;
+   }
+}
+</pre></td></tr></table>
+
+The cache mechanism is kind of weird.  You build an XML element and set a couple of attributes.  This element is now a cache key.
+Toss it at the cache, and it will either match completely, in which case the key is discarded and the cached XML is returned, or
+it won't, in which case the key is cached as a new structure and you can do with it what you will.  This is probably a dangerous
+way of doing things, because if you have a wftk daemon running you've got no good way to clean up the cache or time things out or
+really do anything.  So (yet again) this would be a good place to start looking post-v1.0 for things to do.  Sigh.  I can tell that
+workflow is going to take the rest of my life.
+<p></p>
+The <code>wftk_session_cachecheck</code> function (get it?) checks for the key but doesn't delete it or cache it, either way.  This
+is used to determine whether we're going to need to read something from the filesystem or not.  (In that case, if read, the parser
+will return a brand-new XML structure, so it wouldn't be the same one as the key which got cached.  Not practical.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * wftk_session_cache (void * session, XML * key, int * flag)
+{
+   WFTK_SESSION * sess = session;
+   WFTK_CACHE_LIST * list;
+   XML_ATTR * attr;
+
+   if (flag) *flag = 0;
+
+   if (!session) return key;
+   if (!key) return key;
+
+   list = sess->cache;
+   while (list) {
+      if (xml_is (key, xml_name (list->cached))) {
+         attr = xml_attrfirst (key);
+         while (attr) {
+            if (strcmp (xml_attrvalue (attr), xml_attrval (list->cached, xml_attrname(attr)))) break;
+            attr = xml_attrnext (attr);
+         }
+         if (!attr) break;
+      }
+      list = list->next;
+   }
+
+   if (list) {
+      if (flag) *flag = 1;
+      xml_free (key);
+      return list->cached;
+   }
+
+   list = sess->cache;
+   sess->cache = (WFTK_CACHE_LIST *) malloc (sizeof (WFTK_CACHE_LIST));
+   sess->cache->cached = key;
+   sess->cache->next = list;
+
+   return key;
+}
+
+WFTK_EXPORT XML * wftk_session_cachecheck (void * session, XML * key)
+{
+   WFTK_SESSION * sess = session;
+   WFTK_CACHE_LIST * list;
+   XML_ATTR * attr;
+
+   if (!session) return NULL;
+   if (!key) return NULL;
+
+   list = sess->cache;
+   while (list) {
+      if (xml_is (key, xml_name(list->cached))) {
+         attr = xml_attrfirst (key);
+         while (attr) {
+            if (strcmp (xml_attrvalue (attr), xml_attrval (list->cached, xml_attrname(attr)))) break;
+            attr = xml_attrnext (attr);
+         }
+         if (!attr) break;
+      }
+      list = list->next;
+   }
+
+   if (list) {
+      return list->cached;  /* Found. */
+   }
+
+   return NULL; /* Not found. */
+}
+</pre></td></tr></table>
+
+The <code>wftk_session_setuser</code> creates a user structure and assigns the given userid to it.  More will certainly
+be done with this later.  This function is not intended to include authentication of the userid.  The <code>wftk_session_getuser</code>
+just returns the user structure with no further ado.  Of course, the caller may then change said structure (providing a
+way to do that authentication.)
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT void wftk_session_setuser (void * session, char * userid)
+{
+   WFTK_SESSION * sess = session;
+
+   if (!session) return;
+   if (sess->user) { xml_free (sess->user); }
+
+   sess->user = xml_create ("user");
+   xml_set (sess->user, "id", userid);
+}
+WFTK_EXPORT XML * wftk_session_getuser (void *session)
+{
+   WFTK_SESSION * sess = session;
+
+   if (!session) return NULL;
+   return (sess->user);
+}
+</pre></td></tr></table>
+
+<i>(April 11, 2001)</i> Stashing values in the session is just about the only logical way to handle alternate datastores.
+The way this works is that the session is given a (character pointer) value to stash.  It wraps a value XML around that,
+thereby copying the value, and tucks that away for later freeing.  Then it returns the value XML.
+<p></p>
+
+Later, the calling application has the option of freeing up the value for performance's sake (or leaving it there for
+cleanup with the session for simplicity's sake.)  We do that by scanning the values <i>by pointer</i> and deleting the
+one found (if found).  If we don't find the pointer, we do nothing.  This is C the way it should be (YMMV).
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>WFTK_EXPORT XML * wftk_session_stashvalue (void * session, const char * value)
+{
+   WFTK_SESSION * sess = session;
+   XML * holder;
+
+   if (!sess->values) sess->values = xml_create ("list");
+
+   holder = xml_create ("value");
+   xml_set (holder, "value", value);
+   xml_append (sess->values, holder);
+
+   return holder;
+}
+
+WFTK_EXPORT void wftk_session_freevalue (void * session, const char * value)
+{
+   WFTK_SESSION * sess = session;
+   XML_ATTR * attribute;
+   XML * pointer = xml_firstelem (sess->values);
+
+   while (pointer) {
+      attribute = xml_attrfirst (pointer);
+      while (attribute) {
+         if (xml_attrvalue (attribute) == value) { /* Note test of pointer equality! */
+            xml_delete (pointer);
+            return;
+         }
+         attribute = xml_attrnext (attribute);
+      }
+      pointer = xml_nextelem (pointer);
+   }
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="library.html">Previous: Function definitions</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_process.html">Next: Dealing with processes</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

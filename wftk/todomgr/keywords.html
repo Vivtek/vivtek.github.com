@@ -1,0 +1,343 @@
+<html><head><title>To-do manager: Keyword/permission management</title></head>
+<body>
+<h2>Keyword/permission management</h2>
+<center>
+[&nbsp;<a href=user_admin.html>Previous: User administration screens</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=pageout.html>Next: How I'm writing pages out</a>&nbsp;]
+</center>
+
+<hr>
+The keyword functionality consists of four things: the ability to assign keywords to projects,
+the ability to set user's permissions to keywords, the ability to create and manage keywords,
+and the ability to list keywords.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>ns_register_proc GET $todomgr_root/keywords todomgr_keywords
+ns_register_proc POST $todomgr_root/keywords todomgr_keywords
+
+proc todomgr_keywords {conn ignore} {
+   set form [ns_conn form $conn]
+   if {$form == ""} { set form [ns_set create] }
+
+   global todomgr_pool
+   set db [ns_db gethandle $todomgr_pool]
+   <i>See <a href="user.html#check">Checking authuser</a></i>
+
+   set process [ns_set get $form process]
+   if [string compare "" $process] {
+      <i>See <a href="keywords.html#process">Setting/creating keywords for a process.</a></i>
+      return
+   }
+
+   set userid [ns_set get $form user]
+   set keyword [ns_set get $form keyword]
+   if [string compare "" $userid] {
+      <i>See <a href="keywords.html#user">Setting permissions for a user</a></i>
+      return
+   }
+
+   if [string compare "" $keyword] {
+      <i>See <a href="keywords.html#keyword">Inspecting a keyword</a></i>
+      return
+   }
+
+   <i>See <a href="keywords.html#keywordlist">Listing keywords</a></i>
+}
+</pre></td></tr></table>
+<br><br>
+<a name="process">
+<i>Setting/creating keywords for a process.</i><br>
+This function has no display; it simply rearranges the keyword list for a process, then
+returns to the process modification screen.  If the current user is the owner of the
+process, then the new list simply replaces the old list.  If the current user isn't the
+owner, then the new list replaces that part of the old list to which the user has 'p'
+permission.
+<p>
+First, let's get our status with regard to the process, then we'll worry about what we're
+doing with the keywords.  If the current user is the owner, then things are very simple.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if {[catch {set prow [ns_db select $db "select * from process where id='[sql_safe_string $process]'"]} result] || \
+   ![ns_db getrow $db $prow]} {
+   set tags(title) "Unknown process"
+   set tags(body) "The process you specified (&lt;code>$process&lt;/code>) cannot be found in the database."
+   return [todomgr_pageout $conn message.html]
+}
+
+if [string compare $user [ns_set get $prow owner]] {
+   if {[catch {set perm [ns_db select $db "select * from permission where process='[sql_safe_string $process]' and userid='[sql_safe_string $user]'"]} result] \
+       || ![ns_db getrow $db $perm] || ![string match *p* [ns_set get $perm flags]]} {
+      set tags(title) "Insufficient privilege"
+      set tags(body) "You have not been granted the right to assign keywords to the project you specified."
+      return [todomgr_pageout $conn message.html]
+   }
+}
+</pre></td></tr></table>
+
+OK, if we've gotten this far, we know that the process exists and that we have either
+ownership or sufficient privilege to deal with it.  Let's see if there is a keyword we need
+to create.  If so, create it and then create a permission entry for it as well.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set keywords [list]
+if [string compare "" [ns_set get $form newkeyword]] {
+   set row [ns_db select $db "select count(*) as ct from keyword where keyword='[sql_safe_string [ns_set get $form newkeyword]]'"]
+   ns_db getrow $db $row
+   if {[ns_set get $row ct] == 0} {
+      lappend keywords [ns_set get $form newkeyword]
+      ns_db dml $db "insert into permission (keyword, userid, flags) values ('[sql_safe_string [ns_set get $form newkeyword]]', '[sql_safe_string $user]', 'pmrt')"
+   }
+}
+</pre></td></tr></table>
+
+Now let's read in the list of keywords to be dealt with.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set size [ns_set size $form]
+for {set i 0} {$i &lt; $size} {incr i} {
+   if ![string compare "keyword" [string tolower [ns_set key $form $i]]] {
+      lappend keywords [ns_set value $form $i]
+   }
+}
+</pre></td></tr></table>
+
+And now let's do the deed.  First we delete all the pre-existing keywords attached to this
+project (that we can see).  Note: this is slipshod database programming because this is a
+prototype.  It could easily lead to disaster (i.e. no keywords remaining) should a problem
+turn up between delete and re-insertion.
+<p>
+Deletion is simple for the owner case.  It's not so simple for the non-owner case -- in fact,
+I can't figure out a way to do it in SQL straight, so instead I'm loading the list of keywords
+I can see and building a big old WHERE clause.  Ugly but it works.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>if ![string compare $user [ns_set get $prow owner]] {
+   set query "delete from keyword where process='[sql_safe_string $process]'"
+   catch {ns_db dml $db $query} result
+} else {
+   set deletes [list]
+   set query "select keyword.keyword as k from keyword, permission where keyword.keyword=permission.keyword and keyword.process='[sql_safe_string $process]' and permission.userid='[sql_safe_string $user]'"
+   if ![catch {set row [ns_db select $db $query]} result] {
+      while {[ns_db getrow $db $row]} {
+         lappend deletes "'[sql_safe_string [ns_set get $row k]]'"
+      }
+   }
+   if {[llength $deletes] > 0} {
+      set query "delete from keyword where process='[sql_safe_string $process]' and (keyword="
+      append query [join $deletes " or keyword="]
+      append query ")"
+      ns_db dml $db $query
+   }
+}
+</pre></td></tr></table>
+
+Now finally let's insert all our keywords.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>foreach word $keywords {
+   ns_db dml $db "insert into keyword (keyword, process) values ('[sql_safe_string $word]', '[sql_safe_string $process]')"
+}
+</pre></td></tr></table>
+
+And forward back to the process modification screen.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>ns_returnredirect $conn show?process=$process
+</pre></td></tr></table>
+<br><br>
+<a name="user">
+<i>Setting permissions for a user</i><br>
+Setting permissions for a user is done by inserting a record into the permission table.
+If any record at all is there, the user has viewing privileges for the keyword; flags are set
+to grant further privileges.  When we come into this code, <code>$userid</code> contains the
+user we're granting privileges to; <code>$user</code> contains the current user.
+<p>
+What we want to do is: (1) check the current user's privilege level to make sure we're allowed
+to do this, (2) delete the named user's current permission record, if any, and (3) insert a
+new record with the given privilege.
+<p>
+Let's check our privilege first.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "select * from permission where keyword='[sql_safe_string $keyword]' and userid='[sql_safe_string $user]'"
+if {[catch {set row [ns_db select $db $query]} result] \
+    || ![ns_db getrow $db $row] \
+    || ![string match *p* [ns_set get $row flags]]} {
+   set tags(title) "Insufficient privilege"
+   set tags(body) "Sorry, you don't have sufficient privilege to grant permissions to this keyword."
+   return [todomgr_pageout $conn message.html]
+}
+</pre></td></tr></table>
+
+So let's do what we need to do: delete the appropriate permission record and add the new one.
+First let's figure out what the flags should be on the new record.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set flags ""
+foreach field {p r m t} {
+   if [string compare "" [ns_set get $form $field]] { append flags $field }
+}
+</pre></td></tr></table>
+
+OK, let's do the database thing.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "delete from permission where keyword='[sql_safe_string $keyword]' and userid='[sql_safe_string $userid]'"
+ns_db dml $db $query
+
+set query "insert into permission (keyword, userid, flags) values ('[sql_safe_string $keyword]', '[sql_safe_string $userid]', '$flags')"
+ns_db dml $db $query
+</pre></td></tr></table>
+
+Again note the egregious lack of error handling.  I'll come back to this point later.
+Well, we're done.  Let's redirect back to the keyword screen and we're outta here.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>ns_returnredirect $conn keywords?keyword=$keyword
+</pre></td></tr></table>
+<br><br>
+<a name="keyword">
+<i>Inspecting a keyword</i><br>
+Keyword inspection is the management center for a keyword.  It lists processes assigned to
+the keyword, lists users with permission to the keyword, and gives administrators the ability
+to set permissions and add users.  First off, let's make sure the keyword exists and that the
+current user has the right to work with it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "select * from permission where userid='[sql_safe_string $user]' and keyword='[sql_safe_string $keyword]' and flags like '%p%'"
+if {[catch {set row [ns_db select $db $query]} result] || ![ns_db getrow $db $row]} {
+   set tags(title) "Keyword not found"
+   set tags(body) "The keyword you entered (&lt;code>$keyword&lt;/code>) couldn't be found or you don't have administrative privileges to it."
+   return [todomgr_pageout $conn message.html]
+}
+
+set tags(keyword) $keyword
+</pre></td></tr></table>
+
+Next step is to build the list of processes associated with the keyword.  Since we know we have
+'p' access to the keyword, there's no need to worry about filtering this list.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "select * from keyword, process where keyword.process=process.id and keyword='[sql_safe_string $keyword]'"
+set tags(processlist) ""
+if [catch {set row [ns_db select $db $query]} result] {
+   set tags(processlist) "&lt;i>No processes attached&lt;/i>"
+} else {
+   while {[ns_db getrow $db $row]} {
+      append tags(processlist) "&lt;a href=show?process=[ns_set get $row id]>"
+      append tags(processlist) "[ns_set get $row title]&lt;/a>&lt;br>\n"
+   }
+   if {$tags(processlist) == ""} {
+      set tags(processlist) "&lt;i>No processes attached&lt;/i>"
+   }
+}
+</pre></td></tr></table>
+
+Next up is the list of users associated with the keyword.  Each line of this list is a form
+which allows the update of permissions for that user.  Cool, eh?
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set tags(userlist) ""
+set userlist [list]
+set query "select * from users, permission where permission.userid=users.userid and keyword='[sql_safe_string $keyword]' order by name"
+if [catch {set row [ns_db select $db $query]} result] {
+   set tags(userlist) "&lt;i>No users attached&lt;/i>"
+} else {
+   while {[ns_db getrow $db $row]} {
+      lappend userlist [ns_set get $row userid]
+      foreach perm {p r m t} {
+         set check$perm ""
+         if [string match "*$perm*" [ns_set get $row flags]] {
+            set check$perm " checked"
+         }
+      }
+      append tags(userlist) "&lt;form action=keywords method=post>"
+      append tags(userlist) "&lt;input type=hidden name=user value=\"[ns_set get $row userid]\">"
+      append tags(userlist) "&lt;input type=hidden name=keyword value=\"$keyword\">"
+      append tags(userlist) "[ns_set get $row name] ([ns_set get $row userid])<br>"
+      append tags(userlist) "&lt;input name=p type=checkbox value=p$checkp>Admin"
+      append tags(userlist) "&lt;input name=r type=checkbox value=r$checkr>Priority"
+      append tags(userlist) "&lt;input name=m type=checkbox value=m$checkm>Modify"
+      append tags(userlist) "&lt;input name=t type=checkbox value=t$checkt>Task"
+      append tags(userlist) "&lt;input type=submit value=\"Update\">"
+      append tags(userlist) "&lt;/form>"
+   }
+   if {$tags(userlist) == ""} {
+      set tags(userlist) "&lt;i>No users assigned&lt;/i>"
+   }
+}
+</pre></td></tr></table>
+
+And finally, a list of users <i>not</i> associated with the keyword, so that it's easy to 
+add users.  The form for addign permissions in this case is already taken care of in the 
+page template, so we don't have to worry about generating it here.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set tags(newuserlist) ""
+set query "select * from users where permlevel > 0 order by name"
+if ![catch {set row [ns_db select $db $query]} result] {
+   while {[ns_db getrow $db $row]} {
+      if {[lsearch $userlist [ns_set get $row userid]] > -1} { continue }
+      append tags(newuserlist) "&lt;option value=\"[ns_set get $row userid]\">"
+      append tags(newuserlist) "[ns_set get $row name] ([ns_set get $row userid])\n"
+   }
+}
+</pre></td></tr></table>
+
+OK, so after all that, let's present the template.  We're done.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>todomgr_pageout $conn keyword.html
+</pre></td></tr></table>
+<br><br>
+<a name="keywordlist">
+<i>Listing keywords</i><br>
+This is pretty easy.  All we need is a list of keywords to which the current user has
+'p' access, and a link from each to the keyword inspection screen.  Simple enough we can
+even use the message.html page template to present it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set query "select * from permission where userid='[sql_safe_string $user]' and flags like '%p%'"
+set tags(title) "Keyword list"
+set tags(body) ""
+if ![catch {set row [ns_db select $db $query]} result] {
+    while {[ns_db getrow $db $row]} {
+      append tags(body) "&lt;li>&lt;a href=keywords?keyword=[ns_set get $row keyword]>"
+      append tags(body) "[ns_set get $row keyword]&lt;/a>\n"
+   }
+}
+if [string compare $tags(body) ""] {
+   set tags(body) "Click on a keyword to go to its management screen:&lt;ul>$tags(body)&lt;/ul>"
+} else {
+   set tags(body) "You appear to have admin access to no keywords."
+}
+todomgr_pageout $conn message.html
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href=user_admin.html>Previous: User administration screens</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: To-do manager</a>&nbsp;]
+[&nbsp;<a href=pageout.html>Next: How I'm writing pages out</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

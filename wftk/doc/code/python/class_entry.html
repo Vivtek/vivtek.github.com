@@ -1,0 +1,98 @@
+<html><head><title>Repository manager: entry: an individual list entry</title></head>
+<body>
+<h2>entry: an individual list entry</h2>
+<center>
+[&nbsp;<a href="class_list.html">Previous: list: a data source</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="class_cli.html">Next: cli: a command-line interface definer</a>&nbsp;]
+</center>
+
+<hr>
+The <i>entry</i> is the wftk's basic unit of activity.  From a workflow perspective, it is a process which may have active tasks
+assigned to users, roles to be filled, interested users, and so forth; from a data management perspective it is a set of named values
+which may also include large binary attachments, undergo version control, be published to or listed on a Web page, or represent a
+report or query of an external system.  The entry is a complex entity with a lot of functionality packed into it.
+<p></p>
+Each entry in a repository belongs to one named <i>list</i> of entries, and each entry has a unique key in that list.
+Configuration is done on a listwise basis, with each list
+knowing where and how its entries are stored, default values for fields, where its entries are indexed,
+and actions to take on particular events.  The entry object thus needs to know which list it belongs to, which repository it's
+stored in (or intends to be stored in at some point), and its key.  The key is a readonly value, however, as it is generated from the
+values stored in the entry's fields.  (If you need to store specific keys, the key is simply stored in a named field...)
+<p></p>
+Since a entry is first and foremost a collection of named values, it presents a handy dictionary interface to the world, which is
+implemented in the xmlobj object.
+<p></p>
+The <code>_key</code> attribute stores the key of the entry in its list -- if "None" it signifies an entry that hasn't yet been
+stored at all.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>class entry(xmlobj):
+   """Implements an active object in a repository.
+   """
+
+   def __init__ (self, repository, list, key=None):
+      self._repository = repository
+      self._listid = list
+      self._list = repository.defn (list)
+      self._list = self._list._xml
+      self._key = key
+</pre></td></tr></table>
+
+The chief thing we do with entries is retrieve them, add them, modify them, delete them.  However, I suspect that the extension
+of the wftk into the object-oriented realm is going to make it easier for me to conceptualize and prototype additional functionality,
+and some of those added functions will be things like status management, activation of tasks and such, and things like that.
+It's going to be interesting to see where we can go with this whole thing.
+
+<p></p><i>2005 March 08:</i> Oh, yeah, attachments.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   def load (self):
+      if not self._key: return None
+      self._xml = repmgr.get (self._repository.repos, self._listid, self._key)
+      if not self._xml: return None
+      self._key = repmgr.getkey (self._repository.repos, self._listid, self._xml)
+      return self._key
+   def save (self):
+      if not self._xml: return None
+      if self._key == None:
+         repmgr.add (self._repository.repos, self._listid, self._xml)
+         self._key = repmgr.getkey (self._repository.repos, self._listid, self._xml)
+      else:
+         self._key = repmgr.getkey (self._repository.repos, self._listid, self._xml)
+         repmgr.mod (self._repository.repos, self._listid, self._xml, self._key)
+      return self._key
+   def getkey (self):
+      if not self._xml: return None
+      self._key = repmgr.getkey (self._repository.repos, self._listid, self._xml)
+      return self._key
+   def setxml (self, xml):
+      self.copy (xml)
+   def attach_file (self, fldname, file):
+      a = open (file)
+      self.attach_stream (fldname, a)
+   def attach_stream (self, fldname, str):
+      a = str.read()
+      self.attach (fldname, a)
+   def attach (self, fldname, a):
+      repmgr.attach (self._repository.repos, self._listid, self._key, fldname, a)
+      self.load()
+   def retrieve (self, fldname, a=None):
+      return repmgr.retrieve (self._repository.repos, self._listid, self._key, fldname, a)
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="class_list.html">Previous: list: a data source</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: </a>&nbsp;]
+[&nbsp;<a href="class_cli.html">Next: cli: a command-line interface definer</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2001, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

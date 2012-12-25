@@ -1,0 +1,497 @@
+<html><head><title>JNI wrapper: XMLAPI and xmlobj</title></head>
+<body>
+<h2>JNI wrapper: XMLAPI and xmlobj</h2>
+<center>
+[<a href="index.html">wftk-j</a> ] [ <a href="xmlobj.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/wftk/discuss.pl">discussion</a> ]
+</center>
+<hr>
+<p></p>
+This file wraps the <a href="../xmlapi/index.html">XMLAPI and xmlobj</a> libraries which manipulate the data structures
+in universal use in the wftk.  It generates two classes, "xml" (which wraps the XMLAPI, but calling an object an "XMLAPI" sounds too
+weird), and "xmlobj".
+<p></p>
+
+The extra OO goodies that exist in the <a href="../python/wftk.html">Python OO classes</a> don't work in Java, so our wrapper
+is somewhat simpler.  However, the greater part of this set of classes is pretty similar; a side-by-side study might be edifying
+if you're into comparative philology.
+
+<p></p>
+OK?  Here goes.  First, boilerplate GPL language (note to self: use this everywhere else in the project).
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>// Copyright (c) 2003, Vivtek.
+//
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
+//  
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//  
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+</pre></td></tr></table>
+
+Now down to work.  This is really a very mindless task, as all our wrappers are.  The only moderately interesting part is in the C implementation
+of the native methods -- and trust me, those are also mindless.  This is one reason I procrastinate wrapper development so much.
+
+First, the imports we'll be using.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>package org.wftk;
+import java.io.*;     // For stream interaction.
+import java.util.Vector;
+import org.xml.sax.XMLReader;   // The following for SAX parsing.
+import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
+import org.xml.sax.helpers.XMLReaderFactory;
+import org.xml.sax.helpers.DefaultHandler;
+
+</pre></td></tr></table>
+
+Next, the XMLAPI wrapper class.  Note that file/stream interaction is not compatible between Java and native code (or better said,
+it's not all that practical to figure out how to make it so) and so for file I/O I'm going to ignore the existing XMLAPI implementations
+and re-implement in Java, later.  Similarly, the use of a foreign copy of expat is a tad silly, so replacing the parsing code with
+pure Java (as I've wanted to do in Python already) is also important -- but that can wait a little.
+<p></p>
+At some point, I should redesign the XMLAPI to segregate data structure
+manipulation from (1) I/O and (2) expat interaction.  This keeps coming up in wrapping situations.
+<p></p>
+<i>A note on garbage collection and <u>close</u></i>: My reading and extensive network of informants leave me convinced that
+it is a mistake to rely on garbage collection for cleanup.  Cleanup of native resources should be done explicitly, using a
+"close()" method, which I have implemented.  But I still leave room for an automatic close() upon garbage collection, just in
+case a caller forgets to close something.  I think that gives us the best of both worlds.
+
+<p></p>
+<i>Aug 23, 2003</i>: Just as this was getting underway, we decided to attack the problem from another direction simultaneously;
+the result is <a href="simple_soap.html">the simple_soap</a> class, which will allow us to write minimal code in Java while
+providing full wftk functionality on a SOAP Web service via <a href="../python/index.html">Python</a>, which effort is more
+advanced.  So while we're working on building the native wrapper, this <i>same</i> class will already be starting to transition
+some simple functionality into pure Java, starting with the parser, which is built on SAX2.
+
+<p></p>
+So all of this leads me to the conclusion that <i>really</i> any given XMLAPI object may either be pure Java, or native.  If the
+latter, it will have allocations on the C heap to be managed, and we will mostly call native methods when working with it.  If
+the former, then it will consist of Java objects all the way down, with nary a drop of C, and we'll use Java methods to work with it.
+If they're mixed...  I dunno.  I'll burn that bridge when I get to it.  Probably we'll end up with a "give me a C-heap tree" call
+which will either return the already-existing C pointer or build a whole new tree based on a pure Java structure.  This is the
+cleanest way to transition into a mixed Java/C environment that <i>I</i> can think of, anyway.  And it may well be that we'll
+end up doing similar shenanigans in Python someday.
+
+<p></p>
+At any rate, all this mixedness has one practical upshot: if a native method is still the only implementation of a given API function
+(e.g. stringcontent or something) then it will appear with no "xml_" prefix.  If, however, there are both Java and native implementations
+of a function, or if a function has no meaning on the Java side (e.g. xml_free) then it will have an "xml_" prefix.  As migration
+continues, more and more functions will be duplicated, and in some cases, I have no doubt that the native function will no longer be needed,
+since its functionality will have been duplicated in Java.  In all cases, "xml_*" functions are private, so no external code will ever
+call them.  This allows us to drop them with impunity once they're no longer needed.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>public class xml {
+   private static boolean force_pure=false;
+   private boolean pure_java=force_pure;
+   static {
+      try {
+         System.loadLibrary("xmlapi_jni");
+      }
+      catch (Exception e) {
+         force_pure=true;
+      }
+   }
+
+   public boolean make_pure() {
+      if (_native_xml != 0) { return false; }  // Initially, we refuse to convert a native XML object to a pure one.  TODO: re-evaluate policy.
+      pure_java = true;
+      return (true);
+   }
+   public boolean is_pure() { return pure_java; }
+
+   // For pure-Java trees, we keep an element name and the list of attributes.
+   private String element_name;
+   private Vector element_attrs;
+   private String textcontent;
+   private boolean is_element;
+
+   <i>See <a href="xml.html#xml_housekeeping">Handles and housekeeping for the XML object</a></i>
+
+   <i>See <a href="xml_parsing.html">Parsing XML using SAX2 under Java</a></i>
+
+   // -----------------------------------------------------
+   // Constructors
+   // -----------------------------------------------------
+   public xml () { }
+   public xml (String str) throws Exception {
+      parse (str);
+   }
+   public xml (Reader r) throws Exception {
+      parse (r);
+   }
+
+   // -----------------------------------------------------
+   // Formatting XML strings.
+   // -----------------------------------------------------
+   public native String string();
+   public native String stringhtml();
+   public native String stringcontent();
+   public native String stringcontenthtml();
+
+   // -----------------------------------------------------
+   // Writing to files.
+   //  *NOTE* -- has to be rewritten as pure Java in order to use Java's I/O.
+   // -----------------------------------------------------
+   public void write (OutputStream file) {
+      // TODO: write this.
+   }
+   public void writehtml (OutputStream file) {
+      // TODO: write this.
+   }
+   public void writecontent (OutputStream file) {
+      // TODO: write this.
+   }
+   public void writecontenthtml (OutputStream file) {
+      // TODO: write this.
+   }
+
+   // ------------------------------------------------------
+   // Attribute access.
+   // ------------------------------------------------------
+   public native String attrval (String key);
+   // attrvalnum - not needed
+   public native String[] attrlist (); // A list of attribute names.
+   //native ?? attrs ();  // A mapping of name->value -- I know how this works in Python; have to look it up for Java.  (TODO: use Vector)
+   public native void set (String key, String value);
+   // setf, setnum, set_nodup - not needed
+   public native void unset (String key);
+   public native void attrcat (String key, String str);
+
+   // ------------------------------------------------------
+   // Subelement identification, iteration, handle navigation.
+   // ------------------------------------------------------
+   public native String name ();
+   public native boolean is_element ();
+   public native boolean is_a (String name);
+
+   public void to_parent () // Move handle to parent.  This is a good foot-shooter, I think.
+   {
+      _nav_carefully (xml_parent());
+   }
+   public xml parent () // Returns a new handle object which refers to the XML parent of the current object.
+   {
+      xml p = this.newhandle();
+      p.to_parent();
+      return (p);
+   }
+   private native int xml_parent ();  // Returns *XML handle* of native parent.
+
+   public native xml[] elements (); // Returns new handles to all the children of the current object.
+
+   // Low-level iterators/navigation
+   private void _nav_carefully (int to_where) {
+      if (to_where != 0) {
+         _native_xml = to_where;
+         _nav_ok = true;
+      } else {
+         _nav_ok = false;
+      }
+   }
+   private boolean _nav_ok = false;
+   public boolean nav_ok () { return _nav_ok; }
+
+   public void to_first () { _nav_carefully (xml_first()); }
+   public void to_firstelem () { _nav_carefully (xml_firstelem()); }
+   public void to_next () { _nav_carefully (xml_next()); }
+   public void to_nextelem () { _nav_carefully (xml_nextelem()); }
+   public void to_last () { _nav_carefully (xml_last()); }
+   public void to_lastelem () { _nav_carefully (xml_lastelem()); }
+   public void to_prev () { _nav_carefully (xml_prev()); }
+   public void to_prevelem () { _nav_carefully (xml_prevelem()); }
+
+   private native int xml_first ();
+   private native int xml_firstelem ();
+   private native int xml_next ();
+   private native int xml_nextelem ();
+   private native int xml_last ();
+   private native int xml_lastelem ();
+   private native int xml_prev ();
+   private native int xml_prevelem ();
+
+   // High-level iterator -- a nested class may be more appropriate to Java.  Actually, I think handle navigation works better....
+   public void iterate (xml parent, String type, String dir) { // TODO: default type='elem', dir='f' from Python; Java equiv?
+      // TODO: implement
+   }
+   public xml iterator() {
+      // TODO: implement
+      return new xml();
+   }
+   public void rewind () {
+      // TODO: implement
+   }
+   public xml advance () {
+      // TODO: implement
+      return this;
+   }
+
+   // ---------------------------------------------
+   // Element manipulation
+   // ---------------------------------------------
+   private native void xml_create(String name);
+   public void create (String name) {
+      close();
+      if (is_live()) return; // TODO: throw exception here.
+
+      if (pure_java) {
+         element_name = name;
+      } else {
+         xml_create (name);
+      }
+   }
+   public native void createtext(String name);
+   public native void textcat(String name);
+   public native void delete();
+   private native void xml_free ();
+   public native void delete_pretty();
+   public xml new_copy () {
+      xml ret = new xml();
+      ret.copy (this);      
+      return ret;
+   }
+   public void copy(xml other)
+   {
+      close();
+      if (is_live()) return; // TODO: exception.
+
+      xml_copy (other);
+   }
+   private native void xml_copy (xml other);
+   public native void copyinto (xml other);
+   public native void copyattrs (xml other);
+
+   public void replace (xml other) {
+      xml_replace (other);
+      _native_xml = other._native_xml;
+      other.close();
+   }
+   private native void xml_replace (xml other);
+   public native void xml_replacecontent (xml other);
+   public native void replacewithcontent (xml other);
+
+   private native void xml_prepend (xml newchild);
+   public void prepend (xml newchild)
+   {
+      attach_handle (newchild);
+      xml_prepend (newchild);
+   }
+   private native void xml_prepend_pretty (xml newchild);
+   public void prepend_pretty (xml newchild)
+   {
+      attach_handle (newchild);
+      xml_prepend_pretty (newchild);
+   }
+   private native void xml_append (xml newchild);
+   public void append (xml newchild)
+   {
+      attach_handle (newchild);
+      xml_append (newchild);
+   }
+   private native void xml_append_pretty (xml newchild);
+   public void append_pretty (xml newchild)
+   {
+      attach_handle (newchild);
+      xml_append_pretty (newchild);
+   }
+
+   public native xml xml_insertafter (xml something);  // Huh?  I forget the semantics...
+   public native xml xml_insertbefore (xml something);
+   
+
+   // ---------------------------------------------
+   // Finding pieces of XML
+   // ---------------------------------------------
+   public void to_loc (String location) { _nav_carefully (xml_loc (location)); }
+   private native int xml_loc (String location);
+
+   public native String getloc ();
+   public native xml search (String elem, String attr, String val);
+   public native xml[] search_all (String elem, String attr, String val);
+
+   // ---------------------------------------------
+   // Binary pointer access?  Not sure how healthy this is for Java.
+   // ---------------------------------------------
+
+   // ---------------------------------------------
+   // UTF8 stuff -- don't know how this should react to Java, either.
+   // ---------------------------------------------
+
+   // ---------------------------------------------
+   // Sorting -- as this only works on lists, it's not relative to an instance
+   // ---------------------------------------------
+   //native static sort (xml[] list, xml sort);
+
+   // ---------------------------------------------
+   // SOAP assembly
+   // ---------------------------------------------
+   public void assemble (xml start, xml src) {
+      close();
+      if (is_live()) return; // TODO: throw exception here.
+
+      xml_assemble (start, src);
+   }
+   private native void xml_assemble (xml start, xml src);
+
+}
+</pre></td></tr></table>
+<br><br>
+<a name="xml_housekeeping">
+<i>Handles and housekeeping for the XML object</i><br>
+Each XML object may either manage an actual tree itself, or it may simply be
+a handle into a tree rooted in another XML object.  In the pure-Java representation,
+this isn't so much of a factor (since every element ends up being a separate XML object
+anyway) but if the tree is a native tree allocated on the C heap, then it's important
+that things only get deallocated when we know we're done with them.  Moreover, if the
+tree is on the C heap, not every element will have a Java XML object as a handle; we
+can think of a few Java handles providing views into a C tree.
+<p></p>
+The upshot is that we end up needing to know what children we have open so that they
+can be properly closed; if no more children are open, and we are closing, then we
+need to xml_free the C-heap tree if we have one.  And if we still have children, then
+we have to refuse to close until all the children are closed.
+<p></p>
+This isn't a very clear writeup, but hopefully it will help you understand the
+motivation for this housekeeping code below.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   // -----------------------------------------------------
+   // Housekeeping members
+   // -----------------------------------------------------
+   private int _native_xml = 0; // Saves pointer to XML structure on C heap.
+   private xml _parent = null;     // Prevents parent from being garbage-collected (and freeing the XML) until we're quite done with it.
+   private Vector handles = null;  // A list of all nodes which have the current object as _parent.
+
+   private boolean officially_closed = false;
+
+   // -----------------------------------------------------
+   // Housekeeping functions.
+   // -----------------------------------------------------
+   private void attach_handle (xml newhandle)
+   {
+      xml attach_to = this;
+      while (attach_to._parent != null) attach_to = attach_to._parent;
+
+      if (attach_to.handles == null) attach_to.handles=new Vector ();
+      attach_to.handles.add(newhandle);
+      newhandle._parent = attach_to;
+   }
+   private void attach_to_parent (xml newparent)
+   {
+      newparent.attach_handle (this);
+   }
+   private void detach_handle (xml handle)
+   {
+      if (handles == null) return;
+
+      if (handles.remove (handle)) {
+         handle._parent = null;
+      }
+
+      if (handles.isEmpty() &amp;&amp; officially_closed) {
+         close();
+      }
+   }
+   private void detach_from_parent ()
+   {
+      if (_parent == null) return;
+      _parent.detach_handle (this);
+   }
+
+   public void close ()
+   {
+      element_name = null;
+      if (pure_java) return; // The rest is handling the heap.
+
+      if (handles == null || handles.isEmpty()) {
+         if (_parent == null) { // No children, no parent: deallocate native structure, if any.
+            if (_native_xml != 0) {
+               xml_free ();
+               _native_xml = 0;
+            }
+         } else {
+            xml parent_ref = _parent;
+            detach_from_parent();
+            _native_xml = 0;
+         }
+      } else {
+         officially_closed = true; // We'll really close when all our children close.
+      }
+   }
+
+   public boolean is_live()
+   {
+      if (handles != null &amp;&amp; !handles.isEmpty()) return true;
+      return false;
+   }
+
+   ///c:\\progra~1\\s1studio_jdk\\j2sdk1.4.1_02\\bin\\javac xmlobj.java
+   ///xmlobj.java:39: finalize() in xml cannot override finalize() in java.lang.Object
+   ///; attempting to assign weaker access privileges; was protected
+   //
+   // So the idea is that in the last ditch, finalize would close the object if necessary.
+   // But finalize has other ideas.
+   //
+   //void finalize ()
+   //{
+   //   this.close();
+   //}
+</pre></td></tr></table>
+
+<i>August 24, 2003</i>: So I just realized that all along I've been confusing the notions of XML object and handle-into-XML-object.  This has
+really hindered development of the whole OO schema.  The handle-parent is <i>not</i> the same as the XML parent of an object.  In fact, a
+handle can be considered a navigable view onto a tree -- but to make it work, we need new handle-creation functions.  Here is as good a place
+as any to include those.
+
+<p></p>
+The "newhandle" function makes a new xml object which is a handle into the current object, while "handle_to" makes the current object a handle
+into another object.  The ideal is to keep all handles attached to the top-level object, so both of these traverse the handle tree upwards to
+the top before registering themselves as handles.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>   public xml newhandle ()
+   {
+      xml handle = new xml();
+      attach_handle (handle);
+
+      handle._native_xml = this._native_xml;  // Start out looking at the same XML.
+
+      return handle;
+   }
+   public void handle_to (xml other)
+   {
+      if (is_live()) return; // TODO: should throw exception.
+
+      other.attach_handle (this);
+
+      _native_xml = other._native_xml;
+   }
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2001-2003, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

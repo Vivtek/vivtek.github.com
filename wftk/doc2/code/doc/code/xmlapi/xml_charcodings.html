@@ -1,0 +1,165 @@
+<html><head><title>xmlapi: xml_charcodings: dealing with UTF-8 and systems that don't quite get it</title></head>
+<body>
+<h2>xml_charcodings: dealing with UTF-8 and systems that don't quite get it</h2>
+<center>
+[&nbsp;<a href="xml_search.html">Previous: xml_search: Searching trees for elements</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_sort.html">Next: xml_sort: Sorting children</a>&nbsp;]
+</center>
+
+<hr>
+<i>(October 14, 2001)</i>: Like clockwork, I have discovered a hole in the API!  Expat (and thus the XMLAPI) represents things
+internally in UTF-8, which is fine if your app does, too.  But if you have binary data which doesn't conform to UTF-8
+(i.e. has bytes larger than 127 in it) you need to use the following functions to ensure that the data in your values is UTF-8
+compliant, so that when XMLAPI goes to write things to strings or files, it can escape them properly.  Otherwise things will
+get very confused with no particular warning.
+<p></p><i>(April 12, 2002)</i>: I wish I had remembered this.  Now I can very definitely say that things will indeed get very confused,
+and with no particular warning.  However, on the bright side (I suppose) the functionality I neglected to invoke was buggy anyway.
+So now I'm fixing it for the first time.  My reference for UTF-8 is <a href="http://cuisung.unige.ch/prod/utf-8.7.html">here</a> and
+appears to be quite complete.  I've found it very handy.
+<p></p>
+After setting a value with data that may have non-UTF-8 binary characters in it, call xml_toutf8_attr.  If you've created a text
+element, use xml_toutf8_text.  I'm assuming that when you name your attributes you will already be using UTF-8 names; if this is not
+a safe assumption, use a scratch string and convert before using your data.
+<p></p>
+Once you're getting data out of XML structures and you need it in non-UTF-8 raw form, use xml_toraw_str to copy it, fixed, into a buffer.
+Note that you will lose data if the character is over 256 in value.  But if this is the case, you shouldn't be using raw data anyway,
+obviously.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI int xml_toutf8_attr (XML * xml, const char * attrname)
+{
+   ATTR * attr;
+   char * buffer = (char *) MALLOC (256);
+   int cursize = 256;
+   int curptr = 0;
+   char * mark;
+   char * mark2;
+   char valbuf[3] = "\0\0";
+   int count = 0;
+
+   if (!xml) return (0);
+   attr = xml->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, attrname)) break;
+      attr = attr->next;
+   }
+   if (!attr) return (0);
+   if (!attr->value) return (0);
+   if (!strlen (attr->value)) return (0);
+
+   cursize = attr->valsize;
+   curptr = 0;
+   buffer = (char *) MALLOC (cursize);
+   *buffer = '\0';
+
+   mark = attr->value;
+   do {
+      mark2 = mark; while (*mark2 &amp;&amp; (unsigned int) *mark2 < 128) mark2++;
+      if (*mark2) {
+         count++;
+         buffer = _xml_string_tackonn (buffer, &amp;cursize, &amp;curptr, mark, mark2 - mark);
+         valbuf[0] = 0xC0 + (*(unsigned char *) mark2) / 64;
+         valbuf[1] = 0x80 + (unsigned int) (*mark2 &amp; 0x3F);
+         buffer = _xml_string_tackonn (buffer, &amp;cursize, &amp;curptr, valbuf, 2);
+         mark = mark2 + 1;
+      } else {
+         buffer = _xml_string_tackon (buffer, &amp;cursize, &amp;curptr, mark, 0);
+      }
+   } while (*mark2);
+
+   FREE (attr->value);
+   attr->value = buffer;
+   attr->valsize = cursize;
+
+   return (count);
+}
+XMLAPI int xml_toutf8_text (XML * xml)
+{
+   ATTR * attr;
+   char * buffer = (char *) MALLOC (256);
+   int cursize = 256;
+   int curptr = 0;
+   char * mark;
+   char * mark2;
+   char valbuf[3] = "\0\0";
+   int count = 0;
+
+   if (!xml) return (0);
+   attr = xml->attrs;
+   if (!attr) return (0);
+   if (!attr->value) return (0);
+   if (!strlen (attr->value)) return (0);
+
+   cursize = attr->valsize;
+   curptr = 0;
+   buffer = (char *) MALLOC (cursize);
+   *buffer = '\0';
+
+   mark = attr->value;
+   do {
+      mark2 = mark; while (*mark2 &amp;&amp; (*mark2 &amp; 0x007F == *mark2)) mark2++;
+      if (*mark2) {
+         count++;
+         buffer = _xml_string_tackonn (buffer, &amp;cursize, &amp;curptr, mark, mark2 - mark);
+         valbuf[0] = 0xC0 + (*(unsigned char *) mark2) / 64;
+         valbuf[1] = 0x80 + (unsigned int) (*mark2 &amp; 0x3F);
+         buffer = _xml_string_tackonn (buffer, &amp;cursize, &amp;curptr, valbuf, 2);
+         mark = mark2 + 1;
+      } else {
+         buffer = _xml_string_tackon (buffer, &amp;cursize, &amp;curptr, mark, 0);
+      }
+   } while (*mark2);
+
+   FREE (attr->value);
+   attr->value = buffer;
+   attr->valsize = cursize;
+
+   return (count);
+}
+</pre></td></tr></table>
+
+The conversion back to raw is a little nicer because it can proceed in place, essentially.  Not that we're doing that, of course.
+But we could.  If we wanted to.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XMLAPI int xml_toraw_str (char * buffer, const char * utf8)
+{
+   int count = 0;
+   if (!buffer) return 0;
+   if (!utf8) { *buffer = '\0'; return 0; }
+
+   while (*utf8) {
+      *buffer = *utf8;
+
+      if ((unsigned int) *buffer > 128) {
+         utf8++;
+         *buffer = (*(unsigned char *)buffer &amp; 0x1F) * 64 + (*(unsigned char *)utf8 &amp; 0x3F) * 64;
+         if (*utf8) utf8++;
+      } else utf8++; /* Don't want to double-increment past the end of the string if the encoding's screwed up! */
+      buffer++;
+   }
+   *buffer = '\0';
+   return (count);
+}
+</pre></td></tr></table>
+
+At some point, a Unicode converter might make sense.  Or something.  <i>Later.</i>
+
+
+
+<center>
+[&nbsp;<a href="xml_search.html">Previous: xml_search: Searching trees for elements</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_sort.html">Next: xml_sort: Sorting children</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2002, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

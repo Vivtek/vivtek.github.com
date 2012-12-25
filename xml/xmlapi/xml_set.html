@@ -1,0 +1,92 @@
+<html><head><title>xmlapi: Working with attributes: xml_set and xml_attrval</title></head>
+<body>
+<h2>Working with attributes: xml_set and xml_attrval</h2>
+<center>
+[&nbsp;<a href="xml_loc.html">Previous: Bookmarking things: xml_loc and xml_getloc</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_create.html">Next: xml_create: Creating an empty element</a>&nbsp;]
+</center>
+
+<hr>
+Setting an attribute is a little complicated.  If the attribute is already represented in the
+element's attribute list, then we free the old value, allocate space for a copy of the new
+value, and copy it.  Otherwise we allocate a new attribute holder and copy both name and
+value into it.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>void xml_set (XML * xml, const char * name, const char * value)
+{
+   ATTR * attr;
+
+   attr = xml->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) break;
+      attr = attr->next;
+   }
+
+   if (attr) {
+      free ((void *) (attr->value));
+      attr->value = (char *) malloc (strlen (value) + 1);
+      strcpy (attr->value, value);
+      return;
+   }
+
+   if (xml->attrs == NULL) {
+      attr = (ATTR *) malloc (sizeof (struct _attr));
+      xml->attrs = attr;
+   } else {
+      attr = xml->attrs;
+      while (attr->next) attr = attr->next;
+      attr->next = (ATTR *) malloc (sizeof (struct _attr));
+      attr = attr->next;
+   }
+
+   attr->next = NULL;
+   attr->name = (char *) malloc (strlen (name) + 1);
+   strcpy (attr->name, name);
+   attr->value = (char *) malloc (strlen (value) + 1);
+   strcpy (attr->value, value);
+}
+void xml_setnum (XML * xml, const char *attr, int number)
+{
+   char buf[sizeof(number) * 3 + 1];
+   sprintf (buf, "%d", number);
+   xml_set (xml, attr, buf);
+}
+</pre></td></tr></table>
+
+Retriving a value, on the other hand, is rather simple.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>const char * xml_attrval (XML * element,const char * name)
+{
+   ATTR * attr;
+
+   attr = element->attrs;
+   while (attr) {
+      if (!strcmp (attr->name, name)) return (attr->value);
+      attr = attr->next;
+   }
+   return ("");
+}
+int xml_attrvalnum (XML * element, const char * name)
+{
+   return (atoi (xml_attrval (element, name)));
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="xml_loc.html">Previous: Bookmarking things: xml_loc and xml_getloc</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: index</a>&nbsp;]
+[&nbsp;<a href="xml_create.html">Next: xml_create: Creating an empty element</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was created using
+<a href="http://www.vivtek.com/lpml/">LPML</a>.
+</font></td></tr></table>
+</center>
+</body></html>

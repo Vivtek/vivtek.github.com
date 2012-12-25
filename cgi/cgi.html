@@ -1,0 +1,41 @@
+<html><head><title>lpml alpha: Main CGI script nav.pl</title></head>
+<body>
+<h2>Main CGI script nav.pl</h2>
+<center>
+[&nbsp;<a href=index.html>Previous: index</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href=_navbar.html>Next: _navbar</a>&nbsp;]
+</center>
+
+<hr>
+This is the main CGI script.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#!/usr/local/bin/perl
+
+require "_navbar";
+require "_getargs";
+
+$input = getargs();
+
+print "Content-type: text/html\n\n";
+
+print '&lt;html>&lt;body bgcolor="ffffff" link="#0000FF" vlink="#0000FF" alink="0000FF">' . "\n";
+$target = 'target="todo_body"';
+navbar_print ("navbar.cnf", $$input{state});
+print "&lt;/body>&lt;/html>\n\n";
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href=index.html>Previous: index</a>&nbsp;]
+[&nbsp;<a href=index.html>Top: lpml alpha</a>&nbsp;]
+[&nbsp;<a href=_navbar.html>Next: _navbar</a>&nbsp;]
+<br><br><hr width=75%>
+<table width=75%><tr><td><font size=-1>
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license. 
+</font></td></tr></table>

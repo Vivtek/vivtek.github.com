@@ -1,0 +1,129 @@
+<html><head><title>User module: Loading and saving users and groups</title></head>
+<body>
+<h2>Loading and saving users and groups</h2>
+<center>
+[&nbsp;<a href="exist.html">Previous: Checking for existence of users and groups</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="joinleave.html">Next: Adding and removing users and things from groups</a>&nbsp;]
+</center>
+
+<hr>
+Given the simplicity of the xmlapi, most of this is pretty easy.  However, the fact that we're
+using the user module to authorize access to users makes it interestingly recursive.  But
+looking at the auth versions of the get and save functions, we can see an excellent example of
+how to use the module.
+<br><br>
+<a name="user_get">
+<i>user_get()</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * user_get (const char * username)
+{
+   char buf[1024];
+   FILE * file;
+   XML * ret;
+
+   if (!strcmp (username, "anonymous")) {
+      ret = xml_create ("user");
+      xml_set (ret, "name", "anonymous");
+      return (ret);
+   }
+
+   sprintf (buf, "%s%s.xml", USER_REPOSITORY, username);
+   file = fopen (buf, "r");
+   if (!file) return NULL;
+
+   ret = xml_read (file);
+   fclose (file);
+   return (ret);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="user_save">
+<i>user_save()</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int user_save (XML * user)
+{
+   char buf[1024];
+   FILE * file;
+
+   sprintf (buf, "%s%s.xml", USER_REPOSITORY, xml_attrval (user, "name"));
+   file = fopen (buf, "w+");
+   if (!file) return 1;
+
+   xml_write (file, user);
+   fclose (file);
+   return (0);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="group_get">
+<i>group_get()</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * group_get (const char * groupname)
+{
+   char buf[1024];
+   FILE * file;
+   XML * ret;
+
+   sprintf (buf, "%s%s.xml", GROUP_REPOSITORY, groupname);
+   file = fopen (buf, "r");
+   if (!file) {
+      ret = xml_create ("group");
+      xml_set (ret, "name", groupname);
+      return (ret);
+   }
+
+   ret = xml_read (file);
+   fclose (file);
+   return (ret);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="group_save">
+<i>group_save()</i><br>
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>int group_save (XML * group)
+{
+   char buf[1024];
+   FILE * file;
+
+   sprintf (buf, "%s%s.xml", GROUP_REPOSITORY, xml_attrval (group, "name"));
+   file = fopen (buf, "w+");
+   if (!file) return 1;
+
+   xml_write (file, group);
+   fclose (file);
+   return (0);
+}
+</pre></td></tr></table>
+<br><br>
+<a name="user_auth_get">
+<i>user_auth_get()</i><br>
+<br><br>
+<a name="user_auth_save">
+<i>user_auth_save()</i><br>
+<br><br>
+<a name="group_auth_get">
+<i>group_auth_get()</i><br>
+<br><br>
+<a name="group_auth_save">
+<i>group_auth_save()</i><br>
+
+
+
+<center>
+[&nbsp;<a href="exist.html">Previous: Checking for existence of users and groups</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="joinleave.html">Next: Adding and removing users and things from groups</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

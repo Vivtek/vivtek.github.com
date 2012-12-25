@@ -1,0 +1,168 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Usage scenarios -- Open-source software project</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Usage scenarios: Open-source software project</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/usage_scenarios.html>usage&nbsp;scenarios</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+The simple workflow I came up with as something exemplifying an open-source project is
+oriented toward bug fixes and patches rather than a big release all at once.  Given the
+roles Requester, Analyst, Developer, Tester, and Documentation writer, consider the
+following workflow:<ol>
+<li>Requester fills out a form and requests a change (either bug fix or enhancement request).
+<li>Analyst studies the request and categorizes it.
+<li>Developer makes the change.
+<li>Tester tests the change in isolation and in the system (regression testing, whatever).
+<li>Documenter makes necessary changes to documentation.
+</ol>
+<i>(2/21/00) <a href=../process_defn/openproj_defn.html>XML process definition here.</a></i>
+<p>
+As most people can tell you, this is already more organized than many projects.  (If only
+every project had a documenter!)  The flow is very linear, so there's not much point in
+drawing it: it simply goes from one step to the next, and no step may be completed before
+the previous step is finished.  Very simple but it brings up some interesting questions
+nonetheless.
+<p>
+<i>Notification</i><br>
+As more people become involved in the change (the project) then more people need to be
+notified as to progress.  It would be useful in this case, for instance, for the documenter
+to receive all notifications as soon as the documenter has been assigned.  My original
+paper RAD for this workflow show notification boxes going everywhere.  It doesn't always
+make sense to have to specify notification; in this case, it's useful to consider each
+member of the project group as being in a mailing list as soon as they join.  Then
+notifications simply go to the list.
+<p>
+<i>Other messaging</i><br>
+The original RFP does mention something about message archiving, if I recall correctly
+(although I may have made that up in my head).  During such a project, there will be
+considerable back-and-forth between analyst and developer, analyst and requester, developer
+and requester, and so forth.  Again, I could set those up as explicit negotiation paths,
+but it makes more sense to include this sort of thing in a list as well.  The conclusion
+would seem to be that workflow engines would benefit from including mailing list facilities.
+<p>
+Certainly there needs to be some way for mailings to be archived.  This could be as simple
+as including an archival daemon in the mailing list so that messages are saved.  I would
+think the deliverable repository would be the most appropriate place to store archived
+messages (including negotiations.)
+<p>
+<i>Process environment</i><br>
+A more important insight I had while putting this scenario together is: what happens if the
+analyst gets two request which are essentially the same change?  Or what if a naive
+requester puts two changes into one request?  In the first case, it makes sense for the
+two processes to be merged, and in the second it makes sense for the single process to be
+split into two processes.
+<p>
+More generally, processes need to be understood to be running in the greater context of
+a workflow system.  Processes may need to interact in more sophisticated ways (although
+I'm not sure exactly how yet.)  Certainly the following relationships between processes
+must exist:<ul>
+<b><li>Processes must be able to merge</b>
+<b><li>A process must be able to split</b>
+<b><li>A process must be able to initiate another process</b>
+   This is just logical.  At some point in a process, some state may hold which triggers
+   the initiation of a second process.  In this case, the first process then continues
+   normally.  I can't think of many good examples yet: one might be that too great a delay
+   in the completion of a task may trigger an administrative review process.
+<b><li>A single task in a process must be able to stand for another entire subprocess</b><br>
+   Again, this is necessary for the concept of compound processes, but we're going to see
+   some really interesting things along these lines.
+</ul>
+<p>
+<i>Summary</i><br>
+What have we learned?<ul>
+<li>Notification should be specifiable either on the individual task level (as an explicit
+    box) or in some global way across the entire process.  These specifications may be
+    mixed in a single process.
+<li>Some kind of message-handling system would be nice.
+<li>Interaction between processes must be possible.  Processes do not execute in a vacuum.
+</ul>
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>wftk -- Usage scenarios -- SourceXchange project</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>wftk</u> -- Usage scenarios: SourceXchange project</h2>
+[&nbsp;<a href=/wftk.html>wftk&nbsp;home</a>&nbsp;]
+[&nbsp;<a href=/wftk/usage_scenarios.html>usage&nbsp;scenarios</a>&nbsp;]
+[&nbsp;<a href=/wftk/discuss.pl>discussion</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+The SourceXchange model is pretty intricate, and only yesterday did I realize that the
+original mess I drew didn't work out because I was trying to model several processes in a
+single definition.
+<p>
+There are three processes in a SourceXchange project.  The first is the overall SourceXchange
+process, as follows:<ol>
+<b><li>Proposer selects an RFP and writes a proposal, and submits it to the Sponsor.</b>
+<b><li>Sponsor accepts proposal</b><br> Obviously if the proposal isn't accepted, nothing else happens.
+    Note that this effectively means a moribund process.
+<b><li>Proposer creates a project plan, including milestones and assigns Developer</b><br>
+    Initial milestones are technically part of the proposal, but after a formal project
+    plan has been developed, it's likely that the milestones will be modified somewhat, at
+    least with respect to order.
+<b><li>SourceXchange assigns Reviewer.</b>
+<b><li>SourceXchange sets up formal milestones</b><br>
+    Note that the formal milestones are a <i>simplified</i>
+    version of the project plan.
+<b><li>Developer(s) execute the project plan.</b><br>
+    This is getting to be a common theme, isn't it?  Create a project plan and execute the
+    project plan.
+<b><li>Upon completion of each milestone, the signoff process is executed.</b><br>
+    Here's where it gets interesting.  The signoff process, defined below, is parameterized
+    with respect to the milestone being signed off.  This is a new twist.
+<b><li>When all milestones are complete, Sponsor and Reviewer review the finished product
+       and accept it.</b>
+<b><li>SourceXchange makes the code available onsite.</b>
+</ol>
+
+The signoff process, invoked for each completed milestone, is as follows:<ol>
+<b><li>Developer announces milestone</b>
+<b><li>Sponsor and Reviewer review milestone.</b><br>
+   If the sponsor refuses the milestone, but the milestone is accepted by the Reviewer, then
+   something very odd happens.  The current signoff subprocess runs to completion, but <i>the
+   main process, the parent's parent process, is aborted!</i>  This requires a formal exception model
+   and the facilities to define exception handling.
+<b><li>SourceXchange pays Proposer</b>
+</ol>
+
+<i>(2/21/00) <a href=../process_defn/sxc_defn.html>XML process definition here.</a></i>
+<p>
+
+<i>Complex compound process</i><br>
+So we have three process definitions here which interact in a rather complex way: the main
+process, the project plan subprocess, and the signoff process.  Each task in the project
+plan, then, effectively represents an instance of the signoff process.  And this is 
+specified when the main process invokes the project plan.
+<p>
+When an exception is encountered in the signoff process (the Sponsor rejects a milestone
+when the Reviewer accepts) then the <i>main</i> process must take action.  We can very easily
+consider a project-abort process as well.
+The notion of a compound process, then, is a quite powerful one, especially when you throw
+in the idea of parameterization.
+<p>
+<i>Administration via workflow</i><br>
+When you consider that completion of <i>each task</i> in the project plan invokes the
+signoff subprocess, then it starts to make sense that <i>any</i> action taken by the
+workflow system might best be represented as a process, requiring any number of interactions
+by people or programs, and notification of any number of people, recording of arbitrary
+data, or whatever.  This is one of the suggestions I made in my original proposal.  Given
+that the system is a workflow system, then any aspect of its operation should be configurable
+by specification of a process.  Right?  So to add a user to a group, a process is potentially
+invoked.  To assign a user to a task, a process is invoked.  Arbitrary processes may be
+used to do this, or simple default processes will be used instead.  Make sense?
+<p>
+<i>Summary:</i><br>
+These summaries are getting repetitive, but that's because this is the last usage scenario.
+It's time to get on to the user interface and process definition DTD, and then get coding!
+<ul>
+<li>Exception handling: a subsubprocess, in this case, can cause an exception in the main process.
+<li>Parameterized invocation of processes and subprocesses.
+<li>Completion of each task in a given process may itself be a subprocess.
+<li>Any operation performed by the system is potentially regulated as a (sub)process.  This
+    process may be a systemwide default, a systemwide configuration, or a process-specific
+    configuration, so that user assignment, for instance, may be done in one way for one
+    process and in another way for a different process.
+</ul>
+I think that's about it.
+</td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

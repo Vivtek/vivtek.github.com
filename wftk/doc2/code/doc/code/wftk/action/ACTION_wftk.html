@@ -1,0 +1,158 @@
+<html><head><title>ACTION adaptor: wftk</title></head>
+<body>
+<h2>ACTION adaptor: wftk</h2>
+<hr>
+<p></p>
+This is the ACTION adaptor for the wftk library itself.  It encapsulates workflow-related
+functionality for action structures, and it is always the default action handler.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include "../wftk.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "do"
+};
+
+XML * ACTION_wftk_init (WFTK_ADAPTOR * ad, va_list args);
+XML * ACTION_wftk_free (WFTK_ADAPTOR * ad, va_list args);
+XML * ACTION_wftk_info (WFTK_ADAPTOR * ad, va_list args);
+XML * ACTION_wftk_do (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   ACTION_wftk_init,
+   ACTION_wftk_free,
+   ACTION_wftk_info,
+   ACTION_wftk_do
+};
+
+static struct wftk_adaptor_info _ACTION_wftk_info =
+{
+   4,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct wftk_adaptor_info * ACTION_wftk_get_info ()
+{
+   return &amp; _ACTION_wftk_info;
+}
+</pre></td></tr></table>
+
+Thus concludes the communication with the config module.  Now on with the actual implementation
+of functionality.  It's not complicated.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * ACTION_wftk_init (WFTK_ADAPTOR * ad, va_list args) {
+   xml_set (ad->parms, "spec", "wftk");
+   return (XML *) 0;
+}
+XML * ACTION_wftk_free (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * ACTION_wftk_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "dsrep");
+   xml_set (info, "name", "localxml");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+<p></p>
+Moving along at breakneck speed, we come to actual functionality: taking action.  Given that the action has already been
+parsed thanks to its XML nature, we hardly have anything to do at all.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * ACTION_wftk_do  (WFTK_ADAPTOR * ad, va_list args)
+{
+   XML * action = (XML *) 0;
+   XML * xml1;
+   XML * xml2;
+   const char * aname;
+
+   if (args) action = va_arg (args, XML *);
+   if (action) {
+      aname = xml_attrval (action, "action");
+             if (!strcmp (aname, "procstart")) {
+         xml1 = wftk_process_new (ad->session, NULL, NULL);
+         wftk_process_define (ad->session, xml1, NULL, xml_attrval (action, "process"));
+         wftk_process_save (ad->session, xml1);
+         xml2 = wftk_task_retrieve (ad->session, xml1);
+         wftk_task_complete (ad->session, xml2);
+         xml_free (xml2);
+      } else if (!strcmp (aname, "procadhoc")) {
+         xml1 = wftk_process_load (ad->session, NULL, xml_attrval (action, "process"));
+         wftk_process_adhoc (ad->session, xml1, xml_copy (xml_firstelem (action)));
+      } else if (!strcmp (aname, "tasknew")) {
+         wftk_task_new (ad->session, xml_copy (xml_firstelem (action)));
+      } else if (!strcmp (aname, "tasksubproc")) {
+         /* Not doing this yet. */
+      } else if (!strcmp (aname, "request")) {
+         /* Wait for implementation of request. */
+      } else if (!strcmp (aname, "set")) {
+         xml1 = wftk_process_load (ad->session, NULL, xml_attrval (action, "process"));
+         wftk_value_set (ad->session, xml1, xml_attrval (action, "name"), xml_attrval (action, "value"));
+         wftk_process_save (ad->session, xml1);
+      } else if (!strcmp (aname, "statusset")) {
+         xml1 = wftk_process_load (ad->session, NULL, xml_attrval (action, "process"));
+         wftk_status_set (ad->session, xml1, xml_attrval (action, "status"));
+      } else if (!strcmp (aname, "roleassign")) {
+         xml1 = wftk_process_load (ad->session, NULL, xml_attrval (action, "process"));
+         wftk_role_assign (ad->session, xml1, xml_attrval (action, "role"), xml_attrval (action, "user"));
+         wftk_process_save (ad->session, xml1);
+      } else if (!strcmp (aname, "taskassign")) {
+         /* Wait. */
+      } else if (!strcmp (aname, "useradd")) {
+         xml1 = wftk_process_load (ad->session, NULL, xml_attrval (action, "process"));
+         wftk_user_add (ad->session, xml1, xml_copy (xml_firstelem (action)));
+         wftk_process_save (ad->session, xml1);
+      }
+   }
+   return 0;
+}
+</pre></td></tr></table>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>

@@ -1,0 +1,52 @@
+<html><head><title>WikiWikiWftk!: Wiki include file</title></head>
+<body>
+<h2>Wiki include file</h2>
+<center>
+[&nbsp;<a href="wiki.html">Previous: WikiWikiWftk!</a>&nbsp;]
+[&nbsp;<a href="wiki.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wiki_c.html">Next: Wiki Compiler</a>&nbsp;]
+</center>
+
+<hr>
+Yet another include file.  These are getting boring enough to motivate me to write a template processor for code.  Real Soon Now --
+this repmgr project will probably be a great deal of the machinery for that.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#ifndef WIKI_H
+#define WIKI_H
+#include &lt;stdio.h>
+#include &lt;string.h>
+#include "xmlapi.h"
+#include "repmgr.h"
+
+#ifndef WFTK_EXPORT
+#define WFTK_EXPORT
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+WFTK_EXPORT XML * wiki_parse (const char * src);
+WFTK_EXPORT XML * wiki_build (XML * context, XML * wiki, XML * todo);
+
+#ifdef __cplusplus
+}
+#endif
+#endif
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wiki.html">Previous: WikiWikiWftk!</a>&nbsp;]
+[&nbsp;<a href="wiki.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wiki_c.html">Next: Wiki Compiler</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2002-2004, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

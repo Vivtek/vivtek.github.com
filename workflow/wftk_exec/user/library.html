@@ -1,0 +1,73 @@
+<html><head><title>User module: user.c: implementation</title></head>
+<body>
+<h2>user.c: implementation</h2>
+<center>
+[&nbsp;<a href="include.html">Previous: user.h: definition of the interface</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="exist.html">Next: Checking for existence of users and groups</a>&nbsp;]
+</center>
+
+<hr>
+OK, so we've defined what we're doing -- now how are we going to do it?  I thought you'd never
+ask.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "user.h"
+#include "../localdefs.h"
+
+/* ------------------------------------------------------------------ */
+/* user.c                                                             */
+/* This implements the user and group API for wftk.                   */
+/* ------------------------------------------------------------------ */
+</pre></td></tr></table>
+
+OK, here goes.  Follow the links below to see implementations.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre><i>See <a href="auth.html">Authentication in a CGI environment</a></i>
+
+<i>See <a href="exist.html#user">user_exists()</a></i>
+<i>See <a href="exist.html#group">group_exists()</a></i>
+
+<i>See <a href="getsave.html#user_get">user_get()</a></i>
+<i>See <a href="getsave.html#user_save">user_save()</a></i>
+<i>See <a href="getsave.html#group_get">group_get()</a></i>
+<i>See <a href="getsave.html#group_save">group_save()</a></i>
+<i>See <a href="getsave.html#user_auth_get">user_auth_get()</a></i>
+<i>See <a href="getsave.html#user_auth_save">user_auth_save()</a></i>
+<i>See <a href="getsave.html#group_auth_get">group_auth_get()</a></i>
+<i>See <a href="getsave.html#group_auth_save">group_auth_save()</a></i>
+
+<i>See <a href="joinleave.html#user_join">user_join()</a></i>
+<i>See <a href="joinleave.html#user_leave">user_leave()</a></i>
+<i>See <a href="joinleave.html#object_grant">object_grant()</a></i>
+<i>See <a href="joinleave.html#object_revoke">object_revoke()</a></i>
+<i>See <a href="joinleave.html#group_include">group_include()</a></i>
+<i>See <a href="joinleave.html#group_unlink">group_unlink()</a></i>
+
+<i>See <a href="user_perm.html">Actually using all this XML to figure out a user's permissions</a></i>
+
+<i>See <a href="listing.html#user_list">user_list()</a></i>
+<i>See <a href=""></a></i>
+<i>See <a href=""></a></i>
+<i>See <a href="listing.html#groups">user_groups_list(): Get a list of groups to which a user belongs.</a></i>
+<i>See <a href="listing.html#users">group_users_list*(): listing users in (or out of) groups</a></i>
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="include.html">Previous: user.h: definition of the interface</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: The user module</a>&nbsp;]
+[&nbsp;<a href="exist.html">Next: Checking for existence of users and groups</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

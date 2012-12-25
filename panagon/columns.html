@@ -1,0 +1,208 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+   <TITLE>Panagon -- Property names</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+
+<center><table><tr><td>
+<h2>Topic: <u>Panagon</u> -- Property names</h2>
+[&nbsp;<a href=/panagon.html>Panagon index</a>&nbsp;]
+</td></tr>
+
+<tr><td>
+<center><table width=75%><tr><td>
+<font face=arial size=-1>
+Remember the Mezzanine bible, the SDK book that listed anything and everything about the API?
+Don't you wish you had that for Panagon?  So do we, and we're sort of writing one inhouse.
+One of the most annoying omissions from the online documentation that FileNET provides with the
+Panagon developer's kit is, well, what are we supposed to call those document properties anyway?
+<p>
+The information is there, sort of, but it's only listed in the search references, and we can
+never find it.  So bookmark this page, because here goes:
+</font>
+</td></tr></table></center>
+</td></tr>
+
+<tr><td>
+<center><font face=arial size=+1>MEZZANINE PROPERTY TO PANAGON PROPERTY CONVERSION CHART</font><br>
+</td></tr>
+
+<tr><td><center><table width=100% border=1 cellpadding=3>
+<tr><td width=40%>Property Define /<br><u>Name</u></td><td width=20%>Prop<br><u>No</u></td><td width=40%><u>Panagon name</u></td></tr>
+<tr><td colspan=3><center> ---- Item object attributes ---- </center></td></tr>
+<tr><td>SPI_ITEM_ID<br><i>Item ID</i></td><td>257</td><td>idmId</td></tr>
+<tr><td>SPI_ITEM_OWNER<br><i>Added by User</i></td><td>258</td><td>idmAddedByUser</td></tr>
+<tr><td>SPI_ITEM_GROUP<br><i>Added by Group</i></td><td>259</td><td>idmAddedByGroup</td></tr>
+<tr><td>SPI_ITEM_CREATE_DATE<br><i>Date Added</i></td><td>260</td><td>idmDateAdded</td></tr>
+<tr><td>SPI_ITEM_COMMENT<br><i>Comment</i></td><td>261</td><td>idmComment</td></tr>
+<tr><td>SPI_ITEM_PROTECTED<br><i>Protected?</i></td><td>262</td><td>idmDocProtected</td></tr>
+<tr><td>SPI_ITEM_ORIGINAL_FILE<br><i>Original File Name</i></td><td>263</td><td>idmDocOriginalFile</td></tr>
+<tr><td>SPI_ITEM_FILE_CATEGORY<br><i>Storage Category</i></td><td>264</td><td>idmDocFileCategory</td></tr>
+<tr><td colspan=3><font size=-1>As you can see, some of these names are motivated by the original Mezzanine define names.  This
+makes things particularly hard to guess unless you happen to know Mezzanine.</font></td></tr>
+<tr><td>SPI_ITEM_CURVER_TRUNC_FILE<br><i>Default Checkout File Name</i></td><td>265</td><td>idmDocCurVerTruncFile</td></tr>
+<tr><td>SPI_ITEM_VARIANTS<br><i>Allow Secondary Version Lines?</i></td><td>266</td><td>idmDocVariants</td></tr>
+<tr><td>SPI_ITEM_ONLINE_LIMIT<br><i>Online Limit</i></td><td>267</td><td>idmDocOnlineLimit</td></tr>
+<tr><td>SPI_ITEM_DISP_CATEGORY<br><i>Archive Category</i></td><td>268</td><td>idmDocDispCategory</td></tr>
+<tr><td colspan=3><font size=-1>Oddly, the use of the define name takes us back to the old pre-3.5 days, when men were men and archive
+categories were still disposition categories.</font></td></tr>
+<tr><td>SPI_ITEM_CURVER_NUM<br><i>Current Version ID</i></td><td>269</td><td>idmDocCurVerNum</td></tr>
+<tr><td>SPI_ITEM_DATE<br><i>Current Version Date</i></td><td>270</td><td>idmDocCurVerDate</td></tr>
+<tr><td>SPI_ITEM_AUTHOR<br><i>Current Version Author</i></td><td>271</td><td>idmDocOwner</td></tr>
+<tr><td>SPI_ITEM_ONLINE_COUNT<br><i>Online Version Count</i></td><td>272</td><td>idmDocOnlineCount</td></tr>
+<tr><td>SPI_ITEM_ONLINE_SIZE<br><i>Online Disk Space</i></td><td>273</td><td>idmDocOnlineSize</td></tr>
+<tr><td>SPI_ITEM_LAST_DATE<br><i>Last Access Date</i></td><td>274</td><td>idmDateAccessed</td></tr>
+<tr><td>SPI_ITEM_LAST_VERSION_ID<br><i>Last Access Version</i></td><td>275</td><td>idmDocLastVerId</td></tr>
+<tr><td>SPI_ITEM_CURVER_CHECKED_OUT<br><i>Current Version Checked Out?</i></td><td>276</td><td>idmDocCurVerCheckedOut</td></tr>
+<tr><td>SPI_ITEM_ICON_TITLE<br><i>Title</i></td><td>277</td><td>idmName</td></tr>
+<tr><td colspan=3><font size=-1>As you may recall, the Mezzanine API specified no set use for this attribute.
+However, SDM always used it for the title (as opposed to the filename) of each document.  Panagon
+is using a lot of SDM conventions (including the folder structure) and this is one of them.</font></td></tr>
+<tr><td>SPI_ITEM_KEYWORDS<br><i>Keyword</i></td><td>278</td><td>idmDocKeywords</td></tr>
+<tr><td>SPI_ITEM_VERSIONS<br><i>Versions</i></td><td>279</td><td><i>n/a</i></td></tr>
+<tr><td colspan=3><font size=-1>SPI_ITEM_VERSIONS, of course, is tool type 4, meaning it's really a join to another table.
+So it has no meaningful value and, unlike keywords, you can't specify a meaningful value to be
+used in a search.  So it is omitted from the Panagon API.  The same applies to the next two "attributes."</font></td></tr>
+<tr><td>SPI_ITEM_CHECKOUTS<br><i>Versions Checked Out</i></td><td>280</td><td><i>n/a</i></td></tr>
+<tr><td>SPI_ITEM_ACL<br><i>Access List</i></td><td>281</td><td><i>n/a</i></td></tr>
+<tr><td>SPI_ITEM_CUSTOMxx<br><i>Custom 1-20 and 21-40</i></td><td>282-301<br>307-326</td><td>idmCustom1-idmCustom40</td></tr>
+<tr><td colspan=2>depends</td><td>idmDocType</td></tr>
+<tr><td colspan=3><font size=-1>Whichever custom property is set up to be the document type (denoted by the
+name DocType) also can be referred to using the name idmDocType.</font></td></tr>
+<tr><td>SPI_ITEM_CURVER_CSI_ID<br><i>Current Content Search Repository</i></td><td>302</td><td>idmDocCurVerCsiId</td></tr>
+<tr><td>SPI_ITEM_CURVER_CSI_CID<br><i>Current Version Index ID</i></td><td>303</td><td>idmDocCurVerCsiCid</td></tr>
+<tr><td>SPI_ITEM_CSI_DEFAULT<br><i>Default Index Versions?</i></td><td>304</td><td>idmDocCsiDefault</td></tr>
+<tr><td>SPI_ITEM_CSI_COUNT<br><i>Number of Indexed Versions</i></td><td>305</td><td>idmDocCsiCount</td></tr>
+<tr><td>SPI_ITEM_CSI_LIMIT<br><i>Indexed Version Limit</i></td><td>306</td><td>idmDocCsiLimit</td></tr>
+<tr><td>SPI_ITEM_MV_CUSTOMxx<br><i>Multivalued Custom Properties 1-10</i></td><td>327-336</td><td>???</td></tr>
+<tr><td colspan=3><font size=-1>Sorry, we haven't figured MVAs out yet.  Watch this space for further details.</font></td></tr>
+<tr><td colspan=3><center> ---- Version object attributes ---- </center></td></tr>
+<tr><td>SPI_VERS_ID<br><i>Version ID</i></td><td>513</td><td>idmVerId</td></tr>
+<tr><td>SPI_VERS_ITEM_ID<br><i>Item ID</i></td><td>514</td><td>idmVerDocId</td></tr>
+<tr><td>SPI_VERS_CHECKIN_USER<br><i>Checked In By User</i></td><td>515</td><td>idmVerCheckinUser</td></tr>
+<tr><td>SPI_VERS_CHECKIN_GROUP<br><i>Checked In By Group</i></td><td>516</td><td>idmVerCheckinGroup</td></tr>
+<tr><td>SPI_VERS_CREATE_DATE<br><i>Checkin Date</i></td><td>517</td><td>idmVerCreateDate</td></tr>
+<tr><td>SPI_VERS_COMMENT<br><i>Comment</i></td><td>518</td><td>idmVerComment</td></tr>
+<tr><td>SPI_VERS_APPLICATION<br><i>Application</i></td><td>519</td><td>idmVerApplication</td></tr>
+<tr><td>SPI_VERS_FILE_DATE<br><i>Modification Date</i></td><td>520</td><td>idmVerFileDate</td></tr>
+<tr><td>SPI_VERS_FILE_SIZE<br><i>File Size</i></td><td>521</td><td>idmVerFileSize</td></tr>
+<tr><td>SPI_VERS_SHELF_DATE<br><i>Storage Date</i></td><td>522</td><td><i>idmDateModified?</i></td></tr>
+<tr><td>SPI_VERS_SHELF_ID<br><i>Storage Repository</i></td><td>523</td><td>idmVerShelfId</td></tr>
+<tr><td>SPI_VERS_SHELF_FILE_ID<br><i>Encrypted File Name</i></td><td>524</td><td>idmVerShelfFileId</td></tr>
+<tr><td>SPI_VERS_LAST_DATE<br><i>Last Access Date</i></td><td>525</td><td>idmPrevCheckoutDate</td></tr>
+<tr><td>SPI_VERS_LAST_USER<br><i>Last Access User</i></td><td>526</td><td>idmModifiedByUser</td></tr>
+<tr><td>SPI_VERS_LAST_GROUP<br><i>Last Access Group</i></td><td>527</td><td>idmVerLastGroup</td></tr>
+<tr><td>SPI_VERS_AVAIL_STAT<br><i>Availability Status</i></td><td>528</td><td>idmVerAvailStat</td></tr>
+<tr><td>SPI_VERS_DISP_ID<br><i>Archive Repository</i></td><td>529</td><td>idmVerDispId</td></tr>
+<tr><td>SPI_VERS_DISP_DATE<br><i>Archive Date</i></td><td>530</td><td>idmVerDispDate</td></tr>
+<tr><td>SPI_VERS_RECLAIM_PENDING<br><i>Reclaim Pending?</i></td><td>531</td><td>idmVerReclaimPending</td></tr>
+<tr><td>SPI_VERS_PERMANENT<br><i>Permanent Version?</i></td><td>532</td><td>idmVerPermanent</td></tr>
+<tr><td>SPI_VERS_CHECKOUT_PENDING<br><i>Checked Out?</i></td><td>533</td><td>idmVerCheckoutPending</td></tr>
+<tr><td>SPI_VERS_MERGE_SRC<br><i>Merge-Source Version ID</i></td><td>534</td><td>idmVerMergeSrc</td></tr>
+<tr><td>SPI_VERS_MERGE_DST<br><i>Merge-Destination Version ID</i></td><td>535</td><td>idmVerMergeDst</td></tr>
+<tr><td>SPI_VERS_BRANCH_COUNT<br><i>Secondary Version Line Count</i></td><td>536</td><td>idmVerBranchCount</td></tr>
+<tr><td>SPI_VERS_BRANCH_CURVER<br><i>Latest Version?</i></td><td>537</td><td>idmVerBranchCurVer</td></tr>
+<tr><td>SPI_VERS_RECLAIM_DATE<br><i>Reclaim Submitted Date</i></td><td>538</td><td>idmVerReclaimDate</td></tr>
+<tr><td>SPI_VERS_CHECKOUT_USERS<br><i>Current Checkouts</i></td><td>539</td><td><i>n/a</i></td></tr>
+<tr><td>SPI_VERS_B_I_ID_MAJOR<br><i>Full Backup ID</i></td><td>540</td><td><i>n/a</i></td></tr>
+<tr><td>SPI_VERS_B_I_ID_MINOR<br><i>Incremental Backup ID</i></td><td>541</td><td><i>n/a</i></td></tr>
+<tr><td>SPI_VERS_CHECKOUT_DATE<br><i>Source Version Checkout Date</i></td><td>542</td><td>idmVerPrevCheckoutDate</td></tr>
+<tr><td>SPI_VERS_OFFLINE_LOCATION<br><i>Offline Location</i></td><td>543</td><td>idmVerOfflineLocation</td></tr>
+<tr><td>SPI_VERS_CSI_ID<br><i>Content Search Repository</i></td><td>544</td><td>idmVerCsiId></td></tr>
+<tr><td>SPI_VERS_CSI_CID<br><i>Index ID</i></td><td>545</td><td>idmVerCsiCid</td></tr>
+<tr><td>SPI_VERS_CSI_STATUS<br><i>Indexing Status</i></td><td>546</td><td>idmVerCsiStatus</td></tr>
+<tr><td>SPI_VERS_CSI_MAJOR<br><i>Index Full Backup ID</i></td><td>547</td><td><i>n/a</i></td></tr>
+<tr><td>SPI_VERS_CSI_MINOR<br><i>Index Incremental Backup ID</i></td><td>548</td><td><i>n/a</i></td></tr>
+<tr><td>SPI_VERS_CSI_PERMANENT<br><i>Permanent Index?</i></td><td>549</td><td>idmVerCsiPermanent</td></tr>
+<tr><td>SPI_VERS_CUSTOM01-40<br><i>Custom Properties 1-40</i></td><td>550-589</td><td>idm</td></tr>
+<tr><td>SPI_VERS_MV_CUSTOM01-10<br><i>Multivalued Custom Properties 1-10</i></td><td>590-599</td><td>idm</td></tr>
+<tr><td>SPI_VERS_FILE_NAME<br><i>File Name</i></td><td>600</td><td>idmVerFileName</td></tr>
+
+</table></center></td></tr>
+
+</table>
+
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

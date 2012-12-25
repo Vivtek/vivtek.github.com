@@ -1,0 +1,58 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk: Overview</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<table>
+<tr><td><img src=logo.png>
+<td valign=top>
+<center>
+<h3>wftk: Overview</h3>
+[ <a href=index.html>documentation home</a> ]
+</center>
+</td></tr></table>
+
+<h3>The sections of a wftk system</h3>
+A typical wftk application is described as a <i>repository</i>, a set of data sources and a description
+of their relationships.  There are two major segments of code, which deal with the world in
+fundamentally different ways: the <i>repository manager</i>, or <i>repmgr</i>, sees data sources and
+moves data, while the <i>wftk core</i> sees activities in the form of processes and tasks.  Both
+segments rely on an assortment of <i>adaptors</i> which interact with the external world.
+<p>
+Application code interacts with wftk using either the repmgr API or the wftk core API;
+however, since the repository manager itself knows how to invoke the wftk API in response to various
+events, a workflow-oriented system may have no need at all to invoke the wftk core API directly.
+However, for applications which want to do pure workflow without the baggage of repository management,
+the wftk core is carefully independent of the repmgr (many of the stock adaptors require the repmgr,
+but if you're not using those adaptors, you can be repository-free with no further ado.)
+<p>
+The repository manager also has a great deal of logic enabling it to format text and build Websites;
+this code can also be used to maintain other "unstructured" text using the structured data sources
+making up a repository.  There is also code (related to the Wiki Wiki Web paradigm) which allows
+unstructured text to be processed into a formatted layout, enabling content producers to ignore
+formatting completely in many cases while writing, but still preserving their ability to affect
+formatting explicitly when they need to.
+<p>
+Here's a diagram showing all these relationships.
+<center><img src="overview.png"></center>
+<p>
+For more information on the workflow aspect of the wftk, see the <a href="background.html">workflow
+backgrounder</a>; it's got a fairly good presentation of what workflow is and what it can do for you.
+The beginnings of a new set of application examples are in <a href="examples/index.html">the wftk
+application section</a>.  There, it should soon be more apparent what wftk really is.
+<p>
+There aren't many examples of application code yet, besides the command-line utilities wrapped around
+the repmgr and the wftk core.  There is a popup window framework coming up which talks to the
+repository manager, and there are the Python wrappers for embedding repmgr and the XMLAPI into Python
+programs (a nice combination with Zope or wxWindows).  There will be more.
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

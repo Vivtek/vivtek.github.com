@@ -1,0 +1,53 @@
+<html><head><title>XML manipulation library "xmlapi"</title></head>
+<body>
+<h2>xmlapi: XML manipulation library</h2>
+<center>
+[ <a href="xmlapi.zip">download</a> ] [ <a href="xmlapi.xml">xml source</a> ]
+[ <a href="http://www.vivtek.com/xml/discuss.pl">discussion</a> ]
+</center>
+<hr>
+This is another spinoff of the <a href="http://www.vivtek.com/wftk.html">open-source
+workflow toolkit</a>.  <a href="http://www.vivtek.com/expat.html">expat</a> is great for
+parsing XML files -- but what do you do with them once parsed?  For the wftk and for other
+projects, I needed a flexible set of functions which could load an XML data structure into
+memory and then <i>do things to it</i>.  This library is the result.
+<p></p>
+(08/11/00) One of the things I did to it was to write the <a href="xmlcgi.html">XMLCGI</a>
+interface to CGI.  It takes all the salient information about the current CGI environment and
+sticks it into an XMLAPI structure.  Makes it easy to do CGI in C.  At least for me.
+<p></p>
+<ul>
+<li> <a href="h.html">Definitions</a>
+<li> <a href="main.html">Functions except for xml_read</a>
+<li> <a href="xml_write.html">xml_write: Writing XML data to disk</a>
+<li> <a href="xml_string.html">xml_string: Writing XML data to strings in memory</a>
+<li> <a href="xml_prepend.html">xml_prepend: Inserting elements</a>
+<li> <a href="xml_append.html">xml_append: Inserting elements</a>
+<li> <a href="xml_replace.html">xml_replace and xml_replacecontent: Replacing an element with another.</a>
+<li> <a href="xml_loc.html">Bookmarking things: xml_loc and xml_getloc</a>
+<li> <a href="xml_set.html">Working with attributes: xml_set and xml_attrval</a>
+<li> <a href="xml_create.html">xml_create: Creating an empty element</a>
+<li> <a href="xml_createtext.html">xml_createtext: a shortcut for plain text</a>
+<li> <a href="xml_free.html">xml_free: Cleaning up afterwards</a>
+<li> <a href="xml_delete.html">Deleting pieces: xml_delete</a>
+<li> <a href="xml_first.html">Children: xml_first and xml_last</a>
+<li> <a href="xml_next.html">Siblings: xml_next and xml_prev</a>
+<li> <a href="xml_insert.html">inserting things: xml_insertbefore and xml_insertafter</a>
+<li> <a href="xml_copy.html">xml_copy: making fresh copies of XML</a>
+<li> <a href="xml_read.html">xml_read: Using expat to parse XML files into memory</a>
+<ul>
+<li> <a href="xml_read.html#startElement">Handling elements: startElement</a>
+<li> <a href="xml_read.html#endElement">Handling elements: endElement</a>
+<li> <a href="xml_read.html#charData">Handling non-element data: charData</a>
+</ul>
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

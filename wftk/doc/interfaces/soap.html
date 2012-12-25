@@ -1,0 +1,226 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>wftk and SOAP Web services</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>wftk and SOAP Web services</h2>
+[ <a href="../index.html">wftk documentation home</a> ]
+[ <a href="../interfacing.html">wftk interface descriptions</a> ]
+<hr>
+
+The SOAP protocol (<a href=http://www.w3.org/2002/ws/>http://www.w3.org/2002/ws/</a>)
+is an XML-based protocol used to implement <i>Web services</i>, that is, it provides an infrastructure for passing
+information back and forth between server and client over HTTP.  HTTP is the protocol used for all Web communication; a traditional
+browser can post information to a server using a POST message or simply retrieve information by URL in a GET request, and receive
+information back for display in HTML.  SOAP is the message structure which allows the conversation to be machine-readable on
+both ends.  (Incidentally, the vast majority of SOAP applications use HTTP, but it's not necessary.)
+<p>
+My initial SOAP adaptor is an action adaptor which represents SOAP services as remote procedure calls.  The W3 people make a big deal
+of SOAP not necessarily being restricted to the definition of RPC conversations, but rather being a more general protocol.  I'm not
+sure what to make of this, and as far as I can see, the rest of the industry isn't either -- it seems to me that the whole Web service
+concept is indeed simply an implementation of RPC on SOAP.  So for wftk's SOAP debut, it seems appropriate to ignore the larger
+picture, which I'm good at. 
+<p>
+
+The initial version of the ACTION_soap adaptor was underwritten by Startext GmbH in July of 2003, and it's the first intersection of
+SOAP and wftk.  I'm sure it won't be the last.  (And boy, wasn't it.)
+<p>
+<b><u>Timeline/contents for ACTION_soap adaptor:</u></b><br>
+<b>July 6, 2003</b>: <a href="#overview">Basic test environment with SOAP.py and overview</a><br>
+<b>July 19, 2003</b>: <a href="#start">libcurl as HTTP client library</a><br>
+<b>July 25, 2003</b>: <a href="#action">Definition of ACTION_soap actions</a><br>
+<b>August 18, 2003</b>: ACTION_http adaptor functional enough to support SOAP</b>
+<b>August 19, 2003</b>: ACTION_soap adaptor functional!<br>
+<b>August 19, 2003</b>: Work started on Java simple_soap class<br>
+<b>August 25, 2003</b>: Java simple_soap class works pretty well<br>
+<b>August 27, 2003</b>: Work started on Python SOAP server<br>
+
+<hr width="66%">
+
+Pointers to relevant system pieces:<ul>
+<li><a href="../code/wftk/action/ACTION_soap.html">C-language SOAP action adaptor (client)</a>
+<li><a href="../code/java/simple_soap.html">Java simple SOAP class (client)</a>
+<li><a href="../code/python/soap_server.html">Python SOAP server</a>
+</ul>
+
+<hr width="66%">
+
+<a name="overview">
+<b>Basic test environment and overview</b> (July 6, 2003)<br>
+
+In order to bootstrap my way into SOAP, I first put
+together a basic SOAP test server using SOAP.py (at <a href=http://pywebsvcs.sf.net/>http://pywebsvcs.sf.net/</a> if you want to
+follow along at home.)  This basic test server essentially just exposes a single method, "echo" for lack of a more interesting
+idea -- not to mention that that was the first sample code.  Here it is, slightly modified from the SOAP.py documentation:
+
+<table border="0" cellpadding="1" cellspacing="1" align="center" width="90%"><tr><td bgcolor="#eeeeee">
+<pre>from SOAPpy import SOAPServer
+def echo(s):
+    print "Called with '%s'" % s
+    return s + s # repeats a string twice
+
+server = SOAPServer(("localhost", 8080))
+server.registerFunction(echo)
+server.serve_forever()</pre>
+</td></tr></table>
+
+(After looking at what it takes to set up a simple test Web service in Java, it's almost embarrassing how simple it is with Python.
+This, incidentally, is the case with <i>every</i> comparison I have ever made between the two languages.)  Note that since SOAP.py is
+so very easy to use, this would be my suggestion as a platform for a wftk SOAP server -- the only real requirement being then to define
+a set of procedures to present the wftk functionality, write them, export them, and go out for a nice movie.
+<p>
+
+Back to the ACTION_soap adaptor, though: just to see that this is actually doing something, you can also set up an even simpler test client:
+<table border="0" cellpadding="1" cellspacing="1" align="center" width="90%"><tr><td bgcolor="#eeeeee">
+<pre>import SOAPpy
+SOAPpy.Config.Debug=1
+server = SOAPpy.SOAPProxy("http://localhost:8080/")
+print server.echo("Hello world")
+</pre>
+</td></tr></table>
+
+Needless to say, when called, this returns "Hello worldHello world", while the server informs us "Called with 'Hello world'" and
+also gives a standard log entry line courtesy of SOAPProxy.  Since this is run as a POST, though, the log entry gives us no information
+about the query, which is why I put the print statement in for a basic sanity check.
+<p>
+A much more interesting sanity check is afforded by setting debug mode on for the SOAP.py client -- this dumps the headers and XML bodies
+for the conversation in both directions, which makes it a very powerful tool for exploring other Web services and how they actually 
+communicate.  For our simple "Hello world" example above, the conversation looks like this (I've cleaned up indentation a tad to make things
+easier to understand.)
+
+<table border="0" cellpadding="1" cellspacing="1" align="center" width="90%"><tr><td bgcolor="#eeeeee">
+<pre>*** Outgoing HTTP headers **********************************************
+POST / HTTP/1.0
+Host: localhost:8080
+User-agent: SOAPpy 0.10.1 (http://pywebsvcs.sf.net)
+Content-type: text/xml; charset="UTF-8"
+Content-length: 473
+SOAPAction: ""
+************************************************************************
+*** Outgoing SOAP ******************************************************
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;SOAP-ENV:Envelope
+    SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+    xmlns:xsd="http://www.w3.org/1999/XMLSchema"
+    xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
+    xmlns:xsi="http://www.w3.org/1999/XMLSchema-instance"
+    xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"&gt;
+&lt;SOAP-ENV:Body&gt;
+&lt;echo SOAP-ENC:root="1"&gt;
+&lt;_1 xsi:type="xsd:string"&gt;Hello world&lt;/_1&gt;
+&lt;/echo&gt;
+&lt;/SOAP-ENV:Body&gt;
+&lt;/SOAP-ENV:Envelope&gt;
+************************************************************************
+*** Incoming HTTP headers **********************************************
+HTTP/1.? 200 OK
+Server: &lt;a href="http://pywebsvcs.sf.net"&gt;SOAPpy 0.10.1&lt;/a&gt; (Python 2.1)
+Date: Fri, 25 Jul 2003 21:52:20 GMT
+Content-type: text/xml; charset="UTF-8"
+Content-length: 508
+************************************************************************
+*** Incoming SOAP ******************************************************
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;SOAP-ENV:Envelope
+    SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+    xmlns:xsd="http://www.w3.org/1999/XMLSchema"
+    xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
+    xmlns:xsi="http://www.w3.org/1999/XMLSchema-instance"
+    xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"&gt;
+&lt;SOAP-ENV:Body&gt;
+&lt;echoResponse SOAP-ENC:root="1"&gt;
+&lt;Result xsi:type="xsd:string"&gt;Hello worldHello world&lt;/Result&gt;
+&lt;/echoResponse&gt;
+&lt;/SOAP-ENV:Body&gt;
+&lt;/SOAP-ENV:Envelope&gt;
+************************************************************************
+Hello worldHello world
+</pre>
+</td></tr></table>
+
+I'm going to forebear a lot of comment at this point and simply note that for our purposes, most of this stuff is just boilerplate.  We're not
+actually going to interpret any of the namespace information, for instance; we'll just parrot it out to the server, and ignore what comes back.
+What we <i>really</i> want is that "Result" string.  It would appear that the official "return" value may in fact be a "return" element, but it's
+by no means required.  The action spec for ACTION_soap will take the possibility of multiple returns into account, since SOAP explicitly supports it,
+but in the case where we only have a single one, then probably the best thing to do is simply to take the first value as the return.
+
+<p>
+<a name="start">
+<b>libcurl as HTTP client library</b>: (July 19, 2003)<br>
+Now that we have a server to call, and we more or less know how to build XML to talk to it and parse the XML coming back to extract an answer,
+we're ready to start writing an actual adaptor.  As I mentioned, 
+the first adaptor I'm writing is an action adaptor because that's what Startext needs.  Later we can write other types of
+adaptors such as notification, list, and so on.  Once we've done one, the rest take about an hour apiece, in my experience.
+<p>
+The obvious choice for anything written in C which is supposed to talk via HTTP is, of course, cURL at <a href=http://curl.haxx.se/>http://curl.haxx.se/</a>,
+which rocks.  The library version (as opposed to the old command-line program which is how I got to know cURL way back when) is called libcurl, and it's
+quite easy to use.  I'm not going to go into much detail here, as the code speaks for itself.
+
+<p>
+I ended up separating the HTTP/libcurl handling into the <a href=curl.html>ACTION_http adaptor</a> so that it can be used for more general HTTP access.
+That finally got written on August 18.
+
+<p>
+<a name="action">
+<b>Definition of ACTION_soap actions</b>: (July 25, 2003)<br>
+The SOAP action is quite simple.  Any action executes in the context of an object/datasheet, of course, and so what the SOAP action needs to do
+is to define (1) how parameters are generated from fields in the object, and (2) where results are to be placed in the object.
+<p>
+
+In general, then, the action specifier for a SOAP action has the following attributes and subelements; these are illustrated with the values
+necessary to call Borland's Babelfish Web service, one of the more entertaining Web services I ran across while resesarching SOAP:
+<table>
+<tr><td>Attribute "handler"</td><td>handler="soap"</td></tr>
+<tr><td>Attribute "server"</td><td>server="http://ww6.borland.com/webservices/BorlandBabel/BorlandBabel.exe/soap/IBorlandBabel"</td></tr>
+<tr><td>Attribute "function"</td><td>function="BabelFish"</td></tr>
+<tr><td>Element "parm"</td><td>&lt;parm name="translationmode" xsi:type="xsd:string"&gt;Eleet&lt;/parm&gt;<br>
+&lt;parm name="sourcedata" xsi:type="xsd:string" field="msgtext"/&gt;</td></tr>
+<tr><td>Element "result"</td><td>&lt;result name="return" field="xlatedmsg"/&gt;</td></tr>
+</table>
+
+  Note that
+parameters for the action are in "parm" elements, and that they may be constant (like "translationmode" is) or may draw values from the current
+object (like "sourcedata", which looks at the "msgtext" field for its input -- if the field attribute has a square bracket, of course, it will
+be treated as a format to build a value from different fields.)  The "result" element specifies a target field or fields for results; if omitted,
+any return value from the SOAP call will be discarded.  If the "name" attribute is omitted or blank, then the first return value will be taken.
+<p>
+The full action spec for a SOAP call to Babelfish, therefore, will look like this:
+
+<table border="0" cellpadding="1" cellspacing="1" align="center" width="90%"><tr><td bgcolor="#eeeeee">
+<pre>&lt;action handler="soap"
+        server="http://ww6.borland.com/webservices/BorlandBabel/BorlandBabel.exe/soap/IBorlandBabel"
+        function="BabelFish"&gt;
+  &lt;parm name="translationmode" xsi:type="xsd:string"&gt;Eleet&lt;/parm&gt;
+  &lt;parm name="sourcedata"      xsi:type="xsd:string" field="msgtext"/&gt;
+  &lt;result name="return" field="xlatedmsg"/&gt;
+&lt;/action&gt;
+</pre>
+</td></tr></table>
+
+This action can either be inserted into a procdef or it can be presented directly to the wftk core API.
+<p>
+
+This brings me to an interesting notion.  If this action is invoked from a procdef, then barring any specification to the contrary, the individual
+user's computer currently running the procdef must perform the action.  In the case of the SOAP adaptor, it's probably safe to believe that each
+such workstation has an Internet connection, and so possibly this isn't a problem here.  But you can easily imagine an action adaptor which requires,
+for instance, specialized hardware (or even which pertains to a particular workstation attached to a particular device).  In this case, any such
+action would have to name a queue, or location, for the processing of the action directive -- and if this spec is included in the action, then the
+procdef must block on the action.  Then the action must be indexed to the taskindex, and the system must include a queue server which performs necessary
+actions as required.  After completion of the action, the process continues.
+<p>
+This queue notion then also allows us to build workflow which controls costly operations or, say, things which only happen at night, or on particular
+machines, simply by writing an appropriate queue handler to process blocked actions.
+
+
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2003 <a href=http://www.vivtek.com/>Vivtek</a>.  Please see <a href=../licensing.html>the licensing
+terms</a> for more information.
+</font>
+
+</body></html>
+

@@ -1,0 +1,319 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<TITLE>Programming with the XMLAPI</TITLE>
+</head>
+
+<body bgcolor="#FFFFFF" link="#000099" vlink="#990000" alink="990000">
+<h2>Programmer's Guide to the XMLAPI</h2>
+<hr>
+
+<h3>Introduction</h3>
+The XMLAPI is a DOM-like library which maintains heap structures based on XML documents.  These
+heap structures have the advantage that they can be read from or written to XML documents, of course,
+but I'm finding that they're pretty nice to have around anyway.  An XML element itself acts a lot like
+an associative array (a hash, for you Perl junkies), and that alone is a nice reason to use the XMLAPI
+in C.  For me, anyway.
+<p>
+This documentation is intended to stand alone, even though it's part of the wftk documentation set.
+As I've ported (parts of) the XMLAPI into Perl so that I can work with the same API, and as that has
+nothing whatsoever to do with wftk, I think it makes sense to arrange things this way.  So if you're
+reading this and haven't heard of <a href="http://www.vivtek.com/wftk.html">the wftk</a>, don't panic,
+it's just the project during which I started working on an XML API, which later became the XMLAPI.  See?
+But if you're figuring out how to work with the wftk, don't panic when I don't talk about it much.
+<p>
+Anyway, besides reading and writing to files, there are a whole lot of things you can do with these
+XML heap structures.  I've broken these down into categories so they're not completely overwhelming.
+
+<h3>Table of Contents</h3>
+<ul>
+<li><a href="#io">Reading and writing XML files</a><ul>
+  <li>xml_read, xml_read_error, xml_parse
+  <li>xml_write, xml_writecontent
+</ul>
+<li><a href="#html">Writing XML as HTML</a><ul>
+  <li>xml_writehtml, xml_writecontenthtml
+</ul>
+<li><a href="#create">Creating new XML from scratch or by copying</a><ul>
+  <li>xml_create, xml_createtext, xml_createtextf, xml_createtextlen
+  <li>xml_copy
+  <li>xml_delete
+  <li>xml_free
+</ul>
+<li><a href="#string">Generating string representations of XML</a><ul>
+  <li>xml_string, xml_stringcontent
+  <li>xml_stringhtml, xml_stringcontenthtml
+</ul>
+<li><a href="#set">Getting and setting attributes</a><ul>
+  <li>xml_attrval, xml_attrvalnum
+  <li>xml_set, xml_setf, xml_setnum, xml_set_nodup
+</ul>
+<li><a href="#insert">Inserting and replacing subelements</a><ul>
+  <li>xml_prepend
+  <li>xml_append
+  <li>xml_replace, xml_replacecontent
+  <li>xml_copyinto
+</ul>
+<li><a href="#loc">Element location codes</a><ul>
+  <li>xml_getloc, xml_getlocbuf
+  <li>xml_loc, xml_locf
+</ul>
+<li><a href="#iter">Iterating through subelements</a><ul>
+  <li>xml_first, xml_firstelem
+  <li>xml_last, xml_lastelem
+  <li>xml_next, xml_nextelem
+  <li>xml_prev, xml_prevelem
+</ul>
+<li><a href="#attr">Iterating through attributes</a><ul>
+  <li>xml_attrfirst
+  <li>xml_attrnext
+  <li>xml_attrname
+  <li>xml_attrvalue
+</ul>
+</ul>
+
+<a name="io"></a><h3>Reading and writing XML files</h3>
+Reading of XML is done with the expat parser by James Clark.  There are three flavors --
+<code>xml_read</code> reads a file handle and returns an XML structure.  If any error is encountered,
+it bails, returning NULL.  If you want error feedback, use <code>xml_read_error</code> (I realized this
+need after the fact, and in fact early versions of <code>xml_read</code> actually wrote the error
+message to <code>stdout</code>, which wasn't very friendly behavior at all.)  The
+<code>xml_read_error</code> is a perfectly normal XML reader, but instead
+of returning NULL in case of error, it returns an error element of the form<pre>
+   &lt;xml-error code="200" message="some error message" line="40"/&gt;
+</pre>
+The third parsing function, <code>xml_parse</code> simply takes a string buffer and parses that.
+The buffer must be null-terminated.  It also returns an error element in case of error (not NULL).
+<p>
+Writing is done fairly simply by walking the XML
+tree structure.  Pretty printing (breaking lines) isn't supported; if you want pretty XML, you have to
+insert your own line breaks when building the XML in the first place.
+<p>
+Use the <code>xml_writecontent</code> to write only the subelements of the XML passed in without writing
+the enclosing element or its attributes.
+
+<ul>
+<li><code><b>XML * xml_read (FILE * in);</b></code>
+<li><code><b>XML * xml_read_error (FILE * in);</b></code><br>
+Reads XML from the stream given.  <code>xml_read</code> returns NULL in case of error;
+<code>xml_read_error</code> returns an error structure (as above).
+
+<li><code><b>XML * xml_parse (const char * in);</b></code><br>
+Reads XML from a null-terminated string buffer.
+
+<li><code><b>void xml_write (FILE * out, XML * xml);</b></code>
+<li><code><b>void xml_writecontent (FILE * out, XML * xml);</b></code><br>
+Writes a full XML element to the stream given, or writes all the children of the given element.
+</ul>
+
+<a name="html"></a><h3>Writing XML as HTML</h3>
+Writing HTML is pretty much the same as writing XML, except that some HTML elements are treated special:
+<code>li</code>, for instance, doesn't need to be closed.  That sort of thing.
+
+<ul>
+<li><code><b>void xml_writehtml (FILE * out, XML * xml);</b></code>
+<li><code><b>void xml_writecontenthtml (FILE * out, XML * xml);</b></code><br>
+Writes a full XML element to the stream given, or writes all the children of the given element.
+</ul>
+
+<a name="create"></a><h3>Creating new XML from scratch or by copying</h3>
+To create a new XML element, you just give its name.  Afterwards you can insert content, or insert it
+<i>as</i> content, and set attributes.  Plain text (character sequences) are represented as elements
+with no name.  Use <code>xml_createtext</code> to create a non-element XML.  The
+<code>xml_createtextf</code> function works the same, except that it takes a <code>printf</code>-like
+format (at the moment it understands only %s and %d).
+<p>
+Use <code>xml_delete</code> to delete a subelement from a parent element; <code>xml_delete</code> calls
+<code>xml_free</code> on the deleted element.  Call <code>xml_free</code> directly if the element isn't
+a child element (it won't clean up the dangling child pointer in a parent.)
+
+<ul>
+<li><code><b>XML * xml_create (const char *name);</b></code><br>
+Creates a new element with the given name.
+<li><code><b>XML * xml_createtext (const char *content);</b></code>
+<li><code><b>XML * xml_createtextf (const char *format, ...);</b></code>
+<li><code><b>XML * xml_createtextlen (const char *content, int len);</b></code><br>
+Create plaintext elements.  The first duplicates the null-terminated content, the second treats its
+first argument as a format, and the third takes a length parameter so you don't have to null-terminate.
+</ul>
+
+<a name="string"></a><h3>Generating string representations of XML</h3>
+The string generators build string buffers using <code>malloc</code>.  Thus you have to free the result
+when you're done with it.  The <code>*content</code> functions, like <code>xml_writecontent</code>,
+don't write the enclosing element or its attributes, just its subelements.  The <code>*html</code>
+functions convert the given XML into an HTML-like form while writing.  (The given XML is of course
+unchanged.)
+
+<ul>
+<li><code><b>char * xml_string (XML * xml);</b></code><br>
+Creates a malloc'd string corresponding to the text representation of the given XML.
+<li><code><b>char * xml_stringcontent (XML * xml);</b></code><br>
+Does the same but writes only the child elements of the given XML, not the topmost element.
+<li><code><b>char * xml_stringhtml (XML * xml);</b></code>
+<li><code><b>char * xml_stringcontenthtml (XML * xml);</b></code><br>
+Do the same, but apply HTML conversion to produce more-or-less correct HTML.
+</ul>
+
+<a name="set"></a><h3>Getting and setting attributes</h3>
+The <code>xml_attrval</code> function returns a pointer to the named attribute or a pointer to an
+empty string if the attribute isn't found, and yes, I know the function is named inconveniently.  The
+pointer returned is a const pointer directly into the XML structure, so don't write to it.  Use
+<code>xml_attrvalnum</code> if you just need an integer representation of the attribute's value.
+<p>
+The <code>xml_set*</code> functions set attributes, of course.  If the attribute is already present,
+it will be replaced; otherwise, a new attribute will be created.  The <code>xml_setf</code> function
+takes a format similar to <code>printf</code>'s format; it recognizes only %s and %d at the moment.
+The <code>xml_set</code> makes a copy of the string value given it (and the attribute name, of course);
+if you don't want the copy to be made, then use <code>xml_set_nodup</code>.  <i>Caution:</i>
+<code>xml_set_nodup</code> may <i>only</i> be called with malloc'd strings!  Otherwise, when you attempt
+to free the XML element, Bad Things will happen.
+
+<ul>
+<li><code><b>const char * xml_attrval (XML * xml, const char * name);</b></code>
+<li><code><b>int xml_attrvalnum (XML * xml, const char * name);</b></code><br>
+Retrieve attribute values from the given XML element.
+<li><code><b>void xml_set (XML * xml, const char * name, const char * value);</b></code>
+<li><code><b>void xml_setf (XML * xml, const char * name, const char * format, ...);</b></code>
+<li><code><b>void xml_setnum (XML * xml, const char * name, int value);</b></code>
+<li><code><b>void xml_set_nodup (XML * xml, const char * name, const char * value);</b></code><br>
+Set attribute values in the given XML element; see above text for the differences between the four
+functions.
+</ul>
+
+<a name="insert"></a><h3>Inserting and replacing subelements</h3>
+Use <code>xml_prepend</code> to insert a child element before any other subelement; use
+<code>xml_append</code> to insert the child after all others.  The <code>xml_replace</code> function
+will replace the given element in its own parent, while <code>xml_replacecontent</code> first deletes
+the given element's children, then appends the new child (thus effectively replacing the element's
+children.)
+<p>
+The <code>xml_copyinto</code> function is a little weird.  I've only had one use for it, really.  What
+is does is to take all the attributes and subelements of the source XML and write/append them,
+respectively, into the target XML.  If there are duplicate attributes, the source values overwrite.
+Any existing information is saved otherwise.
+
+<ul>
+<li><code><b>void xml_prepend (XML * parent, XML * child);</b></code><br>
+Inserts <code>child</code> as first subelement of <code>parent</code>.
+<li><code><b>void xml_append (XML * parent, XML * child);</b></code><br>
+Inserts <code>child</code> as last subelement of <code>parent</code>.
+<li><code><b>void xml_replace (XML * target, XML * source);</b></code><br>
+Deletes <code>target</code> and inserts <code>source</code> in its place (assumes that
+<code>target</code> is already the subelement of a parent element.)
+<li><code><b>void xml_replacecontent (XML * parent, XML * child);</b></code><br>
+Deletes all children of <code>parent</code> and inserts <code>child</code> as new content.
+<li><code><b>void xml_copyinto (XML * target, XML * source);</b></code><br>
+Copies all children of <code>source</code> into <code>target</code>, preserving all existing children.
+Does the same with attributes, except like-named values are overwritten.
+</ul>
+
+<a name="loc"></a><h3>Element location codes</h3>
+The location functions work with locator strings, which is something sort of weird I came up with.
+A locator string uniquely identifies (at most) one element in an XML tree, either by place position
+in its parent or by the value of its "id" attribute (or "name" attribute if it has no "id" attribute.)
+This means that you don't have to manage identifiers throughout an XML document to get bits of it
+out.  You can also do some primitive searching through an XML tree; the only limitation on this search
+is that you have to know which level the element is at.
+<p>
+The following examples all work with this XML structure:<pre>
+&lt;record&gt;
+   &lt;field name="field1" value="4"/&gt;
+   &lt;comment&gt;This is a comment, maybe a memo or something.&lt;/comment&gt;
+   &lt;field name="field2" value="3"/&gt;
+&lt;/record&gt;
+</pre>
+Then the locator <code>record.field(1)</code> will find the second field element: <code>&lt;field name="field2" value="3"/&gt;</code>.  Note that we work from a base of 0, and note that the intervening
+"comment" field has no effect.  Neither would any intervening plain text.
+<p>
+The locator <code>record.comment</code> will find the comment field.  (Note that omission of an element
+number means to return the first you find.)  You can search by ID or name, too: the locator
+<code>record.field[field2]</code> will return the second field as well.
+<p>
+If no matching field is found, the <code>xml_loc</code> function returns a NULL pointer.
+<p>
+The <code>xml_locf</code> function works the same as <code>xml_loc</code> except that it can build your
+locator for you using a formatting scheme much like the <code>printf</code> function.  It only
+understands %s and %d at the moment, but that's probably all you'll need in locators anyway.
+<p>
+Both <code>loc</code> functions can ignore the element name of the topmost element if you simply
+omit it; thus the locator <code>.field</code> will find the first data field in the example XML.
+<p>
+The <code>xml_getloc</code> and <code>xml_getlocbuf</code> functions find a locator for the given XML;
+since each XML element knows its parent, the <code>getloc</code> functions can simply trace up the tree
+and find a full locator.  The <code>xml_getloc</code> function requires that you supply a buffer; in
+this case, the locator may fill the buffer.  Check its length carefully upon return.  The
+<code>xml_getlocbuf</code> function allocates the buffer for you, but you must either free the buffer
+when you're finished with it, or use <code>xml_set_nodup</code> to pass it back into an attribute for
+later cleanup with an element.  The pattern
+<code>xml_set_nodup (xml, "myloc", xml_getlocbuf(xml))</code> will probably be useful here and there.
+
+<ul>
+<li><code><b>void xml_getloc (XML * xml, char * loc, int len);</b></code><br>
+Writes the locator of the given XML in its parent tree into the indicated buffer.
+<li><code><b>char * xml_getlocbuf (XML * xml);</b></code><br>
+Writes the locator into a buffer it allocates for you.  You have to free it.
+<li><code><b>XML * xml_loc (XML * xml, const char * loc);</b></code>
+<li><code><b>XML * xml_locf (XML * xml, const char * format, ...);</b></code><br>
+Locate an XML snippet.  Return NULL if nothing matches.
+</ul>
+
+<a name="iter"></a><h3>Iterating through subelements</h3>
+There are two sets of child element iteration functions; the ones ending in <code>elem</code> skip over
+any plain text children and return only XML elements.  This is useful because plaintext elements have
+a NULL name, so if you get one by mistake and try to compare its name with something, you will regret
+it.  This happened to me so often I modified the API.  Ha.  Anyway, you can start an iteration at the
+beginning of the child list or at the end, and you can move forward or backward in the list.  If you
+get a NULL pointer back, you know you've reached the end (or beginning) of the list.  A useful pattern
+for iteration is thus:<pre>
+marker = xml_firstelem (parent);
+while (marker) {
+   /* do something */
+   marker = xml_nextelem (marker);
+}
+</pre>
+
+<ul>
+<li><code><b>XML * xml_first (XML * parent)</b></code>
+<li><code><b>XML * xml_last (XML * parent)</b></code>
+<li><code><b>XML * xml_next (XML * child)</b></code>
+<li><code><b>XML * xml_prev (XML * child)</b></code><br>
+Move through the children of an element.  Note that <code>next</code> and <code>prev</code> take the
+current iterated child and get its neighbor, while <code>first</code> and <code>last</code> take the
+parent element.
+<li><code><b>XML * xml_firstelem (XML * parent)</b></code>
+<li><code><b>XML * xml_lastelem (XML * parent)</b></code>
+<li><code><b>XML * xml_nextelem (XML * child)</b></code>
+<li><code><b>XML * xml_prevelem (XML * child)</b></code><br>
+These four functions do the same, but skip plain text and work only with XML subelements.
+</ul>
+
+<a name="attr"></a><h3>Iterating through attributes</h3>
+Attribute iteration is the newest section of the XMLAPI; I realized that scanning the attributes of an
+element was the only place where the wftk had to know the internal structure of an element.  This seemed
+as though it would make things harder once I started mixing and matching XMLAPI implementations for
+embedding in scripting languages, so I closed up the loophole.  Now wftk knows (and cares) nothing at
+all about what's inside these mysterious XML structures.
+<p>
+You can only scan attributes from the front of the list to the back (they're singly linked, so you don't
+want to scan backwards anyway.)  Given an attribute, you can retrieve its name or its value.  The
+unfortunate similarity of <code>xml_attrvalue</code> (which gets the value of an attribute structure)
+and <code>xml_attrval</code> (which gets an attribute value from an element, treating it as a hash) is
+regrettable and you have my abject apologies, but I didn't want to go back and change all my existing
+code.  We'll all just have to live with my poor planning.
+
+<ul>
+<li><code><b>XML_ATTR * xml_attrfirst (XML * xml);</b></code>
+<li><code><b>XML_ATTR * xml_attrnext (XML_ATTR * xml);</b></code>
+<li><code><b>const char * xml_attrname (XML_ATTR * xml);</b></code>
+<li><code><b>const char * xml_attrvalue (XML_ATTR * xml);</b></code><br>
+Work with attributes of an element (see above for details).
+</ul>
+
+<br><br><br><br><br>
+<font size=-1>
+<center><hr width=50%>
+Copyright (c) 2001 <a href=http://www.vivtek.com/>Vivtek</a>.
+</font>
+
+</body></html>
+

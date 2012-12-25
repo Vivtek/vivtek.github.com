@@ -1,0 +1,47 @@
+<html><head><title>wftk core library: Dealing with datasheet repositories</title></head>
+<body>
+<h2>Dealing with datasheet repositories</h2>
+<center>
+[&nbsp;<a href="wftk_htmlout.html">Previous: Writing HTML descriptions of processes, tasks, and so on</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_pdrep.html">Next: Dealing with procdef repositories</a>&nbsp;]
+</center>
+
+<hr>
+A couple of silly little functions without which the whole thing would be useless: how to load and save datasheets.
+These functions are really very simple wrappers around the adaptor.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * wftk_datasheet_load (char * dsrep, char * datasheet_id)
+{
+   WFTK_ADAPTOR * ad;
+
+   ad = wftk_get_adaptor (DSREP, dsrep);
+   if (!ad) return NULL;
+
+   return (wftk_call_adaptor (ad, "load", datasheet_id));
+}
+void wftk_datasheet_save (XML * datasheet)
+{
+   WFTK_ADAPTOR * ad;
+   ad = wftk_get_adaptor (DSREP, xml_attrval (datasheet, "repository"));
+   if (!ad) return;
+
+   wftk_call_adaptor (ad, "save", datasheet);
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="wftk_htmlout.html">Previous: Writing HTML descriptions of processes, tasks, and so on</a>&nbsp;]
+[&nbsp;<a href="wftk_lib.html">Top: </a>&nbsp;]
+[&nbsp;<a href="wftk_pdrep.html">Next: Dealing with procdef repositories</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

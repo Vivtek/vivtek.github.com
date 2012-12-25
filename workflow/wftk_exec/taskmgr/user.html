@@ -1,0 +1,74 @@
+<html><head><title>Task manager: User functionality</title></head>
+<body>
+<h2>User functionality</h2>
+<center>
+[&nbsp;<a href="taskmgr_reject.html">Previous: Definition of taskmgr_reject</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="login_admin.html">Next: Login management stuff</a>&nbsp;]
+</center>
+
+<hr>
+The user functionality consists of two things: the most important is of course the
+code to be executed before each function in order to cause the login box to pop up.
+This uses <code>ns_conn authuser</code> to see if a login has already been supplied; if not,
+a 401 return is used to pop the box up.
+<p>
+The other portion is of course a couple of screens for maintenance of the user table: a list,
+a user-update function, a user-add function, user delete, and a screen to be used to request
+a user ID.  (The request is anonymous and creates an inactive user record.  The record must
+then be activated by an administrator.  This would be a great place to use a workflow.)
+<br><br>
+<a name="check">
+<i>Checking authuser</i><br>
+Checking for the authuser is pretty straightforward.  This code is executed at the beginning
+of each screen.  It invokes the user utility of the wftk in a command-line mode in order to check
+authorization.  If the password matches, that utility returns all the attributes of the user,
+one per line, with name separated from value by a colon.  A future version should, of course,
+use a Tcl extension incorporating the user library, but this should work and was naturally
+faster to code.
+<p></p>
+The information retrieved from the user module is placed into an <code>ns_set</code> structure.
+This structure is like a Perl hash -- you'd think that a Tcl array would be exactly the same,
+except that <code>ns_set</code> doesn't raise an error when you try to retrieve a nonexistent
+key; it just returns a blank, which is more convenient in most cases in my humble opinion.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>set user [string tolower [ns_conn authuser $conn]]
+global taskmgr_auth_realm
+global wftk_home
+if [string compare $user ""] {
+   set pipe [open "|${wftk_home}user/user auth [string tolower [ns_conn authuser $conn]] [string tolower [ns_conn authpassword $conn]]" "r"]
+   set userinfo [split [read $pipe] \n]
+   close $pipe
+
+   if ![llength $userinfo] {
+      ns_set put [ns_conn outputheaders $conn WWW-Authenticate "BASIC realm=\"$taskmgr_auth_realm\""
+      return [taskmgr_pageout $conn auth.html 401]
+   }
+} else {
+   ns_set put [ns_conn outputheaders $conn] WWW-Authenticate "BASIC realm=\"$taskmgr_auth_realm\""
+   return [taskmgr_pageout $conn auth.html 401]
+}
+
+set userrow [ns_set create]
+foreach datum $userinfo {
+   set datum [split $datum :]
+   ns_set put $userrow [lindex $datum 0] [join [lrange $datum 1 end] :]
+}
+</pre></td></tr></table>
+
+
+
+<center>
+[&nbsp;<a href="taskmgr_reject.html">Previous: Definition of taskmgr_reject</a>&nbsp;]
+[&nbsp;<a href="index.html">Top: wftk: Task manager</a>&nbsp;]
+[&nbsp;<a href="login_admin.html">Next: Login management stuff</a>&nbsp;]
+<br><br><hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.
+</font></td></tr></table>
+</center>
+</body></html>

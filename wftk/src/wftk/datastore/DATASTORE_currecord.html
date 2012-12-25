@@ -1,0 +1,256 @@
+<html><head><title>DATASTORE adaptor: currecord</title></head>
+<body>
+<h2>DATASTORE adaptor: currecord</h2>
+<hr>
+<p></p>
+This is the DATASTORE adaptor which works in tandem with the DSREP_database adaptor to mirror
+database columns as plain ol' data items.  These data items are <i>cached</i> data items; that
+is, their current values are cached in the datasheet XML, but when they're modified, the
+value is written through into the database.  Each setting is thus an SQL query.  This might
+not be the most efficient way to work, but at the moment it seems the best way.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>#include &lt;stdio.h>
+#include &lt;stdarg.h>
+#include &lt;string.h>
+#include "../wftk.h"
+#include "../wftk_internals.h"
+</pre></td></tr></table>
+
+The <code>adaptor_info</code> structure is used to pass adaptor info (duh) back to the
+config module when it's building an adaptor instance.  Here's what it contains:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>static char *names[] = 
+{
+   "init",
+   "free",
+   "info",
+   "get",
+   "set",
+   "store",
+   "isnull",
+   "makenull"
+};
+
+XML * DATASTORE_currecord_init     (WFTK_ADAPTOR * ad, va_list args);
+XML * DATASTORE_currecord_free     (WFTK_ADAPTOR * ad, va_list args);
+XML * DATASTORE_currecord_info     (WFTK_ADAPTOR * ad, va_list args);
+XML * DATASTORE_currecord_get      (WFTK_ADAPTOR * ad, va_list args);
+XML * DATASTORE_currecord_set      (WFTK_ADAPTOR * ad, va_list args);
+XML * DATASTORE_currecord_store    (WFTK_ADAPTOR * ad, va_list args);
+XML * DATASTORE_currecord_isnull   (WFTK_ADAPTOR * ad, va_list args);
+XML * DATASTORE_currecord_makenull (WFTK_ADAPTOR * ad, va_list args);
+
+static WFTK_API_FUNC vtab[] = 
+{
+   DATASTORE_currecord_init,
+   DATASTORE_currecord_free,
+   DATASTORE_currecord_info,
+   DATASTORE_currecord_get,
+   DATASTORE_currecord_set,
+   DATASTORE_currecord_store,
+   DATASTORE_currecord_isnull,
+   DATASTORE_currecord_makenull
+};
+
+static struct adaptor_info _DATASTORE_currecord_info =
+{
+   8,
+   names,
+   vtab
+};
+</pre></td></tr></table>
+
+Cool.  So here's the incredibly complex function which returns a pointer to that:
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>struct adaptor_info * DATASTORE_currecord_get_info ()
+{
+   return &amp; _DATASTORE_currecord_info;
+}
+</pre></td></tr></table>
+
+Thus concludes the communication with the config module.  The currecord datastore does the
+same setup as the DSREP_database adaptor, of course -- and that means it will share the same
+connection.  Note that it asks for a configuration for dsrep.database.db -- this worries me,
+but I don't see a good way around it.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * DATASTORE_currecord_init (WFTK_ADAPTOR * ad, va_list args) {
+   const char * parms;
+   WFTK_ADAPTOR * db_ad;
+
+   parms = xml_attrval (ad->parms, "parm");
+   if (!*parms) parms = config_get_value (ad->session, "dsrep.database.db");
+
+   db_ad = wftk_get_adaptor (ad->session, TASKINDEX, parms);
+   if (!db_ad) {
+      xml_setf (ad->parms, "error", "Unable to initialize database %s", parms);
+      printf (xml_attrval (ad->parms, "error"));
+      return NULL;
+   }
+   ad->bindata = (void *) db_ad;
+   xml_setf (ad->parms, "spec", "database:%s", parms);
+
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+That wasn't so hard, was it?  Well, freeing up the adaptor is much easier:
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * DATASTORE_currecord_free (WFTK_ADAPTOR * ad, va_list args) {
+   WFTK_ADAPTOR * db_ad = (WFTK_ADAPTOR *) ad->bindata;
+   wftk_free_adaptor (ad->session, db_ad);
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+Next up is the info call, which builds and returns a little XML telling the caller about the
+adaptor.  If the adaptor itself is NULL, then it just returns info about the installed
+adaptor handler; otherwise it's free to elaborate on the adaptor instance.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * DATASTORE_currecord_info (WFTK_ADAPTOR * ad, va_list args) {
+   XML * info;
+
+   info = xml_create ("info");
+   xml_set (info, "type", "datastore");
+   xml_set (info, "name", "currecord");
+   xml_set (info, "ver", "1.0.0");
+   xml_set (info, "compiled", __TIME__ " " __DATE__);
+   xml_set (info, "author", "Michael Roberts");
+   xml_set (info, "contact", "wftk@vivtek.com");
+   xml_set (info, "extra_functions", "0");
+
+   return (info);
+}
+</pre></td></tr></table>
+<p></p>
+A datastore adaptor basically just provides get and set functionality for named values.  The
+currecord adaptor isn't always going to be used this way, but can be.  I'm writing it to work
+with the DSREP_database adaptor, but it's not confined to that use.  (If used with get/set, it
+will simply ask the named taskindex for the values in question.)
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * DATASTORE_currecord_get  (WFTK_ADAPTOR * ad, va_list args)
+{
+   WFTK_ADAPTOR *db_ad = (WFTK_ADAPTOR *) ad->bindata;
+   XML * datasheet = (XML *) 0;
+   char * name;
+   char * colon;
+   XML * val;
+   char * value;
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No datasheet supplied.");
+      return (XML *) 0;
+   }
+   name = va_arg (args, char *);
+   if (!name) {
+      xml_set (ad->parms, "error", "No value named.");
+      return (XML *) 0;
+   }
+
+   colon = strrchr (name, ':');
+   val = wftk_call_adaptor (db_ad, "colget", "process", "id", xml_attrval (datasheet, "id"), colon ? colon + 1 : name);
+   xml_set (ad->parms, "error", xml_attrval (db_ad->parms, "error"));
+   if (val) {
+      value = strdup (xml_attrval (val, "value"));
+      xml_free (val);
+      return (wftk_session_stashvalue (ad->session, value));
+   } else {
+      return (wftk_session_stashvalue (ad->session, strdup ("")));
+   }
+}
+</pre></td></tr></table>
+
+That's rather satisfying.  Let's do the setting end.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * DATASTORE_currecord_set  (WFTK_ADAPTOR * ad, va_list args)
+{
+   WFTK_ADAPTOR *db_ad = (WFTK_ADAPTOR *) ad->bindata;
+   XML * datasheet = (XML *) 0;
+   char * name;
+   char * value;
+   char * colon;
+
+   if (args) datasheet = va_arg (args, XML *);
+   if (!datasheet) {
+      xml_set (ad->parms, "error", "No datasheet supplied.");
+      return (XML *) 0;
+   }
+   name = va_arg (args, char *);
+   if (!name) {
+      xml_set (ad->parms, "error", "No value named.");
+      return (XML *) 0;
+   }
+   value = va_arg (args, char *);
+
+   wftk_call_adaptor (db_ad, "colput", "process", "id", xml_attrval (datasheet, "id"), colon ? colon + 1 : name, value);
+   xml_set (ad->parms, "error", xml_attrval (db_ad->parms, "error"));
+
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+And store is last.
+
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * DATASTORE_currecord_store (WFTK_ADAPTOR * ad, va_list args)
+{
+   WFTK_ADAPTOR *db_ad = (WFTK_ADAPTOR *) ad->bindata;
+   XML * data = (XML *) 0;
+   char * name;
+   char * value;
+   char * colon;
+
+   if (args) data = va_arg (args, XML *);
+   if (!data) {
+      xml_set (ad->parms, "error", "No data given.");
+      return (XML *) 0;
+   }
+   if (!xml_parent (data)) {
+      xml_set (ad->parms, "error", "Data not in datasheet.");
+      return (XML *) 0;
+   }
+
+   wftk_call_adaptor (db_ad, "colput", "process", "id", xml_attrval (xml_parent(data), "id"), xml_attrval (data, "id"), xml_attrval (data, "value"));
+   xml_set (ad->parms, "error", xml_attrval (db_ad->parms, "error"));
+
+   return (XML *) 0;
+}
+</pre></td></tr></table>
+
+Easy!
+<p></p>
+
+I don't really care much about null values here.  Really, the null value thing is pretty undefined anyway.  ...  No pun intended.  Really.
+<table width=100%>
+<tr><td width=30 bgcolor=eeeeee>&nbsp;</td><td width=100%>
+<pre>XML * DATASTORE_currecord_isnull   (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+XML * DATASTORE_currecord_makenull (WFTK_ADAPTOR * ad, va_list args) { return (XML *) 0; }
+</pre></td></tr></table>
+
+
+
+<center>
+<hr width="75%">
+<table width="75%"><tr><td><font size="-1">
+This code and documentation are released under the terms of the GNU license.  They are
+additionally copyright (c) 2000, Vivtek.  All rights reserved except those explicitly
+granted under the terms of the GNU license.  This presentation was prepared with 
+<a href="http://www.vivtek.com/lpml.html">LPML</a>.  Try literate programming.
+You'll like it.
+</font></td></tr></table>
+</center>
+</body></html>
