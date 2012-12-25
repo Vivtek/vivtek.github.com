@@ -1,0 +1,221 @@
+<html>
+<head>
+<title>Action log</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">forum despamming</p>
+<p>[ <a href="/projects/forum_despammer">modbot</a> ]</p>
+<p>[ <a href="spam_archive/">spam archive</a> ]</p>
+<p>[ <a href="google_count.html">google count</a> ]</p>
+<p>[ <a href=todo.html>to-do list</a> ]</p>
+<p>[ <a href="despammer1.html">despammer alpha</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=todo>new task</a> ]</p>
+<p>[ <a href=archive.html>view archive</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Action log</div>
+Here are things I've done, specifically:
+</p><p>
+<i>June 2, 2008</i>: Blocked 77.92.88.11 and 77.92.88.2 at the firewall. They were just both posting reams and reams of spam to nowarblog.org and there's no good way other than the firewall to get them to shut up.  So I did.
+</p><p>
+<pre class=code>
+/sbin/iptables -I INPUT -s 77.92.88.11 -j DROP
+</pre>
+</p><p>
+As an afterthought, banned 77.92.88.3 as well.  Probably should zap the whole block, to be on the safe side, but I'm interested to see the response.
+</p><p>
+(Note to self: if I start getting a long list, <a href=http://www.hipac.org/>HiPAC</a> is a high-performance drop-in replacement for iptables.  Might turn out handy.)
+</p><p>
+<pre class=code>
+inetnum:        77.92.88.0 - 77.92.89.255
+netname:        LIMT-Group-Ltd
+descr:          LIMT Group Ltd
+country:        RU
+admin-c:        SMS44-RIPE
+tech-c:         SMS44-RIPE
+status:         ASSIGNED PA
+mnt-by:         AS13213-MNT
+source:         RIPE # Filtered
+
+person:         Sergey M Safin
+address:        LIMT Group Ltd.
+address:        Karpinskogo 97a
+address:        Moscow
+address:        111423
+address:        Russian Federation
+phone:          +7 342 2763167
+nic-hdl:        SMS44-RIPE
+</pre>
+</p><p>
+Ha.  Fifteen minutes later, I've got spam from 77.92.88.9 -- that's what I figured.
+</p><p>
+<i>June 3, 2008</i>: Hmm.  This problem is more widespread than I thought.  My theory so far has been that most forum spam comes in through botnet proxies, but there are an awful lot of repeat offenders:
+</p><p>
+<pre class="code">
+mysql&gt; select origin, ip, count(*) as c from webspam
+       where date_sub(curdate(),interval 7 day) &lt; ondate
+       group by origin, ip order by c desc
+       limit 30;
++-----------+-----------------+------+
+| origin    | ip              | c    |
++-----------+-----------------+------+
+| nowarblog | 84.16.227.86    | 2351 |
+| nowarblog | 78.129.202.8    | 2299 |
+| nowarblog | 67.215.231.186  | 1571 |
+| nowarblog | 77.92.88.2      | 1450 |
+| nowarblog | 195.225.178.21  | 1392 |
+| nowarblog | 77.92.88.3      | 1352 |
+| nowarblog | 89.149.244.45   | 1280 |
+| nowarblog | 78.129.202.11   | 1182 |
+| nowarblog | 78.129.202.10   |  727 |
+| nowarblog | 77.92.88.11     |  593 |
+| toonbots  | 216.255.187.158 |  569 |
+| nowarblog | 78.129.208.130  |  552 |
+| nowarblog | 77.92.88.9      |  369 |
+| nowarblog | 78.129.208.115  |  350 |
+| nowarblog | 213.186.117.8   |  216 |
+| nowarblog | 206.53.51.84    |  160 |
+| nowarblog | 78.129.202.17   |  132 |
+| nowarblog | 203.162.2.136   |   62 |
+| nowarblog | 203.162.2.133   |   62 |
+| nowarblog | 203.158.221.227 |   60 |
+| toonbots  | 91.121.200.220  |   58 |
+| nowarblog | 203.162.2.134   |   52 |
+| nowarblog | 203.162.2.135   |   51 |
+| nowarblog | 195.225.178.23  |   51 |
+| nowarblog | 195.225.178.31  |   47 |
+| nowarblog | 164.116.224.11  |   46 |
+| nowarblog | 127.0.0.1       |   38 |
+| nowarblog | 203.162.2.137   |   36 |
+| nowarblog | 64.92.172.106   |   34 |
+| nowarblog | 85.91.81.188    |   31 |
++-----------+-----------------+------+
+30 rows in set (0.91 sec)
+</pre>
+</p><p>
+Seems to me <i>anybody</i> at the top of this list should be blocked at the firewall...  So that's what I'm doing, blocking 84.16.227.86, 78.129.202.8, 67.215.231.186, 195.225.178.21, 89.149.244.45, 78.129.202.11, and 78.129.202.10.
+</p><p>
+<i>August 3, 2008</i> - argh, did I say MediaWiki spam wasn't a real problem yet?  Well, it is now, and I don't have time to mess with it, so I locked the Mondoglobo Wiki for the time being.  (By adding the following to LocalSettings.php:)
+</p><p>
+<pre class="code">
+$wgReadOnly = 'too much spam and not enough time to shoot you individually; watch this space for further details';
+</pre>
+</p><p>
+Server load's already dropping (thank God).
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

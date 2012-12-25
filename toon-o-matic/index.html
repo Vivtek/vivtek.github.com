@@ -1,0 +1,194 @@
+<html>
+<head>
+<title>The Amazing Toon-o-Matic</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">toon-o-matic</p>
+<p>[ <a href="/toon-o-matic/">index</a> ]</p>
+<p>[ <a href="/toon-o-matic/todo.html">to do</a> ]</p>
+<p>[ <a href="/toonbots/">toonbots</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=toons>new toon!</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit toon</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit wiki page</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">The Amazing Toon-o-Matic</div>
+The Amazing Toon-o-Matic is the pile of disorganized Perl code I've been using since 2000 to compile episodes of <a href=/toonbots/>Toonbots</a>.  As I once
+famously said, the point of that exercise was the Toon-o-Matic, and the cartoon itself was a by-product.  Like hot dogs.  I grew fond of its wacky
+memes, but over the years it got less fun, because the Toon-o-Matic got less manageable, and so eventually it slid into a series of ever-longer
+hiati.
+</p><p>
+Lately, with the advent of my site-wide and eclectic <a href=/projects/wiki/>Wiki system</a>, which includes code organizational facilities, I've found myself
+to be increasingly interested in the idea of revamping the Toon-o-Matic (again) and opening it to the public (for the first time).  This is where
+that is now happening.  As you can well imagine, I'm terrified of the idea of some jackass abusing the system, which is composed of a bunch of Perl code
+running on <i>my server</i>.  For now, I'm just going to cross my fingers and hope none of you are jerks of that caliber (I'm sure I'll be disappointed,
+but as long as it's just spam, I can handle it -- no, what worries me is that I'm sure there are plenty of security holes; I can see a couple even from where
+I'm sitting.  If you find one, don't be
+a jerk -- just tell me, or even better, propose an improvement and arrange a test with me in advance,
+and get your name in lights as a contributor instead of a jerk.)
+</p><p>
+The procedure is pretty straightforward.  You click on "new toon!", and fill in a new toon, with your name, a title, and a blurb.  The tricky
+part is the actual filling in of a new toon.  There is zero documentation right now, not even a tiny little bit.  I don't even remember half the stuff
+I've done, and over the eight years of Toon-o-Matic history, there have been many false starts, much duplication of effort, and plenty of inconsistency and incompatibility.  So you'll have to try working from examples, and maybe sacrifice a chicken.
+</p><p>
+Once you've submitted a toon script, the system creates a directory just for your toon.  It copies the current version of the Perl into the directory,
+and writes a Makefile (at some point, it
+may be possible to specify older versions or variants, as well, but not yet.)  Then it invokes make on the result.  The Toon-o-Matic then lurches into
+action, slicing and dicing your script, making lots of intermediate results, and if all goes well, a final graphical result.  That result is then available
+from your original submission page, which is itself a Wiki topic.  The entire detailed results of the Toon-o-Matic run are likewise documented in a log
+page, because there <i>will</i> be debugging, I promise you.  Oh, how there will be debugging.
+</p><p>
+<i>Note, 4 February 2009:</i> If you've dropped by recently, you may have noted that there was a teensy-weensy spam problem here.  That should now be a
+thing of the past, as I have now built the modbot right into the processing machinery of the Toon-o-Matic.  The result is that your own effort may be
+flagged as spam.  It shouldn't be -- it should show up as requiring human decision, and I'll see it, eventually -- but if the modbot eats your submission,
+<a href=mailto:michael@vivtek.com>email me</a> and I'll slap the modbot into submission.  He's really just a big fluffy bunny, even though his teeth can
+sometimes frighten the unwary.
+</p><p>
+<i>Note, 17 February 2009:</i> Huh.  Unicode <i>would</i> be a good idea, at that -- it displays great in the code, doesn't it?  It just doesn't render.  Lenin's name should be all lower-case, but I suppose a better character lookup would figure that out for you.  I'm working on <a href=/wftk/perl_tutorial/02-data.html>data-access code</a> this month, so perhaps there will be a little movement on that front later.  Certainly the Toon-o-Matic has always been one of the motivating case studies for my thinking about the wftk.
+</p><p>
+So.  Let's get started tooning, shall we?
+</p><p>
+<center><font size="bigger"><a href="/wiki?action=datanew&from=(unresolved tag url)&data=toons">Start a new toon!</a></font></center>
+</p><p>
+Or, look at the list of existing ones that have survived the depredations of the modbot:
+</p><p>
+(unresolved tag list toons order=created-desc mode=static)
+<table>
+<tr><th>ID</th><th>By</th><th>Title</th><th>created</th></tr>
+(unresolved tag repeat color=eeeeee/ffffff)
+<tr>
+<td bgcolor=(unresolved tag color)>(unresolved tag id)</td>
+<td bgcolor=(unresolved tag color)>(unresolved tag author)</td>
+<td bgcolor=(unresolved tag color)><a href=toon-(unresolved tag id)>The Amazing Toon-o-Matic</a></td>
+<td bgcolor=(unresolved tag color)>(unresolved tag created)</td>
+</tr>
+(unresolved tag /repeat)
+</table>
+(unresolved tag empty)
+There are no actual toons yet.  Gimme a bit.
+(unresolved tag /list)
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

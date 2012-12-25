@@ -1,0 +1,182 @@
+<html>
+<head>
+<title>The modbot: Keeping your forum spam free since last week</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">forum despamming</p>
+<p>[ <a href="/projects/forum_despammer">modbot</a> ]</p>
+<p>[ <a href="spam_archive/">spam archive</a> ]</p>
+<p>[ <a href="google_count.html">google count</a> ]</p>
+<p>[ <a href=todo.html>to-do list</a> ]</p>
+<p>[ <a href="despammer1.html">despammer alpha</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=todo>new task</a> ]</p>
+<p>[ <a href=archive.html>view archive</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">The modbot: Keeping your forum spam free since last week</div>
+<div class="subtitle">The antidote to spambots is the modbot!</div>
+</p><p>
+Got a forum?  Noticed a lot of spam since November of 2006?  Me, too.  Turns out that November is when forum spamming using spambots
+got really, really popular.  It's not just you.  Everybody has the same problem.
+</p><p>
+So how do you keep a forum free of spam?  Simple: moderate.  Take a look at every post made.  Check its IP to see if our friends at XRumer have
+used a proxy to get around our IP ban lists.  Check for suspicious URLs.  Check for reference to popular spam topics.  Sure -- simple!  Except
+that the spammers are legion and they cheat -- they use spambots.  The obvious next step is to have a, well, a modbot to block spam as fast as
+the spambots can shovel it at you.
+</p><p>
+The modbot presented here (note: still working on documentation)
+is a simple, very configurable set of scripts to (1) examine pending posts, (2) apply rules you specify against them
+and tools anybody can write, to determine whether a post looks like spam, and (3) reject obvious spam and approve obvious legitimate posts, leaving
+only the marginal cases for you and your human help to deal with.  And its best feature is its cost: nothing.  Not a red cent.  Welcome to the
+good part of the Internet.
+</p><p>
+I know there are a lot of you out there who don't remember the days when there were three servers and we had to set up our Websites using the
+toggle switches on the front panel (and who can forget Internet chats back in the days when you had to batch-process your replies on punch cards?)
+But in point of fact, the Internet used to be a pretty friendly place.  I remember that.  Spammers want to take that away from us, and that's not
+nice.  And so spam fighting is a hobby of mine, and has been, on a serious basis, <a href=http://www.despammed.com>since 1999</a>.
+Oh, I'm not going to complain if you throw me a shekel or two on Paypal.  But if you don't have
+the money, no problem.  You still shouldn't have the spam problem, because if <i>you</i> have a spam problem, we <i>all</i> have a spam problem.
+</p><p>
+So welcome.  Bear in mind that installation and configuration of the modbot is still not for the faint of heart, but it'll get better as I get
+some more exposure.  Right now, I can install it for you and configure it to match your forum/bulletin board setup -- it'll work with anything
+with judicious application of a pipewrench and a good sledgehammer.  Or you can download it from SourceForge and configure it yourself, just as soon as I get organized enough to put together a proper distro (sigh). If you do,
+<i>please</i> drop me a note with any configuration techniques you found useful.
+</p><p>
+And remember: if you're interested in my help despamming your own forum, <a href="mailto:michael@despammed.com?subject=Forum%20despamming">drop
+me a line</a> and we'll talk.
+</p><p>
+I'm going to keep a few notes on spam categories here (these notes were the proximate reason for me to develop the Wiki code I'm using, actually.)
+<ul>
+<li><a href=trackback_spam.html>Thoughts on trackback spam</a>
+<li><a href=mediawiki_spam.html>Thoughts on MediaWiki spam</a>
+<li><a href=lottery-spam-sample.html>Some thoughts on text analysis</a>
+<li><a href=text-plausibility.html>More thoughts on text plausibility metrics</a>
+<li><a href=spam-trail-1.html>An example spam trail</a>
+</ul>
+</p><p>
+</p><p>
+<a href=specific_actions.html>Here is a log of specific actions</a> I'm taking in response to various attacks or insights for the forums I'm actually automodding.
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

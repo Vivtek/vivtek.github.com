@@ -1,0 +1,153 @@
+<html>
+<head>
+<title>modbot, google counter, and the spam archive</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">blog</p>
+<p>[ archives? ]</p>
+<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ rss feed? ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">modbot, google counter, and the spam archive</div>
+<div class="st2">(unresolved tag blogline)</div>
+<hr>
+Three related things today.  First, the scripts I've been putting together for forum spam blocking have kind of coalesced into a "modbot".  This
+program attempts to automate the tasks performed by human moderators and could technically be placed into <i>any</i> Web spam moderation situation.
+It is currently running happily in an Eboard 4.0 installation and blocking roughly 93% of spam, while still allowing anonymous posting to that forum.
+I'll be packaging it up for distribution in the public domain.  Watch this space for further details -- one of the more fascinating notions I've
+had is to enable it to receive moderation emails from Blogger and thus automate the comment moderation process there.
+</p><p>
+One of the rules/tools used by the modbot is to count Google hits for the numeric IP of an untrusted poster.  Turns out that HTTP proxies have a
+real proclivity for getting indexed.  A lot.  Legitimate IPs, not so much.  I wrote a little online tool to call Google to get these counts; the
+<a href=/google_count.html>tool is here</a> and the <a href=/projects/forum_despammer/google_count.html>write-up of the code is here</a>.  It's currently blocking about
+40% of spam (I don't have good statistics analysis in place yet, so that's very approximate.)
+</p><p>
+Finally, as a spinoff of this project, I've started a spam archive.  There's nothing to present yet, but I hope to start doing some interesting
+analysis, and most specifically a searchable database -- along with a searchable database of spamvertised sites.  That ought to overlap with
+the sites spamvertised by email spam as well, and that's going to be an interesting thing to look at.  We'll see.
+</p><p>
+I've stumbled onto a spam link network of staggering extent in the course of examining forum spam.  A spammer has a site somewhere, and then spamvertises
+it.  But then some of the spam starts to link to other forum spam, which in turn links to the site.  Some sites auto-forward to other sites using
+obscured Javascript (I haven't figured out just why, yet; if you have a rationale, I'd be happy to hear it.)  Anyway, after that goes on for a while,
+there's a huge resulting network of vulnerable fora linking to other vulnerable fora.  There is a true treasure trove of information available to
+the interested party.  Which would, of course, be me.  I will <i>definitely</i> be following up on that and posting on it.
+</p><p>
+Anyway, it's been nice talking to you.  Back to work!
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

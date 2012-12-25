@@ -1,0 +1,144 @@
+<html>
+<head>
+<title>Some thoughts on MediaWiki spam</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">forum despamming</p>
+<p>[ <a href="/projects/forum_despammer">modbot</a> ]</p>
+<p>[ <a href="spam_archive/">spam archive</a> ]</p>
+<p>[ <a href="google_count.html">google count</a> ]</p>
+<p>[ <a href=todo.html>to-do list</a> ]</p>
+<p>[ <a href="despammer1.html">despammer alpha</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=todo>new task</a> ]</p>
+<p>[ <a href=archive.html>view archive</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Some thoughts on MediaWiki spam</div>
+And then there's MediaWiki spam.  Back in January, when I set up MediaWiki on my server for the <a href=http://mondoglobo.wftk.org/wiki/>Mondoglobo Wiki</a>, I blogged a post that read, in its entirety, "I have seen the future and it is MediaWiki."  This remains true, in large part -- Wiki is a powerful tool for organizing thoughts online, and allows collaboration in ways I find very compelling.  (We'll look aside for the moment from my hatred for MW's performance, though...)
+</p><p>
+But MediaWiki's very power in allowing free-for-all editing means it's a great target for Webspam.  And unlike a forum, a Wiki venue allows spammers to deface content at will -- and that sucks.
+</p><p>
+So something has to be done, of course, and I do believe that MW has some anti-spam extensions available, but I want to leverage the existing smarts of the modbot.
+</p><p>
+As I see it, there are two reasons MW spam is tricky.  First, the new text is stored as a blob in the text table -- you have to do a diff yourself to see what changed, and if the <i>diff</i> tests positive for spam, then you need to roll it back.  Second, you can't just delete the revision; you have to roll the page text back.  Fortunately, rolling back looks like it's going to be relatively simple; you just retrieve the old version from the archive table, and write it into the current page table.  <i>Then</i> you delete the revision record.  Or so I presume, from some poking around yesterday.  I haven't tested it yet.
+</p><p>
+I've got two spam changes waiting for modbotting, though.  So I hope I'll be able to find some time this week to knock them out.
+</p><p>
+<i>August 4, 2008</i> - Argh -- let me correct myself here by saying that MW spam has in the meantime become a serious problem.  Since I don't have time right now to despam the Wiki, I've locked it, which is Not Good.  But: No Choice.  For now.  There's just so long I can watch the server load hang above 20.
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

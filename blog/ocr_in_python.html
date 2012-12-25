@@ -1,0 +1,179 @@
+<html>
+<head>
+<title>OCR in Python</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">blog</p>
+<p>[ archives? ]</p>
+<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ rss feed? ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">OCR in Python</div>
+<div class="st2">(unresolved tag blogline)</div>
+<hr>
+OCR in Python.  There isn't any, to speak of.  While there do exist a few
+open-source OCR projects (Conjecture seems to have a great deal of promise!),
+none of them play well with Python.  I may want to rectify that at some point.
+</p><p>
+Anyway, growing bored of simply writing AutoHotKey scripts to play Tower
+Defense, I quickly realized that I really needed a tool to start the game
+for me, and track the score and other stats for later analysis.
+</p><p>
+The first part was no big deal; I whipped out a PyPop applet that could launch
+a URL.  Since I wanted a window that was sized according to the Flash object,
+that required putting together a local HTML file that could run some JavaScript
+to pop up the window I wanted, then close itself afterwards.  I'll document
+that <i>when I have time</i> (I propose the abbreviation wIht to save my time
+typing that phrase.)
+</p><p>
+Well.  That was fun, and it worked, but I really wanted something to monitor
+the score for me, and timing, and ... stuff.  Which meant that I would have
+to read the actual graphical screen, because there's no handy-dandy textual
+output on that Flash app.
+</p><p>
+You'd think that would be trivial in 2007.  But you'd be wrong.
+</p><p>
+Getting a snapshot of the screen was easy enough.  I wrapped win32gui to get
+a window handle by the title (I'll document this later: Idtl), then installed
+PIL to grab the actual graphical data and manipulate it.  To warm up with that,
+I set a timer to grab a four-pixel chunk of the screen so I could see whether
+the Flash had started or not (Tower Defense goes through an ad screen, then
+a splash screen, and only then does the game start.)  That took a little
+putzing around, but the result was gratifying: my little utility could tell me
+when the game was ready to play.  As long as the window was on my primary
+monitor, anyway (turns out PIL is not good with multiple monitors -- who knew?)
+So it turned out I had to move the window before all that.
+</p><p>
+And then I could grab the sections of the screen with the numbers on them
+for score, bonus, lives, timer, and money... And then it all screeched to a
+halt, because there are no open-source Python OCR libraries.  At all.  And
+clearly I don't have the time to adapt something -- hell, I don't even have
+time to do all this.  I don't even have time to <i>write this blog entry</i>.
+</p><p>
+So of course I did the natural thing.  I wrote my own special-purpose OCR,
+because clearly that would be saving time.  I saved four hours before I started
+falling asleep, and it still can't tell 8 from 0 (but it does a fine job on the
+rest of the digits.)  It was a lot of fun, actually.  Idtl.
+</p><p>
+So.  Proposal.  It would be nice to work some with Conjecture, and produce
+the following: (1) a Python binding that can work in memory with PIL bitmaps,
+(2) a Web submitter for test graphics, and (3) an online tester and test
+database reporter.  That would be really cool.  Of course, only wIht.
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

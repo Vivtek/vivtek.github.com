@@ -1,0 +1,200 @@
+<html>
+<head>
+<title>gdbm</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">gdbm</p>
+<p>[ <a href="/gdbm/">home</a> ]</p>
+<p>[ <a href="/gdbm/api.html">api</a> ]</p>
+<p>[ <a href="/gdbm/example.html">example code</a> ]</p>
+<p>[ <a href="/projects/">other programming</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">gdbm</div>
+<i>gdbm</i> is a GNU implementation of the standard Unix <i>dbm</i> library, originally developed at Berkeley.
+(Well, what wasn't?)  You may have heard of <i>dbm</i> if you've worked at all with sendmail; sendmail
+uses <i>dbm</i> for many of its lookup tables.
+</p><p>
+gdbm's features may be summarized as follows:
+<ul>
+<li><strong>Fast</strong><br>gdbm implements a filesystem-based hash table.  It's
+extremely fast in comparison to relational databases, because most of the overhead (and the
+features) of an RDBMS simply aren't there.
+<li><strong>Simple</strong><br>gdbm is very simple to include into your C programs.
+<li><strong>Open-source</strong><br>gdbm is probably perfect.  But in the event it's not, you 
+can fix it yourself.
+</ul>
+</p><p>
+Thus gdbm is an excellent lightweight alternative to a full relational database.  If all you
+need to do is to store arbitrary data to be looked up with keys, and do it fast, then gdbm is
+your solution.  However, there are a few caveats.
+<ul>
+</p><p>
+<li><strong>One writer, many readers.</strong><br>Only one process may have a gdbm file open
+at a given time, and this is an exclusive lock: when a file is open for writing, no readers may
+open it.  When the file is <i>not</i> open for writing, any number of readers may open it.  So gdbm
+is really optimal only in the case where a file is written seldom and used for lookup, or when
+only one process needs to use the file anyway (and thus may open it for writing and reading
+simultaneously.)  The latter case makes more sense than you might think (why wouldn't you just
+use a hash table?) because gdbm provides a persistent storage for the hash.
+<li><strong>Multiple standards.</strong><br>Well, kind of.  The problem is, in the dbm world,
+there is original dbm, "new" ndbm, and GNU gdbm.  They all use different file formats, so to
+use an original dbm file with gdbm you have to convert it (there is a utility to do so.)  gdbm
+provides a dbm compatibility mode -- but in that mode you can only open one file at a time because
+the functions don't include a file pointer!
+<li><strong>Is data null-terminated or not?</strong><br>dbm files don't necessarily need to have
+their data terminated by <code>0</code> -- but since C is normally used to access them, they
+very often do.  Since "key" may be different from "key0", if you're working with a dbm file used
+by a different program, you need to be aware of the convention used by that program.  After reading
+the man pages for gdbm, you may be wondering how the heck the data <i>is</i> used, since it's
+not really documented.  Keys as well as data are manipulated using type <code>datum</code>, which is
+simply a structure
+<pre class="code">
+typedef struct {
+   char *dptr;
+   int  dsize;
+} datum;
+</pre>
+So if you're using null-terminated strings, then you can simply toss that <code>dptr</code> into
+any normal string function, but otherwise, if you need to handle the data as strings, the
+your best bet is to <code>malloc</code> a buffer of 
+size <code>dsize + 1</code>, use <code>strncpy</code> to get the data into your buffer, and
+then explicitly write your null terminator in at the end.  (There's a little more detail on my <a href=/gdbm/example.html>gdbm example code page</a>.)
+<li><strong>Memory management</strong><br>When gdbm fetches a datum from a file, it <code>malloc</code>s
+the buffer for you and returns the datum -- but that means, of course, that you have to free the
+buffer yourself!  Failure to do so, as always, will work fine until you go into production
+and everybody's watching, at which point your process will crash and burn from the memory leaks.
+</p><p>
+<a name=links>
+<div class="title"><center><font face=arial size=+1>LINKS</font></center></div>
+</p><p>
+<ul>
+<li><strong><a href=ftp://prep.ai.mit.edu/gnu/gdbm/>GNU source directory</a></strong><br>
+Go get your own copy!  Current version as of this writing is gdbm-1.8.0 but I haven't looked
+at it yet (1.7.3 is good enough for me, gol durn it.)
+<li><strong><a href=/gdbm/api.html>My gbdm API documentation</a></strong><br>
+I spent some time back in the prehistoric era HTML-izing the API documentation
+for gdbm.
+<li><strong><a href=/gdbm/example.html>Example code</a></strong><br>
+This is a very short example of gdbm code, with a little annotation, just to get you started.
+</ul>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

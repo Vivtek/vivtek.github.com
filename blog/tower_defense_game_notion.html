@@ -1,0 +1,176 @@
+<html>
+<head>
+<title>Tower defense game notion</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">blog</p>
+<p>[ archives? ]</p>
+<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ rss feed? ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Tower defense game notion</div>
+<div class="st2">(unresolved tag blogline)</div>
+<hr>
+So I have gotten sucked into this cool game,
+<a href=http://www.handdrawngames.com/DesktopTD/game.asp>Tower Defense</a> -- apparently
+there's a whole genre, but this is the one I've been playing with the past
+couple of days.
+</p><p>
+It's a Flash game, and the premise is simple.  You have a grid with two
+incoming gates and two outgoing gates.  Enemies come in the incoming gates,
+and you have to kill them before they get to the outgoing gates.  You lose
+one health point for every enemty that gets through.  You have 20 health
+points and no way to get more.
+</p><p>
+So -- the point of the game is to build defense towers which run automatically.
+Each enemy you kill nets you a small amount of money, which you can use to
+build new towers, or upgrade existing ones.  (You need to upgrade to keep up
+with the steadily increasing toughness of the enemies, of course.)
+</p><p>
+It's fun.  I thought of a fun way to do some really cool programming with it.
+AutoHotKey can find the Flash window, and can scan the screen for whatever
+you need.  It can click things, too.  So  my notion is to write an AHK
+front-end to play the game, with an IP connection to a strategy server.  The
+strategy server would then use evolutionary programming to come up with 
+board arrangements, and over time (perhaps a great deal of time, who knows?)
+you could watch the strategizer get <i>really good</i> at Tower Defense.
+</p><p>
+Or not.
+</p><p>
+But it would be fun to try it.
+</p><p>
+My notion is that the instructions for a given strategy would consist of a
+series of builds at given coordinates, intermixed with upgrades to the towers
+built.  Each instruction would only execute after there was enough money
+available for it.  So you'd have a string of instructions which would express
+a given board setup.
+</p><p>
+To combine strategies, you'd just ... well, I guess you'd just cross the
+streams, so to speak, taking two (or more?) successful strategies, cut them
+at a random spot, and splice them together.  You might want to have some
+cleanup rules (you can't upgrade squirter #3 if you didn't build three
+squirters, for instance.)
+</p><p>
+And then you'd let it run for a few weeks.  You could get other people to
+download your script and run strategies, too.
+</p><p>
+It could be very, very cool...
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

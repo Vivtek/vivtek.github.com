@@ -1,0 +1,411 @@
+<html>
+<head>
+<title>Spam from the botnet, for the botnet</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">despammed</p>
+<p>[ <a href="http://www.despammed.com/">despammed site</a> ]</p>
+<p>[ <a href="/projects/despammed/">programming</a> ]</p>
+<p>[ <a href="/projects/despammed/stormspam.html">botnet tracker</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=todo>new task</a> ]</p>
+<p>[ <a href=archive.html>view archive</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Spam from the botnet, for the botnet</div>
+You've been getting spam lately saying "John Mccain Taps Osama Bin Laden As Running Mate" or "Beijing Olympics cancelled"?  And a couple of weeks ago, CNN kept sending you their Top 10, and then msnbc.com's BREAKING NEWS hit you?
+</p><p>
+It's the botnet, and if you have no idea what I'm talking about, <a href=stormspam_explanation.html>read this</a>.
+</p><p>
+The project is getting unwieldy, so here's a <a href=timeline.html>timeline</a> which I will attempt to decorate with links as I get the time.
+</p><p>
+!include timeline.wiki
+</p><p>
+Now here's a thought.  If BN1 were involved in the Russian invasion of Georgia, in terms of a DDoS of Georgian Internet services before the event, I would expect to see less bandwidth devoted to expansion spamming during that time.  This plot is crude (it's been many years since I dusted off gnuplot) but:
+</p><p>
+<img src="stats.png">
+</p><p>
+You tell me.  Is that meaningful?
+</p><p>
+<i>2008-08-04</i>: The botnet switched email formats today, with a rather nice-looking knockoff of the CNN news format, but the exploit spammed is the same.  It took me a bit to rewrite the analysis code (because I honestly didn't expect to have to <i>maintain</i> it!) but I've resumed tracking the links spammed.  Most of those are pretty much the same, except that there's a new CNN-like page being hacked onto some of the new servers.
+</p><p>
+The new spam all has the subject "CNN.com Daily Top 10".
+</p><p>
+Incidentally, I have about 1300 IPs of botnet PCs being used to inject this spam (and a strategy, not yet implemented, to find more by datamining more of my records).  If anybody can think of something interesting to do with that, I'd be happy to hear your ideas.
+</p><p>
+<i>2008-08-08</i> - In case you weren't paying attention, the botnet subject du jour is "CNN Alerts: My Custom Alert" - I ended up with 3,498 copies of the Top 10, though.  Oh, and I misremembered the number of botnet IPs I have.  It was 13,000 -- and now it's 15,000.  (And change.)  I think I'm going to have to get that blocklist DNS server up that I've been considering for so long.
+</p><p>
+<i>2008-08-10</i> - If you were wondering, the "Internet Explorer 7" spam is not from the same group (I'm calling it "Botnet 2"); <i>none</i> of the origination IPs match the list of IPs injecting these spams here.  But they do seem to be using the same modus operandi, with hijacked servers to host their exploits.  If I've got time tomorrow, I'll try to set up the same kind of scanning I've got for this botnet.  ("This is getting out of hand!  Now there are two of them!")
+</p><p>
+In other news, the Storm botnet has resumed spamming some non-exploit (read: Canadian pharmacy) spam amongst its attempts to expand, and I just got a run-of-the-mill spam entitled "German farmer attacks police over cows held in dark," which is not from the botnet, either.  I'm heartened to note that someone is still upholding the tradition of funny headlines.  I'd started to miss those.
+</p><p>
+<i>2008-08-11</i> - but at least we have a <a href=storm_page_analysis_4058864712-3087703986.html>new landing page</a> today.  In an interesting new twist, it pops up a window loaded from <a href=view_page.html?id=349334888-3640629668>asvoo.org</a>.  We've already seen asvoo.org, as it's already been spammed as a normal landing page carrier.  But this is is a first, that other landing pages are linking to another hijacked server.  I do believe it's simply been hijacked, though, as the registration is a consulting company in Germany.  I've emailed them.  The morning will be starting there soon; let's see if their admin contact is an early riser.
+</p><p>
+Interesting!
+</p><p>
+<i>2008-08-13:  msnbc.com - BREAKING NEWS:</i> Botnet switches email formats!  Now that I'm parsing the new mails correctly, though, we can see that they haven't changed landing pages yet.  But o frabjous day -- we're getting new headlines!
+</p><p>
+<i>BBC NEWS</i> spam is not the group I'm tracking here, and due to the way I've built things, it's difficult for me to extend the tracker.  But I intend to soon.  (BBC NEWS also doesn't overlap with BN2, so I've gone out on a creative limb to call this group "Botnet 3".)
+</p><p>
+<i>2008-08-13, evening:</i> Yep, BN1 has changed their landing pages to look like MSNBC now.
+</p><p>
+<i>2008-08-15:</i>  Well, now I'm not so sure these botnets are separate.  BN1 has been dropping some spam that sure looks like the modus operandi of BN3.  I'll need to <a href=botnet_tracking_tools.html>develop some better tools</a> to examine this theory, though; BN3 doesn't spam the same addresses as BN1, let alone from the same IPs.  It's all very confusing (which is why it's fun).
+</p><p>
+<i>2008-08-16:</i> Still quiet; same subjects, same email format, same landing page.  I've spent some time going back over old landing pages and getting things organized -- and I discovered one landing page <a href=storm_page_analysis_1169931854-3603089388.html>that had been re-hacked</a> -- <a href=storm_page_analysis_434099595-84203111.html>twice</a>, within 4 hours of one another, yesterday.  Congratulations to cosasagapornis.com for the Most-Hacked Award of the day for August 15, 2008.
+</p><p>
+Incidentally, as of tonight I have 35,162 botnet IPs identified in BN1.
+</p><p>
+<i>2008-08-17:</i> Yeah, I thought it was time.  New mail (BREAKING news), new landing page (anonymized to "Watch Free Movie" again), and new bugs discovered in my scanning routines, ha.  (Fixed, of course.)
+</p><p>
+<i>2008-08-17:</i> Stop the presses!  They've switched back to a CNN Top 10 Video email, with a format containing 16 links.  The landing pages haven't changed, though.
+</p><p>
+<i>2008-08-18:</i> You know how when you start a fun little project, and you need to do something like, say, parse MIME, and you cobble together some Perl to do what you need to do?  And then you start relying on that code until it breaks due to something you didn't think of?  And then you grumble and rewrite it all with MIME::Parser, which you should have done in the first place?
+</p><p>
+I hate that.  (Note to self: next time, check CPAN <i>first</i>.)
+</p><p>
+<i>2008-08-18:</i> You know how when you're assuming constant subjects, the object of your pursuit changes strategy and uses the To: name in the subject to throw you off, so you have to implement a second level of searching to filter your SQL replies after looking at the headers you have stored in files based on a simple field delineation in your target subject?
+</p><p>
+I hate that.  (The subject in question: "Hi %(name)", where name is the name in the addressee in the header.)
+</p><p>
+<i>2008-08-20:</i> All Britney, all the time -- and linking directly to the malware executables for now.  Which is good, because I was starting to feel a little ragged, trying to keep up with analysis of the HTML and Javascript pages.  But as you can see, my viewer is a little disappointing when confronted with binary files.
+</p><p>
+I've been working a little with Win32::Exe (remember, kids, always check CPAN first) but it's tough going, and frankly I'm not yet sure what static analysis can bring.  Unfortunately, the dynamic analysis tools I've tried so far have been somewhat underwhelming in their analysis of the malware I've tried.
+</p><p>
+<i>2008-08-21:</i> Well, this is less fun -- the current modus operandi (since about Aug. 18) is to link directly to a hosted executable, usually with a picture in the email (nude Angelina Jolie, for instance).  Block all incoming mail with links to executables, and you're good.
+</p><p>
+I'm using the time to reassess my monitoring process, <a href=botnet_tracking_tools.html>summarized here</a>.  The original datamining was based on the subjects of the emails, then on the users receiving them.  But now that I know a whole lot of IPs I know to be the botnet, I can simply look at whatever those IPs are feeding me, and go from there.  There's a lot I was missing, and I can also see more clearly the other types of spam the botnet has still been sending me all along.
+</p><p>
+I can still look at existing subjects to get more candidate IPs to be investigated as botnet members (and will have to do that), but this is a much cleaner way of doing things.  Work is ongoing.
+</p><p>
+Oh -- my other epiphany in this respect.  I've been thinking of spam category as being a property of the email.  Conceptually, this is wrong -- spam category should logically be a property of the link spammed.  (If there's no link, then the content determines category.)  This changes the way analysis should proceed, obviously; I can simply total up all the links spammed, then categorize each one, and each mail which spammed it shares that category.
+</p><p>
+<i>2008-08-31</i>: Well, as you can see, they're using email names in the subject line as spoilers.  I have a plan to counter that automatically, but in the meantime it makes traffic look sparse.
+</p><p>
+I've been spending time building some new scanning tools, and on gauging similarity based on mutual compression ratios.  It works astoundingly well for text files, but the binaries are already compressed, so you can't detect similarity that way.
+</p><p>
+I was considering doing multidimensional scaling to cluster the pages, but (1) MDS is really hard, and (2) I'm not even sure it would result in meaningful information.  I can cluster based on rough similarity, though, and that will already be pretty interesting.  More later on that.
+</p><p>
+<i>2008-09-06</i> - Got the name scanner working; now new subjects which incorporate the name of the addressee will cause a broader search for all similar subjects.  If there are any, they'll all be grouped automatically with the subject template.  This is working pretty nicely.
+</p><p>
+I also have an online page-diff viewer working.  This makes it easier to see what variations are being used in landing pages.  The next step in that thread would be automatic discovery of templates; then very similar pages could be stored in template form, with a list of the values filled into the templates.  That would be kind of neat.
+</p><p>
+In other news, the botnet operators have been using landing pages for their standard spam runs now (forwarding to, say, Canadian pharmacy shopping sites).  In the past, these landing pages have been reserved for botnet malware distribution, but this new change means that some of the run-of-the-mill spam is now showing up on this page.  Sorry.  Until I can automatically figure out whether a given landing page is intended to distribute malware (not an insuperable task) I'm going to have to display everything that looks like a landing page.  So for the time being, not everything here is a malware site.
+</p><p>
+Anyway, here are the 50 most recent botnet spam subjects (something less than a day's worth): 
+<table><tr><td colspan=4 bgcolor=eeeeee><center><b>Stormspam subject list</b><br>(Most recent 50)<br>Report run Wed Apr  8 04:29:42 2009</center></td></tr>
+<tr><th>Subject</th><th># archived</th><th>Last found</th><th>First found</th></tr>
+<tr><td>Blowout savings here</td><td>19</td><td>2009-01-23 04:06:07</td><td>2008-10-16 01:00:37</td></tr>
+<tr><td>You have received an eCard</td><td>652</td><td>2008-12-12 21:10:45</td><td>2008-09-09 04:02:58</td></tr>
+<tr><td>CNN Alerts: My Custom Alert</td><td>7520</td><td>2008-10-21 12:08:27</td><td>2008-08-08 00:17:46</td></tr>
+<tr><td>Get in shape Fast.</td><td>13</td><td>2008-10-18 15:59:32</td><td>2008-10-18 01:53:55</td></tr>
+<tr><td>Your credit score</td><td>14</td><td>2008-10-18 14:06:22</td><td>2008-10-18 01:50:49</td></tr>
+<tr><td>Hottest price for hottest nights</td><td>15</td><td>2008-10-17 20:39:52</td><td>2008-10-17 01:40:49</td></tr>
+<tr><td>Huge tool for everyone</td><td>16</td><td>2008-10-17 20:26:43</td><td>2008-10-17 01:25:50</td></tr>
+<tr><td>McCane private party</td><td>19</td><td>2008-10-17 20:24:50</td><td>2008-10-17 01:29:42</td></tr>
+<tr><td>Hottest selling tips on net</td><td>17</td><td>2008-10-17 19:54:41</td><td>2008-10-17 02:02:19</td></tr>
+<tr><td>Hot, horny, yours</td><td>16</td><td>2008-10-17 19:34:07</td><td>2008-10-17 01:12:03</td></tr>
+<tr><td>Mindblowing sales</td><td>20</td><td>2008-10-17 19:07:07</td><td>2008-10-17 01:20:37</td></tr>
+<tr><td>Obama's private video</td><td>28</td><td>2008-10-17 18:22:44</td><td>2008-10-17 01:45:28</td></tr>
+<tr><td>Amaze the girls around</td><td>10</td><td>2008-10-17 17:33:08</td><td>2008-10-17 01:35:15</td></tr>
+<tr><td>Your path to cash</td><td>17</td><td>2008-10-17 17:28:04</td><td>2008-10-17 01:38:47</td></tr>
+<tr><td>How crysis can affect you</td><td>13</td><td>2008-10-17 17:02:03</td><td>2008-10-17 01:25:28</td></tr>
+<tr><td>80% cut on Halloween</td><td>13</td><td>2008-10-17 16:29:20</td><td>2008-10-17 01:32:08</td></tr>
+<tr><td>Make her come triple tonight</td><td>9</td><td>2008-10-17 16:12:04</td><td>2008-10-17 02:15:22</td></tr>
+<tr><td>Your way to satisfaction</td><td>14</td><td>2008-10-17 15:58:03</td><td>2008-10-17 01:26:52</td></tr>
+<tr><td>Amaze her with growth</td><td>22</td><td>2008-10-17 15:50:56</td><td>2008-10-17 01:57:26</td></tr>
+<tr><td>Take her everywhere</td><td>11</td><td>2008-10-17 15:41:51</td><td>2008-10-17 01:33:21</td></tr>
+<tr><td>All what you need</td><td>12</td><td>2008-10-17 15:40:44</td><td>2008-10-17 02:56:50</td></tr>
+<tr><td>Huge discounts on huge growth</td><td>16</td><td>2008-10-17 15:26:40</td><td>2008-10-17 01:42:00</td></tr>
+<tr><td>Your home video discovered</td><td>12</td><td>2008-10-17 15:25:10</td><td>2008-10-17 01:51:38</td></tr>
+<tr><td>Crazy low prices</td><td>22</td><td>2008-10-17 14:38:56</td><td>2008-10-17 01:25:08</td></tr>
+<tr><td>Crysis heat here</td><td>10</td><td>2008-10-17 14:34:13</td><td>2008-10-17 01:49:03</td></tr>
+<tr><td>Take her to seventh sky</td><td>15</td><td>2008-10-17 14:11:36</td><td>2008-10-17 03:32:17</td></tr>
+<tr><td>Enlarge your savings</td><td>23</td><td>2008-10-17 13:26:41</td><td>2008-10-17 01:18:45</td></tr>
+<tr><td>Dont let the crysis hit you</td><td>17</td><td>2008-10-17 12:56:10</td><td>2008-10-17 01:39:07</td></tr>
+<tr><td>One week-3 inches more</td><td>12</td><td>2008-10-17 10:44:21</td><td>2008-10-17 01:37:04</td></tr>
+<tr><td>Beat the high prices</td><td>15</td><td>2008-10-16 23:44:23</td><td>2008-10-16 00:35:11</td></tr>
+<tr><td>Confirm your present</td><td>19</td><td>2008-10-16 23:08:05</td><td>2008-10-16 00:44:01</td></tr>
+<tr><td>She wants real male</td><td>19</td><td>2008-10-16 22:03:20</td><td>2008-10-16 00:56:58</td></tr>
+<tr><td>Unbelievably low prices</td><td>38</td><td>2008-10-16 21:59:48</td><td>2008-10-16 00:22:14</td></tr>
+<tr><td>Beat up the crysis</td><td>17</td><td>2008-10-16 21:59:21</td><td>2008-10-16 00:40:07</td></tr>
+<tr><td>Please reply</td><td>29</td><td>2008-10-16 21:41:04</td><td>2008-10-16 01:54:44</td></tr>
+<tr><td>You know she wants it big</td><td>16</td><td>2008-10-16 21:20:34</td><td>2008-10-16 00:41:57</td></tr>
+<tr><td>Best Price Guaranteed</td><td>29</td><td>2008-10-16 21:09:23</td><td>2008-10-16 00:20:26</td></tr>
+<tr><td>Beat the crysis.</td><td>16</td><td>2008-10-16 20:34:55</td><td>2008-10-16 00:22:15</td></tr>
+<tr><td>Crazy wholesale</td><td>19</td><td>2008-10-16 20:23:31</td><td>2008-10-16 00:53:27</td></tr>
+<tr><td>Make your woman hot n wet</td><td>30</td><td>2008-10-16 20:21:34</td><td>2008-10-16 00:10:00</td></tr>
+<tr><td>Make her horny</td><td>22</td><td>2008-10-16 20:04:17</td><td>2008-10-16 01:00:59</td></tr>
+<tr><td>Why spend more?</td><td>45</td><td>2008-10-16 19:59:29</td><td>2008-10-16 00:35:09</td></tr>
+<tr><td>We have chosen the best for you</td><td>17</td><td>2008-10-16 19:53:16</td><td>2008-10-16 01:32:13</td></tr>
+<tr><td>Be a winner in bed</td><td>27</td><td>2008-10-16 19:39:38</td><td>2008-10-16 00:44:54</td></tr>
+<tr><td>Save more today</td><td>19</td><td>2008-10-16 19:14:31</td><td>2008-10-16 00:12:22</td></tr>
+<tr><td>Your reply needed</td><td>16</td><td>2008-10-16 18:50:35</td><td>2008-10-16 00:49:35</td></tr>
+<tr><td>Big discount for small orders</td><td>16</td><td>2008-10-16 18:41:59</td><td>2008-10-16 00:49:43</td></tr>
+<tr><td>Drive your wife wild</td><td>17</td><td>2008-10-16 17:44:01</td><td>2008-10-16 00:24:23</td></tr>
+<tr><td>Your private video here</td><td>18</td><td>2008-10-16 16:22:24</td><td>2008-10-16 00:35:33</td></tr>
+<tr><td>Your hidden secret revealed</td><td>11</td><td>2008-10-16 14:55:12</td><td>2008-10-16 00:31:22</td></tr>
+</table>
+
+</p><p>
+The <a href=spamstorm_full_subject_list.html>full list is here</a>.
+</p><p>
+And here are the 50 most recently spammed servers (bolded links returned HTTP 200 on last check, but some of those returns are non-malware boilerplate at this point; those I've flagged appear non-bolded but in parentheses and count as clear for analysis).
+<table><tr><td colspan=4 bgcolor=eeeeee><center><b>Stormspam malware domain list</b><br>(Most recent 50)<br>Report run Wed Apr  8 04:29:58 2009</center></td></tr>
+<tr><th>Start URL</th><th>CRC of page</th><th>Last found</th><th>First found</th></tr>
+<tr><td><b>http://watsonjkc.by.ru/index.html</b></td><td><a href="view_page.html?id=2666802812-4015683220">2666802812-4015683220</a></td><td>2009-01-23 04:06:07</td><td>2009-01-23 04:06:07</td></tr>
+<tr><td><b>http://www.sncgbl.com/e-card.exe</b></td><td><a href="view_page.html?id=60537107-192533785">60537107-192533785</a></td><td>2008-12-12 21:10:45</td><td>2008-12-10 15:09:37</td></tr>
+<tr><td><b>http://zonzamas.info/ecard.exe</b></td><td><a href="view_page.html?id=1055904057-2325687722">1055904057-2325687722</a></td><td>2008-11-13 15:57:36</td><td>2008-11-11 04:28:00</td></tr>
+<tr><td><b>http://www.123greetings.com</b></td><td><a href="view_page.html?id=3705026843-1210521700">3705026843-1210521700</a></td><td>2008-11-13 15:57:36</td><td>2008-09-09 06:27:20</td></tr>
+<tr><td><b>http://laureselignac.com/e-card.exe</b></td><td><a href="view_page.html?id=2994239545-1599095204">2994239545-1599095204</a></td><td>2008-10-30 02:46:27</td><td>2008-10-29 07:11:14</td></tr>
+<tr><td>http://omzgolitsino.ru/cnnhottopics.html</td><td><a href="storm_page_analysis_3752449431-1505301544.html">Obfuscated CNN</a></td><td>2008-10-21 12:08:27</td><td>2008-08-10 13:16:01</td></tr>
+<tr><td>http://www.whethergrand.com/linkto/bn.manage.html</td><td></td><td>2008-10-18 15:59:32</td><td>2008-10-18 09:41:25</td></tr>
+<tr><td>http://www.whethergrand.com/</td><td></td><td>2008-10-18 15:59:32</td><td>2008-10-18 09:41:25</td></tr>
+<tr><td>http://www.whethergrand.com/m/clik?e=rjh@vivtek.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 15:59:32</td><td>2008-10-18 15:59:32</td></tr>
+<tr><td>http://www.createready.com/m/clik?e=vivtek.comrms46@vivtek.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 15:37:14</td><td>2008-10-18 15:37:14</td></tr>
+<tr><td>http://www.createready.com/linkto/bn.manage.html</td><td></td><td>2008-10-18 15:37:14</td><td>2008-10-18 01:53:30</td></tr>
+<tr><td>http://www.createready.com/</td><td></td><td>2008-10-18 15:37:14</td><td>2008-10-18 01:53:30</td></tr>
+<tr><td>http://www.forgivenesslove.com/linkto/bn.manage.html</td><td></td><td>2008-10-18 15:24:58</td><td>2008-10-18 15:24:58</td></tr>
+<tr><td>http://www.forgivenesslove.com/m/clik?e=gerbertambrose@vivtek.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 15:24:58</td><td>2008-10-18 15:24:58</td></tr>
+<tr><td>http://www.forgivenesslove.com/</td><td></td><td>2008-10-18 15:24:58</td><td>2008-10-18 15:24:58</td></tr>
+<tr><td>http://www.tonewest.com/m/clik?e=noquarter@despammed.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 15:06:26</td><td>2008-10-18 15:06:26</td></tr>
+<tr><td>http://www.tonewest.com/</td><td></td><td>2008-10-18 15:06:26</td><td>2008-10-18 15:06:26</td></tr>
+<tr><td>http://www.tonewest.com/linkto/bn.manage.html</td><td></td><td>2008-10-18 15:06:26</td><td>2008-10-18 15:06:26</td></tr>
+<tr><td>http://www.possiblegood.com/</td><td></td><td>2008-10-18 15:02:11</td><td>2008-10-18 15:02:11</td></tr>
+<tr><td>http://www.possiblegood.com/m/clik?e=miquelsm@vivtek.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 15:02:11</td><td>2008-10-18 15:02:11</td></tr>
+<tr><td>http://www.possiblegood.com/linkto/bn.manage.html</td><td></td><td>2008-10-18 15:02:11</td><td>2008-10-18 15:02:11</td></tr>
+<tr><td>http://www.fromyes.com/</td><td></td><td>2008-10-18 14:06:22</td><td>2008-10-18 02:11:51</td></tr>
+<tr><td>http://www.fromyes.com/m/clik?e=02@vivtek.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 14:06:22</td><td>2008-10-18 14:06:22</td></tr>
+<tr><td>http://www.fromyes.com/linkto/bn.manage.html</td><td></td><td>2008-10-18 14:06:22</td><td>2008-10-18 02:11:51</td></tr>
+<tr><td>http://www.chiefterm.com/m/clik?e=paulvtm@vivtek.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 13:51:36</td><td>2008-10-18 13:51:36</td></tr>
+<tr><td>http://www.chiefterm.com/linkto/bn.manage.html</td><td></td><td>2008-10-18 13:51:36</td><td>2008-10-18 13:51:36</td></tr>
+<tr><td>http://www.chiefterm.com/</td><td></td><td>2008-10-18 13:51:36</td><td>2008-10-18 13:51:36</td></tr>
+<tr><td>http://www.strengthfly.com/linkto/bn.manage.html</td><td></td><td>2008-10-18 11:57:04</td><td>2008-10-18 07:15:00</td></tr>
+<tr><td>http://www.strengthfly.com/</td><td></td><td>2008-10-18 11:57:04</td><td>2008-10-18 07:15:00</td></tr>
+<tr><td>http://www.strengthfly.com/m/clik?e=chao@vivtek.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 11:57:04</td><td>2008-10-18 11:57:04</td></tr>
+<tr><td>http://www.rubpush.com/</td><td></td><td>2008-10-18 11:31:54</td><td>2008-10-18 10:05:44</td></tr>
+<tr><td>http://www.rubpush.com/linkto/bn.manage.html</td><td></td><td>2008-10-18 11:31:54</td><td>2008-10-18 10:05:44</td></tr>
+<tr><td>http://www.rubpush.com/m/clik?e=karlenss@vivtek.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 11:31:54</td><td>2008-10-18 11:31:54</td></tr>
+<tr><td>http://www.fromyes.com/m/clik?e=lucaise@vivtek.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 10:51:10</td><td>2008-10-18 10:51:10</td></tr>
+<tr><td>http://www.rubpush.com/m/clik?e=podlodka131@despammed.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 10:05:44</td><td>2008-10-18 10:05:44</td></tr>
+<tr><td>http://www.momentlove.com/linkto/bn.manage.html</td><td></td><td>2008-10-18 09:56:48</td><td>2008-10-18 05:03:34</td></tr>
+<tr><td>http://www.momentlove.com/m/clik?e=tozzi@despammed.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 09:56:48</td><td>2008-10-18 09:56:48</td></tr>
+<tr><td>http://www.momentlove.com/</td><td></td><td>2008-10-18 09:56:48</td><td>2008-10-18 05:03:34</td></tr>
+<tr><td>http://www.whethergrand.com/m/clik?e=jlaijy@vivtek.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 09:41:25</td><td>2008-10-18 09:41:25</td></tr>
+<tr><td>http://www.couragecommon.com/m/clik?e=alexkrishnah@vivtek.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 09:35:32</td><td>2008-10-18 09:35:32</td></tr>
+<tr><td>http://www.couragecommon.com/linkto/bn.manage.html</td><td></td><td>2008-10-18 09:35:32</td><td>2008-10-18 01:50:49</td></tr>
+<tr><td>http://www.couragecommon.com/</td><td></td><td>2008-10-18 09:35:32</td><td>2008-10-18 01:50:49</td></tr>
+<tr><td>http://www.fromyes.com/m/clik?e=imaginatorium@despammed.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 08:33:38</td><td>2008-10-18 08:33:38</td></tr>
+<tr><td>http://www.aspirationtold.com/linkto/bn.manage.html</td><td></td><td>2008-10-18 07:53:28</td><td>2008-10-18 03:36:23</td></tr>
+<tr><td>http://www.aspirationtold.com/m/clik?e=podlodka131@despammed.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 07:53:28</td><td>2008-10-18 07:53:28</td></tr>
+<tr><td>http://www.aspirationtold.com/</td><td></td><td>2008-10-18 07:53:28</td><td>2008-10-18 03:36:23</td></tr>
+<tr><td>http://www.strengthfly.com/m/clik?e=info@vivtek.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 07:15:00</td><td>2008-10-18 07:15:00</td></tr>
+<tr><td>http://www.hardfresh.com/linkto/bn.manage.html</td><td></td><td>2008-10-18 07:09:43</td><td>2008-10-18 07:09:43</td></tr>
+<tr><td>http://www.hardfresh.com/m/clik?e=justus@vivtek.com&l=cnn-dailytop10</td><td></td><td>2008-10-18 07:09:43</td><td>2008-10-18 07:09:43</td></tr>
+<tr><td>http://www.hardfresh.com/</td><td></td><td>2008-10-18 07:09:43</td><td>2008-10-18 07:09:43</td></tr>
+</table>
+
+</p><p>
+The <a href=spamstorm_full_link_list.html>full list is here</a>.
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

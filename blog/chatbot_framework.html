@@ -1,0 +1,171 @@
+<html>
+<head>
+<title>Chatbot framework</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">blog</p>
+<p>[ archives? ]</p>
+<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ rss feed? ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Chatbot framework</div>
+<div class="st2">(unresolved tag blogline)</div>
+<hr>
+Something I've wanted to do for a couple of years now is a sort of online
+chatbot framework thing.  In other words, this would be a testbed for different
+language analysis techniques that could be played with online and tested
+against real people.
+</p><p>
+An extension would be to connect a given chatbot to some other chatbot out
+there somewhere, and see them talk to each other.  That could be fun.
+</p><p>
+The basic framework for this kind of venture could be pretty simple, but
+could, of course, end up arbitrarily complex.  You'd need some kind of 
+principled semantic framework (which would start at a simple box with words
+in it and ramify through increasingly sophisticated syntactic and semantic
+analyses -- the idea is to have a framework which can support both simplistic
+single-word pattern matching to select a response, or use sentence frames
+to extract some subject patterns to be manipulated in the response, right
+up through a hypothetical Turing-complete NLP parser.)
+</p><p>
+The session would contain a list of facts and "stuff" which corresponds to the,
+I dunno, dialog memory of a conversation.  There could optionally be some kind
+of database memory of earlier conversations with a given contact.  Again, this
+would run the gamut from simple named strings to be substituted into a response
+pattern, to complete semantic structures of unknown nature, which would be
+used to generate more sophisticated conversation.
+</p><p>
+Then the third and final component would be the definition of a chatbot itself.
+This would consist of a set of responses to given situations (a situation being the current string incoming plus whatever semantic structure has been
+accumulated during the course of the conversation.)  There could be a
+spontaneity "response", i.e. something new said after some period of time
+without an answer from the other.  Again -- it should be possible to start
+small and stupid, with simple word patterns, random-response lists, and the
+like, and build upwards to more complicated semantics.
+</p><p>
+The ability to detect and switch languages would be of great use, of course,
+and there should be some kind of facility for that as well.
+</p><p>
+Wouldn't it be nice to be able to build a chatbot for language practice in,
+say, Klingon or L&aacute;adan?  I mean, how else could you reasonably practice
+a constructed language?
+</p><p>
+Anyway, when I have time, I'll certainly be doing something with this idea.  Any year now, yessir, any year.
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

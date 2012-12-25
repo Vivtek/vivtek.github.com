@@ -1,0 +1,394 @@
+<html>
+<head>
+<title>Text image handling</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">text image handling</p>
+<p>[ <a href="/projects/text_registration">project</a> ]</p>
+<p>[ <a href=todo.html>to-do list</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=todo>new task</a> ]</p>
+<p>[ <a href=archive.html>view archive</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Text image handling</div>
+In translation, it is not unusual to receive PDFs containing scanned pages of text, which must be translated into a word processor.  In many cases,
+OCR can be used to convert the scanned images into text so that translation memory tools can be brought to bear, but there are some special cases
+where the OCR approach isn't ideal.
+</p><p>
+One such case arises in translation of clinical trial data for legal discovery.  Here, it's not unusual to have scanned copies of nearly identical
+documents which have been marked by hand in various ways, multiple copies of forms having been filled out and the like.
+Ideally, we'd like to be able to "cancel out" the constant form, leaving only the variable handwritten or typed portion, then translate everything only
+once.
+</p><p>
+Graphics libraries can be used to compare images, and "subtract" masks from images -- but there's a problem with that.  They work on a pixel-by-pixel
+basis.  That's fine when we have two graphics which have been modified on a computer.  But print the forms and scan them on different scanners -- or
+fax them! -- at slightly different angles, different offsets, perhaps even with other optical distortion, and we're rapidly lost in a flood of
+single-pixel differences that render that simplistic solution useless.
+</p><p>
+What we need to do, for any two pages we believe are nearly identical, is to offset one, rotate it, and perhaps even skew it a little, while comparing
+it to the other, leaving the <i>best possible</i> set of minimum differences.  This process is called <b>registration</b> of the images and it's done
+a whole lot for medical imagery and for scanned text documents.  Normally, we have a clean copy of the form to register the scanned, filled-in copy
+against, and we subtract the form, leaving only the text filled in.  This is called "form drop-out".  There's a nice-looking commercial library for
+dealing with this kind of problem, Accusoft Pegasus formfix; a development license costs $1499 or $3999 and per-seat licensing is up to $599.  This
+library was used for the last US Census, so you know it works.  But ... it only works on Windows, and it costs, well, a <i>whole lot</i>.  And it's
+not actually doing precisely what we want, because in this translation situation we don't actually have a clean copy of the original form; we need
+to discover it by chucking a sufficient number of dirty forms at it.
+</p><p>
+Surely, the open-source community can do this.  Surely <i>I</i> can do this.  Right?  And if we can do this with open-source code, then sure, the
+Accusoft Pegasus list of features will make a dandy project to-do list.  It's nice of them to tell us what people want to do with this sort of solution.
+</p><p>
+So what tools do we have?  There are two main open-source graphics handling libraries that I know of: ImageMagick, and PIL.  After asking MetaFilter for advice on this topic, I have now also heard of ITK, which is a C++ library with good Python bindings, but it looks as though ITK is aimed more at high-resolution medical imagery, and has a steep learning curve.  I don't really feel like spending the time needed to delve into that can of worms.
+</p><p>
+Similarly, I decided against ImageMagick because I've always had a
+hard time getting ImageMagick compiling with Perl for some reason.  The upshot is that for this particular project I decided to go with Python and PIL, the Python
+Imaging Library, to handle the graphics.  PIL doesn't have the impressive feature set that ImageMagick and ITK have, but most of that stuff we just don't need for this project, plus it works right out of the box with Python, and I don't have the time to spend this month getting PerlMagick or ITK to run.
+</p><p>
+This project will break down into the following phases:
+<ol>
+<li><a href="#extraction">Extracting the graphics</a>
+<li><a href="#registration">Form registration</a>
+<li><a href="#unit_ext">Extracting text to translate</a>
+<li><a href="#trans">Translation</a>
+<li><a href="#instantiation">Building the final translated documents</a>
+</ol>
+</p><p>
+Let's handle those one by one.
+</p><p>
+<a name="extraction">
+<div class="t2">Extracting the graphics</div>
+</p><p>
+The first step before processing the graphics is to <i>get</i> the graphics.  My starting point is a set of PDF files containing the scanned images of the form pages.  PIL doesn't
+give us any access to PDF, so first I have to extract the images for each page.  My first thought in anything like that is to use ImageMagick from
+the command line, and so here's something that almost works:
+</p><p>
+<pre class=code>
+&gt; convert PDF1.pdf[0] p1.gif
+</pre>
+</p><p>
+That extracts frame 0 (the first page) of the PDF out into a GIF file for handling -- only there's one problem.  ImageMagick thinks that the size
+of the graphic on each page is 595x841.  When converted to GIF, that loses a great deal of the resolution of the graphics, and there's no way I can
+respecify the size to give me anything different.  This is common with ImageMagick, in my experience.  What it does, it does amazingly well, with
+no fuss or bother, and you can just rely on it.  But what it doesn't do, it just won't do.
+</p><p>
+But never fear -- our second PDF-related weapon is a small toolbox included with <a href=http://www.foolabs.com/xpdf/home.html>Xpdf</a>.
+Now, Xpdf is a viewer written for Unix, and I'm running this
+on Windows (because, Dear Reader, the Windows operating system has a stranglehold on the translation industry, and we all know it).  But there are a
+few command-line tools using the libraries for that viewer which have been ported to Windows, and those tools include pdfimages, which extracts all
+the images embedded in a PDF file out into the filesystem.  PDF uses three formats for images: PBM (Portable Bit Map), PPM (Portable Pix Map), and JPEG.
+PIL doesn't get the PBM or PPM formats, but that's OK, ImageMagick <i>does</i> do that well, so we can use it to convert all the PBM files into GIF
+that PIL will understand.
+</p><p>
+Just to make things tidy, let's write a little script that will handle all that for us.  Normally, I would immediately choose Perl for this kind of
+scripting, but since we're going to be using PIL, let's write it in Python instead, just so all our coding here is in the same language.
+</p><p>
+<pre class="code">
+from os import *
+import re
+
+# Extract a directory name for pages from a given PDF name
+def make_target(file):
+   target = re.sub('\.pdf$', '', file)
+   target = re.sub('.*_', '', target)
+   target = re.sub(' Pat .*$', '', target)
+   target = re.sub('.* ', '', target)
+   return target
+
+for file in listdir('.'):
+   # Scan for PDFs in the project directory
+   if not re.search('\.pdf$', file): continue
+   target = make_target(file)
+   print "%s - %s" % (target, file)
+   mkdir (target)                         # Make a directory for pages
+   system ("pdfimages \"%s\" p" % file)   # Run pdfimages on the PDF
+   system ("move *.pbm %s" % target)      # Put the images into the directory
+
+   for pbm in listdir(target):            # Now for each of those files,
+      pbm = "%s\%s" % (target, pbm)
+      gif = re.sub ('pbm$', 'gif', pbm)
+      system ("convert %s %s" % (pbm, gif))  # Have ImageMagick make a GIF
+      remove ("%s" % pbm)                    # Get rid of the PBM
+
+      # Have ImageMagick tell us the size of the GIF
+      identify = popen ("identify %s" % gif, 'r')
+      identify = identify.read()
+      identify = re.sub ('.*GIF ', '', identify)
+      identify = re.sub (' .*$', '', identify)
+
+      (x, y) = identify.split('x')
+
+      # If the page is in landscape mode, rotate it.
+      if (x &gt; y):
+         print "rotating %s" % gif
+         system ("move %s tmp.gif" % gif)
+         system ("convert tmp.gif -rotate 90 %s" % gif)
+</pre>
+</p><p>
+Now we have a directory for each PDF file, with a series of GIFs in each directory.  Ideally, that would be one per page, but for some reason, the
+PDFs I have are interspersed with single-pixel blank images.  And then some of the pages were scanned upside down, requiring manual correction.  Finally, some of the PDFs have extraneous pages (individual lab reports or notes) inserted between pages of the form.
+</p><p>
+In the end, I decided to try a little OCR, taking advantage of the fact that all the actual form pages have the same two lines of header at the top, except for the page number.  I can therefore extract the text of the page, look at the page number in the heading, and assign the file to the page I expect -- if OCR can't get the page number, I'll just consider it an extraneous page and deal with it manually.
+</p><p>
+Python is underrepresented in the open-source OCR arena, but Google has made Tesseract (an OCR engine developed at HP and now used for Google Books) available on the command line as open source, so let's whip out a new script to take advantage of that, again in Python but calling things on the command line.
+</p><p>
+Tesseract, of course, can't read GIF files, so there's a call to ImageMagick to convert to a BMP file before calling Tesseract.  It's messy, but it works.
+</p><p>
+The top loop is just the same as for the previous script; we'll continue to use the PDF files to drive the process.
+</p><p>
+<pre class="code">
+import os
+import re
+
+def make_target(file):
+   target = re.sub('\.pdf$', '', file)
+   target = re.sub('.*_', '', target)
+   target = re.sub(' Pat .*$', '', target)
+   target = re.sub('.* ', '', target)
+   return target
+
+for file in os.listdir('.'):
+   if not re.search('\.pdf$', file): continue
+   target = make_target(file)
+   print "%s - %s" % (target, file)
+
+   report = open ('%s\_overview.txt' % target, 'w')
+
+   for gif in os.listdir(target):
+      if not re.search('\.gif$', gif): continue
+      p = re.sub('\.gif', '', gif)
+      gif = "%s\%s" % (target, gif)
+
+      os.system ("convert %s extract.bmp" % gif)
+      os.system ("tesseract extract.bmp extract -l deu")
+
+      extract = open('extract.txt').read().split('\n')[1].lower()  # Python makes me do this kind of thing.
+      extract = re.sub('l', '1', extract) # correct for some dirty 'one' digits in the scan
+
+      m = re.match('.* seite (\d+)$', extract)
+      if m:
+         page = m.group(1)
+         if len(page) &lt; 2: page = "0%s" % page
+         report.write ("%s - Page %s\n" % (p,page))
+         os.system ("copy %s %s\page%s.gif" % (gif, target, page))
+      else:
+         report.write ("%s - extraneous page\n" % (p))
+
+   report.close()
+</pre>
+</p><p>
+Just for the sake of neatness, this also writes a file '_overview.txt' to every directory telling us, for each p-nnn.gif file, whether it is a recognized form page (and thus copied into a pagenn.gif) or extraneous (and thus in need of manual translation).
+</p><p>
+Due to OCR's notorious pickiness, this script miscategorizes a few legitimate pages as extraneous, so I went back manually to modify the _overview.txt listing and copy those pages by hand.  This wouldn't strictly be necessary -- the comparison in the next step would just work with 16 copies instead of 18 -- but this way I can get a better picture of the actual size of the translation that will be needed for the truly extraneous pages.
+</p><p>
+After that's done, we can write a little script to pull the extraneous pages out into a "manual" directory, like this:
+</p><p>
+<pre class="code">
+import os
+import re
+
+for target in os.listdir('.'):
+   o = "%s\_overview.txt" % target
+   try:
+      if not os.stat (o): continue
+   except WindowsError:
+      continue
+
+   for line in open (o).read().split('\n'):
+      if not re.search ('extraneous', line): continue
+      if re.search ('p-000', line): continue
+      print "%s - %s" % (target, line)
+      gif = re.sub(' .*$', '', line)
+      os.system ("copy %s\%s.gif manual\%s-%s.gif" % (target, gif, target, gif))
+</pre>
+</p><p>
+Note that the presence of the _overview.txt file in each directory gives us a more streamlined way to loop through our material.
+</p><p>
+<a name="registration">
+<div class="t2">Form registration</div>
+</p><p>
+This is the hard part.  For each set of "identical" pages now in the directories in files named pagenn.gif, we have to find the rotation, X and Y offsets, and skew that make them as identical as possible.  Once we've got that, we can average the whole set out to get the form, and then subtract that form from each page to get the filled-in parts.  Should be easy, right?  Ha!  I like your sense of optimism.
+</p><p>
+Just to make things a little easier to manage, I decided to shuffle the files into new directories, so that all the page 1's are in a directory page01 under the names of their parent PDFs.  Here's how that works:
+</p><p>
+<pre class="code">
+import os
+import re
+
+for target in os.listdir('.'):
+   o = "%s\\_overview.txt" % target
+   try:
+      if not os.stat (o): continue
+   except WindowsError:
+      continue
+
+   for line in open (o).read().split('\n'):
+      if not re.search ('Page', line): continue
+      page = re.sub('^.* ', '', line)
+
+      try:
+         if not os.stat ("page%s" % page):
+            os.mkdir ("page%s" % page)
+      except WindowsError:
+         os.mkdir ("page%s" % page)
+
+      print "%s - %s - %s" % (target, line, page)
+      os.system ("copy %s\\page%s.gif page%s\\%s.gif" % (target, page, page, target))
+</pre>
+</p><p>
+Once that's done, we can look at each group of pages and scan back and forth, seeing what we can see.  For instance, two of the sets are scanned at a larger scale than the others.  Since they're consistent, we can set up hints for the script to make it easier for it to figure out how to match them with the rest of the pages.
+</p><p>
+Our basic algorithm is going to be simple.  For each page set, we're going to load all the pages into memory, starting with a blank slate.  We'll ratchet down the contrast so that each pixel is a single bit, on or off.  Then we'll pick a pair of pages, and vary the offset in X and Y, the rotational angle, and the skew of one so that when the total set of pixels is subtracted from the other, as few bits are different as possible.
+</p><p>
+For the next page, we'll start with the same set of parameters, on the theory that the same scanner was used.
+</p><p>
+This is a simple hill-climbing optimization technique, because I don't think the search space will require anything more drastic than that.  We will see how well it works, tomorrow.
+</p><p>
+<a name="unit_ext">
+<div class="t2">Extracting text to translate</div>
+</p><p>
+Now that we've got a graphic for each page with "fill-ins", we want to extract each individual fill-in.  The result here will be a kind of database of graphical information, each lined up with a specific form field -- there may be additional notations written on any page that doesn't correspond to a form field, though.
+</p><p>
+<a name="trans">
+<div class="t2">Translation</div>
+</p><p>
+For each field, we translate.  If we have typewritten form text, we could imagine running OCR over it.  In my particular case, the text is handwritten, so this project will just provide a big Word document with tables, the left column being the graphics and the right column available for typing the translated text.
+</p><p>
+Of course, we can run OCR on the form itself and translate with normal tools.  We'll need it in the next step.
+</p><p>
+<a name="instantiation">
+<div class="t2">Building the final documents</div>
+</p><p>
+For delivery to the customer, of course, we need a Word document for each PDF file.  We now have the form used to fill each copy in, so we just need to get the database text back into the form, once for each copy, then -- by hand -- we can insert the notations that aren't form fields.
+</p><p>
+This is a mail merge, of course, but given the sheer number of fields, I don't want to mess with inserting a whole slew of mail merge fields.  Instead, we'll scan the Word document at the outset and use our knowledge of the number of fields on each page to assign the form markers ourselves.
+</p><p>
+This works great in Python, too.
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

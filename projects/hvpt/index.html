@@ -1,0 +1,295 @@
+<html>
+<head>
+<title>HVPT phonetic word pair trainer</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">hvpt</p>
+<p>[ <a href="/projects/hvpt/">index</a> ]</p>
+<p>[ <a href="/projects/hvpt/todo.html">to-do list</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">HVPT phonetic word pair trainer</div>
+The HVPT phonetic word pair trainer is a Web-based tool which, given the target
+language of a student and an optional set of focus phoneme pairs, can present
+a series of audio recordings of native speakers pronouncing words featuring
+the pairs, allowing the student to select the word pronounced.
+</p><p>
+There are two main subsystems in this project:
+</p><p>
+1. The trainer itself, which presents the words, keeps score, and manages scores.
+</p><p>
+2. A setup facility allowing people to suggest new languages, new phoneme pairs, new words, and new "focus groups" (groups of phonemes which particular groups of students have trouble with -- the needs of native Japanese speakers differ from those of native Spanish speakers) and to provide new audio snippets to be
+integrated into the trainer.
+</p><p>
+This site's purpose is to present the technical infrastructure for this project;
+the trainer itself will ultimately reside elsewhere -- although during
+development, it will reside here for ease of use (and the development version
+will continue to reside here.)
+</p><p>
+<div class="title">Trainer</div>
+</p><p>
+Let's look at the trainer first, and in doing so we can clarify the database
+schema we're going to need to make it work.
+</p><p>
+The example I'll use for this presentation is the English word pair MITT vs. MEET, which differ by one phoneme which many non-anglophones find hard.
+</p><p>
+The centerpiece of the trainer is the presentation page.  This page
+shows a certain number of questions (from 1, the simplest page, to n, which
+may require scrolling and might therefore be harder to use.)  Each question
+on the page consists of:<ul>
+<li>A button or question mark which the user can mouse over or click to hear the word in question.
+<li>Two words under that (MITT and MEET), on which the user can click.
+<li>A score box, either to the side or between the words.
+</ul>
+</p><p>
+At the bottom of the page, if there is more than one question on the page, is
+a total score.  If the session consists of more than one page full of questions,
+then it is a subtotal, and there is a running total between all pages in the
+session.  Once you've left a page, you can't go back to it (that's a sanity
+limiter for the programmer, yes.)  [Note: one could do clever tricks with
+Javascript to make this front-end nicer -- but these tricks wouldn't affect
+the database schema one whit, so for now, I'm ignoring them.]
+</p><p>
+To select a given page, then, the student must somehow select the following:
+<ol>
+<li>A target language (example: EN or EN-UK or even EN-UK:Cockney)
+<li>A set of phoneme pairs (the set could consist of a single pair) within
+that language.
+<li>A set of word pairs exemplifying each phoneme pair.
+</ol>
+</p><p>
+That gives us a list of word pairs, from which we can generate the presentation
+page as described above rather easily with a random number generator and a
+little glue.  So our database schema is pretty simple:
+</p><p>
+<b>Language</b><ul>
+<li>Name of language
+</ul>
+</p><p>
+(Note that we might well want to add some columns for tracking, history,
+documentation, and what have you -- this list is just the part that makes it
+<i>work</i>.)
+</p><p>
+<b>Phoneme pair</b><ul>
+<li>Language
+<li>Phoneme pair specification
+</ul>
+</p><p>
+A phoneme pair specification is a string like /i/ee/ and needn't be restricted
+to two, actually.  I'm making a decision here to avoid placing that arbitrary
+restriction on the system.  (This is why I don't have two columns with one
+phoneme each.)
+</p><p>
+<b>Word pair</b><ul>
+<li>Language
+<li>Phoneme pair specification
+<li>Word pair specification
+</ul>
+</p><p>
+Same rules: e.g. /mitt/meet/ - these "words" should strictly be seen as
+keys into the word table, though, because there's no reason to restrict them
+to words we can actually display in text.  So they should be ASCII7-only, to
+make programming easy.
+</p><p>
+<b>Word</b><ul>
+<li>Language
+<li>Word specification
+<li>Display HTML (note below)
+</ul>
+</p><p>
+If the display HTML is blank, we'll default to simply using the word
+specification, but we can also point to a graphic here.
+</p><p>
+<b>Pronunciation</b><ul>
+<li>Language
+<li>Speaker
+<li>Pointer to MP3 or SWF file for audio
+</ul>
+</p><p>
+<b>Speaker</b><ul>
+<li>Language variant</li>
+</ul>
+</p><p>
+This allows us to note that Speaker A is West Coast US while Speaker B is
+London or even (gulp) Glasgow.  At some later date, I <i>guarantee</i> we'll want to be able
+to restrict pronunciations to regional dialects that students are actually
+trying to learn.
+</p><p>
+(Note again -- this Speaker record would also have name, etc., but we don't
+care about that information for the trainer itself.)
+</p><p>
+<b>Phoneme pair set</b><ul>
+<li>Name
+<li>List of phoneme pairs
+</ul>
+</p><p>
+This would allow a Japanese speaker to select a set of "trouble phonemes"
+which include "r" and "l", while a German speaker can concentrate on those
+troublesome vowels and "th" versus "s".
+</p><p>
+Later in the course of the project, I'll also introduce:
+</p><p>
+<b>User</b><ul>
+<li>User ID
+<li>Identifying or contact information
+</ul>
+</p><p>
+and
+</p><p>
+<b>Session</b><ul>
+<li>Session ID
+<li>User
+<li>Phoneme pair set or explicit list
+<li>Scoring information (both total score and phoneme pair scores.)
+</ul>
+</p><p>
+That's the database scheme for now.  I might need to move this to another
+page; it's longer than I anticipated.
+</p><p>
+<div class="title">SETUP FACILITY</div>
+</p><p>
+The main point of the setup facility is to allow people to suggest all of
+the records above, and also to upload word audio.  Since I want users
+to be able to suggest things quickly and easily, but I still need a way to
+track changes to reverse vandalism, these are the tables I'll want to include:
+</p><p>
+<b>Change</b><ul>
+<li>What was added or edited
+<li>IP address of the originator (if anonymous)
+<li>User ID (if not anonymous)
+</ul>
+</p><p>
+<b>Upload file</b><ul>
+<li>What the file purports to be (e.g. a display graphic or an audio file)
+<li>File location
+<li>IP and/or user ID
+</ul>
+</p><p>
+And that implies:
+</p><p>
+<b>Setup user</b><ul>
+<li>User ID
+</ul>
+</p><p>
+And that concludes today's lesson.  Tomorrow, with luck, I'll be able to
+code this SQL here and perhaps even start prototyping!
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

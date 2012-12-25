@@ -1,0 +1,180 @@
+<html>
+<head>
+<title>The modbot and Web-based spam</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">blog</p>
+<p>[ archives? ]</p>
+<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ rss feed? ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">The modbot and Web-based spam</div>
+<div class="st2">(unresolved tag blogline)</div>
+<hr>
+As promised, a post on the modbot.
+</p><p>
+As you know, Bob, I first got into despamming more or less seriously in 1999, when I wrote <a href=http://www.despammed.com>Despammed.com</a> and foisted
+it on an unsuspecting world.  And life intervened, as it often does, and Despammed's fortune has waxed and waned along with it, but I still retain
+a fascination for the spam.
+</p><p>
+When XRumer hit the market in November 2006, and everybody suddenly started getting forum spam, I started work on the modbot, which is a set of
+Perl code for the detection of spam on the Web.  And you know, there's lots of it.  In the context of various projects, I personally am responsible
+for monitoring a <a href=http://www.donttasemeblog.com>MovableType blog</a> (two, actually), a <a href=http://www.nowarblog.org>Scoop installation</a>, a
+<a href=http://mondoglobo.wftk.org/wiki/>MediaWiki site</a>, and the venerable old Toonbots forum on <a href=/toonbots/discuss.pl>WebBBS</a>.  And they <i>all get
+spam</i>.  The type of spam changes over time.  The modus operandi changes over time.  And I find it all irresistible.
+</p><p>
+After my first iteration of the modbot, I got distracted for about a year, and all those venues started to accumulate spam, slowly but surely.
+The Toonbots forum had some basic spam blocking in place, but it wasn't too effective, and of course MovableType has some fairly decent filters in place
+and is moderated anyway, so spam didn't proliferate too badly there.  MediaWiki doesn't seem to be a real spam magnet, either (I suspect it needs a little
+more savvy than the low-level help spammers hire can be expected to master.)  And so it was all pretty manageable until...
+</p><p>
+The nowarblog.org Scoop installation (which I'd nearly forgotten about) was slowly growing in its server demand.  I hadn't realized it for a while, because
+I had just assumed it was MediaWiki being the hog it most certainly is.  I recognized that eventually I'd have to track it down, but I'd been quite busy.
+But finally, things got so bad I couldn't neglect it any more -- Apache was spending so much time locking the CPU that sendmail wasn't actually getting
+me my mail, and that was a problem for the paying work.
+</p><p>
+So, groaning at the notion I was going to have to get into MediaWiki's PHP and cache it or something, I took a closer look.  And it turned out that
+while I wasn't watching, the nowarblog.org Scoop installation had collected 34,000 comments and change.  Shyeeah, like <i>that</i> was gonna happen.  It
+was spam.  Scoop doesn't react well to large numbers of comments -- each hit to a spammed page (including every new spam comment post) was hanging on the
+CPU for over a minute.  Of course I knew: that meant war.
+</p><p>
+I dusted off the modbot code, because I wanted to archive the spam properly because <i>eventually</i> I'm going to do some analysis.  And two days later,
+there were only twenty comments left on nowarblog.org (not for lack of trying, of course.  The modbot just cleaned up 1400 spam comments this afternoon.)
+Next I adapted it to the Toonbots forum; that went well, too.  The modbot is carefully written to be as modular as possible, because spam crops up all
+over the place and I want one single way to filter it all.
+</p><p>
+My next target is MovableType, which has two categories of spam with different characteristics.  There's normal comment spam, and I have a few
+techniques which will work well for that.  But the other category is trickier, and blog-specific: trackback spam.  Donttasemeblog.com gets about five
+trackback spams a day, and I'm still not entirely sure how to block them.  Ultimately, one test is going to be to check the link being spammed; for
+trackbacks, if it forwards to another site, I regard that as spam.  Haven't implemented it yet, though.
+</p><p>
+MediaWiki spam is going to be tougher still; I'm going to need to write code to back the revisions out carefully, and I'm not yet sure how that's
+going to work without shooting myself in the foot.  The really pernicious feature of MW spam, though, is that the spammers typically deface existing
+content.  That's really not good.  So it's going to be necessary.
+</p><p>
+One mode of the modbot is going to have to be email-based.  For simple Web-post forms which deal with email, I want to be able to filter that spam before
+it comes to me.  The normal email filters at Despammed, of course, can't begin to deal with that, because as email it's entirely legitimate.  Instead,
+a judgement has to be made based on its actual content.  That's on the to-do list, too.
+</p><p>
+Ultimately, it will be impossible to block spam -- there's no way for a machine to know with absolute certainty who you want to hear from.  But that's
+exactly what makes it so very fascinating.  The vast majority of spam is obvious, but sometimes ... sometimes you have to think about it.  And the
+natural response of spammers will have to be to get better at spamming.  I truly believe that the spam arms race is where natural computer intelligence
+has a good chance of arising.  So ... I despam.  It's my way of immanentizing the Eschaton.
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

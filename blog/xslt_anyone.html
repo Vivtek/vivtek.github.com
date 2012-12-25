@@ -1,0 +1,172 @@
+<html>
+<head>
+<title>XSLT, anyone?</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">blog</p>
+<p>[ archives? ]</p>
+<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ rss feed? ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">XSLT, anyone?</div>
+<div class="st2">(unresolved tag blogline)</div>
+<hr>
+Sunday, I translated Chapter 12 of a
+<a href=http://www.sappress.com/product.cfm?account=&product=H1934>book on ABAP programming under SAP</a>,
+forthcoming in the English edition from SAP Press in March.  This was
+actually the third chapter I'd done in this book, and the others were
+a little far afield from what I usually do, since I don't actually do
+SAP work (except from a translation standpoint.)
+</p><p>
+But this chapter was fascinating, involving the external
+interactions of the SAP system with other systems.  One of the supporting
+technologies of those interactions is SOAP, which brings up XML, which in
+turn brings up something I have never particularly paid much attention to:
+XSLT.
+</p><p>
+Wow.  I didn't know what I was missing!  XSLT is essentially a template-based
+programming language, used to transform XML structures into other XML
+structures; the idea is to support the expression of data-centric XML into
+more presentation-centric XML, but the mechanism is suitably generic.
+</p><p>
+And you know what?  There's no open-source XSLT processor written in C.  And
+this is odd, because even though the XSLT spec, like everything produced by
+the W3C, is horribly opaque, <i>really</i>, when you get down to it, XSLT
+is a pretty straightforward little language, and the parser is a no-brainer
+because <i>it is already expressed in XML</i>.  So half the hard work in
+writing a compiler is already done for you, right there.
+</p><p>
+So here is my latest exciting brainstorm: I want to set up a test-based
+environment to support the development of an XSLT processor in C.  Each test
+would consist of a starting structure, the template or templates to run on it,
+and the expected result -- that's easily imagined.  And each test also
+refers to the exact point in the W3C spec that requires it (and vice versa
+-- I'd have an annotated spec that refers back to the tests.)
+</p><p>
+The whole thing would then function as an "XSLT by examples" tutorial and
+also a testbed for a command-line XSLT processor.  Wouldn't that be a nice
+thing for the world to have?
+</p><p>
+I'm all for starting tomorrow.
+</p><p>
+<i>Update:</i> Whoops, I guess mod_xslt2 for Apache is in C, looks like.
+Well, never mind, I still think it's a bang-up idea.  We'll see what the
+New Year brings, eh?
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

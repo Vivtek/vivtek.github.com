@@ -1,0 +1,158 @@
+<html>
+<head>
+<title>Some thoughts on trackback spam</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">forum despamming</p>
+<p>[ <a href="/projects/forum_despammer">modbot</a> ]</p>
+<p>[ <a href="spam_archive/">spam archive</a> ]</p>
+<p>[ <a href="google_count.html">google count</a> ]</p>
+<p>[ <a href=todo.html>to-do list</a> ]</p>
+<p>[ <a href="despammer1.html">despammer alpha</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=todo>new task</a> ]</p>
+<p>[ <a href=archive.html>view archive</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Some thoughts on trackback spam</div>
+Since January 2008, I've been working with MovableType on a particular blog, installed on the same machine serving you this very page.  And as the tech guy and server owner, it's been up to me to figure out how to moderate comments (of course) and trackbacks.
+</p><p>
+Now here's the thing.  Comments are kind of what I think of as "standard Webspam" -- they come with a name, and an email usually, and have a text which is intended to contribute to a conversation.  So when we look at a comment, we can see if it's spam by looking at the number of links, the IP it's posted from, and so on.
+</p><p>
+But with trackback spam, we have a different beast entirely.  The IP is going to be a server with a blog on it, whether it's spam or not.  The "text" is a reference to a blog post, whether it's spam or not.
+</p><p>
+All we can really do is to examine the page it's pointing to, and make a judgment based on the content of that page.  This will be a useful thing, anyway, of course, in a number of spam contexts (links from email, for instance.)
+</p><p>
+Here are some criteria we can apply to a URL to judge spamminess:
+<ul>
+<li><b>Forwards to another page</b><br>
+This applies to trackbacks, for sure -- maybe not for other categories of link, though.  We don't want to exclude any comment referring to a tinyurl forwarder, for instance.  (But that wouldn't be appropriate in a trackback.)<br>
+<li><b>Contains malware or obfuscated Javascript</b><br>
+Malware would definitely be a spam sign.  Obfuscated JS, though ... maybe a strike against, without being a definite spam sign (unless the obfuscated script is itself malware of some sort, of course.)
+<li><b>Links to a known spammed site</b><br>
+Data-based filters are hard to keep up with, but here, I'm thinking of gateway pages which front for, say, "pharmacies".
+<li><b>Text analysis yields spam sign</b><br>
+If a page has 100 instances of the word "phentermine", we're pretty sure it's not a page we're interested in.
+<li><b>A link list to suspicious pages</b><br>
+Again -- this is an intuitive thing which a human would see and immediately say, "spam".  How to get the machine to recognize it, well, that's where despamming gets fun, you see.
+</ul>
+</p><p>
+Anyway, that's some food for thought.
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

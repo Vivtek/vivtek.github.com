@@ -1,0 +1,262 @@
+<html>
+<head>
+<title>Microsoft Word macros for boxed text</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">blog</p>
+<p>[ archives? ]</p>
+<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ rss feed? ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Microsoft Word macros for boxed text</div>
+<div class="st2">(unresolved tag blogline)</div>
+<hr>
+One of the neat little things I did over the past few days was a
+simple Word macro -- at least, it <i>should</i> have been simple, but
+the problem is one I've had for a long time.
+</p><p>
+In this case, what I wanted to do was to fix up a few documents I had from
+a translation customer.  This particular end user, for reasons known only
+to them, captions their figures using fields.  The fields are in text boxes
+for easy positioning, and the field results (the text you see on the screen)
+are the captions.
+</p><p>
+Only one problem: the fields are always variable results for <i>variables
+which don't exist in the document</i>.  All I can figure is that the
+document preparer makes these things in little snippets with some other tool
+which spits out Word texts, then they paste those into the text boxes.
+</p><p>
+So, you're asking now (unless you're a professional translator) who cares?
+You just type your English over the German in the captions, and you're
+home free, right?  Well: no.  Everybody who's anybody in the wonderful
+world of translation nowadays uses translation tools, in this case TRADOS.
+</p><p>
+TRADOS does two things for you: it stores each and every sentence you translate
+in a <i>translation memory</i> (a TM), so you (sort of) never need to 
+translate anything twice, and it also makes it much easier to step through
+a document translating.  The use of TRADOS makes translation <i>much</i>
+easier, and it also helps you stay consistent in your use of words and
+phrases.
+</p><p>
+Herein lies the problem: those fields were untouchable by TRADOS.  There are
+two modes in TRADOS: one steps through the document using Word macros
+but doesn't deal well
+with text boxes (and yes, you'll note they're in
+text boxes).  So that approach was out.
+The other (the TagEditor) converts the entire document to an
+XML format, then edits that in a very convenient way.  The TagEditor makes
+short work of text boxes, but those field results were invisible to it.
+</p><p>
+Stuck!  And so for a series of three jobs from that customer, I just didn't
+use TRADOS on the figure attachments, and hated it.  Last week, though, I
+took screwdriver in hand (metaphorically speaking) and decided it was
+showdown time.
+</p><p>
+OK, that's the teaser -- follow the link to get the ... <i>rest</i> of the
+story.
+!FOLD
+So as it turns out, the reason TRADOS Word macros don't deal well with text
+boxes is -- to put it gently -- Microsoft Word's handling of text boxes is
+stupid.
+</p><p>
+The main document text you see before you turns out to be only one of
+an arbitrary number of <i>stories</i> in the document.  And yes, each text
+box is itself a story.  So any macro which wants to look at all the text
+in a document must walk through all the stories.  Word's own word counter
+won't do that, by the way.  If your text is in text boxes, Word won't count
+it.  (Which is why most translators use some other tool to count words.)
+</p><p>
+Here is how Microsoft's documentation defines stories:
+</p><p>
+<blockquote>
+ story
+</p><p>
+ A document area that contains a range of text distinct from other
+ areas of text in a document. For example, if a document includes body
+ text, footnotes, and headers, it contains a main text story, footnotes
+ story, and headers story.
+</p><p>
+ There are 11 different types of stories that can be part of a
+ document, corresponding to the following WdStoryType constants:
+ wdCommentsStory, wdEndnotesStory, wdEvenPagesFooterStory,
+ wdEvenPagesHeaderStory, wdFirstPageFooterStory,
+ wdFirstPageHeaderStory, wdFootnotesStory, wdMainTextStory,
+ wdPrimaryFooterStory, wdPrimaryHeaderStory, and wdTextFrameStory.
+ The StoryRanges collection contains the first story for each story
+ type available in a document. Use the NextStoryRange method to return
+ subsequent stories.
+</blockquote>
+</p><p>
+So all I have to do is to loop through the stories, find all the fields
+in each, select each field, and replace it with its own contents.  Then I
+can run TRADOS on the resulting document and translate my little heart out.
+</p><p>
+Only one problem (ha!): Word won't loop through the stories.  Word instead
+will only loop through the <i>types</i> of story in the document, and you can
+loop through the stories in each type after that.  Ugh!
+</p><p>
+Here's my code:
+<pre>
+   For Each sr In ActiveDocument.StoryRanges
+      If sr.StoryType = wdTextFrameStory Then
+         done = False
+         While Not done
+            ct = sr.Fields.Count
+            For i = 1 To ct
+               Set f = sr.Fields(1)
+               t = f.Result.Text
+               f.Select
+               Selection.Text = t
+            Next i
+<br>
+            Set sr = sr.NextStoryRange
+            If sr Is Nothing Then done = True
+         Wend
+      End If
+   Next sr
+</pre>
+</p><p>
+Note a few things:
+<ul>
+<li>Always use "Set" when setting object references!  Otherwise (as I always
+rediscover, since I use Visual Basic once every two years) VB will helpfully
+dereference the object for you and convert it to a string.  Which, of course,
+will be <i>useless</i>.
+<li>The "sr" object is the story range.  That is simply the full text of
+each story in the loop.  Note that for this particular task, I didn't want
+to mess with headers, footers, etc., so I'm skipping anything that's not
+a text box (a "text frame story" in OO parlance.)
+<li>The payload starts at "ct = sr.Fields.Count".  That's where we look at
+the fields in the text box.  For each one, we grab its result with "f.Result.Text", then select the field with "f.Select", then replace it.
+<li>After each field is replaced, the next field is <i>still field number 1</i>
+in the range!  That's why we can't do a For Each loop here.
+<li>Note the double loop: we have a For Each sr around the top, then a 
+While Not done with the test at the end.  The For Each iterates through the
+story range types (by moving from the first of each type to the first of the
+next type).  The "Set sr = sr.NextStoryRange" is responsible for finding
+all the instances of a given story type while in that loop.
+</ul>
+</p><p>
+And thus concludes my daily code posting.  Join us again tomorrow, kids!
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

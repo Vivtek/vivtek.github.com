@@ -1,0 +1,226 @@
+<html>
+<head>
+<title>RFC1867 HTTP file upload</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/toonbots/>toonbots</a> ]</p>
+<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
+<p>[ <a href=/wftk/>workflow</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/services.html>translation</a> ]</p>
+<p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
+<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
+<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">RFC1867 HTTP file upload</div>
+RFC1867 is the standard definition of that "Browse..." button that you use to upload files to
+a Web server.  It introduced the INPUT field type="file", which is that button, and also
+specified a multipart form encoding which is capable of encapsulating files for upload along
+with all the other fields on an upload form.
+</p><p>
+It's not easy to find documentation on how to work with this stuff, though.  Partly this is
+because if you're writing a Perl CGI it's really rather easy to work with, and partly it's due
+to the fact that Microsoft IIS ASP doesn't (exactly) support RFC1867 file upload.  So on the one hand
+the Unixheads think it's too trivial to document, while the ASP script kiddies 
+think that file upload is the exclusive preserve of genius and guru alike.
+  I.e. Bill doesn't think you need to use it.
+</p><p>
+If that last sounds overly bitter, it's because I just finished up a really horrible job that
+involved uploading files to an IIS server.  It would have been nice had somebody at Microsoft
+found file upload a sufficiently significant function to design competently.  As it is, IIS 5.0
+now provides a "Request.ReadBinary" method that gives you the whole request in plaintext, and
+graciously allows you to design your own object to read it.  Note that VBS has no (easy)
+ability to read this binary data.
+</p><p>
+So let's assume for the time being that you're working with some reasonable non-IIS server.  How
+do you really deal with file upload?  It turns out to be easy.  First, you design your form so that
+it will actually do an upload.  In short, do this:<br>
+</p><p>
+<pre class="code">
+&lt;form action=/mycode.cgi method=post <b>enctype=multipart/form-data</b>&gt;
+  &lt;input <b>type="file"</b>&gt;
+&lt;/form&gt;
+</pre>
+In case you were wondering, the standard encoding type for a form is application/x-www-form-urlencoded, 
+and if you leave the multipart enctype out of your form, then Netscape, for one, will not upload
+the file, it'll just include the filename.  If that's what you actually want, this is pretty
+useful.  (However, the RFC leaves behavior in this situation undefined, so you shouldn't rely on
+any particular behavior.  I haven't looked to see what IE does in this situation.  Undoubtedly
+something different.)
+</p><p>
+So this much information I already knew going into my horrible project, or at least knew of it.
+That's why I assumed that the server end was just as simple.  And as I mentioned, in Perl it
+isn't much more difficult than retrieving normal posted data is already.  It's just that IIS
+doesn't support multipart/form-data posts, that's all.  Oh, Microsoft has a solution of sorts,
+called the something-or-other manager, and IIS 5.0 is so powerful that this manager thingy is
+now included <i>right in the service pack</i> with, gee, at least a kilobyte of documentation.
+</p><p>
+Yeesh.  I'm off-track again, aren't I?
+</p><p>
+OK, so when this post gets to the server, what does it look like?  Well, first of all the
+Content-type header of the request is set to<br>
+&nbsp;&nbsp;<code>multipart/form-data; boundary=[some stuff]</code><br>
+This is how you can ascertain that you're really dealing with a properly encoded upload post.
+The boundary value is probably of the form --------------------------------1878979834, where the
+digits are randomly generated.  This boundary is a MIME boundary; it's guaranteed not to appear
+anywhere in the data except between the multiple parts of the data.
+</p><p>
+The data itself appears in blocks that are made up of lines separated by CR/LF pairs.  It looks
+like this, more or less:<br>
+</p><p>
+<pre class="code">
+-------------------------------18788734234
+Content-Disposition: form-data; name="nonfile_field"
+
+value here
+-------------------------------18788734234
+Content-Disposition: form-data; name="myfile"; filename="ad.gif"
+Content-Type: image/gif
+
+[ooh -- file contents!]
+-------------------------------18788734234--
+</pre>
+</p><p>
+As you can see, this post isn't from the form I listed above, because I threw in a non-upload
+field just to show what it looks like.  Anyway, you can see where everything is.  Note that
+you get the originating local filename of the document for free in this format, meaning that
+you can use this to develop a document management system.  Actual
+implementation is left as an exercise for the reader.  I'll write more later on this topic,
+especially if you ask me any questions.  Hint, hint.
+</p><p>
+So a Perl reader for this guy is simple: you iterate on the lines of the input and break on
+your boundary.  Do things with the parts as you find them.
+I have an extensive example that you can read and use, <a href="http://www.vivtek.com/cgi/getargs.html">which
+you can see here.</a>  It works (I'm using it daily) and it's well-documented.
+</p><p>
+And thus concludes the lesson for today.  Go forth and upload files.
+<div class="title">LINKS</div>
+</p><p>
+<ul>
+<li><strong><a href=/linkout/www.cis.ohio-state.edu/htbin/rfc/rfc1867.html>RFC1867 at Ohio State</a></strong><br>
+An interesting RFC, actually, as it goes into some of the alternatives that the working group
+rejected in the interest of a clean design.
+<li><strong><a href=http://www.vivtek.com/cgi/getargs.html>Perl/CGI implementation of RFC1867</a></strong><br>
+My implementation in Perl.  Literately programmed.
+</ul>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

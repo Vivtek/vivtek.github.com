@@ -1,0 +1,166 @@
+<html>
+<head>
+<title>Paraphrasing tools</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">paraphrasing tools</p>
+<p>[ <a href="/projects/paraphrase">project</a> ]</p>
+<p>[ <a href="/projects/paraphrase/todo.html">to-do list</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Paraphrasing tools</div>
+This project originated in the recent tussle between Rogers Cadenhead (Drudge Retort) and The AP, in which The AP asserted copyright over excerpts
+from its news items as short as five words (and threatened Cadenhead with DMCA action for excerpts of 39 words.)  I reasoned at that time that if excerpts
+were paraphrased, then logically copyright should not apply.  Now note -- The AP also asserts a right to apply copyright to "rewritten" works.  This isn't a right granted by actual law, but that probably won't stop The AP from suing anyway.  They have lawyers just sitting there eating, no matter whether they sue you or not, so they might as well just sue you.
+</p><p>
+But from a standpoint of actual copyright, a rewritten text is no longer the original work.  So the ideal tool would take an AP (or other news wire) item, and paraphrase it.  But paraphrasing is truly a human activity -- it's <i>hard</i> to 
+preserve even syntax, let alone the semantics of a text being paraphrased.  So any tool we want to provide for paraphrasing will have to be interactive.
+Eventually, maybe we'll get to the point where we can largely let the tool have its head -- but that's going to be a long time coming.
+</p><p>
+So this is my current notion: given a starting text (which we'll store for later reference), we'll break it into sentences and put the text up in a
+side-by-side comparison screen.  Each extent of words which is five words or longer will be flagged with a background color, to facilitate identification.
+Quotes in the text will not be paraphrased or flagged; they'll largely be treated as blocks.
+</p><p>
+Names of people and places will also be identified as blocks.  This is to prevent mixups like the word "Gore" being treated as the word "gore", etc.
+If we pass these texts through anything automatic, we don't want to lose the nameness of those names.  However, they're special blocks, because there are certain transformations we can perform on names (as simple as replacing "Al Gore" or "Gore" with "Mr. Gore", or as involved as using "the former Vice President" or "Nobel prize-winner Albert Gore".)
+</p><p>
+We'll have a collection of "syntactic frames" which will grow over time.  These frames will be used to pluck the low-hanging paraphrasal fruit, e.g. we
+should be able to rewrite "Gore said" as "said Mr. Gore" with no effort at all.  Synonyms will be treated identically, so we might say "X said" can be
+rewritten as "X indicated."  (Although that might require a little more tact.  "X said Y" would have to be "X indicated that Y", while "Y, said X" is safe to rewrite as "Y, X indicated.")
+</p><p>
+(Aside: if anyone knows of existing databases of nice, actionable frames like the above, <a href=mailto:michael@vivtek.com>tell me</a>.)
+</p><p>
+We'll also have "joke paraphrasing tools" -- Pig Latin, or passage through Babelfish to Japanese and back.  The quality of these paraphrases are not intended
+to be useful or serious; they're intended to make a point and satirize the situation.
+</p><p>
+Now comes the interactive part.  For <i>each sentence</i> in the paraphrase as it stands, we'll have a button which, when pressed, pops up that sentence,
+along with its original text, in a small form allowing the sentence to be paraphrased individually.  This means we can call the various automatic tools on
+it, or we can simply type in a new text.  When submitted, this form does two things: first, it stores the pair as a paraphrase for later analysis.  (We'll
+encourage users to make small, incremental changes when rewriting, to facilitate identification of reusable frames.)  Second, it will update the
+comparison text and show the new flags for textual identity.  That is, if there was an extent of 15 words of identical text, and now there are only 5, the
+new display will be less red or something.
+</p><p>
+This allows three things.  First, it simply provides a fun and easy tool to munge text in a humorous way.  Second, it provides a good way to measure
+your paraphrasing and check them for Googlable phrases The AP might use to find "actionable" quotes.  But third, it will allow us over time to come up
+with automatic paraphrasal tools to make it easier and easier to paraphrase text for safe quoting.  Over time, we <i>may</i> be able to paraphrase quickly
+and easily (I don't actually know how well this will work until it's tried for a while.)
+</p><p>
+Development status: planning only
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

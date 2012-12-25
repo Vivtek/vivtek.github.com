@@ -1,0 +1,169 @@
+<html>
+<head>
+<title>Writing specialized text editors in wxPython</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">blog</p>
+<p>[ archives? ]</p>
+<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ rss feed? ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Writing specialized text editors in wxPython</div>
+<div class="st2">(unresolved tag blogline)</div>
+<hr>
+So again, a lick and a promise for this blog as I madly try to finish some
+translation work.  This translation job is an interesting one, though, as
+I mentioned, and as it turns out, amenable to editing in a specialized
+tool I just wrote today.  Of course, having <i>written</i> the tool today
+means I have to <i>use</i> the tool this evening in a mad dash to finish,
+which in turn means I have no time to <i>document</i> the code until
+tomorrow at the very earliest.
+</p><p>
+Suffice it to say that the exercise was surprisingly easy.  The task was
+simple: I need a tool to edit text files in which (for reasons we'll go into
+later) I have a number of phrases, one per line.  The phrases mostly have
+all the right words in them, but not in the right order.  I thus need a way
+to <i>quickly</i> select one or more words and drag it into the right place
+in the phrase.  Sure, you say, Word does that.  Yeah, except that Word
+doesn't put the spaces in the right place.  God and Bill Gates alone know
+why, but <i>Word doesn't put the fricking spaces in the right place</i> when
+I drag words around on a line, and so I took matters into my own hands and
+rolled my own solution.  And by God it works!  Still a few little oddities
+in it, but it works more quickly than Word for this particular application.
+</p><p>
+Another nice thing it can do is this: when I drag the first word of a phrase
+out into the middle, it can decapitalize that word, and capitalize the new
+first word.  That saves me a fraction of a second, and multiplied by 2000
+phrases that adds up to a lot of time.
+</p><p>
+And another little thing I just now added: I can hit a key and toggle the
+case of the word the cursor is on.  Again: this may or may not be of general
+use, but for this particular application it's very convenient.  And that's
+really the idea of special-purpose text editors.  An example from the
+programming world is emacs -- you can write LISP code to make emacs do
+literally anything at all (including psychoanalysis) from your text editor.
+The only problem being that it's too damn hard to start.  Python's easier,
+at least for me.  So a text editor in which you can embed your own Python
+snippets might be a generally useful tool indeed!
+</p><p>
+So.  Tomorrow or Sunday, documentation and maybe some more movement on the
+drop tagger.  And in the meantime, go get some sleep!  (I know I won't any
+time soon.)
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

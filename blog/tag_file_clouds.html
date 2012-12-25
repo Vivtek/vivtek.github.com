@@ -1,0 +1,182 @@
+<html>
+<head>
+<title>Tag/file clouds</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">blog</p>
+<p>[ archives? ]</p>
+<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ rss feed? ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Tag/file clouds</div>
+<div class="st2">(unresolved tag blogline)</div>
+<hr>
+Today's fun task was the creation of a little prototype code to format the tag cloud for the drop handler project.  I did it
+in the context of this blog, and so first I had to get my keywords functional.  I already had a database column for them,
+but it turned out my updater wasn't writing them to the database.  So that was easy.
+</p><p>
+Once I had keywords attached to my blog posts, I turned my attention to formatting them into keyword directories (the primary
+motivation for this was to make it possible to enable Technorati tagging, on which more later.)  And then once <i>that</i> was
+done, I had all my keywords in a hash, so it occurred to me that I was most of the way towards implementing a tag cloud
+formatter anyway.
+</p><p>
+Here's the Perl I wrote just to do the formatting.  It's actually amazingly simple (of course) and you can peruse the up-to-the-minute
+result of its invocation in my blog scanner on the <a href=/blog/kw/>keywords page for this blog</a>.  Perl:
+</p><p>
+<pre>
+sub keyword_tagger {
+   my $ct = shift @_;
+ 
+   my $weight;
+   my $font;
+   my $sm = 70;
+   my $lg = 200;
+   my $del = $lg - $sm;
+   my $ret = '';
+   foreach my $k (sort keys %kw_count) {
+      $weight = $kw_count{$k} / $max_count;
+      $font = sprintf ("%d", $sm + $del * $weight);
+      $ret .= "&lt;a href=\"/blog/kw/$k/\" style=\"font-size: $font%;\"&gt;$k&lt;/a&gt;\n";
+   }
+ 
+   return $ret;
+}
+</pre>
+</p><p>
+This is generally <i>not</i> the way to structure a function call, because it works with global hashes, but y'know, I don't follow rules
+too well (and curse myself often, yes).  The assumptions:
+</p><p>
+<ul>
+<li>The only argument passed is the maximum post count for all tags, determined by an earlier scan of the tags while writing their index pages.</li>
+<li><code>$sm</code> and <code>$lg</code> are effectively configuration; they determine the smallest and largest font sizes of the tag links (in percent).</li>
+<li>The loop runs through the tags in alphabetical order; they are all assumed to be in the <code>%kw_count</code> global hash, which stores the number of posts associated with each tag (we build that while scanning the posts).</li>
+<li>For every tag, we look at its post count in the <code>%kw_count</code> hash and split the difference in percentages between <code>$sm</code> and <code>$lg</code> -- then format the link with that font size.  Obviously, this is a rather overly hardwired approach (the link should obviously be a configurable template) but as a prototype and for my own blogging management script, this works well.</li>
+</ul>
+</p><p>
+For our file cloud builder, we'll want to do this very same thing, but in Python (since that's our target language).  But porting is cake, now that we
+know what we'll be porting.
+</p><p>
+Thus concludes the sermon for today.
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

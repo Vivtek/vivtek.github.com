@@ -1,0 +1,198 @@
+<html>
+<head>
+<title>ActiveX is here - Javascript exploit sign</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">despammed</p>
+<p>[ <a href="http://www.despammed.com/">despammed site</a> ]</p>
+<p>[ <a href="/projects/despammed/">programming</a> ]</p>
+<p>[ <a href="/projects/despammed/stormspam.html">botnet tracker</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=todo>new task</a> ]</p>
+<p>[ <a href=archive.html>view archive</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">ActiveX is here - Javascript exploit sign</div>
+This week the botnet's landing pages (e.g. <a href=storm_page_analysis_924353914-158796193.html>this one</a>) contain a fossil function  activex_is_here, which looks like this:
+</p><p>
+<pre class="code">
+function activex_is_here()
+{
+    try
+    {
+        return false;
+    }
+    catch(e)
+    {
+        ;
+    }
+
+    return false;
+}
+</pre>
+</p><p>
+This reminded me of an earlier occurrence of the same function in earlier pages, for instance the <a href=view_page.html?id=1721407398-3114860513>PornTube landing pages</a> spammed in the first week of July.  There, the function still did something:
+</p><p>
+<pre class="code">
+function activex_is_here()
+{
+    try
+    {
+        var testObject = new ActiveXObject("videoPl.chl");
+        return true;
+    }
+    catch(e)
+    {
+        ;
+    }
+
+    return false;
+}
+</pre>
+</p><p>
+It attempts to load "videoPl.chl", and if it fails, the exploit knows that the browser doesn't support ActiveX.
+</p><p>
+Interesting enough, but a little Googling never hurt anybody, so I Googled for "function activex_is_here()", thinking it might be a decent index for exploits.  And of course, as always, when I got there, everybody else had already been.  For instance, on the <a href=http://forum.kaspersky.com/index.php?s=9f698d3a7e30fe6678f8cc36d5c5f2e9&showtopic=74817&pid=684615&mode=threaded&start=#entry684615>Kaspersky forum</a> there's a lively discussion of adding bits and pieces of Javascript as virus sign, but I was more interested in the version of this function they cite:
+</p><p>
+<pre class="code">
+function activex_is_here()
+{
+try
+{
+    var testObject = new ActiveXObject("Ksec.Chl");
+    return true;
+}
+catch(e)
+{
+        try {
+            var testObject = new ActiveXObject("KsecX.chl");
+            return true;
+        }
+        catch(e) {
+;
+        }
+}
+return false;
+}
+</pre>
+</p><p>
+That's dated June 8 of this year.  It's even more complete.  There's also a mention in April of 2007 at a <a href=http://pandalabs.pandasecurity.com/archive/FakeImages_210021002100_.aspx>PandaLabs blog</a>.
+</p><p>
+So this is one component of an exploit pattern that's been in use for over a year (at least), and is otherwise not too interesting.  I'd be tempted to say, however, that any page with a Javascript function activex_is_here should be examined for further signs of untrustworthiness.
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

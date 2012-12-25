@@ -1,0 +1,160 @@
+<html>
+<head>
+<title>File tagger app finished!</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">blog</p>
+<p>[ archives? ]</p>
+<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ rss feed? ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">File tagger app finished!</div>
+<div class="st2">(unresolved tag blogline)</div>
+<hr>
+At long last, I managed to finish development on a first cut of the <a href=/projects/filetagger/filetagger1.html>filetagger application</a>.
+It took <i>far</i> longer than I really wanted it to, because I spent an inordinate amount of time whipping the
+<a href=/wftk/doc/code/python/wxpywf.html>wxpywf framework</a> into shape (about a month) and so the whole "app a week" thing is more like
+"an app per five weeks" or so.  Ha.
+</p><p>
+But you know what?  <i>I did it!</i>  I actually brought a major new module of the wftk, one I'd been thinking about for three years,
+to the point where it can be used.  Wow.
+</p><p>
+So I'm glad I took the time to do it the way I wanted to do it.
+</p><p>
+Here are some of the features of wxpywf I created and used for this app:
+</p><p>
+<ul>
+<li>XML definition of the entire UI of an application, using frames and dialogs.  In comparison with the traditional call-by-call
+    technique for setting up a wxPython UI, this is incredibly convenient.
+<li>Application-specific code grouped into simple commands.
+<li>Each frame and each dialog automatically binds to an XML record which can be
+    addressed on a field-by-field basis.
+<li>HTML can be used for more textual interfaces; links generate commands which can
+    have arbitrary effects on the UI (in this case, clicking on a link in the tag cloud
+    switches the tabbed frame to the file list and displays the files with the tag
+    selected.)
+<li>So far, the UI can include tabsets, list controls, HTML windows, rich text controls,
+    checkboxes, radio button groups and listboxes, command buttons, and static text.
+</ul>
+</p><p>
+There's a lot of ground still to cover.  But in my experience, that kind of ground can be covered in small, manageable steps
+after initial usability is there.  And initial usability is definitely there.  I feel really happy about this.
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

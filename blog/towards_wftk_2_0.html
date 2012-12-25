@@ -1,0 +1,262 @@
+<html>
+<head>
+<title>Towards wftk 2.0</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">blog</p>
+<p>[ archives? ]</p>
+<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ rss feed? ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Towards wftk 2.0</div>
+<div class="st2">(unresolved tag blogline)</div>
+<hr>
+I never really officially released wftk 1.0, of course (the magnitude of
+the task simply grew and grew and I became less and less certain of my
+approach -- and then the recession happened.)  But I've been thinking a lot
+of a more reasoned approach lately, and maybe it's time to reboot the wftk
+project and start more or less "from scratch".
+</p><p>
+I see the modules in this new approach more or less as the following:
+</p><p>
+<ol>
+<li>Data management<br>
+This is the basic list-and-record aspect that the repository manager
+started out addressing.  Now, of course, there is SQLite.  So a principled
+workflow toolkit would start by using SQLite for local tables, and add
+"external tables" (for which the new SQLite has an API) defined in what
+SAP now calls the "system landscape".  It's amazing, by the way, how much
+of my thinking over the past few years I see reflected in what SAP is doing
+lately in their NetWeaver stuff.
+</p><p>
+<li>Document management<br>
+Document management, as I see it, consists of: (1) actual central storage
+and versioning of unstructured data; (2) storage of metadata about documents;
+(3) parsing and indexing of unstructured data to produce structured data
+elsewhere in the system.  The document manager should be able to work well
+in either situations where it controls storage (and thus can initiate action
+whenever anything is changed) or when it merely indexes a storage which can
+be changed externally -- that latter might be, for instance, management of
+a Website's files in the file system.  Or just your system files on a Windows
+machine.  Periodically, the document manager could check in and see whether
+things had been changed, and if so, trigger arbitrary action.
+</p><p>
+<li>"Action" management<br>
+A central script and code repository defines the actions that can be taken
+by a system.  I consider this to include versioning and some kind of
+change management and documentation system, including literate programming
+and indexing of the code snippets.  The build process should also be managed
+here, and should be capable, for instance, of taking algorithms written in
+C, compiling them into DLLs or .so dynamic load libraries, and calling them
+from Perl, say.  Ultimately.
+</p><p>
+Actions, documents, and data would have a nested structure, by the way; there
+would be global actions, application actions (a given case or project could
+be an instance of an application), and project/instance actions, and the same
+applies to data and documents, perhaps.  Originally I'd thought of doing the
+same for users or organizational units, but I really think that if you're
+defining a common language of actions and data, it should be organized into
+applications and, perhaps, subapplications or something.  But <i>not</i>
+differ by user!  (I might be wrong, of course.)
+</p><p>
+The above three modules together allow a data-flow-oriented processing
+system, but we're still
+missing:
+</p><p>
+<li>Outgoing interfaces<br>
+This includes publishing of HTML pages, outgoing mail notifications, other
+notifications such as SMS or ... whatever.  Logged, all of it.  It includes
+report generation into the document management system or the file system,
+generation of PDFs, etc.
+</p><p>
+<li>Incoming interfaces<br>
+Given the parsing power of the document management module, this is more an
+organizational module.  The system should be able to receive email, parse
+it, and take action.  Conversational interfaces are covered here as well,
+from SMTP- and IMAP-like state machines to chatbot NLP interfaces.  And
+of course form submission from Websites also falls into this bucket.
+</p><p>
+<li>Scheduling<br>
+Whether running on Unix with cron and at, or Windows with ... whatever the
+hell Windows offers, the system should have a single unified way of dealing
+with time in a list of scheduled tasks.
+</p><p>
+<li>Users, groups, roles, and permissions<br>
+This module would be in charge of keeping track of who is performing a
+given action and whether they're allowed to do so.  The original wftk already
+provided a really nice mechanism which would still be nice here: when judging
+permissions, any action can get the answers "yes, it's allowed", "no, it's 
+not allowed," and "it's allowed subject to approval."  That last invokes
+workflow for <i>any arbitrary action</i> and that would be a powerful
+abstraction for nearly any system.  It's essentially transaction management
+on a much more abstract scale.
+</p><p>
+And finally, the icing on the cake,
+</p><p>
+<li>Workflow<br>
+The two components which make workflow workflow are a task list (tasks are
+hierarchical in nature and so a task can have subtasks as a separate project)
+and a workflow process definition language.  The new wftk should be able to
+work with any workflow formalism -- after all, the process definitions are
+considered scripts in the versioned script document repository.  The existing
+wftk engine will almost certainly fit in here with little modification.
+</p><p>
+The primary benefit of workflow is that it allows dissociation over time.
+A running workflow process isn't active on the machine for the weeks or months
+it might require -- it's simply a construct in the database that gets
+resurrected as required.  There are a boatload of applications in general
+programming, but nobody sees them as workflow because everybody "knows"
+workflow is a business application.  The wftk was to have changed that, and
+I think the potential's still there.
+</p><p>
+There's also a case to be made for a module for
+</p><p>
+<li>Knowledge management<br>
+This portion of my thinking is a little less organized.  I'd kind of like
+to lump some kind of concept database in here, perhaps a semantic parser
+or something.  Originally I'd thought that AI would go in here, but I
+actually think that Prolog might just be another action script language.
+This is definitely a blurry line in its native habitat, and crikey, he's 
+not happy to see me here!
+</p><p>
+But the point of a blog is to write this stuff down as it occurs. So there
+you have it, this would sit on top of the workflow.  Think of it as a way
+to build smart agents into your data/document/action/workflow management
+system.
+</ol>
+</p><p>
+And there you have it -- my plan to wrap up the thought and work of eight years.
+Oh, and this time I'm not bothering with licensing requirements.  Like SQLite,
+wftk 2.0 will be in the public domain.  I don't really care if I get credit
+or not for every little thing, because frankly, anybody who counts will figure
+it out.  And have you noticed how <i>everything</i> these days uses SQLite?
+It's because -- well, primarily because it works, but also because you don't
+have to worry about legal repercussions of using the code.
+</p><p>
+That's where wftk document management should be, where wftk workflow should
+be.  Simple, easy to use, and ubiquitous.
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

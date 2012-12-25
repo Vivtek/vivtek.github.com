@@ -1,0 +1,144 @@
+<html>
+<head>
+<title>Workflow wftk development continues</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">blog</p>
+<p>[ archives? ]</p>
+<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ rss feed? ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Workflow wftk development continues</div>
+<div class="st2">(unresolved tag blogline)</div>
+<hr>
+<a href=/wftk/perl_tutorial.html>A tutorial approach to workflow</a> -- right here!
+</p><p>
+So for the last month or so I've been working on rewriting the wftk from the ground up, in Perl, with proper object orientation (which is to say, given it's Perl, just enough object orientation to let me not trip over my feet, but not so much that it makes me crazy).
+</p><p>
+When I started my casual redevelopment, it was because I had discovered Term::Shell, which is <i>brilliant</i> for casual development of code where you're really not quite sure what you want to do with it.  Just start writing, and develop new commands as they occur to.  Cycle often.  This worked great for the current version of WWW:Modbot (available on CPAN, but not very well-documented yet, because I got sidetracked on the wftk, you see).
+</p><p>
+Anyway, I got quite a ways in before I realized I was starting to break things I'd done earlier.  So I did something I'd never done before, but had always intended to: I reorganized the entire project to use test-driven development.  Each new set of features or "featurelets" is in a subsection of a tutorial.  I write a new section of the tutorial, making up the code as I think it should work, copy that code into a new test section, and run "make test".  Then I fix it.
+</p><p>
+So <i>all of my development is fixing</i>.  I'm good at fixing.
+</p><p>
+You can see the current state of the Perl tutorial <a href=/wftk/perl_tutorial.html>over here</a>.  I've started with data manipulation as per my blog post last year about how the wftk <i>should</i> be structured.  It's going slowly because there's just so much functionality that needs to be in there -- but every day, I do a little subsection, and I feel a sense of accomplishment.
+</p><p>
+This is a sweet library.  You can define lists with a natural syntax, add data with a copy command or by throwing lists and hashes at it, then query it all with SQL.  It's everything I had always thought should be in the (data) repository manager, but didn't have the time to write, because in Perl, half of everything is already there and waiting for you on CPAN.
+</p><p>
+I'm going to start blogging each major point finished, just to continue to give myself a feeling of accomplishment, and also to provide a little bit of timeline for myself looking back.  This project has been running for about two months already; it'll probably take a year, at least, perhaps more -- so it's going to be fruitful to look back and see what I finished when.
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

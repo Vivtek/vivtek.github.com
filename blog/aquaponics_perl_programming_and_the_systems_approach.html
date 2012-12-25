@@ -1,0 +1,185 @@
+<html>
+<head>
+<title>Aquaponics, Perl programming, and the systems approach</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">blog</p>
+<p>[ archives? ]</p>
+<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ rss feed? ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Aquaponics, Perl programming, and the systems approach</div>
+<div class="st2">(unresolved tag blogline)</div>
+<hr>
+Did I mention that I'm not only going to be covering technical topics on this blog?  Today's word, kids, is "Aquaponics".
+</p><p>
+<i>Aquaculture</i> is growing fish for food.  <i>Hydroponics</i> is growing food (or other) plants in water or other non-soil rooting
+medium.  <i>Aquaponics</i> is using the fish water as the hydroponic nutrient solution, which does two things for you: the plants filter
+the nutrients (ammonia is fish urine but plant ambrosia) out of the water, so they don't choke the fish but instead are converted
+into, say, lettuce; and the fish provide 
+completely organic and relatively balanced set of nutrients for the plants.  So the combination is superior than either together, which
+makes perfect sense if you consider that two smaller ecologies put together into one bigger one are necessarily more balanced and stable.
+</p><p>
+Anyway, that's our family's project this week.  We had already wanted to grow lettuce indoors for the winter, and so instead of
+simply growing lettuce, we are growing lettuce <i>floating in a styrofoam block on an aquarium</i>.  The aquarium will have goldfish, so we
+won't be eating that end of the system -- but it could just as well have tilapia in it.  In fact, tilapia are great aquaculture fish because
+they'll essentially eat anything.  If they don't eat it, it just feeds algae, and they eat the algae instead.
+</p><p>
+So after we level up with 25 gallons of goldfish tank, I am very seriously considering building a much larger tank in the backyard under
+a geodesic dome (per Organic Gardening of 1972) and growing me some serious tilapia.  Did you know that in a round pool 12 feet in diameter
+and 3 feet deep (a small section of our backyard) you can harvest 500 half-pound tilapia every couple of months?  No, neither did I until today.
+</p><p>
+Anyway, I see all this as related to programming.  Both are simply the design of systems to meet needs.  And in fact, I find the way I think
+about an aquaponics system is very similar to the way I think about a general data processing system.  Where an aquaponics system outputs
+lettuce, a data processing system outputs some information I want.  To make lettuce, I need to consider the nutrients and water and light; to
+make valuable information I need to consider the available raw data.
+</p><p>
+In either case, I find that a small, modular approach works well.  In the case of aquaculture, it's a matter of considering what nutrients
+are where and what organisms can convert one thing to another; whereas in software, it's a matter of seeing simple data structures and designing
+lightweight tools that can convert one to another -- and then you organize all your little modules/organisms into an ecology.
+</p><p>
+Lately, there have been two (software) projects I've worked
+on in which this systems approach has worked well.  The new Toon-o-Matic is composed of a number of small, relatively simple Perl scripts which
+are all organized by a Makefile.  Each script reads one or two or three input data structures, and emits one or two.  The overall network
+could be drawn as a graph (and indeed, that would be edifying and entertaining, and I should do that.)
+</p><p>
+The other such system is this blog.  I've deliberately kept the approach simple and completely <i>sui generis</i>.  I'm reinventing the wheel
+to a certain extent, but that's the attraction -- I like new wheels, and the occasional flaw doesn't bother me, as I always learn.  Evolution
+doesn't mind reinventing the wheel -- did you know that the eye has evolved many completely separate times?  The eyes of insects, vertebrates, and
+molluscs are three completely independent instances of the evolution of a visual sensor.  And the eyes of molluscs (like octopi) are demonstrably
+superior to ours: our retinal nerves are in <i>front</i> of our retinae, thus each eye has a blind spot where the optic nerve penetrates the retina
+to leave the eyeball.  Molluscs sensibly have their retinal nerves <i>behind</i> the retina: no blind spot.  Another reason to believe in Intelligent
+Design -- just, you know, not of us.  God loves the octopus, which is why global warming is going to provide the octopus with lots of shallow,
+warm seas with recently vacated cities in them.
+</p><p>
+Anyway, back on something resembling a track: my ultimate goal in the case of aquaculture is to close the ecological loop.  I want to take
+my kitchen and garden waste, recycle it with
+vermiculture and composting, feed the worms and plants to tilapia, use the fish water for lettuce and seedlings and the worm castings for root
+vegetables, and ultimately I believe it may well be possible to feed my family fresh fish and veggies with not much more input than cardboad, grass
+clippings, and leaves, and whatever's on sale at Kroger.
+</p><p>
+My goal in the case of most data processing systems is less lofty: I simply want to model some useful process in small, easily maintained and
+easily modified steps, so that the system remains flexible and reliable.  But in either case, the thought processes are similar: to attain a large
+goal, break it down into small, reusable task utilities.
+</p><p>
+I'll keep you posted on both.
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

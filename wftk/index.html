@@ -1,0 +1,492 @@
+<html>
+<head>
+<title>The wftk open-source workflow toolkit</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ..)
+<div class="sidemenu">
+<p class="smtitle">workflow</p>
+<p>[ <a href=/wftk/index.html#project>project</a> ]</p>
+<p>[ <a href=/wftk/discuss.pl>forum</a> ]</p>
+<p>[ <a href=http://sourceforge.net/projects/wftk/>sourceforge</a> ]</p>
+<p>[ <a href=/wftk/download/index.html>download</a> ]</p>
+<p>[ <a href=/wftk/doc/index.html>documentation</a> ]</p>
+<p>[ <a href=/wftk/index.html#todo>in progress</a> ]</p>
+<p>[ <a href=/wftk/index.html#horizon>horizon</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit</a> ]</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">The wftk open-source workflow toolkit</div>
+<div class="subtitle">Motto: not dead yet!</div>
+</p><p>
+<div class="title"><center>STATUS / NEWS</center></div>
+<table cellpadding=0 cellspacing=0>
+ <tr>
+   <td valign=top>
+   <i>2009-02-12 </i>
+   </td><td>
+    <b>Perl tutorial</b>: Now that I have a small subset of the data services
+written in Perl, I've started writing unit tests -- for the simple reason that
+I can't remember what I've already done, and I worry about breaking it.  From
+the unit tests, I'm writing example code (or rather, the other way around),
+and I'm organizing the example code into a <a href=perl_tutorial/>tutorial</a>.  This is
+kind of exciting, actually.
+    <br><br>
+    </td>
+ </tr>
+ <tr>
+   <td valign=top>
+   <i>2009-02-01  </i>
+   </td><td>
+    The Muse suddenly decided that what I really needed to do this year
+is rebuild the wftk from the ground up in Perl.  Who am I to argue?  I'm
+following the hierarchy of services outlined in my blog post, so I'm building the data manipulation services first.
+    <br><br>
+    </td>
+ </tr><tr>
+   <td valign=top>
+   <i>2008-06-30  </i>
+   </td><td>
+    I've started Wiki-izing this descriptive material and hope to get serious with wftk2.0 sometime this year.
+<a href=/blog/t/towards_wftk_2_0.html>Here is my blog post</a> last year
+about how I see my refactoring project working.
+    <br><br>
+    </td>
+ </tr>
+ <tr>
+   <td valign=top>
+   <i>2007-01-11  </i>
+  </td><td>
+   <b>GUI work</b>: Actual development!  I have been toying with small, easy-to-implement applications over at
+   <a href=http://www.anappaweek.com>Anappaweek.com</a> and have gotten the <b>wxpywf</b> framework working at a minimum
+   level of functionality.  This framework interfaces the wftk with wxPython, and it's got a long way to go before it's
+   a general-purpose workflow interface, but man this is a powerful first step.  A good omen for 2007!
+   <br><br>
+   </td>
+ </tr>
+ <tr>
+   <td valign=top>
+   <i>2006-11-29  </i>
+  </td><td>
+   <b>General hello</b>: I've had a stressful couple of years, but wftk has ever so slowly progressed during that time.
+   My current focus is to get a series of tutorial systems working.
+   <br><br>
+   </td>
+ </tr>
+ <tr>
+   <td valign=top>
+   <i>2003-09-27  </i>
+  </td><td>
+   <b>Java and SOAP</b>:
+   The German trip was very fruitful; not only do I have an initial <a href=doc/code/java/index.html>Java client</a>
+   working, I also have a <a href=doc/code/python/soap_server.html>SOAP server</a> for it to work against.  So while you still
+   can't base a wftk server on Java (e.g. Tomcat), you <i>can</i> run wftk as a
+   Web service and write Java code against it.  I will have downloadable installation
+   materials as soon as humanly possible. 
+   <br><br>
+   Also in August, I managed to lose all my stored email for the last few months.
+   If you emailed me this summer, do so again -- especially if you're Hungarian or
+   interested in Java (you both know who you are).
+   <br><br>
+  </td>
+ </tr>
+ <tr>
+   <td valign=top>
+   <i>2003-08-09  </i>
+  </td><td>
+   <b>Real development again</b>:
+    June and July were very busy months, and August even more so:
+   in June, I developed (for pay) a <b>wxPython GUI demo program</b> which
+  I will soon be cleaning up and making available for download.  I also
+  have an initial <b>SOAP adaptor</b> which allows arbitrary Web service
+  interfacing from a running workflow process.  (The Python wrapper allows
+  the exposure of wftk functionality as a Web service, but I don't have an
+  example working yet.)  I completed the long-awaited <b>repmgr/wftk core
+  integration</b> which has been holding me up for so long.  And finally,
+  I am <b>off to Germany tomorrow</b> for a real live consulting trip, in
+  the course of which an initial <b>JNI wrapper</b> will be written, as
+  the first step in the <b>wftk-j plan</b>.
+  <br><br>
+  <i>Note:</i> none of the stuff I mention above is available for download yet,
+  since I've been far too busy actually getting it all to work in the first place,
+  but hopefully I'll have time in Germany to roll it all up into a new
+   release.  If not, it'll be shortly after that -- in September for sure.
+  If you're really, really chomping at the bit, email me.  I respond well
+  to attention.
+  <br><br>
+   I really thought a Zope interface would come more quickly than the JNI
+   wrapper.  Go figure.
+  </td>
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+   <td valign=top>
+   <i>2003-05-09  </i>
+  </td><td>
+   <b>Examples and docs</b>: I had a bunch of <a href="doc/examples/index.html">example work</a> I had forgotten to upload.
+   So have fun with it.  No, I'm not dead yet, concerned emails notwithstanding.  2002 was, however, a financially challenging
+   year for me.  If you've thought of hiring me for some consulting or development work, well, now's your chance.
+  </td>
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+  <td valign=top>
+   <i>2002-08-20  </i>
+  </td><td>
+   <b>WebDAV</b>: How does a WebDAV adaptor strike you?  I think it sounds
+   so amazingly cool I'm wondering what rock I've been hiding under.
+  </td>
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+  <td valign=top>
+   <i>2002-08-17  </i>
+  </td><td>
+   <b>New adaptor</b>: It's a simple thing, but the LIST_delim adaptor is new: it stores records as tab-delimited lines
+   in a file.  I've made it part of the standard repmgr complement.
+  </td>
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+  <td valign=top>
+   <i>2002-08-02  </i>
+  </td><td>
+   <b>Clients</b>: Started work in the last week on two clients of actual significance; both use the repmgr API, not
+   the wftk API: the first is a <a href="doc/code/repmgr/repmgr_cgi.html">CGI interface to the repmgr</a>, and the
+   second is a <a href="doc/code/mail-handler/index.html">mail handler for incoming mail</a>.  The two of these will
+   make a real live system possible -- although given the current absence of integration between repmgr and wftk core
+   modules, it's still not a workflow system.  But I'm getting ever closer.
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+  <td valign=top>
+   <i>2002-07-24  </i>
+  </td><td>
+   <b>v1.0</b>: OK, it's released.  You can download from Sourceforge, or you can wait for me
+   to get it onto the server hereabouts.  I've (gulp) submitted the project to Freshmeat.
+   I fully expect a whole bunch of people kibitzing about lack of testing, lack of documentation,
+   and so forth.  Sigh.  The story of my life.  And yet I keep soldiering on.  <b>Download notes:</b>
+   The tgz I tossed to SourceForge was corrupted; if you're one of the 27 people who downloaded it,
+   sorry.  It's fixed now, or you can get it from the <a href="download.html">download page</a> here.
+   Yes, although it's confusing, the current download for v1.0 is wftk-1.0pre2.  As you may be able
+   to see from my timeline, I get nervous when I move too quickly.
+  </td>
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+  <td valign=top>
+   <i>2002-07-13  </i>
+  </td><td>
+   <b>wftk core v1.0pre2</b>: I just now finished up coding for the version-1.0 release
+   of the core engine.  This new code (now committed to CVS) contains all you need for
+   state-based workflow, which is what I thought was still lacking.  There are, of course,
+   no shortage of TODO points even in the existing code, but hey -- this is starting to
+   look like a workflow engine or something.  <i>This code needs testing.</i>  I am a
+   lousy tester.  Thus, as soon as I wrap it up and put together enough docs that a rocket
+   scientist could use it (you know who you are) I'd greatly appreciate any bug submissions.
+  </td>
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+  <td valign=top>
+   <i>2002-06-21  </i>
+  </td><td>
+   I've been writing <b>documentation</b>.  Yeah, it's true!  And I've also put
+   said documentation into CVS at SourceForge, meaning there's some
+   vain hope that it'll stay up to date.  Wow.  See in particular
+   <a href="doc/todo.html">my plans</a> and the <a href="doc/code.html">the
+   new code overview</a>.
+   <p>
+   <b>Native Java</b>: I've officially declared this summer solstice to be
+   the announcement day of <i>wftk-j</i>, the port of wftk into native Java.
+   If you're interested, and especially <i>if you can contribute funding</i>
+   for any part of this effort, tell me.
+  </td>
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+  <td valign=top>
+   <i>2002-06-12  </i>
+  </td><td>
+   OK, here's the situation.  I really want to close off a version 1.0 for the core workflow engine so that
+   I can have some sense of closure before going on to integrate the repository manager with the workflow engine.
+   And I really wanted to get that done in May, and so I defined the cutoff point in my mind to be that point where
+   I can define a datasheet DTD and not have to change it greatly in the coming months.  And I got to that point!
+   But then I realized that I really want to add a <a href=doc/background.html>state-based workflow paradigm</a>
+   to the core engine before I
+   call it version 1.0, and so that's what I'm doing now.  Just another solid day or two worth of work and I'll
+   release it.  Everything but state-based workflow is available on CVS.  Once I have things working with state-based
+   workflow, I'll wrap up a tarball, submit the whole thing to Freshmeat, and see what happens.  And immediately
+   continue work on version 1.1 or 1.5 or whatever.
+  </td>
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+  <td valign=top>
+   <i>2002-01-19  </i>
+  </td><td>
+   Rumors of my death have been greatly exaggerated.  But what <i>have</i> I been doing, you ask?
+   I've been quite busy addressing the lingering concerns I have had about organization of datasheets,
+   resulting in a whole new system I call the <i>repository manager</i> -- details will be forthcoming
+   soon and I'll link to them here; please see the <a href="doc/overview.html">new overview document</a>
+   for a little more info.  Also, I've started work on some real-life <a href="doc/examples/index.html">examples</a>
+   of applying the wftk.  These examples will hopefully generate some useful scaled-down sample code,
+   and I'm also working on documentation in general, at long last.  Thanks to everyone who's expressed
+   interest in my little obsession.
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+  <td valign=top>
+   <i>2001-07-29</i>
+  </td><td>
+   The latest version is now 0.9.5 beta.  This contains lotsa new stuff: Oracle integration,
+   the ability to store datasheets in the database, transparent writethrough of values from
+   the datasheet into the database, and lots more stability.  Even a little more documentation,
+   although not enough.  But it's getting there.
+  </td>
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+  <td valign=top>
+   <i>2001-07-06</i>
+  </td><td>
+   Whew.  The CVS source is now good.  Compilation problems on Solaris have been fixed up
+   and are available via CVS -- <i>and</i> that version still compiles on Windows.  CVS is a
+   Good Thing.  Wouldn't it be neat to be able to approve commit batches with an arbitrary
+   workflow process?
+  </td>
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+  <td valign=top>
+   <i>2001-06-19</i>
+  </td><td>
+   The wftk now works well with Oracle, the first of several database adaptors I hope to write in the near future.  I've got
+   CVS working at <a href="http://sourceforge.net/projects/wftk/">the Sourceforge project page</a>, and my current code is in
+   there.  Please be warned: my current code is a holy terror of a mess.  There are obsolete files all over the place.  So take
+   it all with a grain of salt.
+   <p>
+   For Windows users, I've worked out dynamic loading of adaptors (I'm already familiar with how DLLs work -- getting dynaloading
+   working on Unix will take some work).  This means that seldom-used adaptors (say, the ODBC adaptor if you're running Oracle)
+   don't clutter things up.  This will move to Unix as well as soon as I screw my courage up to implement it.
+   <p>
+   On the horizon: Integration with Zope and with ColdFusion.  Database adaptors for PostgreSQL, MySQL, and Sybase.  Perl
+   integration ("use Workflow;") and a CPAN module.  Python integration (that's part of the Zope integration, of course.)
+  </td>
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+  <td valign=top>
+   <i>2001-05-16</i>
+  </td><td>
+   Finally started getting the documentation whipped into shape.  And it's 
+   official: wftk has its first paying project.  The Staatsarchiv Nordrhein-Westfalen needs workflow (and a whole lot of
+   other stuff, but workflow's part of the project.)  And it's going to be wftk.
+  </td>
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+  <td valign=top>
+   <i>2001-04-25</i>
+  </td><td>
+   Set up a SourceForge project today.  Now I just have to figure out how to use all that stuff.  The mailing list should be
+   online very soon, and as soon as possible I'll get things into CVS.
+  </td>
+ </tr>
+ <tr><td colspan=2> </td></tr>
+ <tr>
+  <td valign=top>
+   <i>2001-04-20</i>
+  </td><td>
+   Got things compiling under Solaris today and there's a new download distro
+   which has properly functional makefiles and all that, plus it's named in
+   such a way that your package managers won't freak.
+  </td>
+ </tr>
+ <tr><td colspan=2> </td></tr>
+</table>
+</p><p>
+<div class="title">PROJECT</div>
+</p><p>
+  The wftk (open-source workflow toolkit) is a workflow engine in library form which can be integrated with whatever you need
+  to integrate with.  It's designed on a very flexible <i>adaptor</i> architecture, whereby interfaces to external functionality
+  are defined and implemented as independently as possible of the core workflow logic.  It makes heavy use of XML, so that its
+  data structures are always easily inspected.  All it lacks (soon to be rectified) is experience in Real Life.
+</p><p>
+<div class="title">DOWNLOAD</div>
+</p><p>
+  Current versions can always be downloaded <a href=download.html>here</a>.  If you're into archaeology you can also take a
+  look at the <a href="prototype.html">prototype</a>.
+  <p> 
+</p><p>
+<div class="title">DOCUMENTATION</div>
+</p><p>
+  The documentation is still being written, but you can <a href="doc/index.html">see
+  what I've done so far</a> -- and I'd appreciate any feedback or comments you
+  may have.
+</p><p>
+  Of particular interest are the following headings:<ul>
+   <li><a href="doc/overview.html">An overview of the wftk system</a>.
+   <li><a href="doc/background.html">A backgrounder on workflow and wftk</a> (sort of a white paper, recently revised.)
+   <li><a href="doc/examples/index.html">Examples of wftk applications</a>
+   <li><a href="doc/code/index.html">The source code in literate-programming form</a>
+   <li><a href="doc/programming/index.html">The start of the API programming documentation -- incomplete.</a>
+  </ul>
+</p><p>
+<div class="title">YET TO DO</div>
+</p><p>
+  This version of the project home page is really just to show that I'm alive and that the beta is available.  This is what
+  I still have to do in the very near future:
+  <ul>
+   <li>Get the "real" domains installed and ready: wftk.com and wftk.org.  They're bought and paid for.
+   <li>Write CGI interfaces to everything.  This won't be too hard.  At the moment, however, there is no HTML interface
+       to the current version, and that's just not particularly acceptible.
+   <li>Set up a new demo system based on the new code.
+   <li>Rewrite the procdef manager code to be library-based.  Additionally that will be used to present and work with ad-hoc
+       workflow.
+   <li>Document what the heck I've done here.  The docs are thin, people, real thin.
+   <li>Integrate with Zope.
+   <li>Integrate with PostgreSQL and MySQL (both actual requests).
+   <li>Get a few implementation projects under my belt so I can call this a v1.0 production release.
+  </ul>
+</p><p>
+  I'd like to talk to you about that last point.  Presumably you're interested in implementing a workflow system of some kind,
+  otherwise you wouldn't be here.  Give me a shot.  I can do a limited number of free-of-charge consultations or even
+  implementations; I'd be happy, given telnet/ssh access, to do some debugging in your environment, and of course if you want
+  to hire me, I'm very attentive.  I've got a couple of leads on implementation projects already and I'd really like to add
+  yours to the list.  I really want to see wftk work <i>right</i>, and concrete project implementations are the only way to
+  make that work.
+</p><p>
+  <a href=mailto:wftk@vivtek.com>Mail me</a> if you're interested.  My schedule is, um, regularity-challenged, to say the least,
+  so if you want to do the voice thing, set up a time to call, if you would.
+</p><p>
+<div class="title">WHERE I'M GOING<br>WITH THIS</div>
+</p><p>
+Besides just "plain workflow" I'm extremely interested in integrating wftk as an internal module in other systems.  The Zope
+community has expressed a need for workflow functionality, and I'll be working on that in the near future.  Another possibility
+which has occurred to me is that it'd be nice to use wftk as an organized means of approval for changes in database information.
+I can easily see wftk being set up as a set of PostgreSQL triggers -- thus any UPDATE command would be converted into a request
+for a change, which wftk would manage until approval was granted and the change actually made.  Workflow is a very powerful idea,
+and I think that the absence of any open-source workflow engine (until now!) has precluded serious thought as to how powerful
+it can be.
+</p><p>
+Anyway, that's a taste.  I'm also looking at what it'll take to port the engine into a parallel Java/EJB implementation.  Film at
+11.
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

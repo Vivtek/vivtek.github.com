@@ -1,0 +1,202 @@
+<html>
+<head>
+<title>An example spam trail</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">forum despamming</p>
+<p>[ <a href="/projects/forum_despammer">modbot</a> ]</p>
+<p>[ <a href="spam_archive/">spam archive</a> ]</p>
+<p>[ <a href="google_count.html">google count</a> ]</p>
+<p>[ <a href=todo.html>to-do list</a> ]</p>
+<p>[ <a href="despammer1.html">despammer alpha</a> ]</p>
+<p>[ <a href="/michael_resume.html">r&eacute;sum&eacute;</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=todo>new task</a> ]</p>
+<p>[ <a href=archive.html>view archive</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">An example spam trail</div>
+OK, so here's a spam which hit nowarblog today (2008-05-20).
+</p><p>
+<pre class=code>
+board: nowarblog
+id: 2007/10/10/221052/20-3
+subject: hAvfaRjkdmMVImCaMC
+poster: -1
+email:
+date: 2008-05-20 09:32:07
+ip: 206.53.51.84
+post-russian: 0.00
+link_count: 26
+link_bait: 1
+mixed_links: 0
+google_count: 3530
+word_count: 152
+score: 370
+&amp;nbsp;
+[a href="http://www.propeller.com/member/taynaharrism"]Virginia election results, presidential election 2008[/a][br]
+[a href="http://www.propeller.com/member/taynaharrism"]Election update, election results[/a][br]
+[a href="http://www.propeller.com/member/taynaharrism"]Election 08, election update[/a][br]
+[a href="http://www.propeller.com/member/taynaharrism"]New jersey election results, primary election[/a][br]
+[a href="http://www.propeller.com/member/taynaharrism"]Presidential election 2008, nj election results[/a][br]
+[a href="http://www.propeller.com/member/taynaharrism"]Ohio election results, primary election[/a][br]
+&amp;nbsp;
+...
+</pre>
+</p><p>
+(I've snipped some of the URLs off the bottom, because they're obviously identical.)
+</p><p>
+Anyway, for some reason this caught my eye, and I decided to follow up.  As it turns out, Propeller.com is a "social news site" owned by AOL.  The user page for taynaharrism has been hijacked for nefarious purposes, and at first glance it looks pretty legit (I'm not going to quote it here, because it's too long.)  It's got a whole lot of text which is vaguely election-related.  It's vague because it's a Bayes spoiler, of course, and I'm increasingly of the opinion there must be a library out there somewhere.  I'll probably end up reverse-engineering it.
+</p><p>
+This Bayes spoiler text is 9706 words long (a novella!), which comes to 16 pages of 12-point Times Roman.  That's a lot of meaninglessness.  But the actual payload is the user's Website link, which points to http://superelectionpolls.info/election-2008
+</p><p>
+When we visit that site, we see a typical set of Bayes-spoiler pages, each linking to one another.  They're all on the election them.  And the payload <i>there</i> is the cute little Javascript embedded:
+</p><p>
+<pre class=code>
+http://superelectionpolls.info/election-2008/red.js:
+ 
+var egnlldwljff655 = 'on=';
+var fc77 = 'riqfxgscbhvlkxzne534';
+var kneyfihnrydqabg554 ='ment';
+var qkiej391='.lo';
+var nrvjdje503='ti';
+var xhlcxeccpapp141='docu';
+var jk134='cgi?5&amp;parameter=election+2008';
+var oejccqtxvmsfns723='http://alldebt';
+var rwxalsxrcwac224='.biz/newway/in.';
+var riqfxgscbhvlkxzne534 = 'ca';
+var qhitoayeyfefc473='"';
+if(fc77 = 'riqfxgscbhvlkxzne534')eval(xhlcxeccpapp141+kneyfihnrydqabg554+qkiej391+riqfxgscbhvlkxzne534+nrvjdje503+egnlldwljff655+qhitoayeyfefc473+oejccqtxvmsfns723+rwxalsxrcwac224+jk134+qhitoayeyfefc473);
+</pre>
+</p><p>
+Warning bell #1, of course: obfuscated Javascript (even not-very-obfuscated Javascript) tells you there is foul play.
+</p><p>
+In this case, of course, the string which ends up being eval'd is:
+</p><p>
+<pre class=code>
+document.location="http://alldebt.biz/newway/in.cgi?5&amp;parameter=election+2008"
+</pre>
+</p><p>
+If we visit that URL, it 302-forwards to http://myflydirect.com/1/5567/ - and that URL, in turn, 302-forwards to http://getadultaccess.com/movie/?aff=5567 .
+</p><p>
+And <i>that</i> URL, which is clearly no longer about elections, does some more stuff; I don't really care what, just today.  The point is that Propeller.com is pointing to a forward chain which ends up somewhere fishy.  That forward chain is detectable, and pretty amenable to automation, given that your browser does it anyway.  So we can detect it.  And once detected, it can be reported.  Once reported, eradicated.
+</p><p>
+I love this stuff.
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

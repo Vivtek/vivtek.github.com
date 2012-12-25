@@ -1,0 +1,178 @@
+<html>
+<head>
+<title>Botnet tracking tools</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">despammed</p>
+<p>[ <a href="http://www.despammed.com/">despammed site</a> ]</p>
+<p>[ <a href="/projects/despammed/">programming</a> ]</p>
+<p>[ <a href="/projects/despammed/stormspam.html">botnet tracker</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=todo>new task</a> ]</p>
+<p>[ <a href=archive.html>view archive</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Botnet tracking tools</div>
+After realizing that the <a href=http://www.despammed.com/>Despammed</a> filters were catching most of my incoming <a href=stormspam.html>botnet spam</a>, I started datamining the filter archive for interesting examples.  I found a lot of them.  The way I'm doing this, however, is probably not the best.  This page will document the process and maybe allow me to organize things better.
+</p><p>
+A note on the Despammed archives: when spam comes into despammed.com or vivtek.com, its headers and origin get checked by custom code I've been running since 1999.  If the recipient is an unknown despammed.com address, I chuck it unread; if the recipient is an unknown vivtek.com address, I cache it.  And if the IP resolves to anything looking like a DSL line (i.e. with matching numbers in the rDNS name, for instance) I cache it.  So most botnet spam never gets to me.
+</p><p>
+Cached email is saved in a header file and a body file on my server's hard drive, and a record is written to a database containing its ID, subject, recipient, envelope and header From addresses, originating IP (if forwarded from a known server, I find the *real* originating IP), and why the filters didn't like it.  So I can write SQL queries to find out a lot about my stored spam.  The old server crash lost me most of my historical archives, but I have complete data going back to last year, and the active database's window of three or so months usually contains about a million spam entries.
+</p><p>
+So data, I got.
+</p><p>
+When I first started looking for botnet-specific spam (on August 1), it could be recognized by a subject using a provocative (but usually false) news headline.  Inside the body of the spam, then, was a second provocative headline, plus a link to a landing page.  I'll leave the discussion of landing page analysis for a different time; this page documents the detection and tracking of email only.
+</p><p>
+At any rate, that week the botnet operators were using the same pool for both the email subject line and the body title, but they used different headlines for both.  So my first step was to look for email with subjects I had decided were botnet subjects (like "McCain picks Osama bin Laden as VP" -- I loved this stuff), read out the secondary headline, and find more matching spam with that.
+</p><p>
+Then for each headline, I'd open up the header, get the content-type, and then read the body of the mail to see if it met my criteria.  The original version of that scanner was really hacky, so it didn't do HTML well.  I've since switched to HTML::TreeBuilder, which is frankly the most brilliant module on CPAN.
+</p><p>
+At any rate, once my pool started to grow, I noticed two things: first, the IP pool injecting this spam was relatively limited (to "only" a few thousand), and second, the unknown vivtek.com addresses I was seeing looked kind of similar.  At some point in the past, after I put vivtek.com on the filters and started accepting unknown mail instead of bouncing it, the operators of the botnet obviously did some dictionary-search exploration of the domain.  Since all the addresses were found to be valid, they're spamming them still.  There were obviously a couple of different dictionary searches, too; using random strings, common names, and single letters appended to existing known addresses.  They all succeed, so I get a lot of botnet spam.
+</p><p>
+But <i>only the botnet uses them</i>.  So once I did that, I started looking at those addresses.  I developed a "purity" test, calculating the quantity of botnet-propagation spam as a percentage of total spam.  For existing despammed.com addresses, this purity was low -- 10% or 20% (already pretty amazing, really -- the botnet is really pounding me).  But for unknown vivtek.com addresses, it reached up to 70% or more.
+</p><p>
+So my second line of discovery was to look at highly pure recipient addresses and test their subjects for botnet-ness.  As my indexing for the Despammed.com archive was poor, these queries took a while, so I ran them at night for a few days.  (Then I realized I had been stupid about the indexing, defined some different ones, and the whole process roared along and I started running it hourly throughout the day.)
+</p><p>
+When the CNN Top 10 subjects came along, of course, discovery of new subjects was suddenly rendered moot, so I stopped looking that week.  And by the time the msnbc.com BREAKING NEWS subjects came along, I'd already gotten comfortable with the idea of scanning just the IP addresses for the known botnet, and discovering new subjects that way -- it's a much purer way to go anyway.
+</p><p>
+But in the meantime, I had discovered what may be two different botnets.  Whereas BN1 had spanned some 15,000 IPs, BN2 (with subject line "Internet Explorer 7") came from about 300 IPs, and BN3 (with subject line "BBC NEWS" and others) also used about 300 IPs.  In the meantime, I have one single IP which appears to belong to both BN1 and BN3.  This could mean that the botnets are really different segments of the same botnet, or it could conceivably mean that one PC has been zombied twice.  Further analysis may shed more light on that.  But it's an open question.
+</p><p>
+Currently, then, I'm grouping spam simply by its subject.  Since these are using very distinctive subjects, that works -- but it may stop working at some point.  And indeed, this week BN1 has been sending their standard spam using the fake headlines from the middle of July, so just looking at subjects and assuming things will always work is really naive, even though it's been successful and fun so far.
+</p><p>
+Really, though, it would be much better to group spam by "modus operandi".  This would take the spam, match it against known subjects, then analyze the body, match that against known patterns, then find the link it's spamming, and match <i>that</i> content against a known pattern.
+</p><p>
+The result would be a fingerprint of sorts, and something like this:
+<ul>
+<li>Subject "Kick-up - % - video"
+<li>Body pattern xxxx (where xxxx defines a pattern, below)
+<li>Link yyyy.com/xxx.php (where yyyy might index a list of hijacked servers)
+<li>Content pattern xxxx (where xxxx defines a content pattern)
+<li>Ultimate payload xxxx (where xxxx identifies the malware)
+</ul>
+</p><p>
+OK?  So that overall pattern, which should approximate what goes through my mind when looking at a given instance, would characterize a group of spams sent out over a given range of time.  Then new spam could be characterized in the same way.
+</p><p>
+So what defines a "body pattern"?  That's a good question, and I'm glad you asked it.  I wish you'd answer it for me.
+</p><p>
+I'd <i>like</i> to do some kind of template discovery.  Given a set of spam, I'd like to be able to determine shared features, then abstract the shared features away to leave variables embedded in the template.  This is clearly how they're generated in the first place, so we ought to be able to reverse-engineer the process to a certain extent.
+</p><p>
+I could start by hand-coding the templates, then perhaps start to automate the process later.  So this may or may not be where the project goes next.  It really depends on how much time I have, and how driven I become.  Watch This Space for Further Details.
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>

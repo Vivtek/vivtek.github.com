@@ -1,0 +1,178 @@
+<html>
+<head>
+<title>CAPTCHA interpretation</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+(unresolved tag sidemenu ...)
+<div class="sidemenu">
+<p class="smtitle">captcha</p>
+<p>[ <a href="/projects/captcha">home</a> ]</p>
+</div>
+
+<hr />
+<div class="sidemenu">
+<p class="smtitle">content</p>
+<p>[ <a href=/wiki?action=new&from=(unresolved tag url)>new page</a> ]</p>
+<p>[ <a href=/wiki?action=edit&page=(unresolved tag url)>edit page</a> ]</p>
+<p>[ <a href=/wiki?action=dataedit&page=(unresolved tag url)>edit task</a> ]</p>
+<p>[ <a href=/wiki?action=datanew&from=(unresolved tag url)&data=todo>new task</a> ]</p>
+<p>[ <a href=archive.html>view archive</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+<a href="/blog/t/ah_google_adsense_we_hardly_knew_ye!.html">Where
+did my Google go?</a>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">CAPTCHA interpretation</div>
+So lately I've been hacking for pay over at <a href=http://www.elance.com>Elance</a>, and one of those little scripts involved retrieving backlinks from Google.
+Turns out Google, since they know everything about everybody online, is target #1 for anybody trying to game systems.  (My own Googlecount being one
+such script, of course.)  So Google has implemented an anti-robot policy which, when you search it too fast for too many things, will flag your IP as a
+machine, causing further searches to trigger a CAPTCHA.  This breaks my script, permanently.  (So I switched to Yahoo -- they offer an export feature
+anyway.)
+ 
+Well.  Normally, as you know, I'm firmly on the side of anything that weeds out bots online -- but this is different!  Mostly because I was writing this
+bot, of course, but ... well, accuse me of hypocrisy if you will, but CAPTCHA breaking turns out to be a pretty neat subject, involving, as it does,
+simulation of human visual skills.  Weak tea as far as real AI goes, of course, but ... intriguing.  So let's ignore any ethical aspects, and <i>look! shiny thing!</i>
+</p><p>
+As Google's CAPTCHA goes, it's good.  Of course.  Google isn't known for turning out shoddy services.  But as a weak-tea AI problem, Google's CAPTCHA
+looks, to this naive researcher, like a pretty good problem.  Here are some samples:
+</p><p>
+<img src="sorry1.jpg"/><img src="sorry2.jpg"/><img src="sorry3.jpg"/>
+</p><p>
+I call this a "good" problem because it eliminates irritation for me (in that there are no extraneous lines or color variations, both of which would
+be boring things to solve) while being hard for OCR (because the characters are deformed and often overlap, the "words" are not dictionary words,
+the length of the words
+varies, and so on).  Another interesting aspect is that the target strings are meant to be easy to remember, while still not being actual words.  So
+there are syllable rules to narrow down possible solutions, but the rules don't seem inviolable -- very soft and AI-like.
+</p><p>
+So it's a juicy problem!
+</p><p>
+A little background: Google serves up these strings from requests of the form http://www.google.com/sorry/image?id=<number>, where <number> is a
+number of about a dozen digits.  You've got a limited amount of time to recognize the CAPTCHA and respond, because the set of images served for a given
+number changes regularly.  It would be an interesting, but not AI-like, ancillary problem to reverse-engineer Google's algorithm for this, because ...
+well, just because I find that kind of stuff interesting, I guess.  It would be fun to see if there's any regularity there, or just random numbers.
+It would also be fun to derive Google's syllable rules, but to do that, we're going to have to break the CAPTCHA first.
+</p><p>
+Now, as I understand it, OCR is generally a statistical process.  It relies on characters being well-aligned, and frankly, the open-source OCR routines
+out there are pretty crappy.  (And not accessible from Python, as I've complained before, but that's a different story.)  The freely accessible solutions
+to this, therefore, don't stand a chance of figuring out Google's CAPTCHAs.  (Of course.  That's kind of the point of CAPTCHA.)
+</p><p>
+The way everybody seems to break CAPTCHAs instead is this:
+</p><p>
+1. Break things up into characters, if possible (with multiple possiblities if necessary).
+</p><p>
+2. Find visual features for the candidate characters.
+</p><p>
+3. Feed those visual features into a recognition algorithm.
+</p><p>
+4. If you've got multiple possibilities, weed them out with string rules.
+</p><p>
+5. Cross your fingers.
+</p><p>
+It's those visual features that are the key.  I want to try tracing the lines, and coming up with the features I think <i>I</i> use when reading these.
+I'm thinking of topological features like loops and lines, and font features like serifs.  Overall, since the deformation of neighboring characters
+seems to be mostly related, I'd like to indicate that ("bent to the right" or something).
+</p><p>
+But I probably won't have any time.  We'll see.
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><A HREF="/disclaimer.html">Copyright</A> &copy; 1996-2009 Vivtek. All Rights Reserved.  <a href=/disclaimer.html>Read the disclaimer.</a></font>
+    <BR>
+    <font size="-1"><a href="/privacy.html">Read our privacy statement, too, if you are concerned.</a></font>
+    <Br>
+    Problems?  Try <A HREF="/webmaster.html">webmaster@vivtek.com</A> or our
+                   <A href="/answers.html">answer page</A>.</Font>
+<br><br>
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 468;
+google_ad_height = 60;
+google_ad_format = "468x60_as";
+google_ad_type = "text";
+google_ad_channel = "";
+google_color_border = "CCCCCC";
+google_color_bg = "CCCCCC";
+google_color_link = "000000";
+google_color_text = "333333";
+google_color_url = "666666";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+
+
+</body>
+</html>
