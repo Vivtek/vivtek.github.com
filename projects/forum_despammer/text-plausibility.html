@@ -59,16 +59,13 @@ pre.code {
 <p class="smtitle">vivtek</p>
 <p>[ <a href=/>home</a> ]</p>
 <p>[ <a href=/blog/>blog</a> ]</p>
-<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/recent.html>recent</a> ]</p>
 <p>[ <a href=/fiction/>fiction</a> ]</p>
 <p>[ <a href=/toonbots/>toonbots</a> ]</p>
-<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
 <p>[ <a href=/wftk/>workflow</a> ]</p>
 <p>[ <a href=/projects/>programming</a> ]</p>
 <p>[ <a href=/services.html>translation</a> ]</p>
 <p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
-<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
-<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
 <p>[ <a href=/contact.html>contact</a> ]</p>
 </div>
 
@@ -104,7 +101,7 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Text plausibility metrics</div>
-Text plausibility is an interesting notion.  There are two classes of "implausible text" I see in spam.  The first is Bayes spoilers, which largely consist of (mostly) English words strung together, sometimes grammatically, sometimes not.  This is most often seen in email spam, but I recently also saw it in the <a href=lottery-spam-sample.html>lottery spam pages</a> as filler to make Google notebooks look legitimate.
+Text plausibility is an interesting notion.  There are two classes of "implausible text" I see in spam.  The first is Bayes spoilers, which largely consist of (mostly) English words strung together, sometimes grammatically, sometimes not.  This is most often seen in email spam, but I recently also saw it in the <a href="lottery-spam-sample.html">lottery spam pages</a> as filler to make Google notebooks look legitimate.
 </p><p>
 To test plausibility of that category, we'd have to have some kind of parser or phrasal lookup or something.  This will be difficult, but if you whistle a couple of bars, I'll bet I can fake it.
 </p><p>
@@ -123,9 +120,9 @@ A similar class of spam which I'm sure we've all seen has titles of the form "JA
 </p><p>
 OK -- both of these are made of implausible <i>words</i>, and those words are easily recognizable because they don't have the right letter frequency.  What would be very nice is a quick, cheap metric which I could apply to a string which would give the probability that that string was English, and how accurate the assessment probably is (longer text = more probable.)  Then I could use that metric to ding these.
 </p><p>
-<a href=http://deafandblind.com/word_frequency.htm>A fantastic list of word and letter frequencies in English.</a>
+<a href="http://deafandblind.com/word_frequency.htm">A fantastic list of word and letter frequencies in English.</a>
 </p><p>
-<a href=http://en.wiktionary.org/wiki/Wiktionary:Frequency_lists>Wiktionary</a> has some useful links.  Actually, wouldn't it be very useful to guess the <i>language</i> of a given text?  Given the top 100 words and letter frequencies of a language, that ought to be possible with some given probability.  Then if somebody posts in Spanish to an English forum (or vice-versa) it could be regarded with correspondingly increased skepticism.
+<a href="http://en.wiktionary.org/wiki/Wiktionary:Frequency_lists">Wiktionary</a> has some useful links.  Actually, wouldn't it be very useful to guess the <i>language</i> of a given text?  Given the top 100 words and letter frequencies of a language, that ought to be possible with some given probability.  Then if somebody posts in Spanish to an English forum (or vice-versa) it could be regarded with correspondingly increased skepticism.
 </p><p>
 </p><p>
 

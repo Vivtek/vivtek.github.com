@@ -59,16 +59,13 @@ pre.code {
 <p class="smtitle">vivtek</p>
 <p>[ <a href=/>home</a> ]</p>
 <p>[ <a href=/blog/>blog</a> ]</p>
-<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/recent.html>recent</a> ]</p>
 <p>[ <a href=/fiction/>fiction</a> ]</p>
 <p>[ <a href=/toonbots/>toonbots</a> ]</p>
-<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
 <p>[ <a href=/wftk/>workflow</a> ]</p>
 <p>[ <a href=/projects/>programming</a> ]</p>
 <p>[ <a href=/services.html>translation</a> ]</p>
 <p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
-<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
-<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
 <p>[ <a href=/contact.html>contact</a> ]</p>
 </div>
 
@@ -151,7 +148,7 @@ So if you're using null-terminated strings, then you can simply toss that <code>
 any normal string function, but otherwise, if you need to handle the data as strings, the
 your best bet is to <code>malloc</code> a buffer of 
 size <code>dsize + 1</code>, use <code>strncpy</code> to get the data into your buffer, and
-then explicitly write your null terminator in at the end.  (There's a little more detail on my <a href=/gdbm/example.html>gdbm example code page</a>.)
+then explicitly write your null terminator in at the end.  (There's a little more detail on my <a href="/gdbm/example.html">gdbm example code page</a>.)
 <li><strong>Memory management</strong><br>When gdbm fetches a datum from a file, it <code>malloc</code>s
 the buffer for you and returns the datum -- but that means, of course, that you have to free the
 buffer yourself!  Failure to do so, as always, will work fine until you go into production
@@ -164,10 +161,10 @@ and everybody's watching, at which point your process will crash and burn from t
 <li><strong><a href=ftp://prep.ai.mit.edu/gnu/gdbm/>GNU source directory</a></strong><br>
 Go get your own copy!  Current version as of this writing is gdbm-1.8.0 but I haven't looked
 at it yet (1.7.3 is good enough for me, gol durn it.)
-<li><strong><a href=/gdbm/api.html>My gbdm API documentation</a></strong><br>
+<li><strong><a href="/gdbm/api.html">My gbdm API documentation</a></strong><br>
 I spent some time back in the prehistoric era HTML-izing the API documentation
 for gdbm.
-<li><strong><a href=/gdbm/example.html>Example code</a></strong><br>
+<li><strong><a href="/gdbm/example.html">Example code</a></strong><br>
 This is a very short example of gdbm code, with a little annotation, just to get you started.
 </ul>
 </p><p>

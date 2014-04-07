@@ -59,16 +59,13 @@ pre.code {
 <p class="smtitle">vivtek</p>
 <p>[ <a href=/>home</a> ]</p>
 <p>[ <a href=/blog/>blog</a> ]</p>
-<p>[ <a href=/wiki_index.html>recent</a> ]</p>
+<p>[ <a href=/recent.html>recent</a> ]</p>
 <p>[ <a href=/fiction/>fiction</a> ]</p>
 <p>[ <a href=/toonbots/>toonbots</a> ]</p>
-<p>[ <a href=/toon-o-matic/>toon-o-matic</a> ]</p>
 <p>[ <a href=/wftk/>workflow</a> ]</p>
 <p>[ <a href=/projects/>programming</a> ]</p>
 <p>[ <a href=/services.html>translation</a> ]</p>
 <p>[ <a href=http://semantic-programming.blogspot.com/>semprog&nbsp;blog</a> ]</p>
-<p>[ <a href=http://big-old-house.blogspot.com/>house</a> ]</p>
-<p>[ <a href=http://xlat-perl.blogspot.com/>xlat&nbsp;project</a> ]</p>
 <p>[ <a href=/contact.html>contact</a> ]</p>
 </div>
 
@@ -101,7 +98,7 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">ActiveX is here - Javascript exploit sign</div>
-This week the botnet's landing pages (e.g. <a href=storm_page_analysis_924353914-158796193.html>this one</a>) contain a fossil function  activex_is_here, which looks like this:
+This week the botnet's landing pages (e.g. <a href="storm_page_analysis_924353914-158796193.html">this one</a>) contain a fossil function  activex_is_here, which looks like this:
 </p><p>
 <pre class="code">
 function activex_is_here()
@@ -119,7 +116,7 @@ function activex_is_here()
 }
 </pre>
 </p><p>
-This reminded me of an earlier occurrence of the same function in earlier pages, for instance the <a href=view_page.html?id=1721407398-3114860513>PornTube landing pages</a> spammed in the first week of July.  There, the function still did something:
+This reminded me of an earlier occurrence of the same function in earlier pages, for instance the <a href="view_page.html?id=1721407398-3114860513">PornTube landing pages</a> spammed in the first week of July.  There, the function still did something:
 </p><p>
 <pre class="code">
 function activex_is_here()
@@ -140,7 +137,7 @@ function activex_is_here()
 </p><p>
 It attempts to load "videoPl.chl", and if it fails, the exploit knows that the browser doesn't support ActiveX.
 </p><p>
-Interesting enough, but a little Googling never hurt anybody, so I Googled for "function activex_is_here()", thinking it might be a decent index for exploits.  And of course, as always, when I got there, everybody else had already been.  For instance, on the <a href=http://forum.kaspersky.com/index.php?s=9f698d3a7e30fe6678f8cc36d5c5f2e9&showtopic=74817&pid=684615&mode=threaded&start=#entry684615>Kaspersky forum</a> there's a lively discussion of adding bits and pieces of Javascript as virus sign, but I was more interested in the version of this function they cite:
+Interesting enough, but a little Googling never hurt anybody, so I Googled for "function activex_is_here()", thinking it might be a decent index for exploits.  And of course, as always, when I got there, everybody else had already been.  For instance, on the <a href="http://forum.kaspersky.com/index.php?s=9f698d3a7e30fe6678f8cc36d5c5f2e9&showtopic=74817&pid=684615&mode=threaded&start=#entry684615">Kaspersky forum</a> there's a lively discussion of adding bits and pieces of Javascript as virus sign, but I was more interested in the version of this function they cite:
 </p><p>
 <pre class="code">
 function activex_is_here()
@@ -164,7 +161,7 @@ return false;
 }
 </pre>
 </p><p>
-That's dated June 8 of this year.  It's even more complete.  There's also a mention in April of 2007 at a <a href=http://pandalabs.pandasecurity.com/archive/FakeImages_210021002100_.aspx>PandaLabs blog</a>.
+That's dated June 8 of this year.  It's even more complete.  There's also a mention in April of 2007 at a <a href="http://pandalabs.pandasecurity.com/archive/FakeImages_210021002100_.aspx">PandaLabs blog</a>.
 </p><p>
 So this is one component of an exploit pattern that's been in use for over a year (at least), and is otherwise not too interesting.  I'd be tempted to say, however, that any page with a Javascript function activex_is_here should be examined for further signs of untrustworthiness.
 </p><p>
