@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,158 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword evolutionary_programming</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=evolutionary_programming mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword evolutionary_programming</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="tower_defense_game_notion.html">Tower defense game notion</a></div>
+<div class="st2">2007-08-05 <a href="keyword_tower_defense.html">tower_defense</a> <a href="keyword_evolutionary_programming.html">evolutionary_programming</a> <a href="keyword_project.html">project</a></div><br>
+So I have gotten sucked into this cool game,
+<a href="http://www.handdrawngames.com/DesktopTD/game.asp">Tower Defense</a> -- apparently
+there's a whole genre, but this is the one I've been playing with the past
+couple of days.
+</p><p>
+It's a Flash game, and the premise is simple.  You have a grid with two
+incoming gates and two outgoing gates.  Enemies come in the incoming gates,
+and you have to kill them before they get to the outgoing gates.  You lose
+one health point for every enemty that gets through.  You have 20 health
+points and no way to get more.
+</p><p>
+So -- the point of the game is to build defense towers which run automatically.
+Each enemy you kill nets you a small amount of money, which you can use to
+build new towers, or upgrade existing ones.  (You need to upgrade to keep up
+with the steadily increasing toughness of the enemies, of course.)
+</p><p>
+It's fun.  I thought of a fun way to do some really cool programming with it.
+AutoHotKey can find the Flash window, and can scan the screen for whatever
+you need.  It can click things, too.  So  my notion is to write an AHK
+front-end to play the game, with an IP connection to a strategy server.  The
+strategy server would then use evolutionary programming to come up with 
+board arrangements, and over time (perhaps a great deal of time, who knows?)
+you could watch the strategizer get <i>really good</i> at Tower Defense.
+</p><p>
+Or not.
+</p><p>
+But it would be fun to try it.
+</p><p>
+My notion is that the instructions for a given strategy would consist of a
+series of builds at given coordinates, intermixed with upgrades to the towers
+built.  Each instruction would only execute after there was enough money
+available for it.  So you'd have a string of instructions which would express
+a given board setup.
+</p><p>
+To combine strategies, you'd just ... well, I guess you'd just cross the
+streams, so to speak, taking two (or more?) successful strategies, cut them
+at a random spot, and splice them together.  You might want to have some
+cleanup rules (you can't upgrade squirter #3 if you didn't build three
+squirters, for instance.)
+</p><p>
+And then you'd let it run for a few weeks.  You could get other people to
+download your script and run strategies, too.
+</p><p>
+It could be very, very cool...
+</p><p>
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="tower_defense_automation.html">Tower Defense automation</a></div>
+<div class="st2">2007-08-10 <a href="keyword_evolutionary_programming.html">evolutionary_programming</a> <a href="keyword_tower_defense.html">tower_defense</a></div><br>
+So it turns out that AutoHotKey can indeed play Tower Defense; I recorded a
+script to set up my favorite opening last night.  It occurs to me that it
+would be quite easy to set up a simple "strategy-description language" which
+would be a series of commands to be executed in order.  Translating that
+higher-level language into an AHK script would be trivial.
+</p><p>
+So at least it would be possible to track strategies and compare them.  That's
+step one in an evolutionary approach.
+</p><p>
+Couple that with a Python front-end to make it all more convenient, and
+we're off to the races!
+</p><p>
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="high-level_td_strategy_description_language.html">High-level TD strategy description language</a></div>
+<div class="st2">2007-08-12 <a href="keyword_tower_defense.html">tower_defense</a> <a href="keyword_evolutionary_programming.html">evolutionary_programming</a></div><br>
+Well, whaddaya know, that turned out to be really easy.
+</p><p>
+I have an autoplayer for Tower Defense now that carries out my carefully honed strategy for about ten levels -- perfectly.  It's actually kind of hypnotic.
+</p><p>
+I'll post that tomorrow, I hope, but really I now want to investigate the other end of things; currently, the autoplayer plays utterly blindly.  There's
+no way to measure its success, because it can't read the screen.  But fortunately, the Win32 GUI gives us a screen capture API.  (Under anything else,
+of course, YMMV.)  So it should be easy to get the window's handle, get its DC, and get periodic snapshots, right?  Then look at the snapshot for the
+score, lives, and money levels, and graph them.  Maybe the level indicator, too, but that looks kinda hard to interpret.
+</p><p>
+Anyway, it should be fun and educational.  Once I have that in a convenient PyWin wrapper, I can run this game to my heart's content without lifting a
+finger.  Talk about leisure!
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="ocr_in_python.html">OCR in Python</a></div>
+<div class="st2">2007-08-16 <a href="keyword_tower_defense.html">tower_defense</a> <a href="keyword_evolutionary_programming.html">evolutionary_programming</a> <a href="keyword_ocr.html">ocr</a> <a href="keyword_python.html">python</a> <a href="keyword_pil.html">pil</a></div><br>
+OCR in Python.  There isn't any, to speak of.  While there do exist a few
+open-source OCR projects (Conjecture seems to have a great deal of promise!),
+none of them play well with Python.  I may want to rectify that at some point.
+</p><p>
+Anyway, growing bored of simply writing AutoHotKey scripts to play Tower
+Defense, I quickly realized that I really needed a tool to start the game
+for me, and track the score and other stats for later analysis.
+</p><p>
+The first part was no big deal; I whipped out a PyPop applet that could launch
+a URL.  Since I wanted a window that was sized according to the Flash object,
+that required putting together a local HTML file that could run some JavaScript
+to pop up the window I wanted, then close itself afterwards.  I'll document
+that <i>when I have time</i> (I propose the abbreviation wIht to save my time
+typing that phrase.)
+</p><p>
+Well.  That was fun, and it worked, but I really wanted something to monitor
+the score for me, and timing, and ... stuff.  Which meant that I would have
+to read the actual graphical screen, because there's no handy-dandy textual
+output on that Flash app.
+</p><p>
+You'd think that would be trivial in 2007.  But you'd be wrong.
+</p><p>
+Getting a snapshot of the screen was easy enough.  I wrapped win32gui to get
+a window handle by the title (I'll document this later: Idtl), then installed
+PIL to grab the actual graphical data and manipulate it.  To warm up with that,
+I set a timer to grab a four-pixel chunk of the screen so I could see whether
+the Flash had started or not (Tower Defense goes through an ad screen, then
+a splash screen, and only then does the game start.)  That took a little
+putzing around, but the result was gratifying: my little utility could tell me
+when the game was ready to play.  As long as the window was on my primary
+monitor, anyway (turns out PIL is not good with multiple monitors -- who knew?)
+So it turned out I had to move the window before all that.
+</p><p>
+And then I could grab the sections of the screen with the numbers on them
+for score, bonus, lives, timer, and money... And then it all screeched to a
+halt, because there are no open-source Python OCR libraries.  At all.  And
+clearly I don't have the time to adapt something -- hell, I don't even have
+time to do all this.  I don't even have time to <i>write this blog entry</i>.
+</p><p>
+So of course I did the natural thing.  I wrote my own special-purpose OCR,
+because clearly that would be saving time.  I saved four hours before I started
+falling asleep, and it still can't tell 8 from 0 (but it does a fine job on the
+rest of the digits.)  It was a lot of fun, actually.  Idtl.
+</p><p>
+So.  Proposal.  It would be nice to work some with Conjecture, and produce
+the following: (1) a Python binding that can work in memory with PIL bitmaps,
+(2) a Web submitter for test graphics, and (3) an online tester and test
+database reporter.  That would be really cool.  Of course, only wIht.
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

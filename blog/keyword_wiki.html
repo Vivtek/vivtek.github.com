@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,17 +98,70 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword wiki</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=wiki mode=static)
-(unresolved tag skip projects/wiki/issue)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword wiki</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="wiki_tools_vivtek_style.html">Wiki tools, Vivtek style</a></div>
+<div class="st2">2008-05-31 <a href="keyword_wiki.html">wiki</a> <a href="keyword_perl.html">perl</a></div><br>
+So a week or two ago I suddenly was seized by the desire to Wiki-ize my
+venerable old site.  I know, I know.  There are pages here I hand-coded in
+1996.  There's stuff I tweaked into magnetic core memory using tweezers and
+a small rare-earth magnet in 1948.  And we felt <i>lucky</i> to have that
+cardboard box!
+</p><p>
+But, well, I love vi.  But lately, I've been feeling the need to stray from
+my first love, and the ability to whack content into a simple form, click
+a button, and have it published with no further ado, with all the sidebars
+and stuff in place, well, I needed that.
+</p><p>
+<a href="/projects/wiki/">So I did it.</a>  And as everything else in my life, I did it with an idiosyncratic blend of Perl for the guts and AOLserver Tcl for the Web presentation and input parsing.  Eventually I will present the code.  But in the meantime, I'll note
+two things.  First: it works, and works well, and works <i>extremely</i>
+efficiently, because Wiki pages are published once when changed, and are then
+available as flat HTML files when requested.  Contrast this with MediaWiki,
+which hangs interminably on the database every damned time it generates the
+sidebar menu.  Bad design, if you ask me (but of course, nobody did.)
+</p><p>
+Secondly: it integrates the beginnings of a pretty efficient data management
+tool.  I'm using it for to-do lists right now, but I'm looking at various
+other applications as well.  And it will probably feed right back into
+workflow, if all goes well.  The most exciting thing about this aspect of
+the system is that organized data can be anchored and commented upon in the
+Wiki system.  I'll be putting this to much more extensive use in the analysis
+of spam over at <a href="http://www.despammed.com">Despammed.com</a>, but even in the
+context of my to-do list management it's proving a powerful tool for data
+organization.
+</p><p>
+Other extensions I hope to explore are a CodeWiki (which will allow the
+literate commentating of program code and other textual resources), a document
+management tool for the management of binary objects like images, and, more
+immediately, the replacement of this blog tool with Wiki-based code to do the
+same thing.
+</p><p>
+This last month has been quite productive in terms of the code I use in my
+everyday life, and the Wiki tool has been a big part of that.  So I hope this
+burst of momentum continues.
 </p><p>
 </p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="blogwiki_working.html">BlogWiki working</a></div>
+<div class="st2">2008-07-16 <a href="keyword_wiki.html">wiki</a> <a href="keyword_blogwiki.html">blogwiki</a></div><br>
+This is my first post using my Wiki Web interface with blog extensions.  There are still a few rough edges, but I believe this should work -- meaning I'll now be able to spout off on my blog at the drop of a hat.
+</p><p>
+Oh, sure.  I could have just installed MovableType like a normal person.  I am no normal person.
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

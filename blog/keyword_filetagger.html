@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,67 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword filetagger</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=filetagger mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword filetagger</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="file_tagger_app_finished!.html">File tagger app finished!</a></div>
+<div class="st2">2007-01-11 <a href="keyword_filetagger.html">filetagger</a> <a href="keyword_wxpython.html">wxpython</a> <a href="keyword_wxpywf.html">wxpywf</a> <a href="keyword_appaweek.html">appaweek</a></div><br>
+At long last, I managed to finish development on a first cut of the <a href="/projects/filetagger/filetagger1.html">filetagger application</a>.
+It took <i>far</i> longer than I really wanted it to, because I spent an inordinate amount of time whipping the
+<a href="/wftk/doc/code/python/wxpywf.html">wxpywf framework</a> into shape (about a month) and so the whole "app a week" thing is more like
+"an app per five weeks" or so.  Ha.
+</p><p>
+But you know what?  <i>I did it!</i>  I actually brought a major new module of the wftk, one I'd been thinking about for three years,
+to the point where it can be used.  Wow.
+</p><p>
+So I'm glad I took the time to do it the way I wanted to do it.
+</p><p>
+Here are some of the features of wxpywf I created and used for this app:
+</p><p>
+<ul>
+<li>XML definition of the entire UI of an application, using frames and dialogs.  In comparison with the traditional call-by-call
+    technique for setting up a wxPython UI, this is incredibly convenient.
+<li>Application-specific code grouped into simple commands.
+<li>Each frame and each dialog automatically binds to an XML record which can be
+    addressed on a field-by-field basis.
+<li>HTML can be used for more textual interfaces; links generate commands which can
+    have arbitrary effects on the UI (in this case, clicking on a link in the tag cloud
+    switches the tabbed frame to the file list and displays the files with the tag
+    selected.)
+<li>So far, the UI can include tabsets, list controls, HTML windows, rich text controls,
+    checkboxes, radio button groups and listboxes, command buttons, and static text.
+</ul>
+</p><p>
+There's a lot of ground still to cover.  But in my experience, that kind of ground can be covered in small, manageable steps
+after initial usability is there.  And initial usability is definitely there.  I feel really happy about this.
+</p><p>
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="filetagger_posted.html">Filetagger posted</a></div>
+<div class="st2">2007-01-28 <a href="keyword_filetagger.html">filetagger</a> <a href="keyword_wxpywf.html">wxpywf</a> <a href="keyword_appaweek.html">appaweek</a></div><br>
+I posted v1.0 of the filetagger in the new PyPop format.  The XML definition
+of the app is 310 lines and about 12K.  I think this could end up being
+quite useful.
+</p><p>
+The code is <a href="/projects/filetagger/filetagger.html">here</a> -- I don't
+have the actual running PyPop up to run it, though.  I still want to get
+registration of file extensions working -- oh, yeah, and what there is
+of the help system.  The help text is included but there's no command to
+display it yet.
+</p><p>
+If I end up defining a basic XSLT processor on top of the XMLAPI, this
+could start to get really interesting...
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

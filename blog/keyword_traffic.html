@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,41 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword traffic</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=traffic mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword traffic</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="blog_topic_tag_cloud_weighted_by_traffic.html">Blog topic tag cloud weighted by traffic</a></div>
+<div class="st2">2007-02-05 <a href="keyword_traffic.html">traffic</a> <a href="keyword_tag-cloud.html">tag-cloud</a> <a href="keyword_perl.html">perl</a></div><br>
+This is something I've wanted to do for a couple of weeks now -- I have a handy set of scripts to filter out chaff from my hit logs, and to grep them
+out to convenient category files (like "all interesting non-bot traffic to the blog").  So I've written a script to take all that blog traffic and
+determine which tag it should be attributed to.  Hits to individual pages boost the traffic to all their tags.
+</p><p>
+The resulting tag cloud is on the <a href="/blog/kw/">keyword tag cloud page</a> next to the cloud weighted by posts.  This is a really meaningful way to analyze
+blog traffic and get a feel for what people are actually finding interesting.  A possible refinement might be to time-weight the hits so that more
+recent hits count for more weight (that would be pretty easy to do, actually -- even so cheesily as to count number of hits and multiply all the counts
+by 90% for every ten hits or something.)
+</p><p>
+The Perl code to read the logs and build the cloud file is below the fold.
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="msnbot_qbhp.html">MSNbot QBHP referrers</a></div>
+<div class="st2">2008-07-20 <a href="keyword_traffic.html">traffic</a></div><br>
+When I Wikiized the site, and started <a href="/wiki_index.html">indexing</a> the Wiki changes, I naturally also wanted to start looking at incoming traffic and referrers, as you can see on the "recent" page on the main menu.  And of course I then started refining it to suit my tastes.
+</p><p>
+I had already had a "preproc.pl" script to preprocess the logs and give me the hits I want to see.  That screens out spiders, everything I myself do from home, and (lately) any IP that posts spam to the forum or Wiki.  The remainder is proving pretty interesting.
+</p><p>
+Normally, one can filter out search engine spiders based on their agent.  But Microsoft, as always, follows their own rules (a little research on "search.live.com" and "QBHP" will show you plenty of griping.)  They use a normal IE agent string, but mark their search queries using the "form".
+</p><p>
+And you know, normally I wouldn't care.  But their search queries are <i>weird</i>.  They consist of a single word, usually (but not always) one found on the page, and if you're actually paying attention to search queries to determine what it is about your site people find interesting, <i>these won't help</i>.
+</p><p>
+So now my preproc script blocks everything from the 65.55.*.* block with "form=QBHP" in the referrer.  You just have to wonder what Microsoft is thinking, sometimes.
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

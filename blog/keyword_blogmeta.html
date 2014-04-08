@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,155 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword blogmeta</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=blogmeta mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword blogmeta</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="welcome_to_all_and_sundry.html">Welcome to all and sundry</a></div>
+<div class="st2">2006-11-27 <a href="keyword_blogmeta.html">blogmeta</a></div><br>
+Welcome to the new blog.  This is an idea I've been kicking around since
+the day I heard the term "web log" (we hadn't abbreviated it), but I just
+haven't had the time until now.  You know how it is.
+</p><p>
+The idea of the blog is simple.  I've been programming for a very long
+time now, and I like to write about it.  So when I discovered that after a
+significant hiatus from daily programming, my Muse had reawakened, I resolved
+that from this point on, I would spent at least a small amount of time each
+day programming <i>something</i>.  The results have been gratifying; I've
+completed a number of small tasks I'd been wanting to resolve for a while.
+</p><p>
+And hence this blog.  This is the place where I intend to present said
+small tasks, on a daily basis, for your perusal and, dare I hope, your
+amusement.  I hope you enjoy it; I know I'm going to.
+</p><p>
+Some of the things I want to cover in the near future are, in no particular
+order,
+<ul>
+<li>A few Word macros I've written to fix things up after TRADOS macros break them
+<li>My experiences getting Python to read and write TTX files (a file used by TRADOS -- I earn my money with translation nowadays, mostly, so that's why translation tools come up so often
+<li>This very blog, which is a freaking Rube Goldberg contraption of Perl scripts and Makefiles
+<li>The amazing Toon-o-Matic, which I use to spin out graphics for my <a href="/toonbots/">Web cartoon</a> -- remember, the Toon-o-Matic is the work of art; the strip is just a by-product, like hot dogs
+<li>GUI builders for wxPython, something I've been hacking around on for a while without discernable progress (but I hope that will be changing)
+<li>Workflow applications, <a href="/wftk.html">of course</a>.
+</ul>
+</p><p>
+That ought to keep me in posting fodder for a few months, eh?
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="tag_file_clouds.html">Tag/file clouds</a></div>
+<div class="st2">2006-12-04 <a href="keyword_appaweek.html">appaweek</a> <a href="keyword_tagger.html">tagger</a> <a href="keyword_tag-cloud.html">tag-cloud</a> <a href="keyword_blogmeta.html">blogmeta</a> <a href="keyword_perl.html">perl</a></div><br>
+Today's fun task was the creation of a little prototype code to format the tag cloud for the drop handler project.  I did it
+in the context of this blog, and so first I had to get my keywords functional.  I already had a database column for them,
+but it turned out my updater wasn't writing them to the database.  So that was easy.
+</p><p>
+Once I had keywords attached to my blog posts, I turned my attention to formatting them into keyword directories (the primary
+motivation for this was to make it possible to enable Technorati tagging, on which more later.)  And then once <i>that</i> was
+done, I had all my keywords in a hash, so it occurred to me that I was most of the way towards implementing a tag cloud
+formatter anyway.
+</p><p>
+Here's the Perl I wrote just to do the formatting.  It's actually amazingly simple (of course) and you can peruse the up-to-the-minute
+result of its invocation in my blog scanner on the <a href="/blog/kw/">keywords page for this blog</a>.  Perl:
+</p><p>
+<pre>
+sub keyword_tagger {
+   my $ct = shift @_;
+ 
+   my $weight;
+   my $font;
+   my $sm = 70;
+   my $lg = 200;
+   my $del = $lg - $sm;
+   my $ret = '';
+   foreach my $k (sort keys %kw_count) {
+      $weight = $kw_count{$k} / $max_count;
+      $font = sprintf ("%d", $sm + $del * $weight);
+      $ret .= "&lt;a href=\"/blog/kw/$k/\" style=\"font-size: $font%;\"&gt;$k&lt;/a&gt;\n";
+   }
+ 
+   return $ret;
+}
+</pre>
+</p><p>
+This is generally <i>not</i> the way to structure a function call, because it works with global hashes, but y'know, I don't follow rules
+too well (and curse myself often, yes).  The assumptions:
+</p><p>
+<ul>
+<li>The only argument passed is the maximum post count for all tags, determined by an earlier scan of the tags while writing their index pages.</li>
+<li><code>$sm</code> and <code>$lg</code> are effectively configuration; they determine the smallest and largest font sizes of the tag links (in percent).</li>
+<li>The loop runs through the tags in alphabetical order; they are all assumed to be in the <code>%kw_count</code> global hash, which stores the number of posts associated with each tag (we build that while scanning the posts).</li>
+<li>For every tag, we look at its post count in the <code>%kw_count</code> hash and split the difference in percentages between <code>$sm</code> and <code>$lg</code> -- then format the link with that font size.  Obviously, this is a rather overly hardwired approach (the link should obviously be a configurable template) but as a prototype and for my own blogging management script, this works well.</li>
+</ul>
+</p><p>
+For our file cloud builder, we'll want to do this very same thing, but in Python (since that's our target language).  But porting is cake, now that we
+know what we'll be porting.
+</p><p>
+Thus concludes the sermon for today.
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="no_time_to_write!.html">No time to write!</a></div>
+<div class="st2">2007-03-01 <a href="keyword_blogmeta.html">blogmeta</a> <a href="keyword_autohotkey.html">autohotkey</a> <a href="keyword_sqlite.html">sqlite</a></div><br>
+Just so I don't forget how this blog thang works, I want to assure each and every one of you bots who reads this blog that
+I've been doing lots of cool programming-type stuff...  Well, OK, actually, the family and I went sledding every day for a week
+and a half while the weather was right, and I've been scrambling to finish up a hueueueuge job that I was neglecting during
+that time.  So ... no excuse at all.
+</p><p>
+On the translation front, I've discovered that hotstrings (e.g. Word's AutoCorrect feature) can really speed up my typing
+in cases where I'm doing repetitive texts.  Even the time savings of typing "s" instead of "SAP" can really add up over time.
+But Word's AutoCorrect has a problem -- it saves different lists for each style, and in some instances it triggers without waiting
+for me to finish the word; if one of my hotstrings is a prefix of another word, that can truly suck.  Some Googling got me
+to <a href="http://www.autohotkey.com">AutoHotKey</a> -- and AutoHotKey truly and totally rocks.  A lot of what I wanted to do with PyPop is already
+done and ready for me to use, actually.  So I'm going to start bundling AHK with PyPop for Windows systems.  It's that good.
+</p><p>
+Another nice discovery this week has been <a href="http://www.sqlite.org">SQLite</a> -- which is not just open-source, it's actually <i>public
+domain</i>.  It implements pretty much all of the SQL92 standard (except the permission model) for a lightweight local database for
+single-user use.  Websites have been built on it with impressive performance.  And the key is -- you can bundle it into anything.  Anything.
+So it's definitely going into <a href="/wftk/">the wftk</a>.  Man.  I'd been kind of moving towards building my own SQL parser and so on -- what's the
+point?  It's already been done!  And beautifully!
+</p><p>
+So there's life in me yet, never fear.
+</p><p>
+On that note, it's back to work for me.
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="catching_up!.html">Catching up!</a></div>
+<div class="st2">2007-06-27 <a href="keyword_blogmeta.html">blogmeta</a> <a href="keyword_biofuel.html">biofuel</a> <a href="keyword_aquaponics.html">aquaponics</a></div><br>
+I'm not dead!  Just really busy.
+</p><p>
+So I've been wanting to put up some information about organic produce,
+the digestive system, bioplastics, and so on, but (as usual) don't have
+the time.  And then today, xkcd comes up with <a href="http://xkcd.com/c282.html">this</a>.
+Ha!  Definitely one of the best toons out there.
+</p><p>
+More later.  Really.  In the meantime, if you want meaningless, content-free
+remixes of my pearls of wisdom, I refer you to the Markov version of my
+blog, my <a href="http://toonbotting.blogger.com">Ulysses in the Caribee</a>.  It's
+different, I'll give it that.
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,49 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword botnet</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=botnet mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword botnet</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="botnet_spam_flood.html">My God, it's full of stars! Botnet spam flood</a></div>
+<div class="st2">2008-08-01 <a href="keyword_spam.html">spam</a> <a href="keyword_botnet.html">botnet</a> <a href="keyword_javascript.html">javascript</a></div><br>
+So I got halfway through analysis of my <a href="/projects/monkeywrench/cases/case_1/">first Javascript obfuscation discovered via spam</a>, when <a href="/projects/monkeywrench/cases/case_2/">another</a> came in, and then <a href="/projects/monkeywrench/cases/case_3/">another</a>!  And then I realized -- these were sent from botnet-controlled mailers that were slipping past my no-DSL filters at Despammed.  So how many were getting blocked?
+</p><p>
+Turns out, a lot.  Like, a <i>lot</i>.  So I'm going to have plenty of grist for this mill -- and the very fascinating thing is that it sure looks like there is a change in tactics each day.  So I'm going to try to go back through older instances and hope that people haven't fixed their servers yet for some, and I'm going to put up some early warnings to tell me about new ones -- but this is truly, truly fun.
+</p><p>
+Each of these mails has a faux news headline: "Michael Vick escapes from Federal jail", or "Beijing Olympics canceled", the one that first drew my attention.  Then the body of the mail has a <i>different</i> headline, and a link.
+</p><p>
+Turns out that different headline is drawn from the same list.  So I can check the Despammed.com spam archive (1.2 million spam emails on file at the moment) for other emails with that subject.  And so on.  This should allow me to build a database of subjects really, really easily.  And then I can simply scan for those subjects to find new instances.  If they select their headlines randomly (and I have no reason to believe they don't) this should allow me to find all their headlines and keep up with new ones at the same time.  Fun!
+</p><p>
+Once I've got that coded, I'll post a <a href="/projects/despammed/stormspam/">database page in real time</a>. [Updated to include link.]  That will be even more fun.  And <i>then</i> I can resume the de-obfuscation effort.  Actually, I've dusted off some old project idea notes and started work on the <a href="/projects/monkeywrench/">monkeywrench</a> to help me organize this stuff.
+</p><p>
+Note to anybody interested: the design philosophy of the monkeywrench is essentially a <a href="http://cogsci.indiana.edu">Hofstadter parallel terraced scan</a>.  But operated by a human (for now) in a <a href="/wftk/">workflow paradigm</a>.  I can sloooowly start to feel the various bits of my life coming together.
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="storm_guys_lamer_today.html">Storm botnet standards slipping</a></div>
+<div class="st2">2008-08-03 <a href="keyword_botnet.html">botnet</a> <a href="keyword_spam.html">spam</a></div><br>
+Over the past couple of days as I datamined the <a href="http://www.despammed.com/">Despammed</a> spam archives for Storm botnet spam, I've grown to really enjoy their madcap subjects (latest <a href="/projects/despammed/stormspam.html">here</a>).  But today?
+</p><p>
+Guys!  "Obama bribing countrymen" or "McCain picks Osama bin Laden as VP" are hilarious!  But "Video News"?  "Top stories"?  Come on!  If you're going to hijack a million people's machines to spam us all, the least you can do is to continue to be entertaining about it.  This?  This is beneath you.
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="stormspam_fauxCNN_plus_virus.html">New botnet landing page, now with crunchy antiviral goodness!</a></div>
+<div class="st2">2008-08-11 <a href="keyword_botnet.html">botnet</a></div><br>
+If, like me, you've been wondering when the Storm people would do something new, your answer would have to be: an hour ago.
+</p><p>
+<a href="/projects/despammed/storm_page_analysis_4058864712-3087703986.html">Here's the analysis for the new page</a>, although I've just barely started.
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

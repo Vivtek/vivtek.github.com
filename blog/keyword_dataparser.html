@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,67 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword dataparser</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=dataparser mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword dataparser</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="malware_analysis_and_generic_file_reading.html">Malware analysis and generic file reading</a></div>
+<div class="st2">2007-02-13 <a href="keyword_malware.html">malware</a> <a href="keyword_dataparser.html">dataparser</a> <a href="keyword_security.html">security</a> <a href="keyword_programming.html">programming</a></div><br>
+For many moons, I've had this crazy idea of a generic file parser floating
+around in my head.  (The idea, not the parser.)  This would function a lot
+like a hex editor, except that it would operate on a semantic level: if
+an extent in the file was known, meaning that its purpose was known or at
+least guessed at to the point where it could be named, then that information
+would be marked in a file description.
+</p><p>
+An example of this would be a malware analyzer.  In case you haven't seen
+the term before, "malware" is software that is out to do you harm.  Viruses,
+worms, and stuff like that.  A popular source of malware is executables
+attached to email in such a way that Outlook will execute it without asking
+you.  Yes, this still happens.  For lots of details of this kind of
+exploit, see <a href="http://isc.incidents.org/">the Internet Storm Center's blog</a>.
+Hours of fun reading there.  No, seriously!  Malware is fun!
+</p><p>
+But as any reader of this humble blog knows (both of you), my time for fun
+is strictly limited, and my patience wears thin very quickly.  So I never
+actually analyze any malware, because to do so I'd probably have to find
+a piece of paper and note stuff down.  Hence the need for software to do it
+for me: if I had something that defined the sections of an EXE file under
+Windows, for instance, then I'd run that against the malware, and I'd at least
+break everything down into conveniently readable chunks -- I'd eliminate the
+EXE header, split out the resources, that kind of thing.
+</p><p>
+This, then, is a generic file parser.  It allows me to <i>interactively</i>
+define a file structure for a given file (or class of files) and read useful
+data out.
+</p><p>
+A more proximate reason to do this, lately, has been that I have a need to
+use a glossary file which has resisted import into MultiTerm, my glossary
+software of choice.  I could open a hex editor and <i>see</i> the terms,
+but I couldn't do anything useful with them.
+</p><p>
+Well, yesterday I spent the whole day on it, but I have a prototype of said
+file parser.  Using it, I can define hexblocks, sequences, lists, records,
+switchable sections based on flags, variable-length blocks based on length
+specifications in the file -- all that works like a charm, and I get a
+nice, readable dump file for my trouble.  As I refine the file description,
+I get more readable dumps.  And then I can write a Perl script to scan the
+dump and pull out whatever I like.
+</p><p>
+It is so extremely useful.  Unfortunately, I only slept about three hours
+last night, since I stayed up until 3AM coding and didn't actually do the
+paying work I should have been doing instead...  So posting this project
+will have to wait for another day -- but once it <i>is</i> posted, wouldn't
+it be groovy to have an interactive online file parsing tool for, say,
+malware snagged off the wild Net?  That would be fun!
+</p><p>
+So: more later.
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,31 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword test_driven_programming</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=test_driven_programming mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword test_driven_programming</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="Workflow_wftk_development_continues.html">Workflow wftk development continues</a></div>
+<div class="st2">2009-03-17 <a href="keyword_wftk.html">wftk</a> <a href="keyword_test_driven_programming.html">test_driven_programming</a></div><br>
+<a href="/wftk/perl_tutorial.html">A tutorial approach to workflow</a> -- right here!
+</p><p>
+So for the last month or so I've been working on rewriting the wftk from the ground up, in Perl, with proper object orientation (which is to say, given it's Perl, just enough object orientation to let me not trip over my feet, but not so much that it makes me crazy).
+</p><p>
+When I started my casual redevelopment, it was because I had discovered Term::Shell, which is <i>brilliant</i> for casual development of code where you're really not quite sure what you want to do with it.  Just start writing, and develop new commands as they occur to.  Cycle often.  This worked great for the current version of WWW:Modbot (available on CPAN, but not very well-documented yet, because I got sidetracked on the wftk, you see).
+</p><p>
+Anyway, I got quite a ways in before I realized I was starting to break things I'd done earlier.  So I did something I'd never done before, but had always intended to: I reorganized the entire project to use test-driven development.  Each new set of features or "featurelets" is in a subsection of a tutorial.  I write a new section of the tutorial, making up the code as I think it should work, copy that code into a new test section, and run "make test".  Then I fix it.
+</p><p>
+So <i>all of my development is fixing</i>.  I'm good at fixing.
+</p><p>
+You can see the current state of the Perl tutorial <a href="/wftk/perl_tutorial.html">over here</a>.  I've started with data manipulation as per my blog post last year about how the wftk <i>should</i> be structured.  It's going slowly because there's just so much functionality that needs to be in there -- but every day, I do a little subsection, and I feel a sense of accomplishment.
+</p><p>
+This is a sweet library.  You can define lists with a natural syntax, add data with a copy command or by throwing lists and hashes at it, then query it all with SQL.  It's everything I had always thought should be in the (data) repository manager, but didn't have the time to write, because in Perl, half of everything is already there and waiting for you on CPAN.
+</p><p>
+I'm going to start blogging each major point finished, just to continue to give myself a feeling of accomplishment, and also to provide a little bit of timeline for myself looking back.  This project has been running for about two months already; it'll probably take a year, at least, perhaps more -- so it's going to be fruitful to look back and see what I finished when.
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

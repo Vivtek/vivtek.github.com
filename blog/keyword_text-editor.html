@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,76 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword text-editor</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=text-editor mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword text-editor</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="writing_specialized_text_editors_in_wxpython.html">Writing specialized text editors in wxPython</a></div>
+<div class="st2">2006-12-07 <a href="keyword_wxpython.html">wxpython</a> <a href="keyword_text-editor.html">text-editor</a> <a href="keyword_translation.html">translation</a></div><br>
+So again, a lick and a promise for this blog as I madly try to finish some
+translation work.  This translation job is an interesting one, though, as
+I mentioned, and as it turns out, amenable to editing in a specialized
+tool I just wrote today.  Of course, having <i>written</i> the tool today
+means I have to <i>use</i> the tool this evening in a mad dash to finish,
+which in turn means I have no time to <i>document</i> the code until
+tomorrow at the very earliest.
+</p><p>
+Suffice it to say that the exercise was surprisingly easy.  The task was
+simple: I need a tool to edit text files in which (for reasons we'll go into
+later) I have a number of phrases, one per line.  The phrases mostly have
+all the right words in them, but not in the right order.  I thus need a way
+to <i>quickly</i> select one or more words and drag it into the right place
+in the phrase.  Sure, you say, Word does that.  Yeah, except that Word
+doesn't put the spaces in the right place.  God and Bill Gates alone know
+why, but <i>Word doesn't put the fricking spaces in the right place</i> when
+I drag words around on a line, and so I took matters into my own hands and
+rolled my own solution.  And by God it works!  Still a few little oddities
+in it, but it works more quickly than Word for this particular application.
+</p><p>
+Another nice thing it can do is this: when I drag the first word of a phrase
+out into the middle, it can decapitalize that word, and capitalize the new
+first word.  That saves me a fraction of a second, and multiplied by 2000
+phrases that adds up to a lot of time.
+</p><p>
+And another little thing I just now added: I can hit a key and toggle the
+case of the word the cursor is on.  Again: this may or may not be of general
+use, but for this particular application it's very convenient.  And that's
+really the idea of special-purpose text editors.  An example from the
+programming world is emacs -- you can write LISP code to make emacs do
+literally anything at all (including psychoanalysis) from your text editor.
+The only problem being that it's too damn hard to start.  Python's easier,
+at least for me.  So a text editor in which you can embed your own Python
+snippets might be a generally useful tool indeed!
+</p><p>
+So.  Tomorrow or Sunday, documentation and maybe some more movement on the
+drop tagger.  And in the meantime, go get some sleep!  (I know I won't any
+time soon.)
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="special-purpose_text_editor_1_complete.html">Special-purpose text editor #1 complete</a></div>
+<div class="st2">2006-12-12 <a href="keyword_appaweek.html">appaweek</a> <a href="keyword_text-editor.html">text-editor</a> <a href="keyword_wxpython.html">wxpython</a> <a href="keyword_programming.html">programming</a> <a href="keyword_litprog.html">litprog</a></div><br>
+So my first actual weekly application is finished now.  Aren't you proud?  Suffice it to say that
+even a minor app takes a few hours to put together when you're reworking all your programming
+tools at the same time.  A character flaw, I suppose.  I never use an already-invented wheel
+if I have a perfectly good knife and wheel material.  And I never use an already-invented knife
+if I have a perfectly good grinder and stock metal.  And I never use an already-invented grinder
+if I have a lathe, motors, and a grindstone.  And I never use an already-invented lathe...  (sigh).
+</p><p>
+At any rate, it took me a few hours more than I wanted, but I'm reasonably pleased with the
+result.  You can see the whole thing
+<a href="/projects/text_editor/text_editor1.html">here (it's far too long to publish on the blog directly, of course)</a>.
+Go on.  Look!
+</p><p>
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

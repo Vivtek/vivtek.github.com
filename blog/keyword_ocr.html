@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,66 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword ocr</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=ocr mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword ocr</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="ocr_in_python.html">OCR in Python</a></div>
+<div class="st2">2007-08-16 <a href="keyword_tower_defense.html">tower_defense</a> <a href="keyword_evolutionary_programming.html">evolutionary_programming</a> <a href="keyword_ocr.html">ocr</a> <a href="keyword_python.html">python</a> <a href="keyword_pil.html">pil</a></div><br>
+OCR in Python.  There isn't any, to speak of.  While there do exist a few
+open-source OCR projects (Conjecture seems to have a great deal of promise!),
+none of them play well with Python.  I may want to rectify that at some point.
+</p><p>
+Anyway, growing bored of simply writing AutoHotKey scripts to play Tower
+Defense, I quickly realized that I really needed a tool to start the game
+for me, and track the score and other stats for later analysis.
+</p><p>
+The first part was no big deal; I whipped out a PyPop applet that could launch
+a URL.  Since I wanted a window that was sized according to the Flash object,
+that required putting together a local HTML file that could run some JavaScript
+to pop up the window I wanted, then close itself afterwards.  I'll document
+that <i>when I have time</i> (I propose the abbreviation wIht to save my time
+typing that phrase.)
+</p><p>
+Well.  That was fun, and it worked, but I really wanted something to monitor
+the score for me, and timing, and ... stuff.  Which meant that I would have
+to read the actual graphical screen, because there's no handy-dandy textual
+output on that Flash app.
+</p><p>
+You'd think that would be trivial in 2007.  But you'd be wrong.
+</p><p>
+Getting a snapshot of the screen was easy enough.  I wrapped win32gui to get
+a window handle by the title (I'll document this later: Idtl), then installed
+PIL to grab the actual graphical data and manipulate it.  To warm up with that,
+I set a timer to grab a four-pixel chunk of the screen so I could see whether
+the Flash had started or not (Tower Defense goes through an ad screen, then
+a splash screen, and only then does the game start.)  That took a little
+putzing around, but the result was gratifying: my little utility could tell me
+when the game was ready to play.  As long as the window was on my primary
+monitor, anyway (turns out PIL is not good with multiple monitors -- who knew?)
+So it turned out I had to move the window before all that.
+</p><p>
+And then I could grab the sections of the screen with the numbers on them
+for score, bonus, lives, timer, and money... And then it all screeched to a
+halt, because there are no open-source Python OCR libraries.  At all.  And
+clearly I don't have the time to adapt something -- hell, I don't even have
+time to do all this.  I don't even have time to <i>write this blog entry</i>.
+</p><p>
+So of course I did the natural thing.  I wrote my own special-purpose OCR,
+because clearly that would be saving time.  I saved four hours before I started
+falling asleep, and it still can't tell 8 from 0 (but it does a fine job on the
+rest of the digits.)  It was a lot of fun, actually.  Idtl.
+</p><p>
+So.  Proposal.  It would be nice to work some with Conjecture, and produce
+the following: (1) a Python binding that can work in memory with PIL bitmaps,
+(2) a Web submitter for test graphics, and (3) an online tester and test
+database reporter.  That would be really cool.  Of course, only wIht.
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

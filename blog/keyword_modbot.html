@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,97 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword modbot</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=modbot mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword modbot</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="modbot_google_counter_and_the_spam_archive.html">modbot, google counter, and the spam archive</a></div>
+<div class="st2">2007-05-07 <a href="keyword_spam.html">spam</a> <a href="keyword_modbot.html">modbot</a> <a href="keyword_google_count.html">google_count</a></div><br>
+Three related things today.  First, the scripts I've been putting together for forum spam blocking have kind of coalesced into a "modbot".  This
+program attempts to automate the tasks performed by human moderators and could technically be placed into <i>any</i> Web spam moderation situation.
+It is currently running happily in an Eboard 4.0 installation and blocking roughly 93% of spam, while still allowing anonymous posting to that forum.
+I'll be packaging it up for distribution in the public domain.  Watch this space for further details -- one of the more fascinating notions I've
+had is to enable it to receive moderation emails from Blogger and thus automate the comment moderation process there.
+</p><p>
+One of the rules/tools used by the modbot is to count Google hits for the numeric IP of an untrusted poster.  Turns out that HTTP proxies have a
+real proclivity for getting indexed.  A lot.  Legitimate IPs, not so much.  I wrote a little online tool to call Google to get these counts; the
+<a href="/google_count.html">tool is here</a> and the <a href="/projects/forum_despammer/google_count.html">write-up of the code is here</a>.  It's currently blocking about
+40% of spam (I don't have good statistics analysis in place yet, so that's very approximate.)
+</p><p>
+Finally, as a spinoff of this project, I've started a spam archive.  There's nothing to present yet, but I hope to start doing some interesting
+analysis, and most specifically a searchable database -- along with a searchable database of spamvertised sites.  That ought to overlap with
+the sites spamvertised by email spam as well, and that's going to be an interesting thing to look at.  We'll see.
+</p><p>
+I've stumbled onto a spam link network of staggering extent in the course of examining forum spam.  A spammer has a site somewhere, and then spamvertises
+it.  But then some of the spam starts to link to other forum spam, which in turn links to the site.  Some sites auto-forward to other sites using
+obscured Javascript (I haven't figured out just why, yet; if you have a rationale, I'd be happy to hear it.)  Anyway, after that goes on for a while,
+there's a huge resulting network of vulnerable fora linking to other vulnerable fora.  There is a true treasure trove of information available to
+the interested party.  Which would, of course, be me.  I will <i>definitely</i> be following up on that and posting on it.
+</p><p>
+Anyway, it's been nice talking to you.  Back to work!
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="the_modbot_and_web-based_spam.html">The modbot and Web-based spam</a></div>
+<div class="st2">2008-05-17 <a href="keyword_modbot.html">modbot</a></div><br>
+As promised, a post on the modbot.
+</p><p>
+As you know, Bob, I first got into despamming more or less seriously in 1999, when I wrote <a href="http://www.despammed.com">Despammed.com</a> and foisted
+it on an unsuspecting world.  And life intervened, as it often does, and Despammed's fortune has waxed and waned along with it, but I still retain
+a fascination for the spam.
+</p><p>
+When XRumer hit the market in November 2006, and everybody suddenly started getting forum spam, I started work on the modbot, which is a set of
+Perl code for the detection of spam on the Web.  And you know, there's lots of it.  In the context of various projects, I personally am responsible
+for monitoring a <a href="http://www.donttasemeblog.com">MovableType blog</a> (two, actually), a <a href="http://www.nowarblog.org">Scoop installation</a>, a
+<a href="http://mondoglobo.wftk.org/wiki/">MediaWiki site</a>, and the venerable old Toonbots forum on <a href="/toonbots/discuss.pl">WebBBS</a>.  And they <i>all get
+spam</i>.  The type of spam changes over time.  The modus operandi changes over time.  And I find it all irresistible.
+</p><p>
+After my first iteration of the modbot, I got distracted for about a year, and all those venues started to accumulate spam, slowly but surely.
+The Toonbots forum had some basic spam blocking in place, but it wasn't too effective, and of course MovableType has some fairly decent filters in place
+and is moderated anyway, so spam didn't proliferate too badly there.  MediaWiki doesn't seem to be a real spam magnet, either (I suspect it needs a little
+more savvy than the low-level help spammers hire can be expected to master.)  And so it was all pretty manageable until...
+</p><p>
+The nowarblog.org Scoop installation (which I'd nearly forgotten about) was slowly growing in its server demand.  I hadn't realized it for a while, because
+I had just assumed it was MediaWiki being the hog it most certainly is.  I recognized that eventually I'd have to track it down, but I'd been quite busy.
+But finally, things got so bad I couldn't neglect it any more -- Apache was spending so much time locking the CPU that sendmail wasn't actually getting
+me my mail, and that was a problem for the paying work.
+</p><p>
+So, groaning at the notion I was going to have to get into MediaWiki's PHP and cache it or something, I took a closer look.  And it turned out that
+while I wasn't watching, the nowarblog.org Scoop installation had collected 34,000 comments and change.  Shyeeah, like <i>that</i> was gonna happen.  It
+was spam.  Scoop doesn't react well to large numbers of comments -- each hit to a spammed page (including every new spam comment post) was hanging on the
+CPU for over a minute.  Of course I knew: that meant war.
+</p><p>
+I dusted off the modbot code, because I wanted to archive the spam properly because <i>eventually</i> I'm going to do some analysis.  And two days later,
+there were only twenty comments left on nowarblog.org (not for lack of trying, of course.  The modbot just cleaned up 1400 spam comments this afternoon.)
+Next I adapted it to the Toonbots forum; that went well, too.  The modbot is carefully written to be as modular as possible, because spam crops up all
+over the place and I want one single way to filter it all.
+</p><p>
+My next target is MovableType, which has two categories of spam with different characteristics.  There's normal comment spam, and I have a few
+techniques which will work well for that.  But the other category is trickier, and blog-specific: trackback spam.  Donttasemeblog.com gets about five
+trackback spams a day, and I'm still not entirely sure how to block them.  Ultimately, one test is going to be to check the link being spammed; for
+trackbacks, if it forwards to another site, I regard that as spam.  Haven't implemented it yet, though.
+</p><p>
+MediaWiki spam is going to be tougher still; I'm going to need to write code to back the revisions out carefully, and I'm not yet sure how that's
+going to work without shooting myself in the foot.  The really pernicious feature of MW spam, though, is that the spammers typically deface existing
+content.  That's really not good.  So it's going to be necessary.
+</p><p>
+One mode of the modbot is going to have to be email-based.  For simple Web-post forms which deal with email, I want to be able to filter that spam before
+it comes to me.  The normal email filters at Despammed, of course, can't begin to deal with that, because as email it's entirely legitimate.  Instead,
+a judgement has to be made based on its actual content.  That's on the to-do list, too.
+</p><p>
+Ultimately, it will be impossible to block spam -- there's no way for a machine to know with absolute certainty who you want to hear from.  But that's
+exactly what makes it so very fascinating.  The vast majority of spam is obvious, but sometimes ... sometimes you have to think about it.  And the
+natural response of spammers will have to be to get better at spamming.  I truly believe that the spam arms race is where natural computer intelligence
+has a good chance of arising.  So ... I despam.  It's my way of immanentizing the Eschaton.
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

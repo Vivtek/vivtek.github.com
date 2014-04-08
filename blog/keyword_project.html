@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,63 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword project</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=project mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword project</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="tower_defense_game_notion.html">Tower defense game notion</a></div>
+<div class="st2">2007-08-05 <a href="keyword_tower_defense.html">tower_defense</a> <a href="keyword_evolutionary_programming.html">evolutionary_programming</a> <a href="keyword_project.html">project</a></div><br>
+So I have gotten sucked into this cool game,
+<a href="http://www.handdrawngames.com/DesktopTD/game.asp">Tower Defense</a> -- apparently
+there's a whole genre, but this is the one I've been playing with the past
+couple of days.
+</p><p>
+It's a Flash game, and the premise is simple.  You have a grid with two
+incoming gates and two outgoing gates.  Enemies come in the incoming gates,
+and you have to kill them before they get to the outgoing gates.  You lose
+one health point for every enemty that gets through.  You have 20 health
+points and no way to get more.
+</p><p>
+So -- the point of the game is to build defense towers which run automatically.
+Each enemy you kill nets you a small amount of money, which you can use to
+build new towers, or upgrade existing ones.  (You need to upgrade to keep up
+with the steadily increasing toughness of the enemies, of course.)
+</p><p>
+It's fun.  I thought of a fun way to do some really cool programming with it.
+AutoHotKey can find the Flash window, and can scan the screen for whatever
+you need.  It can click things, too.  So  my notion is to write an AHK
+front-end to play the game, with an IP connection to a strategy server.  The
+strategy server would then use evolutionary programming to come up with 
+board arrangements, and over time (perhaps a great deal of time, who knows?)
+you could watch the strategizer get <i>really good</i> at Tower Defense.
+</p><p>
+Or not.
+</p><p>
+But it would be fun to try it.
+</p><p>
+My notion is that the instructions for a given strategy would consist of a
+series of builds at given coordinates, intermixed with upgrades to the towers
+built.  Each instruction would only execute after there was enough money
+available for it.  So you'd have a string of instructions which would express
+a given board setup.
+</p><p>
+To combine strategies, you'd just ... well, I guess you'd just cross the
+streams, so to speak, taking two (or more?) successful strategies, cut them
+at a random spot, and splice them together.  You might want to have some
+cleanup rules (you can't upgrade squirter #3 if you didn't build three
+squirters, for instance.)
+</p><p>
+And then you'd let it run for a few weeks.  You could get other people to
+download your script and run strategies, too.
+</p><p>
+It could be very, very cool...
+</p><p>
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,59 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword msword</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=msword mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword msword</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="microsoft_word_macros_for_boxed_text.html">Microsoft Word macros for boxed text</a></div>
+<div class="st2">2006-11-28 <a href="keyword_programming.html">programming</a> <a href="keyword_msword.html">msword</a> <a href="keyword_word-macro.html">word-macro</a> <a href="keyword_translation.html">translation</a></div><br>
+One of the neat little things I did over the past few days was a
+simple Word macro -- at least, it <i>should</i> have been simple, but
+the problem is one I've had for a long time.
+</p><p>
+In this case, what I wanted to do was to fix up a few documents I had from
+a translation customer.  This particular end user, for reasons known only
+to them, captions their figures using fields.  The fields are in text boxes
+for easy positioning, and the field results (the text you see on the screen)
+are the captions.
+</p><p>
+Only one problem: the fields are always variable results for <i>variables
+which don't exist in the document</i>.  All I can figure is that the
+document preparer makes these things in little snippets with some other tool
+which spits out Word texts, then they paste those into the text boxes.
+</p><p>
+So, you're asking now (unless you're a professional translator) who cares?
+You just type your English over the German in the captions, and you're
+home free, right?  Well: no.  Everybody who's anybody in the wonderful
+world of translation nowadays uses translation tools, in this case TRADOS.
+</p><p>
+TRADOS does two things for you: it stores each and every sentence you translate
+in a <i>translation memory</i> (a TM), so you (sort of) never need to 
+translate anything twice, and it also makes it much easier to step through
+a document translating.  The use of TRADOS makes translation <i>much</i>
+easier, and it also helps you stay consistent in your use of words and
+phrases.
+</p><p>
+Herein lies the problem: those fields were untouchable by TRADOS.  There are
+two modes in TRADOS: one steps through the document using Word macros
+but doesn't deal well
+with text boxes (and yes, you'll note they're in
+text boxes).  So that approach was out.
+The other (the TagEditor) converts the entire document to an
+XML format, then edits that in a very convenient way.  The TagEditor makes
+short work of text boxes, but those field results were invisible to it.
+</p><p>
+Stuck!  And so for a series of three jobs from that customer, I just didn't
+use TRADOS on the figure attachments, and hated it.  Last week, though, I
+took screwdriver in hand (metaphorically speaking) and decided it was
+showdown time.
+</p><p>
+OK, that's the teaser -- follow the link to get the ... <i>rest</i> of the
+story.
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

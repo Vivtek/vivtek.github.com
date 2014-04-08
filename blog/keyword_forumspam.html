@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,94 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword forumspam</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=forumspam mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword forumspam</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="some_initial_forum_spam_statistics.html">Some initial forum spam statistics</a></div>
+<div class="st2">2007-05-13 <a href="keyword_spam.html">spam</a> <a href="keyword_forumspam.html">forumspam</a></div><br>
+Now that I've been collecting spam from actual fora for a little while,
+I have some initial statistics and musings.
+</p><p>
+I've collected spam from one eBoard 4.0 forum since May 5; it is now
+May 13.  The spam filters I'm using are blocking about 93% of the postings,
+making the moderation burden manageable for that forum.  In those 8 days
+I have collected 1,235 spam samples.  That's 150 spams a day, from a fairly
+obscure forum; in retrospect, even though the actual log activity seems
+low, this is a lot of spam.
+</p><p>
+Those 1,235 spam samples link to a total of 10,795 links.  I haven't yet
+built analysis machinery to get much farther than that; I've mostly been just
+looking at the links, retrieving the pages, and musing about how all that
+might be automated in an interesting and useful way.
+</p><p>
+Some tidbits:
+</p><p>
+Some of the spam links point to actual sites being advertised.  I don't yet
+have a feel for many links point to sites <i>other</i> than those actually
+advertised, but there are some interesting commonalities.  For instance, there
+are a <i>lot</i> of pages placed onto vulnerable fora and other venues which
+simply link to other pages.  In some cases, it's easy to tell why: Google
+spamming and simply a way to counter attempts to block posts which link
+to particular URLs.
+</p><p>
+I have a separate notion to find and track those vulnerable sites, and to
+attempt to mine them for further information on these spam networks.
+</p><p>
+Bugzilla, oddly enough, seems to have such a vulnerability.  (Can you call this
+a vulnerability?)  There are links to pages stored as attachments to bug
+reports.  Those attachments are (naturally enough) not subject to any content
+restrictions.  Unfortunately, that means you can put any Javascript into them
+at all.
+</p><p>
+I haven't yet found actual malicious Javascript being spammed to fora.  What
+I <i>have</i> found is obscured Javascript which modifies document.location to
+force a page forward to another site.  I consider that semimalicious, and my
+initial goal is to find a way to detect that with some sort of automatic
+analysis, and block posts based solely on the basis of link to that sort of
+page.
+</p><p>
+I figure it's only a matter of time, though, before I find some actual
+malicious Javascript which will attempt to rootkit my machine with keyboard
+loggers to steal my bank accounts.  That's pretty cool, actually, so I'm
+watching the spam traps with bated breath.
+</p><p>
+One spam has a huge number of links to different domains, all of which resolve
+to the same IP.  That's an interesting feature.  I'm not sure how to track it
+yet.  What I really want to do is some kind of <i>generic analysis framework</i>,
+but I don't have a good picture of what that framework would look like, or
+indeed precisely what it is that I expect it to do.
+</p><p>
+It seems that what I want to do is to build a kind of task list for an incoming
+event.  That task list would consist of a certain (small) number of analysis
+steps which themselves generate new analysis events.  Each step is a test.
+The results of the tests are cached, so that all possible duplicated effort
+is avoided, but also so that relationships such as "these spam efforts share
+an IP" can be found.
+</p><p>
+There's a certain exponential explosion involved, it seems at times.  But there
+are also patterns which could cut down on the amount of work done.  Of those
+10,795 links I have so far (oops, in the time it's taken to write this
+much, two more spams have arrived, so I now have 10,886 links to analyze) --
+of those 10,886 links I have, many of them are hosted at
+<something>.007ihost.com -- 2,804 of them, as a matter of fact.  It will be
+very interesting to analyze the spam pattern there, by the way.  Are all of
+these from the same spammer?  Same IP?  (Bet not.)  But more germane to the
+point I was making, eliminating those URLs from separate analysis will cut out
+20% of the analysis effort.
+</p><p>
+Well, anyway, this is just a little talking out loud while I muse about how
+to automate all this analysis.  Eventually I'll get down to posting graphs
+of some sort.  That will be fun.  The other thing, of course, is some way
+to ask about a URL, "Is this URL a spam indicator?"  I hope it will also
+cross-fertilize with <a href="http://www.despammed.com">Despammed.com</a>.  Wish me
+luck.
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

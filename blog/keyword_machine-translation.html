@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,59 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword machine-translation</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=machine-translation mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword machine-translation</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="my_new_translating_technique_is_unstoppable.html">My new translating technique is unstoppable</a></div>
+<div class="st2">2006-12-08 <a href="keyword_translation.html">translation</a> <a href="keyword_machine-translation.html">machine-translation</a></div><br>
+I just wanted to note at this juncture that my notion of running some very
+simple machine-translation code (yes, lovingly hand-coded in Perl) on a
+certain class of text, followed by human intervention using <i>just the
+right kind of editor</i> seems to be bearing fruit.
+</p><p>
+Granted, I would be in much less deadline trouble right now if I'd just
+done the Right Thing, shut up, and translated the text.  But the text in
+question is not nicely flowing text.  It is PLC message output written
+by engineers for machine operators, and it is <i>dense</i>.  Very, very
+dense.  So if I'd just translated it by hand I would have screwed up over
+and over.
+</p><p>
+Instead, I first scanned the entire text, broke it into words (with varying
+success), and looked up each and every word I didn't know.  For those of you
+who aren't translators, this doesn't just mean not knowing a word at all; it
+includes not knowing what those particular engineers and machine operators
+intend to say with a particular technical term.  This can be challenging, but
+in this case I had a lot of previously translated text, so I could look most
+words up in that.
+</p><p>
+Once all the words were "known" (ha), I ran the whole thing through a phrase
+scanner.  Frequently occurring phrases were presented with word-by-word
+translations, along with some crude rewrite rules to make a better guess.
+This is all very, very naive, as any translator knows.  It's not even as good
+as SYSTRAN, and SYSTRAN sucks.
+</p><p>
+But as I translated more of the frequent phrases, the system was able to
+string together better guesses for the longer phrases.  At some point, then,
+I decided to switch over to direct translation of the actual segment list.
+This text was "nice" (in this one aspect alone) because segmentation was
+easy -- every line is a separate sentence, so there's no need to figure out
+where sentences might break.  That's convenient.
+</p><p>
+At any rate, I am now using my specialized text editor to approve and/or
+modify each resulting phrase.  Remember: all the words are already there,
+sort of, just not usually in an understandable order.  Now that I can <i>very
+quickly</i> select and drag them around, though, <b>my new translating
+technique is unstoppable</b>. Ha!  They said it couldn't be done!  <i>Those
+fools!</i>  MWAahahahaha!
+</p><p>
+(coff)  OK, I'm better now.  Documentation soon.  I just felt enthusiastic.
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

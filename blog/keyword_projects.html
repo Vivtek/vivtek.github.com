@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,68 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword projects</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=projects mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword projects</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="a_quick_note_on_project_structure.html">A quick note on project structure</a></div>
+<div class="st2">2006-12-02 <a href="keyword_programming.html">programming</a> <a href="keyword_projects.html">projects</a> <a href="keyword_tagger.html">tagger</a></div><br>
+There are two general ways to approach software design; each has its uses.
+</p><p>
+<i>Top-down</i> design looks at the entire project and breaks it into
+high-level components; those components are then subprojects and can be
+further handled in the same way.
+</p><p>
+<i>Bottom-up</i> design looks at the resources available and sees likely
+things that can be done with them; the idea is to provide generalized
+components to be used in any project.
+</p><p>
+A healthy software design ecology has a lot of bottom-up components at
+varying stages of maturity; those components then inform the top-down
+requirements of the current project, giving those designs something to
+work with.  In the absense of complex components, we're forced to write
+everything from scratch, and it all turns into ad-hockery of the worst
+kind.
+</p><p>
+Anyway, that item of philosophy out of the way, I wanted to talk about
+the design of this week's project, the drop tagger.  There are three
+main components of the drop tagger, as follows:
+</p><p>
+<ul>
+<li><b>The drop handler</b><br>The drop handler is the component which
+interacts with the shell and provides something you can drop files
+onto or otherwise tag them.  It calls the file manager.  However, the
+notion of a general drop handler is a much more interesting one than
+a special-purpose drop handler just for this project, and one which can
+be a valuable addition to many different file-oriented projects.
+<li><b>The file manager</b><br>The file manager shows us what files have
+been dropped, allows us to add and delete them and modify their tags,
+and for fresh drops it will actively ask for tags.  It also calls the
+tag cloud formatter and provides a convenient place to display the cloud.
+<li><b>The cloud formatter</b><br>This is likely to be the least general
+and thus the least interesting of these components, but it formats the
+file cloud upon request based on information compiled about the tags in
+the system.
+</ul>
+</p><p>
+Each of these components can be designed and used in isolation, and reused
+in other projects.  Alternatively, once we've defined the components we
+need to meet our goal, we may well be able to find ready-made components
+already available (or at least something we can adapt instead of starting
+from scratch).  There is then a maturity effect over the course of multiple
+projects, as our codebase allows us to be faster and faster responding to
+the need for a project.
+</p><p>
+I'd like to formalize this design process over the course of several
+mini-projects.  Stay tuned for further progress.
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

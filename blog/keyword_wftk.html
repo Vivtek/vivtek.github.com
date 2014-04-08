@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,278 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword wftk</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=wftk mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword wftk</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="thoughts_on_wxpython_ui_design.html">Thoughts on wxPython UI design</a></div>
+<div class="st2">2006-12-22 <a href="keyword_appaweek.html">appaweek</a> <a href="keyword_wftk.html">wftk</a> <a href="keyword_wxpython.html">wxpython</a> <a href="keyword_tagger.html">tagger</a></div><br>
+For some time, in the context of my <a href="/wftk/">workflow toolkit</a>, I've been thinking intensively about UI design in wxPython.
+</p><p>
+See, once I was embroiled in a rather extensive project developing a GUI application under wxPython, and frankly, the UI was unmanageable.
+It had been developed with some IDE tool or another, but the output was <i>Python code</i>.  It was horrible, trying to find what was what
+and on which panel it was developed and what its ID was -- ugh!  This was back in about 2001.
+</p><p>
+At that point, I hadn't really started integrating wftk into Python yet, but I dabbled in it over the next couple of years, always with the notion
+that the UI is most sensibly defined in XML, and that a sensible UI manager would then take that definition and build all the objects needed to
+implement it in wxPython (or, for instance, online in a portal or something).  And since that time, other people have naturally had many of the
+same ideas, and you see this implemented.  But I've always wanted to finish my own implementation.
+</p><p>
+The current app for <a href="http://www.anappaweek.com/2006/12/requirements-for-file-tagger_21.html">Anappaweek.com</a> that I'm working on is, of course,
+a GUI app (at least, some of the time.)  And so naturally I have relived my need for my UI design notion -- and in the context of working on the
+file tagger, I intend to start implementing the UI module.  On that note, here is a tentative UI definition sketch for the file tagger.  Ideally, we could
+use this XML not only to generate the app itself, but also to generate documentation for the UI design (by transforming it with XSLT into SVG, for instance;
+wouldn't that be indescribably cool?)
+</p><p>
+<i>All</i> of this is, of course, subject to radical change.  Here goes:
+</p><p>
+<pre>
+&lt;frame&gt;
+  &lt;tabset&gt;
+    &lt;tab label="Cloud"&gt;
+       &lt;html&gt;
+    &lt;/tab&gt;
+    &lt;tab label="Files"&gt;
+       &lt;splitter (some kind of parameters)&gt;
+         &lt;panel&gt;
+           &lt;radio-group&gt;
+              &lt;radio value="something" label="All"/&gt;
+              &lt;radio value="something" label="Some"/&gt;
+           &lt;/radio-group&gt;
+           &lt;listbox/&gt;
+           &lt;button label="Show"/&gt;
+         &lt;/panel&gt;
+       &lt;listcontrol&gt;
+         &lt;col label="Name"/&gt;
+         &lt;col label="Tags"/&gt;
+         &lt;col label="Description"/&gt;
+       &lt;/listcontrol&gt;
+    &lt;/tab&gt;
+  &lt;/tabset&gt;
+&lt;/frame&gt;
+</pre>
+</p><p>
+I already have a framework for that definition to go into -- I wrote that in, like, 2002 or so.  But I never got further than definition of menus.
+So here, I'm going to implement frames, and at least one dialog.
+</p><p>
+Note that what's utterly missing from this is any reference to code to handle events.  That will come later, when I see what has to be defined where
+to get all this to work.
+</p><p>
+And on that note, I close.
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="towards_wftk_2_0.html">Towards wftk 2.0</a></div>
+<div class="st2">2007-10-24 <a href="keyword_workflow.html">workflow</a> <a href="keyword_wftk.html">wftk</a></div><br>
+I never really officially released wftk 1.0, of course (the magnitude of
+the task simply grew and grew and I became less and less certain of my
+approach -- and then the recession happened.)  But I've been thinking a lot
+of a more reasoned approach lately, and maybe it's time to reboot the wftk
+project and start more or less "from scratch".
+</p><p>
+I see the modules in this new approach more or less as the following:
+</p><p>
+<ol>
+<li>Data management<br>
+This is the basic list-and-record aspect that the repository manager
+started out addressing.  Now, of course, there is SQLite.  So a principled
+workflow toolkit would start by using SQLite for local tables, and add
+"external tables" (for which the new SQLite has an API) defined in what
+SAP now calls the "system landscape".  It's amazing, by the way, how much
+of my thinking over the past few years I see reflected in what SAP is doing
+lately in their NetWeaver stuff.
+</p><p>
+<li>Document management<br>
+Document management, as I see it, consists of: (1) actual central storage
+and versioning of unstructured data; (2) storage of metadata about documents;
+(3) parsing and indexing of unstructured data to produce structured data
+elsewhere in the system.  The document manager should be able to work well
+in either situations where it controls storage (and thus can initiate action
+whenever anything is changed) or when it merely indexes a storage which can
+be changed externally -- that latter might be, for instance, management of
+a Website's files in the file system.  Or just your system files on a Windows
+machine.  Periodically, the document manager could check in and see whether
+things had been changed, and if so, trigger arbitrary action.
+</p><p>
+<li>"Action" management<br>
+A central script and code repository defines the actions that can be taken
+by a system.  I consider this to include versioning and some kind of
+change management and documentation system, including literate programming
+and indexing of the code snippets.  The build process should also be managed
+here, and should be capable, for instance, of taking algorithms written in
+C, compiling them into DLLs or .so dynamic load libraries, and calling them
+from Perl, say.  Ultimately.
+</p><p>
+Actions, documents, and data would have a nested structure, by the way; there
+would be global actions, application actions (a given case or project could
+be an instance of an application), and project/instance actions, and the same
+applies to data and documents, perhaps.  Originally I'd thought of doing the
+same for users or organizational units, but I really think that if you're
+defining a common language of actions and data, it should be organized into
+applications and, perhaps, subapplications or something.  But <i>not</i>
+differ by user!  (I might be wrong, of course.)
+</p><p>
+The above three modules together allow a data-flow-oriented processing
+system, but we're still
+missing:
+</p><p>
+<li>Outgoing interfaces<br>
+This includes publishing of HTML pages, outgoing mail notifications, other
+notifications such as SMS or ... whatever.  Logged, all of it.  It includes
+report generation into the document management system or the file system,
+generation of PDFs, etc.
+</p><p>
+<li>Incoming interfaces<br>
+Given the parsing power of the document management module, this is more an
+organizational module.  The system should be able to receive email, parse
+it, and take action.  Conversational interfaces are covered here as well,
+from SMTP- and IMAP-like state machines to chatbot NLP interfaces.  And
+of course form submission from Websites also falls into this bucket.
+</p><p>
+<li>Scheduling<br>
+Whether running on Unix with cron and at, or Windows with ... whatever the
+hell Windows offers, the system should have a single unified way of dealing
+with time in a list of scheduled tasks.
+</p><p>
+<li>Users, groups, roles, and permissions<br>
+This module would be in charge of keeping track of who is performing a
+given action and whether they're allowed to do so.  The original wftk already
+provided a really nice mechanism which would still be nice here: when judging
+permissions, any action can get the answers "yes, it's allowed", "no, it's 
+not allowed," and "it's allowed subject to approval."  That last invokes
+workflow for <i>any arbitrary action</i> and that would be a powerful
+abstraction for nearly any system.  It's essentially transaction management
+on a much more abstract scale.
+</p><p>
+And finally, the icing on the cake,
+</p><p>
+<li>Workflow<br>
+The two components which make workflow workflow are a task list (tasks are
+hierarchical in nature and so a task can have subtasks as a separate project)
+and a workflow process definition language.  The new wftk should be able to
+work with any workflow formalism -- after all, the process definitions are
+considered scripts in the versioned script document repository.  The existing
+wftk engine will almost certainly fit in here with little modification.
+</p><p>
+The primary benefit of workflow is that it allows dissociation over time.
+A running workflow process isn't active on the machine for the weeks or months
+it might require -- it's simply a construct in the database that gets
+resurrected as required.  There are a boatload of applications in general
+programming, but nobody sees them as workflow because everybody "knows"
+workflow is a business application.  The wftk was to have changed that, and
+I think the potential's still there.
+</p><p>
+There's also a case to be made for a module for
+</p><p>
+<li>Knowledge management<br>
+This portion of my thinking is a little less organized.  I'd kind of like
+to lump some kind of concept database in here, perhaps a semantic parser
+or something.  Originally I'd thought that AI would go in here, but I
+actually think that Prolog might just be another action script language.
+This is definitely a blurry line in its native habitat, and crikey, he's 
+not happy to see me here!
+</p><p>
+But the point of a blog is to write this stuff down as it occurs. So there
+you have it, this would sit on top of the workflow.  Think of it as a way
+to build smart agents into your data/document/action/workflow management
+system.
+</ol>
+</p><p>
+And there you have it -- my plan to wrap up the thought and work of eight years.
+Oh, and this time I'm not bothering with licensing requirements.  Like SQLite,
+wftk 2.0 will be in the public domain.  I don't really care if I get credit
+or not for every little thing, because frankly, anybody who counts will figure
+it out.  And have you noticed how <i>everything</i> these days uses SQLite?
+It's because -- well, primarily because it works, but also because you don't
+have to worry about legal repercussions of using the code.
+</p><p>
+That's where wftk document management should be, where wftk workflow should
+be.  Simple, easy to use, and ubiquitous.
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="generalized_document_management_framework.html">Generalized document management framework</a></div>
+<div class="st2">2008-05-12 <a href="keyword_document-management,.html">document-management,</a> <a href="keyword_wftk.html">wftk</a></div><br>
+Something that a lot of my project ideas have in common lately is a kind of generalized document management framework.
+</p><p>
+This isn't as impressive as it sounds, actually.  But it's kind of a key notion for Web 2.0 stuff -- if you want collaboration, you have to
+have a place to store that collaborated content.  That place is the document management system.
+</p><p>
+Let's consider this for a moment, in the context of the <a href="/fantasy_namer/">fantasy name generator</a> from last week.  That fascinating little
+thing takes a simple document -- the language definition -- and runs a Perl script on it, yielding some interesting results.  The
+<a href="/toonbots/toon-o-matic/">Toon-o-Matic</a> does the same thing; it takes a simple XML document and runs a whole sheaf of Perl on it to generate an image.
+A Wiki for my general site content, or a forum, or even a simple Web form post, can all be seen as doing the same thing.  An online programming tool;
+same thing.  All these systems share a component -- the user can submit a large (ish) text object, often based on an existing one, for arbitrary processing,
+which usually has some visible effect on the system.
+</p><p>
+If you just look at that little unit of functionality, you can imagine lots of attractive ways to extend it, too.  As I mentioned in my initial post
+on the fantasy namer, you can suddenly imagine allowing people to name a particular definition.  You can imagine a page devoted to it, perhaps including
+all the results it's generated -- maybe in ranked order.  All that's a lot of different features, but the central one is simply being able to store
+and manipulate that central document.  It provides a hook on which you can start hanging interaction; without the hook you can't even conceive of
+where to start.
+</p><p>
+So this notion's been in my head lately.  Oh, I'm sure all this was done in much more diligent detail ten years ago.  (Well.  Seven or eight years ago,
+anyway.)  In fact, I can think of a couple of systems -- but they're all too damned complicated.  What I'm after is the ability to boil these things
+down to their essence, to provide a language of thought about these systems.  For myself, anyway.  Assuming you exist, you may or may not benefit.
+(But I'll bet you would.)
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="Workflow_wftk_development_continues.html">Workflow wftk development continues</a></div>
+<div class="st2">2009-03-17 <a href="keyword_wftk.html">wftk</a> <a href="keyword_test_driven_programming.html">test_driven_programming</a></div><br>
+<a href="/wftk/perl_tutorial.html">A tutorial approach to workflow</a> -- right here!
+</p><p>
+So for the last month or so I've been working on rewriting the wftk from the ground up, in Perl, with proper object orientation (which is to say, given it's Perl, just enough object orientation to let me not trip over my feet, but not so much that it makes me crazy).
+</p><p>
+When I started my casual redevelopment, it was because I had discovered Term::Shell, which is <i>brilliant</i> for casual development of code where you're really not quite sure what you want to do with it.  Just start writing, and develop new commands as they occur to.  Cycle often.  This worked great for the current version of WWW:Modbot (available on CPAN, but not very well-documented yet, because I got sidetracked on the wftk, you see).
+</p><p>
+Anyway, I got quite a ways in before I realized I was starting to break things I'd done earlier.  So I did something I'd never done before, but had always intended to: I reorganized the entire project to use test-driven development.  Each new set of features or "featurelets" is in a subsection of a tutorial.  I write a new section of the tutorial, making up the code as I think it should work, copy that code into a new test section, and run "make test".  Then I fix it.
+</p><p>
+So <i>all of my development is fixing</i>.  I'm good at fixing.
+</p><p>
+You can see the current state of the Perl tutorial <a href="/wftk/perl_tutorial.html">over here</a>.  I've started with data manipulation as per my blog post last year about how the wftk <i>should</i> be structured.  It's going slowly because there's just so much functionality that needs to be in there -- but every day, I do a little subsection, and I feel a sense of accomplishment.
+</p><p>
+This is a sweet library.  You can define lists with a natural syntax, add data with a copy command or by throwing lists and hashes at it, then query it all with SQL.  It's everything I had always thought should be in the (data) repository manager, but didn't have the time to write, because in Perl, half of everything is already there and waiting for you on CPAN.
+</p><p>
+I'm going to start blogging each major point finished, just to continue to give myself a feeling of accomplishment, and also to provide a little bit of timeline for myself looking back.  This project has been running for about two months already; it'll probably take a year, at least, perhaps more -- so it's going to be fruitful to look back and see what I finished when.
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="comparative_prgg_modest_idea.html">Comparative programming - a modest proposal</a></div>
+<div class="st2">2009-03-20 <a href="keyword_wftk.html">wftk</a> <a href="keyword_python.html">python</a> <a href="keyword_perl.html">perl</a> <a href="keyword_ruby.html">ruby</a></div><br>
+So I had this really, really stupid idea a couple of days ago, but I just can't shake it.  See, I'm <a href="/wftk/perl_tutorial.html">rewriting the wftk</a> in Perl in tutorial form, something that I've planned for a really long time.
+</p><p>
+Well, here's the thing.  The Muse picked Perl, essentially because WWW::Modbot is an OOification of the original modbot stuff I wrote in Perl.  And the Term::Shell approach to the modbot turned out to resonate so well with what I wanted to do, that I just ... transitioned straight from the modbot back to wftk in the same framework.  But Perl -- even though I love Perl -- is not something I'm utterly wedded to, you know?
+</p><p>
+And now, I'm working in a unit-testing paradigm for the development.  I've carefully defined the API in each subsection, tested it, and know where I'm going.
+</p><p>
+So here's the stupid idea.  It just won't let go of me.  Why stick to Perl?
+</p><p>
+Why not take each class, each unit test, and <i>do that</i> in selected other languages?  It would be a fascinating look at comparative programming between the languages, wouldn't it?  And the whole point of the wftk is not to be restrictive when it comes to your existing infrastructure -- wouldn't one facet of that unrestrictiveness be an ability to run native in Python?  Ruby?  Java?  C?  Tcl?  LISP?
+</p><p>
+It just won't let go.
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,187 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword tagger</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=tagger mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword tagger</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="a_quick_note_on_project_structure.html">A quick note on project structure</a></div>
+<div class="st2">2006-12-02 <a href="keyword_programming.html">programming</a> <a href="keyword_projects.html">projects</a> <a href="keyword_tagger.html">tagger</a></div><br>
+There are two general ways to approach software design; each has its uses.
+</p><p>
+<i>Top-down</i> design looks at the entire project and breaks it into
+high-level components; those components are then subprojects and can be
+further handled in the same way.
+</p><p>
+<i>Bottom-up</i> design looks at the resources available and sees likely
+things that can be done with them; the idea is to provide generalized
+components to be used in any project.
+</p><p>
+A healthy software design ecology has a lot of bottom-up components at
+varying stages of maturity; those components then inform the top-down
+requirements of the current project, giving those designs something to
+work with.  In the absense of complex components, we're forced to write
+everything from scratch, and it all turns into ad-hockery of the worst
+kind.
+</p><p>
+Anyway, that item of philosophy out of the way, I wanted to talk about
+the design of this week's project, the drop tagger.  There are three
+main components of the drop tagger, as follows:
+</p><p>
+<ul>
+<li><b>The drop handler</b><br>The drop handler is the component which
+interacts with the shell and provides something you can drop files
+onto or otherwise tag them.  It calls the file manager.  However, the
+notion of a general drop handler is a much more interesting one than
+a special-purpose drop handler just for this project, and one which can
+be a valuable addition to many different file-oriented projects.
+<li><b>The file manager</b><br>The file manager shows us what files have
+been dropped, allows us to add and delete them and modify their tags,
+and for fresh drops it will actively ask for tags.  It also calls the
+tag cloud formatter and provides a convenient place to display the cloud.
+<li><b>The cloud formatter</b><br>This is likely to be the least general
+and thus the least interesting of these components, but it formats the
+file cloud upon request based on information compiled about the tags in
+the system.
+</ul>
+</p><p>
+Each of these components can be designed and used in isolation, and reused
+in other projects.  Alternatively, once we've defined the components we
+need to meet our goal, we may well be able to find ready-made components
+already available (or at least something we can adapt instead of starting
+from scratch).  There is then a maturity effect over the course of multiple
+projects, as our codebase allows us to be faster and faster responding to
+the need for a project.
+</p><p>
+I'd like to formalize this design process over the course of several
+mini-projects.  Stay tuned for further progress.
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="tag_file_clouds.html">Tag/file clouds</a></div>
+<div class="st2">2006-12-04 <a href="keyword_appaweek.html">appaweek</a> <a href="keyword_tagger.html">tagger</a> <a href="keyword_tag-cloud.html">tag-cloud</a> <a href="keyword_blogmeta.html">blogmeta</a> <a href="keyword_perl.html">perl</a></div><br>
+Today's fun task was the creation of a little prototype code to format the tag cloud for the drop handler project.  I did it
+in the context of this blog, and so first I had to get my keywords functional.  I already had a database column for them,
+but it turned out my updater wasn't writing them to the database.  So that was easy.
+</p><p>
+Once I had keywords attached to my blog posts, I turned my attention to formatting them into keyword directories (the primary
+motivation for this was to make it possible to enable Technorati tagging, on which more later.)  And then once <i>that</i> was
+done, I had all my keywords in a hash, so it occurred to me that I was most of the way towards implementing a tag cloud
+formatter anyway.
+</p><p>
+Here's the Perl I wrote just to do the formatting.  It's actually amazingly simple (of course) and you can peruse the up-to-the-minute
+result of its invocation in my blog scanner on the <a href="/blog/kw/">keywords page for this blog</a>.  Perl:
+</p><p>
+<pre>
+sub keyword_tagger {
+   my $ct = shift @_;
+ 
+   my $weight;
+   my $font;
+   my $sm = 70;
+   my $lg = 200;
+   my $del = $lg - $sm;
+   my $ret = '';
+   foreach my $k (sort keys %kw_count) {
+      $weight = $kw_count{$k} / $max_count;
+      $font = sprintf ("%d", $sm + $del * $weight);
+      $ret .= "&lt;a href=\"/blog/kw/$k/\" style=\"font-size: $font%;\"&gt;$k&lt;/a&gt;\n";
+   }
+ 
+   return $ret;
+}
+</pre>
+</p><p>
+This is generally <i>not</i> the way to structure a function call, because it works with global hashes, but y'know, I don't follow rules
+too well (and curse myself often, yes).  The assumptions:
+</p><p>
+<ul>
+<li>The only argument passed is the maximum post count for all tags, determined by an earlier scan of the tags while writing their index pages.</li>
+<li><code>$sm</code> and <code>$lg</code> are effectively configuration; they determine the smallest and largest font sizes of the tag links (in percent).</li>
+<li>The loop runs through the tags in alphabetical order; they are all assumed to be in the <code>%kw_count</code> global hash, which stores the number of posts associated with each tag (we build that while scanning the posts).</li>
+<li>For every tag, we look at its post count in the <code>%kw_count</code> hash and split the difference in percentages between <code>$sm</code> and <code>$lg</code> -- then format the link with that font size.  Obviously, this is a rather overly hardwired approach (the link should obviously be a configurable template) but as a prototype and for my own blogging management script, this works well.</li>
+</ul>
+</p><p>
+For our file cloud builder, we'll want to do this very same thing, but in Python (since that's our target language).  But porting is cake, now that we
+know what we'll be porting.
+</p><p>
+Thus concludes the sermon for today.
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+<tr>
+<td><div class="title"><a href="thoughts_on_wxpython_ui_design.html">Thoughts on wxPython UI design</a></div>
+<div class="st2">2006-12-22 <a href="keyword_appaweek.html">appaweek</a> <a href="keyword_wftk.html">wftk</a> <a href="keyword_wxpython.html">wxpython</a> <a href="keyword_tagger.html">tagger</a></div><br>
+For some time, in the context of my <a href="/wftk/">workflow toolkit</a>, I've been thinking intensively about UI design in wxPython.
+</p><p>
+See, once I was embroiled in a rather extensive project developing a GUI application under wxPython, and frankly, the UI was unmanageable.
+It had been developed with some IDE tool or another, but the output was <i>Python code</i>.  It was horrible, trying to find what was what
+and on which panel it was developed and what its ID was -- ugh!  This was back in about 2001.
+</p><p>
+At that point, I hadn't really started integrating wftk into Python yet, but I dabbled in it over the next couple of years, always with the notion
+that the UI is most sensibly defined in XML, and that a sensible UI manager would then take that definition and build all the objects needed to
+implement it in wxPython (or, for instance, online in a portal or something).  And since that time, other people have naturally had many of the
+same ideas, and you see this implemented.  But I've always wanted to finish my own implementation.
+</p><p>
+The current app for <a href="http://www.anappaweek.com/2006/12/requirements-for-file-tagger_21.html">Anappaweek.com</a> that I'm working on is, of course,
+a GUI app (at least, some of the time.)  And so naturally I have relived my need for my UI design notion -- and in the context of working on the
+file tagger, I intend to start implementing the UI module.  On that note, here is a tentative UI definition sketch for the file tagger.  Ideally, we could
+use this XML not only to generate the app itself, but also to generate documentation for the UI design (by transforming it with XSLT into SVG, for instance;
+wouldn't that be indescribably cool?)
+</p><p>
+<i>All</i> of this is, of course, subject to radical change.  Here goes:
+</p><p>
+<pre>
+&lt;frame&gt;
+  &lt;tabset&gt;
+    &lt;tab label="Cloud"&gt;
+       &lt;html&gt;
+    &lt;/tab&gt;
+    &lt;tab label="Files"&gt;
+       &lt;splitter (some kind of parameters)&gt;
+         &lt;panel&gt;
+           &lt;radio-group&gt;
+              &lt;radio value="something" label="All"/&gt;
+              &lt;radio value="something" label="Some"/&gt;
+           &lt;/radio-group&gt;
+           &lt;listbox/&gt;
+           &lt;button label="Show"/&gt;
+         &lt;/panel&gt;
+       &lt;listcontrol&gt;
+         &lt;col label="Name"/&gt;
+         &lt;col label="Tags"/&gt;
+         &lt;col label="Description"/&gt;
+       &lt;/listcontrol&gt;
+    &lt;/tab&gt;
+  &lt;/tabset&gt;
+&lt;/frame&gt;
+</pre>
+</p><p>
+I already have a framework for that definition to go into -- I wrote that in, like, 2002 or so.  But I never got further than definition of menus.
+So here, I'm going to implement frames, and at least one dialog.
+</p><p>
+Note that what's utterly missing from this is any reference to code to handle events.  That will come later, when I see what has to be defined where
+to get all this to work.
+</p><p>
+And on that note, I close.
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

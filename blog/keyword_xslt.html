@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,59 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword xslt</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=xslt mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword xslt</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="xslt_anyone.html">XSLT, anyone?</a></div>
+<div class="st2">2006-12-22 <a href="keyword_xslt.html">xslt</a> <a href="keyword_test-based-programming.html">test-based-programming</a></div><br>
+Sunday, I translated Chapter 12 of a
+<a href="http://www.sappress.com/product.cfm?account=&product=H1934">book on ABAP programming under SAP</a>,
+forthcoming in the English edition from SAP Press in March.  This was
+actually the third chapter I'd done in this book, and the others were
+a little far afield from what I usually do, since I don't actually do
+SAP work (except from a translation standpoint.)
+</p><p>
+But this chapter was fascinating, involving the external
+interactions of the SAP system with other systems.  One of the supporting
+technologies of those interactions is SOAP, which brings up XML, which in
+turn brings up something I have never particularly paid much attention to:
+XSLT.
+</p><p>
+Wow.  I didn't know what I was missing!  XSLT is essentially a template-based
+programming language, used to transform XML structures into other XML
+structures; the idea is to support the expression of data-centric XML into
+more presentation-centric XML, but the mechanism is suitably generic.
+</p><p>
+And you know what?  There's no open-source XSLT processor written in C.  And
+this is odd, because even though the XSLT spec, like everything produced by
+the W3C, is horribly opaque, <i>really</i>, when you get down to it, XSLT
+is a pretty straightforward little language, and the parser is a no-brainer
+because <i>it is already expressed in XML</i>.  So half the hard work in
+writing a compiler is already done for you, right there.
+</p><p>
+So here is my latest exciting brainstorm: I want to set up a test-based
+environment to support the development of an XSLT processor in C.  Each test
+would consist of a starting structure, the template or templates to run on it,
+and the expected result -- that's easily imagined.  And each test also
+refers to the exact point in the W3C spec that requires it (and vice versa
+-- I'd have an annotated spec that refers back to the tests.)
+</p><p>
+The whole thing would then function as an "XSLT by examples" tutorial and
+also a testbed for a command-line XSLT processor.  Wouldn't that be a nice
+thing for the world to have?
+</p><p>
+I'm all for starting tomorrow.
+</p><p>
+<i>Update:</i> Whoops, I guess mod_xslt2 for Apache is in C, looks like.
+Well, never mind, I still think it's a bang-up idea.  We'll see what the
+New Year brings, eh?
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 

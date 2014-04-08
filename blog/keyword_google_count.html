@@ -72,7 +72,7 @@ pre.code {
 <div class="sidemenu">
 <p class="smtitle">blog</p>
 <p>[ archives? ]</p>
-<p>[ <a href=/blog/kw/>keywords</a> ]</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
 <p>[ rss feed? ]</p>
 </div>
 
@@ -98,14 +98,40 @@ did my Google go?</a>
 <td valign="top"><div class="content">
 
 <div class="title">Keyword google_count</div>
-<div class="st2">(unresolved tag blogline)</div>
+<div class="st2"></div>
 <hr>
-(unresolved tag list wiki_index order=created-asc keyword=google_count mode=static)
-(unresolved tag repeat)
-<div class="t2"><a href="/(unresolved tag page)">Keyword google_count</a></div>
-(unresolved tag call blog_format.pl)
-(unresolved tag /repeat)
-(unresolved tag /list)
+<table>
+<tr>
+<td><div class="title"><a href="modbot_google_counter_and_the_spam_archive.html">modbot, google counter, and the spam archive</a></div>
+<div class="st2">2007-05-07 <a href="keyword_spam.html">spam</a> <a href="keyword_modbot.html">modbot</a> <a href="keyword_google_count.html">google_count</a></div><br>
+Three related things today.  First, the scripts I've been putting together for forum spam blocking have kind of coalesced into a "modbot".  This
+program attempts to automate the tasks performed by human moderators and could technically be placed into <i>any</i> Web spam moderation situation.
+It is currently running happily in an Eboard 4.0 installation and blocking roughly 93% of spam, while still allowing anonymous posting to that forum.
+I'll be packaging it up for distribution in the public domain.  Watch this space for further details -- one of the more fascinating notions I've
+had is to enable it to receive moderation emails from Blogger and thus automate the comment moderation process there.
+</p><p>
+One of the rules/tools used by the modbot is to count Google hits for the numeric IP of an untrusted poster.  Turns out that HTTP proxies have a
+real proclivity for getting indexed.  A lot.  Legitimate IPs, not so much.  I wrote a little online tool to call Google to get these counts; the
+<a href="/google_count.html">tool is here</a> and the <a href="/projects/forum_despammer/google_count.html">write-up of the code is here</a>.  It's currently blocking about
+40% of spam (I don't have good statistics analysis in place yet, so that's very approximate.)
+</p><p>
+Finally, as a spinoff of this project, I've started a spam archive.  There's nothing to present yet, but I hope to start doing some interesting
+analysis, and most specifically a searchable database -- along with a searchable database of spamvertised sites.  That ought to overlap with
+the sites spamvertised by email spam as well, and that's going to be an interesting thing to look at.  We'll see.
+</p><p>
+I've stumbled onto a spam link network of staggering extent in the course of examining forum spam.  A spammer has a site somewhere, and then spamvertises
+it.  But then some of the spam starts to link to other forum spam, which in turn links to the site.  Some sites auto-forward to other sites using
+obscured Javascript (I haven't figured out just why, yet; if you have a rationale, I'd be happy to hear it.)  Anyway, after that goes on for a while,
+there's a huge resulting network of vulnerable fora linking to other vulnerable fora.  There is a true treasure trove of information available to
+the interested party.  Which would, of course, be me.  I will <i>definitely</i> be following up on that and posting on it.
+</p><p>
+Anyway, it's been nice talking to you.  Back to work!
+</p><p>
+</p><p>
+<br>
+</td>
+</tr>
+</table>
 
 </div></td></td></table>
 
