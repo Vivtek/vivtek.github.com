@@ -1,5 +1,0 @@
-<panel>
-<character name="pokey"/>
-<dialog font="font="couri"" font-size="13" who="pokey" ref-who="character-pokey-default-4-4.svg">THAT IS POKEY, NOT PINKY.</dialog>
-<character name="Proxybot" tag="default-1"/>
-</panel>

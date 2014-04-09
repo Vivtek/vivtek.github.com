@@ -1,6 +1,0 @@
-<character name="commiemobile" label="Commie-mobile" rel-h="70">
-<variant>
-<aspect name="normal"><draw face="right" file="image-commiemobile-1.bmp" type="image"/></aspect>
-<aspect name="coke"><draw face="right" file="image-commiemobile-2.bmp" type="image"/></aspect>
-</variant>
-</character>

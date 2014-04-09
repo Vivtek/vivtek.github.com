@@ -1,5 +1,0 @@
-<panel>
-<character name="Proxybot"/>
-<character name="mao"/>
-<dialog who="mao" font-color="0,0,255" font-size="10">Hey, Fred</dialog>
-</panel>

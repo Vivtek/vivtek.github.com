@@ -1,3 +1,0 @@
-<character name="mouse" tag="default-5" rel-h="40" rel-w="" height="60" width="64.3137254901961">
-<draw file="image-mouse-1.bmp" type="image" rel-h="100" rel-w="100" height="60" rel-x="0" rel-y="0" w="164" h="153" width="64.3137254901961"/>
-</character>

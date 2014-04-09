@@ -1,9 +1,0 @@
-panel
-me appears
-me says Hello, World.
-panel
-caption (lower right) What now?
-me leaves
-panel
-caption (middle, color=255,0,0) Is this awesome?<br/>Or is it?
-caption (bottom center, size=5) 'cuz i think it's \awesome...

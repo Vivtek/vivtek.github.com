@@ -1,4 +1,0 @@
-perl interpret_script.pl toon.txt > cartoon.xml
-perl make_panels.pl cartoon.xml > panels.xml
-Can't open perl script "make_panels.pl": No such file or directory
-make[1]: *** [panels.xml] Error 2

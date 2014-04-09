@@ -1,7 +1,0 @@
-panels 3
-panel 1
-mouse says wow....
-panel 2
-mao says indeed
-panel 3
-caption (bottom middle) TUNE IN NEXT TIME AS OUR HERO SAYS "ouch i'm out of room"

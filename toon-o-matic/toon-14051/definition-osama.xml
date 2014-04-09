@@ -1,8 +1,0 @@
-<character name="osama" label="Osama bin Laden" rel-h="60">
-<variant>
-<aspect name="normal"><draw file="image-osama-1.gif" type="image"/></aspect>
-<aspect name="hypno"><draw file="image-osama-2.gif" type="image"/></aspect>
-<aspect name="post-wolverine"><draw file="image-osama-3.gif" type="image"/></aspect>
-<aspect name="post-penguin"><draw file="image-osama-4.gif" type="image"/></aspect>
-</variant>
-</character>

@@ -1,5 +1,0 @@
-<panel>
-<character name="mouse"/>
-<dialog who="mouse" font-size="9">michael, I think the bot needs to be despammed again.</dialog>
-<caption location="lower right" font-color="255,0,0" font-size="12">NEXT: MORE SPAM!</caption>
-</panel>

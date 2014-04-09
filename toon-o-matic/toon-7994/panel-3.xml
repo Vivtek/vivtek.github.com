@@ -1,6 +1,0 @@
-<panel>
-<character name="Proxybot"/>
-<dialog who="Proxybot" font-size="09">Dear Dane,<br/>How about buying yourself a two<br/>Omega watches the same day?<br/>It's not impossible</dialog>
-<character name="mao" action="leaves"/>
-<dialog who="mao" font-color="0,0,255" font-size="10">Exit, stage left.</dialog>
-</panel>

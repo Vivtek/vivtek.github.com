@@ -1,5 +1,0 @@
-<panel>
-<character name="will" action="leaves"/>
-<dialog who="will" font-size="10">Gad and zounds!<br/>Thou maligns me as a melancholy Dane?<br/>I am not Marmaduke, forsooth!  </dialog>
-<character action="leaves" name="Proxybot"/>
-</panel>

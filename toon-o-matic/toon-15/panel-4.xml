@@ -1,4 +1,0 @@
-<panel>
-<character name="yoda" action="leaves"/>
-<dialog who="yoda" font-size="12">mouse-like I am.</dialog>
-</panel>

@@ -1,5 +1,0 @@
-<panel>
-<character name="mouse"/>
-<dialog who="mouse" ref-who="character-mouse-default-4-4.svg">wow. it's a world of code again. </dialog>
-<character name="will" tag="default-2"/>
-</panel>

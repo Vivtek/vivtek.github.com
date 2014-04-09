@@ -1,9 +1,0 @@
-<scene id="default" panels="1-2">
-<frame tag="default-1" id="1" panels="1">
-<character name="mouse" tag="default-1"/>
-</frame>
-<frame tag="default-2" id="2" panels="2">
-<character name="mouse" tag="default-1"/>
-<character name="mouse" tag="default-2"/>
-</frame>
-</scene>
