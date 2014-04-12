@@ -1,0 +1,181 @@
+<html>
+<head>
+<title>State of the site</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/recent.html>recent</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/translation/>translation</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<div class="sidemenu">
+<p class="smtitle">blog</p>
+<p>[ <a href="keywords.html">keywords</a> ]</p>
+<p class="smtitle">blogger</p>
+<p>[ <a href="http://semantic-programming.blogspot.com/">semprog</a> ]</p>
+<p>[ <a href="http://startup-ideas.blogspot.com/">startups</a> ]</p>
+<p>[ <a href="http://orgaprop.blogspot.hu/">politics</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">State of the site</div>
+<div class="st2">2014-04-12 <a href="keyword_blogmeta.html">blogmeta</a></div>
+<hr>
+Between 2009 and 2014, a lot happened to me, but none of it shows
+in this blog. Mostly that's because I wanted to blog the house
+renovation and my blogging code of the day was a horrendous, unmaintainable
+mess that never seemed to do anything I wanted - so I switched to Blogger.
+(You can see the house blog <a href="http://big-old-house.blogspot.com/">here</a>, but
+as we left the country again two years ago and unloaded the house last
+summer, it's gotten kinda boring.
+</p><p>
+In November of that year, I started thinking harder about what programming
+actually means. And that turned into the
+<a href="http://semantic-programming.blogspot.com/">semantic programming blog</a>, also
+at Blogger. Over the next two years, that effort resulted in a kind of neat
+declarative programming system for Perl, which collapsed under its own
+technical debt shortly thereafter.
+</p><p>
+I had family stress for the year after that, culminating in our
+leaving the country for Budapest in 2012 after our daughter graduated high
+school. The summer after <i>that</i> we sold the house and I discovered
+that my blood pressure could best be measured in psi. And now things
+with family, health, and finances are actually pretty good, and my thoughts
+wander back to writing.
+</p><p>
+The Blogger system is great for short-to-medium text and pictures that
+can be written quickly and don't need any internal structure. It was a fantastic
+medium for the house blog. It is
+<i>not</i> fantastic for code given its rigid three-column format, difficulty
+comprehending monospace fonts, and refusal to handle indentation, and
+is also less than great for any presentation longer than a few paragraphs.
+So to write real technical articles, I needed to revitalize the Vivtek site.
+</p><p>
+Back in the day, the site was hosted on AOLserver for historical reasons, and
+elements like the sidebar menu and a lot of the other bits and pieces were
+handled dynamically. The content was compiled on the server. But as that
+system aged and the box was put to additional uses, the cracks in its structure
+became apparent. Anything exposed to Internet input becomes an instantaneous
+spam archive, MediaWiki in a different site I was hosting there was a relentless
+processor hog, the Despammed spam filter made sure that if there was any
+resource problem it would be magnified tenfold as the queue backed up behind
+the kink, and the accreted weirdness of twelve years of haphazard Perl scripts
+running behind the scenes had forced me to move the site's static content
+to Github hosting. The dynamic content was left to hang in the weather. I had
+more important fish to fry.
+</p><p>
+So to get the site back into working shape, I had to reinvent my content
+handling code on my laptop and integrate with the static site. And there simply
+hasn't been enough time to think about that - especially given my penchant,
+when given <i>any</i> programming task, to think about how it <i>should</i>
+be possible to code it at a higher semantic level. I can talk to myself at length
+about just finishing this damn script today and worrying about entire new
+programming paradigms at some later date, but it doesn't help.
+</p><p>
+But at the end of last month, after working two month's worth of jobs in March,
+I decided that what I needed in the first week of April was a sabbatical.
+I wanted to write at least one article. (Actually I have a whole page of one-line
+ideas of things to do this week. And instead, it's Saturday night, day 9 of
+the sabbatical, work already queued up for Monday, and I haven't even written the
+article yet - but I did do the research for it, and wrote a kick-ass tool for
+my daily work, and that's really the point of this week.)
+</p><p>
+And lo! I have the site compiling again - and with a tool I'm not even ashamed of!
+One that will hopefully soon grow into a more mature writing environment in the
+future, including a notion I've been calling "code exegesis", about which more
+later.  Hopefully, now that the site builder works well, I can keep things moving
+with less than a full week off work, and build up some momentum. I have a lot
+of things I want to write about, so that's not a problem. Historically, family
+and financial stress have been my greatest impetus sinks, and those (knock on
+wood) are at low ebb currently, may they stay that way forever.
+</p><p>
+And that's why the blog below goes from 2014 to 2009
+with no visible transition. I am cautiously hopeful that things will start
+moving again now.
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>.</Font>
+</center>
+
+
+</body>
+</html>
