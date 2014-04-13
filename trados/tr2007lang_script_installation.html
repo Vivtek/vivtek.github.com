@@ -1,0 +1,150 @@
+<html>
+<head>
+<title>Installing the TRADOS 2007 language codes script (prototype)</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+.synComment    { color: #0000FF }
+.synConstant   { color: #FF00FF }
+.synIdentifier { color: #008B8B }
+.synStatement  { color: #A52A2A ; font-weight: bold }
+.synPreProc    { color: #A020F0 }
+.synType       { color: #2E8B57 ; font-weight: bold }
+.synSpecial    { color: #6A5ACD }
+.synUnderlined { color: #000000 ; text-decoration: underline }
+.synError      { color: #FFFFFF ; background: #FF0000 none }
+.synTodo       { color: #0000FF ; background: #FFFF00 none }
+.linenum       { color: #222222 ; background: #EEEEEE none }
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/recent.html>recent</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/translation/>translation</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<div class="sidemenu">
+<p class="smtitle">translation</p>
+<p>[ <a href="/translation/">translation</a> ]</p>
+<p class="smtitle">trados</p>
+<p>[ <a href="/trados/trados_2007_languages.html">language codes</a> ]</p>
+<p>[ <a href="/trados/trados_2007_language_codes.html">table 2007</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Installing the TRADOS 2007 language codes script (prototype)</div>
+Here are some instructions for installing the language codes script
+so that it can run with elevated privileges (note that you can
+use the same trick to run anything with elevated privileges).
+Please note that this is a Perl script, so you'll have to install
+Perl for it to work. Unless I really do write a non-Perl version,
+this won't be changing.
+</p><p>
+<ol>
+<li><b>Install Perl</b> if you don't already have it.<br><br>
+I personally prefer <a href="http://strawberryperl.com/">Strawberry Perl</a>,
+but ActiveState also produces a <a href="http://www.activestate.com/activeperl">Windows Perl</a>.</li>
+<li><b>Download the plain-text version of the script</b> somewhere convenient.<br><br>
+Do this by right-clicking <a href="trados2007lang_pl.txt">this link</a> and saving
+the file as something with a .pl extension. Don't save it with its .txt extension.</li>
+<li><b>Create a shortcut in the same directory</b> called anything you like.</li>
+<li><b>Edit the shortcut's properties</b>.<br><br>
+The Target field should contain "C:\strawberry\perl\bin\perl.exe trados2007lang.pl"
+if you're using Strawberry, or whatever is appropriate for ActiveState, and of course
+be sure that if you saved the script with a different name that this name appears here.
+<br><br>
+The Start in field should contain the name of the directory where you saved the script.
+<br><br>
+Finally, click the Advanced button, and check the "Run as Administrator" box.
+<li><b>Save the shortcut</b>. You're done.
+</ol>
+</p><p>
+Alternatively, I highly recommend downloading the
+<a href="http://technet.microsoft.com/en-us/magazine/2007.06.utilityspotlight.aspx">Elevate Command Power Toy</a>
+featured in TechNet magazine in 2007. That gives you a simple command you can use
+to run anything as Administrator from the command line:
+<pre>elevate perl trados2007lang.pl</pre>
+That will save all this rigamorole with setting up a shortcut. Your choice.
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>.</Font>
+</center>
+
+
+</body>
+</html>
