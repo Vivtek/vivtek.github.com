@@ -1,0 +1,241 @@
+<html>
+<head>
+<title>TRADOS 2007 and its language codes</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/recent.html>recent</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/translation/>translation</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<div class="sidemenu">
+<p class="smtitle">translation</p>
+<p>[ <a href="/translation/">translation</a> ]</p>
+<p class="smtitle">trados</p>
+<p>[ <a href="/trados/trados_2007_languages.html">language codes</a> ]</p>
+<p>[ <a href="/trados/trados_2007_language_codes.html">table 2007</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">TRADOS 2007 and its language codes</div>
+I bought my first TRADOS license in 2004 and never looked back. Without
+it, I would earn far less for my translation work, and would make many
+more mistakes. But sometime early in its history, the original TRADOS
+team decided that freelancers probably shouldn't need access to
+more than five languages, and that hard limit is written into the software's
+DNA now. And that five-language limit is a real problem, because
+in addition to English, I read and work with six other languages -
+my mainstay is German to English, but I also translate from French,
+Spanish, Italian, and Portuguese on a regular basis, and Hungarian
+on a more occasional basis. (Hungarian is <i>hard</i>, and I simply
+can't do as much in a day.)
+</p><p>
+That's seven, even before you count the <i>very</i> occasional
+jobs I've done in Catal&aacute;n or Dutch.
+</p><p>
+Until recently, I thought the only recourse was to install English, German,
+French, Spanish, and Hungarian, then call Italian and Portuguese dialects
+of Spanish. If necessary, I simply edited the TTX files with a
+good text editor to change languages for delivery, and overall that
+strategy actually worked pretty well - until I got a TM in Italian one
+evening for delivery the next morning and <i>couldn't read it</i>.
+</p><p>
+Frantic research found me a
+<a href="http://www.proz.com/forum/sdl_trados_support/148435-how_to_change_default_5_languages.html">post on Proz.com</a>
+and this <a href="http://www.translationtribulations.com/2012/07/hacking-trados-freelance-languages.html">brilliant blog post</a>
+on the topic. As I don't worry about editing the Registry, I could quickly
+read my TM and finish my job (seriously, it was just 200 words, but man
+that was a tense situation). But as I started to use this technique more
+often - I had a long run of Portuguese jobs for a while, interspersed with
+Italian - I had to keep finding the piece of paper with numeric language
+codes on it every time I needed to switch, and that was just asking for trouble.
+</p><p>
+I envisioned a better tool, one that I'd just call and could use to change
+the installed languages in a second. And this week, I took some time, and 
+by golly, I wrote it.
+</p><p>
+It's just in embryonic form - there are a number of improvements I need to
+make in terms of distribution and publication - but it's already quite
+useful and usable. For a simple set of installation instructions,
+<a href="tr2007lang_script_installation.html">I've put together a simple page here</a>,
+but honestly you should probably just wait until I've got things working
+more smoothly, unless you're not afraid to do a little technical dirty work.
+</p><p>
+The rest of this article is about the technical aspects of the mechanism and
+the script, because I had a lot of fun figuring it out and writing it. I also
+have a full table of the numeric codes used in the Registry for TRADOS 2007
+installed languages (to my knowledge, this is the only complete table on the
+Internet). That table is <a href="trados_2007_language_codes.html">over here</a> and is
+also available in <a href="trados_2007_language_codes.txt">convenient tab-delimited text format</a>
+if you want to do something automatic with it.
+</p><p>
+<div class="title">The Registry key</div>
+</p><p>
+The key itself is stored in <pre>HKEY_LOCAL_MACHINE\SOFTWARE\TRADOS\Shared\IDNG</pre>, but
+since TRADOS 2007 is a 32-bit app, if you're running under a 64-bit Windows installation
+it will actually be stored in <pre>HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\TRADOS\Shared\IDNG</pre>.
+This will be transparent to TRADOS and also to Perl if you're running a 32-bit Perl, but
+since a 64-bit Perl will see the actual name, the code needs to check both.
+</p><p>
+The default value of that key will be something like <pre>{D7020440-18AB-11D0-B16A-004453585E5D}</pre>
+The only part of that we need are the last ten characters inside the curly braces; I have no idea
+what the rest does (or for that matter, what IDNG stands for). Each pair of characters in those
+ten represent a hexadecimal value that encodes an installed language. Valid codes run from 00 to 7F,
+and 84 seems to be used for "uninstalled" slots.
+</p><p>
+<div class="title">The language codes</div>
+</p><p>
+Until I started this effort, there was no full table of valid language codes (not all the possible
+values between 00 and 7F are used). So I also went laboriously through all possible value from 00 to
+7F to see what TRADOS Workbench would offer me for File|New to create a new translation memory.
+This effort took me a couple of hours, but I now have what I believe is the only full table available
+on the Internet. You have to focus down on pretty small things to find uniqueness in the world of
+the twenty-first century, but I've found at least one now.
+</p><p>
+That full table is <a href="trados_2007_language_codes.html">over here</a>, sorted by numeric code, two-letter
+ISO code for the languages that have them, and the name of the language. It's also available in
+<a href="trados_2007_language_codes.html">tab-delimited text format</a> for programming, and obviously it is
+also available in Perl hash format in the script that is the object of this article.
+</p><p>
+Sometime this week I'll factor all this out into a CPAN module so you don't have to write anything
+at all if you don't want to. But first, the reason I haven't already done that.
+</p><p>
+<div class="title">Setback: UAC under Windows 7</div>
+</p><p>
+So in Perl, Registry access is done using the Win32::TieRegistry module - and for the life of me
+I couldn't get it to work with the examples right out of the documentation. Turns out that, like
+many things, the module predates Windows 7, and that Windows 7 introduced new security measures
+called UAC, or User Account Control. This is the system that darkens the entire screen and pops
+up a security dialog whenever you want to install some software. And one of the things that requires
+this "elevated privilege" is writing to the Registry, and Win32::TieRegistry asks for write access
+by default.  Which is fine in our case, because we actually need write access - but the documentation
+doesn't actually note any of this.
+</p><p>
+Over the next day or so, I learned a <i>lot</i> about UAC, including at least four different ways
+to get that popup to appear and elevate a running script. I learned enough to write a Perl module
+to take care of it for me - but since I haven't done that yet, I also haven't wrapped up the TRADOS
+2007 language code functionality into a module either.
+</p><p>
+<div class="title">Initial working script prototype</div>
+</p><p>
+<center><img src="trados_2007_script.png"></center>
+</p><p>
+But I do have a working prototype! When run with elevated privilege, this script will show the current
+value of the IDNG key, list the languages that appear in the five installation slots, and ask you to
+specify a new list of five languages. The input can be the numeric code of a language, its two-letter
+ISO 639-1 code, or the language name as specified in Perl's Locale::Language module. (I made an exception
+for HR, which can be Croatian, Bosnian, or Serbian.) If using the name turns out flaky, you're probably
+better off just using the ISO or numeric codes anyway, but this makes things a little more convenient.
+</p><p>
+If the script gets a list of values it understands, it will write the new key to the Registry and
+you can immediately restart TRADOS Workbench to use the new settings. You can leave the utility running
+if you want to make other changes later.
+</p><p>
+<div class="title">Going forward</div>
+</p><p>
+Going forward, I'd obviously first like to pull all the language code functionality out into a nice
+module, then rewrite the script to use the module. And since modules can install scripts that act as
+system commands, you won't even need the script - just type something like "ttxl" and this utility would
+pop up.
+</p><p>
+To do that, I'll need to write the UAC handling module to make it easy for Perl to know it's not in
+elevated mode yet, and restart itself with elevation. That won't take long.
+</p><p>
+Later still, I'd like to revisit this issue with a bog-standard C program that pops up a simple GUI
+to allow the languages to be selected graphically. That's when we can talk about simplicity of use.
+But that will take some more research, and obviously TRADOS 2007 is getting pretty old. I'm not really
+sure it's worth the effort at this late date.
+</p><p>
+The second part of this article series will be examining the same thing SDL TRADOS Studio - because
+that system is much more complicated and interesting. In fact, I don't even have it figured out yet,
+although I <i>can</i> already save installed language configurations for later reactivation, which has
+simplified my life greatly.
+</p><p>
+That article will be a lot more fun. So stay tuned!
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>.</Font>
+</center>
+
+
+</body>
+</html>
