@@ -147,13 +147,13 @@ if you want to do something automatic with it.
 </p><p>
 <div class="title">The Registry key</div>
 </p><p>
-The key itself is stored in <pre>HKEY_LOCAL_MACHINE\SOFTWARE\TRADOS\Shared\IDNG</pre>, but
+The key itself is stored in <tt>HKEY_LOCAL_MACHINE\SOFTWARE\TRADOS\Shared\IDNG</tt>, but
 since TRADOS 2007 is a 32-bit app, if you're running under a 64-bit Windows installation
-it will actually be stored in <pre>HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\TRADOS\Shared\IDNG</pre>.
+it will actually be stored in <tt>HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\TRADOS\Shared\IDNG</tt>.
 This will be transparent to TRADOS and also to Perl if you're running a 32-bit Perl, but
 since a 64-bit Perl will see the actual name, the code needs to check both.
 </p><p>
-The default value of that key will be something like <pre>{D7020440-18AB-11D0-B16A-004453585E5D}</pre>
+The default value of that key will be something like <tt>{D7020440-18AB-11D0-B16A-004453585E5D}</tt>
 The only part of that we need are the last ten characters inside the curly braces; I have no idea
 what the rest does (or for that matter, what IDNG stands for). Each pair of characters in those
 ten represent a hexadecimal value that encodes an installed language. Valid codes run from 00 to 7F,
