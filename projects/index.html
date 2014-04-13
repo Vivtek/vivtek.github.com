@@ -40,7 +40,7 @@ border: 1px solid #336600;
 }
 .content {
 }
-pre.code {
+.code {
   margin: .5em 1em;
   padding: 0.5em;
   border: 1px dashed #94bd8d;
@@ -48,6 +48,17 @@ pre.code {
   background-color: #eff7ef;
   overflow: auto;
 }
+.synComment    { color: #0000FF }
+.synConstant   { color: #FF00FF }
+.synIdentifier { color: #008B8B }
+.synStatement  { color: #A52A2A ; font-weight: bold }
+.synPreProc    { color: #A020F0 }
+.synType       { color: #2E8B57 ; font-weight: bold }
+.synSpecial    { color: #6A5ACD }
+.synUnderlined { color: #000000 ; text-decoration: underline }
+.synError      { color: #FFFFFF ; background: #FF0000 none }
+.synTodo       { color: #0000FF ; background: #FFFF00 none }
+.linenum       { color: #222222 ; background: #EEEEEE none }
 </style>
 </head>
 <body>
@@ -98,82 +109,21 @@ google_ad_channel = "";
 <td valign="top"><div class="content">
 
 <div class="title">Programming projects</div>
-This page is largely a placeholder until I can come up with a more structured alternative.  This section of the site is intended to showcase some
-small programming projects (and large ones, I suppose) which I have done over the years.  My goal from here on out is to do occasional standalone
-projects which can be summarized in a page or two, code and all.  Some of that work will take place in the context of <a href="http://www.anappaweek.com">anappaweek.com</a>, other work won't.
+This page has been a placeholder since at least 2009. I'm still no
+closer to summarizing the big and little projects I've written about.
 </p><p>
-Projects I've done outside this framework include <a href="/wftk/">the wftk open-source workflow toolkit</a>, the Despammed spam filter,
-the <a href="/lpml/">LPML literate programming processor</a>, and more.  You can probably hire me to do some programming, by the way: my
-<a href="/michael_resume.html">technical résumé is here</a>.
+Some bigger projects I've worked on include
+<a href="/wftk/">the wftk open-source workflow toolkit</a>,
+the Despammed spam filter,
+the <a href="/lpml/">LPML literate programming processor</a>, and more. Since
+about 2004, I've been a full-time technical translator and no longer
+program for pay - although if you want to propose something, I'm listening.
 </p><p>
-So here is a list of minor projects.
-</p><p>
-<div class="t2"><a href="text_editor/">Special-purpose text editor(s)</a></div>
-<ul>
-<li><a href="text_editor/text_editor1.html">Customized text editor #1 in wxPython</a>.
-</ul>
-<div class="t2"><a href="filetagger/">File management tools</a></div>
-<ul>
-<li><a href="filetagger/filetagger1.html">File tagger #1 in wxPython (wxpywf framework)</a>.
-<li><a href="filetagger/filetagger.html">File tagger in PyPop GUI interpreter form</a>.
-</ul>
-<div class="t2">Our world online</div>
-<ul>
-<li><a href="forum_despammer/despammer1.html">Despamming the Toonbots forum:</a> a diversion in the realm of scriptsmanship
-<li><a href="forum_despammer/">The modbot (a better forum despammer)</a>
-</ul>
-</p><p>
-<div class="t2">Wiki framework</div>
-I've been working on a <a href="wiki/">Wiki framework</a> based on AOLserver/Tcl and perl, which is used to generate this very page, actually.
-</p><p>
-Also, a <a href="comments/">Comment framework</a>, very simple.  So simple I didn't even write it.  (Yet.)
-</p><p>
-Also, a <a href="paraphrase/">set of paraphrasing tools</a> for online and/or collaborative use.  Just the concept stage.
-</p><p>
-<div class="t2"><a href="/wftk/">Workflow</a></div>
-The wftk open-source workflow toolkit, of course, is dead in its 1.0 incarnation.  ANSI C, while conceptually clean, is just not expressive enough to hold my attention.  On the scripting language front, though, the wftk has found new life.
-</p><p>
-The <a href="/wftk/perl_tutorial.html">Perl tutorial</a> represents the test-based redevelopment of the wftk system from scratch.  So far I'm just in the data manipulation stage, but I have a plan, and more amazingly I'm still moving forward with that plan, after about two months.  It's worth looking at.
-</p><p>
-Meanwhile, the <a href="/wftk/python_tutorial.html">Python tutorial</a> is barely started (really, it would be much fairer to say that it's not at all started).  The idea is to maintain a native-Python port of the CPAN-based Perl wftk.  This ongoing method-by-method comparison should yield some insight into the natures of the two languages.  Or so I imagine.
-</p><p>
-<div class="t2">Translation tools</div>
-I earn most of my money with translation, so naturally there are lots of situations where I need to manipulate files and text.  This doesn't normally
-end up with a lot of code that would bear public scrutiny (I'm always in a hurry), but there are occasional exceptions.
-</p><p>
-One such exception is the <a href="text_registration/">form registration</a> scripts I'm
-working on.  These are used to extract text entered on handwritten, scanned
-paper forms without having the original form handy.  (Yes, they also give you
-the form.)  This is a common situation when translating clinical trial documentation.
-</p><p>
-<div class="t2">Miscellaneous project ideas</div>
-Here is a simple list of programming ideas I've come up with; this is a sop to the Muse (when I have a quick idea, I can jot it down here
-instead of looking for paper and a pen.) <a href="http://www.vivtek.com/wiki?action=datanew&from=/projects/&data=ideas">Add one</a>.
-</p><p>
-(unresolved tag list ideas order=id-asc mode=static)
-<table>
-<tr><th>ID</th><th>Title</th></tr>
-(unresolved tag repeat color=eeeeee/ffffff)
-<tr>
-<td bgcolor=(unresolved tag color)>(unresolved tag id)</td>
-<td bgcolor=(unresolved tag color)><a href="idea(unresolved tag id)">Programming projects</a></td>
-</tr>
-(unresolved tag /repeat)
-</table>
-(unresolved tag empty)
-There are no ideas on file.
-(unresolved tag /list)
-</p><p>
-</p><p>
-</p><p>
-</p><p>
-</p><p>
-</p><p>
-</p><p>
-</p><p>
-</p><p>
-</p><p>
-</p><p>
+Recent work includes a bunch of stuff on <a href="https://github.com/vivtek">Github</a>,
+stuff on <a href="https://metacpan.org/author/MICHAEL">CPAN</a>, and a neat little
+utility for TRADOS I've written up <a href="/trados/trados_2007_languages.html">here on the site</a>.
+I earnestly hope there will be more. I suddenly feel like I want to start
+programming more again.
 
 </div></td></td></table>
 
