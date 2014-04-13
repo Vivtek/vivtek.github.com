@@ -1,0 +1,193 @@
+use Win32::TieRegistry ( Delimiter=>"/", ArrayValues=>1 );
+use Locale::Language;
+use strict;
+use warnings;
+
+my %languages = (
+  '00' => 'DV',
+  '01' => 'CY',
+  '02' => 'Syriac',
+  '03' => 'Northern Sotho',
+  '04' => '--',
+  '05' => '--',
+  '06' => '--',
+  '07' => 'NE',
+  '08' => '--',
+  '09' => '--',
+  '0A' => '--',
+  '0B' => '--',
+  '0C' => 'QU',
+  '0D' => '--',
+  '0E' => '--',
+  '0F' => '--',
+  '10' => 'BN',
+  '11' => 'PA',
+  '12' => 'GU',
+  '13' => 'OR',
+  '14' => 'ST', # Southern Sotho
+  '15' => 'SE',
+  '16' => 'KA',
+  '17' => 'HI',
+  '18' => 'AS',
+  '19' => 'MR',
+  '1A' => 'SA',
+  '1B' => 'Konkani',
+  '1C' => 'TA',
+  '1D' => 'TE',
+  '1E' => 'KN',
+  '1F' => 'ML',
+  '40' => 'NB',
+  '41' => 'PL',
+  '42' => 'PT',
+  '43' => 'RM',
+  '44' => 'IT',
+  '45' => 'JA',
+  '46' => 'KO',
+  '47' => 'NL',
+  '48' => 'SQ',
+  '49' => 'SV',
+  '4A' => 'TH',
+  '4B' => 'TR',
+  '4C' => 'RO',
+  '4D' => 'RU',
+  '4E' => 'HR',  # Also Serbian and Bosnian.
+  '4F' => 'SK',
+  '50' => 'ZH',
+  '51' => 'CS',
+  '52' => 'DA',
+  '53' => 'DE',
+  '54' => '--',
+  '55' => 'AR',
+  '56' => 'BG',
+  '57' => 'CA',
+  '58' => 'FR',
+  '59' => 'HE',
+  '5A' => 'HU',
+  '5B' => 'IS',
+  '5C' => 'EL',
+  '5D' => 'EN',
+  '5E' => 'ES',
+  '5F' => 'FI',
+  '60' => 'FO',
+  '61' => 'MT',
+  '62' => 'GA',
+  '63' => 'MS',
+  '64' => '--',
+  '65' => 'XH',
+  '66' => 'ZU',
+  '67' => 'AF',
+  '68' => 'UZ',
+  '69' => 'TT',
+  '6A' => 'MN',
+  '6B' => 'GL',
+  '6C' => 'KK',
+  '6D' => 'SW',
+  '6E' => 'TL',
+  '6F' => 'KY',
+  '70' => 'SL',
+  '71' => 'ET',
+  '72' => 'LV',
+  '73' => 'LT',
+  '74' => 'UR',
+  '75' => 'ID',
+  '76' => 'UK',
+  '77' => 'BE',
+  '78' => 'AZ',
+  '79' => 'EU',
+  '7A' => 'Sorbian',
+  '7B' => 'MK',
+  '7C' => 'MI',
+  '7D' => 'FA',
+  '7E' => 'VI',
+  '7F' => 'HY',
+);
+  
+  
+my $key_not_found = 0;
+my $key = $Registry->{'HKEY_LOCAL_MACHINE/SOFTWARE/Wow6432Node/TRADOS/'} or $key_not_found = 1;
+if ($key_not_found) {
+    $key_not_found = 0;
+    $key = $Registry->{'HKEY_LOCAL_MACHINE/SOFTWARE/TRADOS/'} or $key_not_found = 1;
+}
+if ($key_not_found) {
+    print "TRADOS 2007 does not appear to be installed on your machine (can't find Registry key)\n";
+    <STDIN>;
+    exit;
+}
+
+my $a = $key->{'Shared/IDNG//'} or $key_not_found = 1;
+
+if ($key_not_found) {
+    print "TRADOS 2007 appears to be installed, but your Registry is configured in an unexpected way.\n";
+    <STDIN>;
+    exit;
+}
+
+my $idng = $a->[0];
+
+DISPLAY:
+if (not $idng =~ /{(.*-.*-.*-.*-00)(.*)}/) {
+    print "Unexpected IDNG value $idng encountered.\n";
+    <STDIN>;
+    exit;
+}
+my ($prefix, $meat) = ($1, $2);
+
+print "IDNG: $idng\n\n";
+my $slot = 0;
+foreach my $language (unpack("(A2)*", $meat)) {
+    my $l = $languages{$language} || "-- ($language)";
+    my $ln = code2language($l);
+    $ln = "Croatian/Serbian/Bosnian" if $l eq 'HR';
+    $l .= " ($ln)" if $ln;
+    $slot++;
+    print "$slot: $l\n";
+}
+print "\n";
+print "Enter new values or <Enter> to quit: ";
+
+READ:
+my $line = <STDIN>;
+chomp $line;
+exit unless $line;
+
+my @values = split / /, $line;
+if (@values > 5) {
+    print "Need 1 to 5 values or <Enter> to quit: ";
+    goto READ;
+}
+
+my $problem = 0;
+foreach my $s (0, 1, 2, 3, 4) {
+    
+    if ($s + 1 > @values or $values[$s] eq '--') {
+        $values[$s] = '84';  # Standard not-used
+        next;
+    }
+    if ($values[$s] =~ /^[0-9][0-9A-F]$/) {
+        $values[$s] =~ tr/a-z/A-Z/;
+        next;
+    }
+    my $ln = language2code ($values[$s]);
+    $values[$s] = $ln if $ln;
+    $values[$s] =~ tr/a-z/A-Z/;
+    $values[$s] = 'HR' if $values[$s] eq 'SR' or $values[$s] eq 'BS';
+    foreach my $n (keys %languages) {
+        if (lc($languages{$n}) eq lc($values[$s])) {
+            $values[$s] = $n;
+            goto NEXTNEXT;
+        }
+    }
+    $problem = 1;
+    print sprintf("Don't understand value %s in slot %s\n", $values[$s], $s + 1);
+    NEXTNEXT:
+}
+
+if ($problem) {
+    print "Need 1 to 5 values or <Enter> to quit: ";
+    goto READ;
+}
+
+$idng = sprintf ("{$prefix%s}", join ('', @values));
+$key->{'Shared/IDNG//'} = [$idng, 1];
+goto DISPLAY;

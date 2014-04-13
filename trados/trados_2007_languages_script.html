@@ -1,0 +1,321 @@
+<html>
+<head>
+<title>TRADOS 2007 language code script</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+.synComment    { color: #0000FF }
+.synConstant   { color: #FF00FF }
+.synIdentifier { color: #008B8B }
+.synStatement  { color: #A52A2A ; font-weight: bold }
+.synPreProc    { color: #A020F0 }
+.synType       { color: #2E8B57 ; font-weight: bold }
+.synSpecial    { color: #6A5ACD }
+.synUnderlined { color: #000000 ; text-decoration: underline }
+.synError      { color: #FFFFFF ; background: #FF0000 none }
+.synTodo       { color: #0000FF ; background: #FFFF00 none }
+.linenum       { color: #222222 ; background: #EEEEEE none }
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/recent.html>recent</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/translation/>translation</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<div class="sidemenu">
+<p class="smtitle">translation</p>
+<p>[ <a href="/translation/">translation</a> ]</p>
+<p class="smtitle">trados</p>
+<p>[ <a href="/trados/trados_2007_languages.html">language codes</a> ]</p>
+<p>[ <a href="/trados/trados_2007_language_codes.html">table 2007</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">TRADOS 2007 language code script</div>
+Here's the full code for the initial prototype script. This is still a
+pretty rudimentary presentation - my ultimate goal here is to learn to
+write about software, so I'm experimenting a little with the format.
+</p><p>
+This is also available in a <a href="trados2007lang.txt">plain-text format for download</a>.
+</p><p>
+To use this script, <a href="tr2007lang_script_installation.html">follow the instructions</a>
+or wait for the next version, which will be easier to install.
+</p><p>
+<pre>><img src="/images/b.png"><span class="linenum">001</span> <span class="synStatement">use </span>Win32::TieRegistry ( <span class="synConstant">Delimiter</span>=&gt;<span class="synConstant">&quot;/&quot;</span>, <span class="synConstant">ArrayValues</span>=&gt;<span class="synConstant">1</span> );
+<img src="/images/b.png"><span class="linenum">002</span> <span class="synStatement">use </span>Locale::Language;
+<img src="/images/b.png"><span class="linenum">003</span> <span class="synStatement">use strict</span>;
+<img src="/images/b.png"><span class="linenum">004</span> <span class="synStatement">use warnings</span>;
+<img src="/images/b.png"><span class="linenum">005</span> 
+<img src="/images/i.png"><span class="linenum">006</span> <span class="synStatement">my</span> <span class="synIdentifier">%languages</span> = (
+<img src="/images/b.png"><span class="linenum">007</span>   <span class="synConstant">'00'</span> =&gt; <span class="synConstant">'DV'</span>,
+<img src="/images/b.png"><span class="linenum">008</span>   <span class="synConstant">'01'</span> =&gt; <span class="synConstant">'CY'</span>,
+<img src="/images/b.png"><span class="linenum">009</span>   <span class="synConstant">'02'</span> =&gt; <span class="synConstant">'Syriac'</span>,
+<img src="/images/b.png"><span class="linenum">010</span>   <span class="synConstant">'03'</span> =&gt; <span class="synConstant">'Northern Sotho'</span>,
+<img src="/images/b.png"><span class="linenum">011</span>   <span class="synConstant">'04'</span> =&gt; <span class="synConstant">'--'</span>,
+<img src="/images/b.png"><span class="linenum">012</span>   <span class="synConstant">'05'</span> =&gt; <span class="synConstant">'--'</span>,
+<img src="/images/b.png"><span class="linenum">013</span>   <span class="synConstant">'06'</span> =&gt; <span class="synConstant">'--'</span>,
+<img src="/images/b.png"><span class="linenum">014</span>   <span class="synConstant">'07'</span> =&gt; <span class="synConstant">'NE'</span>,
+<img src="/images/b.png"><span class="linenum">015</span>   <span class="synConstant">'08'</span> =&gt; <span class="synConstant">'--'</span>,
+<img src="/images/b.png"><span class="linenum">016</span>   <span class="synConstant">'09'</span> =&gt; <span class="synConstant">'--'</span>,
+<img src="/images/b.png"><span class="linenum">017</span>   <span class="synConstant">'0A'</span> =&gt; <span class="synConstant">'--'</span>,
+<img src="/images/b.png"><span class="linenum">018</span>   <span class="synConstant">'0B'</span> =&gt; <span class="synConstant">'--'</span>,
+<img src="/images/b.png"><span class="linenum">019</span>   <span class="synConstant">'0C'</span> =&gt; <span class="synConstant">'QU'</span>,
+<img src="/images/b.png"><span class="linenum">020</span>   <span class="synConstant">'0D'</span> =&gt; <span class="synConstant">'--'</span>,
+<img src="/images/b.png"><span class="linenum">021</span>   <span class="synConstant">'0E'</span> =&gt; <span class="synConstant">'--'</span>,
+<img src="/images/b.png"><span class="linenum">022</span>   <span class="synConstant">'0F'</span> =&gt; <span class="synConstant">'--'</span>,
+<img src="/images/b.png"><span class="linenum">023</span>   <span class="synConstant">'10'</span> =&gt; <span class="synConstant">'BN'</span>,
+<img src="/images/b.png"><span class="linenum">024</span>   <span class="synConstant">'11'</span> =&gt; <span class="synConstant">'PA'</span>,
+<img src="/images/b.png"><span class="linenum">025</span>   <span class="synConstant">'12'</span> =&gt; <span class="synConstant">'GU'</span>,
+<img src="/images/b.png"><span class="linenum">026</span>   <span class="synConstant">'13'</span> =&gt; <span class="synConstant">'OR'</span>,
+<img src="/images/b.png"><span class="linenum">027</span>   <span class="synConstant">'14'</span> =&gt; <span class="synConstant">'ST'</span>, <span class="synComment"># Southern Sotho</span>
+<img src="/images/b.png"><span class="linenum">028</span>   <span class="synConstant">'15'</span> =&gt; <span class="synConstant">'SE'</span>,
+<img src="/images/b.png"><span class="linenum">029</span>   <span class="synConstant">'16'</span> =&gt; <span class="synConstant">'KA'</span>,
+<img src="/images/b.png"><span class="linenum">030</span>   <span class="synConstant">'17'</span> =&gt; <span class="synConstant">'HI'</span>,
+<img src="/images/b.png"><span class="linenum">031</span>   <span class="synConstant">'18'</span> =&gt; <span class="synConstant">'AS'</span>,
+<img src="/images/b.png"><span class="linenum">032</span>   <span class="synConstant">'19'</span> =&gt; <span class="synConstant">'MR'</span>,
+<img src="/images/b.png"><span class="linenum">033</span>   <span class="synConstant">'1A'</span> =&gt; <span class="synConstant">'SA'</span>,
+<img src="/images/b.png"><span class="linenum">034</span>   <span class="synConstant">'1B'</span> =&gt; <span class="synConstant">'Konkani'</span>,
+<img src="/images/b.png"><span class="linenum">035</span>   <span class="synConstant">'1C'</span> =&gt; <span class="synConstant">'TA'</span>,
+<img src="/images/b.png"><span class="linenum">036</span>   <span class="synConstant">'1D'</span> =&gt; <span class="synConstant">'TE'</span>,
+<img src="/images/b.png"><span class="linenum">037</span>   <span class="synConstant">'1E'</span> =&gt; <span class="synConstant">'KN'</span>,
+<img src="/images/b.png"><span class="linenum">038</span>   <span class="synConstant">'1F'</span> =&gt; <span class="synConstant">'ML'</span>,
+<img src="/images/b.png"><span class="linenum">039</span>   <span class="synConstant">'40'</span> =&gt; <span class="synConstant">'NB'</span>,
+<img src="/images/b.png"><span class="linenum">040</span>   <span class="synConstant">'41'</span> =&gt; <span class="synConstant">'PL'</span>,
+<img src="/images/b.png"><span class="linenum">041</span>   <span class="synConstant">'42'</span> =&gt; <span class="synConstant">'PT'</span>,
+<img src="/images/b.png"><span class="linenum">042</span>   <span class="synConstant">'43'</span> =&gt; <span class="synConstant">'RM'</span>,
+<img src="/images/b.png"><span class="linenum">043</span>   <span class="synConstant">'44'</span> =&gt; <span class="synConstant">'IT'</span>,
+<img src="/images/b.png"><span class="linenum">044</span>   <span class="synConstant">'45'</span> =&gt; <span class="synConstant">'JA'</span>,
+<img src="/images/b.png"><span class="linenum">045</span>   <span class="synConstant">'46'</span> =&gt; <span class="synConstant">'KO'</span>,
+<img src="/images/b.png"><span class="linenum">046</span>   <span class="synConstant">'47'</span> =&gt; <span class="synConstant">'NL'</span>,
+<img src="/images/b.png"><span class="linenum">047</span>   <span class="synConstant">'48'</span> =&gt; <span class="synConstant">'SQ'</span>,
+<img src="/images/b.png"><span class="linenum">048</span>   <span class="synConstant">'49'</span> =&gt; <span class="synConstant">'SV'</span>,
+<img src="/images/b.png"><span class="linenum">049</span>   <span class="synConstant">'4A'</span> =&gt; <span class="synConstant">'TH'</span>,
+<img src="/images/b.png"><span class="linenum">050</span>   <span class="synConstant">'4B'</span> =&gt; <span class="synConstant">'TR'</span>,
+<img src="/images/b.png"><span class="linenum">051</span>   <span class="synConstant">'4C'</span> =&gt; <span class="synConstant">'RO'</span>,
+<img src="/images/b.png"><span class="linenum">052</span>   <span class="synConstant">'4D'</span> =&gt; <span class="synConstant">'RU'</span>,
+<img src="/images/b.png"><span class="linenum">053</span>   <span class="synConstant">'4E'</span> =&gt; <span class="synConstant">'HR'</span>,  <span class="synComment"># Also Serbian and Bosnian.</span>
+<img src="/images/b.png"><span class="linenum">054</span>   <span class="synConstant">'4F'</span> =&gt; <span class="synConstant">'SK'</span>,
+<img src="/images/b.png"><span class="linenum">055</span>   <span class="synConstant">'50'</span> =&gt; <span class="synConstant">'ZH'</span>,
+<img src="/images/b.png"><span class="linenum">056</span>   <span class="synConstant">'51'</span> =&gt; <span class="synConstant">'CS'</span>,
+<img src="/images/b.png"><span class="linenum">057</span>   <span class="synConstant">'52'</span> =&gt; <span class="synConstant">'DA'</span>,
+<img src="/images/b.png"><span class="linenum">058</span>   <span class="synConstant">'53'</span> =&gt; <span class="synConstant">'DE'</span>,
+<img src="/images/b.png"><span class="linenum">059</span>   <span class="synConstant">'54'</span> =&gt; <span class="synConstant">'--'</span>,
+<img src="/images/b.png"><span class="linenum">060</span>   <span class="synConstant">'55'</span> =&gt; <span class="synConstant">'AR'</span>,
+<img src="/images/b.png"><span class="linenum">061</span>   <span class="synConstant">'56'</span> =&gt; <span class="synConstant">'BG'</span>,
+<img src="/images/b.png"><span class="linenum">062</span>   <span class="synConstant">'57'</span> =&gt; <span class="synConstant">'CA'</span>,
+<img src="/images/b.png"><span class="linenum">063</span>   <span class="synConstant">'58'</span> =&gt; <span class="synConstant">'FR'</span>,
+<img src="/images/b.png"><span class="linenum">064</span>   <span class="synConstant">'59'</span> =&gt; <span class="synConstant">'HE'</span>,
+<img src="/images/b.png"><span class="linenum">065</span>   <span class="synConstant">'5A'</span> =&gt; <span class="synConstant">'HU'</span>,
+<img src="/images/b.png"><span class="linenum">066</span>   <span class="synConstant">'5B'</span> =&gt; <span class="synConstant">'IS'</span>,
+<img src="/images/b.png"><span class="linenum">067</span>   <span class="synConstant">'5C'</span> =&gt; <span class="synConstant">'EL'</span>,
+<img src="/images/b.png"><span class="linenum">068</span>   <span class="synConstant">'5D'</span> =&gt; <span class="synConstant">'EN'</span>,
+<img src="/images/b.png"><span class="linenum">069</span>   <span class="synConstant">'5E'</span> =&gt; <span class="synConstant">'ES'</span>,
+<img src="/images/b.png"><span class="linenum">070</span>   <span class="synConstant">'5F'</span> =&gt; <span class="synConstant">'FI'</span>,
+<img src="/images/b.png"><span class="linenum">071</span>   <span class="synConstant">'60'</span> =&gt; <span class="synConstant">'FO'</span>,
+<img src="/images/b.png"><span class="linenum">072</span>   <span class="synConstant">'61'</span> =&gt; <span class="synConstant">'MT'</span>,
+<img src="/images/b.png"><span class="linenum">073</span>   <span class="synConstant">'62'</span> =&gt; <span class="synConstant">'GA'</span>,
+<img src="/images/b.png"><span class="linenum">074</span>   <span class="synConstant">'63'</span> =&gt; <span class="synConstant">'MS'</span>,
+<img src="/images/b.png"><span class="linenum">075</span>   <span class="synConstant">'64'</span> =&gt; <span class="synConstant">'--'</span>,
+<img src="/images/b.png"><span class="linenum">076</span>   <span class="synConstant">'65'</span> =&gt; <span class="synConstant">'XH'</span>,
+<img src="/images/b.png"><span class="linenum">077</span>   <span class="synConstant">'66'</span> =&gt; <span class="synConstant">'ZU'</span>,
+<img src="/images/b.png"><span class="linenum">078</span>   <span class="synConstant">'67'</span> =&gt; <span class="synConstant">'AF'</span>,
+<img src="/images/b.png"><span class="linenum">079</span>   <span class="synConstant">'68'</span> =&gt; <span class="synConstant">'UZ'</span>,
+<img src="/images/b.png"><span class="linenum">080</span>   <span class="synConstant">'69'</span> =&gt; <span class="synConstant">'TT'</span>,
+<img src="/images/b.png"><span class="linenum">081</span>   <span class="synConstant">'6A'</span> =&gt; <span class="synConstant">'MN'</span>,
+<img src="/images/b.png"><span class="linenum">082</span>   <span class="synConstant">'6B'</span> =&gt; <span class="synConstant">'GL'</span>,
+<img src="/images/b.png"><span class="linenum">083</span>   <span class="synConstant">'6C'</span> =&gt; <span class="synConstant">'KK'</span>,
+<img src="/images/b.png"><span class="linenum">084</span>   <span class="synConstant">'6D'</span> =&gt; <span class="synConstant">'SW'</span>,
+<img src="/images/b.png"><span class="linenum">085</span>   <span class="synConstant">'6E'</span> =&gt; <span class="synConstant">'TL'</span>,
+<img src="/images/b.png"><span class="linenum">086</span>   <span class="synConstant">'6F'</span> =&gt; <span class="synConstant">'KY'</span>,
+<img src="/images/b.png"><span class="linenum">087</span>   <span class="synConstant">'70'</span> =&gt; <span class="synConstant">'SL'</span>,
+<img src="/images/b.png"><span class="linenum">088</span>   <span class="synConstant">'71'</span> =&gt; <span class="synConstant">'ET'</span>,
+<img src="/images/b.png"><span class="linenum">089</span>   <span class="synConstant">'72'</span> =&gt; <span class="synConstant">'LV'</span>,
+<img src="/images/b.png"><span class="linenum">090</span>   <span class="synConstant">'73'</span> =&gt; <span class="synConstant">'LT'</span>,
+<img src="/images/b.png"><span class="linenum">091</span>   <span class="synConstant">'74'</span> =&gt; <span class="synConstant">'UR'</span>,
+<img src="/images/b.png"><span class="linenum">092</span>   <span class="synConstant">'75'</span> =&gt; <span class="synConstant">'ID'</span>,
+<img src="/images/b.png"><span class="linenum">093</span>   <span class="synConstant">'76'</span> =&gt; <span class="synConstant">'UK'</span>,
+<img src="/images/b.png"><span class="linenum">094</span>   <span class="synConstant">'77'</span> =&gt; <span class="synConstant">'BE'</span>,
+<img src="/images/b.png"><span class="linenum">095</span>   <span class="synConstant">'78'</span> =&gt; <span class="synConstant">'AZ'</span>,
+<img src="/images/b.png"><span class="linenum">096</span>   <span class="synConstant">'79'</span> =&gt; <span class="synConstant">'EU'</span>,
+<img src="/images/b.png"><span class="linenum">097</span>   <span class="synConstant">'7A'</span> =&gt; <span class="synConstant">'Sorbian'</span>,
+<img src="/images/b.png"><span class="linenum">098</span>   <span class="synConstant">'7B'</span> =&gt; <span class="synConstant">'MK'</span>,
+<img src="/images/b.png"><span class="linenum">099</span>   <span class="synConstant">'7C'</span> =&gt; <span class="synConstant">'MI'</span>,
+<img src="/images/b.png"><span class="linenum">100</span>   <span class="synConstant">'7D'</span> =&gt; <span class="synConstant">'FA'</span>,
+<img src="/images/b.png"><span class="linenum">101</span>   <span class="synConstant">'7E'</span> =&gt; <span class="synConstant">'VI'</span>,
+<img src="/images/b.png"><span class="linenum">102</span>   <span class="synConstant">'7F'</span> =&gt; <span class="synConstant">'HY'</span>,
+<img src="/images/b.png"><span class="linenum">103</span> );
+<img src="/images/b.png"><span class="linenum">104</span>   
+<img src="/images/b.png"><span class="linenum">105</span>   
+<img src="/images/i.png"><span class="linenum">106</span> <span class="synStatement">my</span> <span class="synIdentifier">$key_not_found</span> = <span class="synConstant">0</span>;
+<img src="/images/b.png"><span class="linenum">107</span> <span class="synStatement">my</span> <span class="synIdentifier">$key</span> = <span class="synIdentifier">$Registry-&gt;{</span><span class="synConstant">'HKEY_LOCAL_MACHINE/SOFTWARE/Wow6432Node/TRADOS/'</span><span class="synIdentifier">}</span> <span class="synStatement">or</span> <span class="synIdentifier">$key_not_found</span> = <span class="synConstant">1</span>;
+<img src="/images/b.png"><span class="linenum">108</span> <span class="synStatement">if</span> (<span class="synIdentifier">$key_not_found</span>) {
+<img src="/images/b.png"><span class="linenum">109</span>     <span class="synIdentifier">$key_not_found</span> = <span class="synConstant">0</span>;
+<img src="/images/b.png"><span class="linenum">110</span>     <span class="synIdentifier">$key</span> = <span class="synIdentifier">$Registry-&gt;{</span><span class="synConstant">'HKEY_LOCAL_MACHINE/SOFTWARE/TRADOS/'</span><span class="synIdentifier">}</span> <span class="synStatement">or</span> <span class="synIdentifier">$key_not_found</span> = <span class="synConstant">1</span>;
+<img src="/images/b.png"><span class="linenum">111</span> }
+<img src="/images/b.png"><span class="linenum">112</span> <span class="synStatement">if</span> (<span class="synIdentifier">$key_not_found</span>) {
+<img src="/images/b.png"><span class="linenum">113</span>     <span class="synStatement">print</span> <span class="synConstant">&quot;TRADOS 2007 does not appear to be installed on your machine (can't find Registry key)</span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>;
+<img src="/images/b.png"><span class="linenum">114</span>     <span class="synIdentifier">&lt;STDIN&gt;</span>;
+<img src="/images/b.png"><span class="linenum">115</span>     <span class="synStatement">exit</span>;
+<img src="/images/b.png"><span class="linenum">116</span> }
+<img src="/images/b.png"><span class="linenum">117</span> 
+<img src="/images/b.png"><span class="linenum">118</span> <span class="synStatement">my</span> <span class="synIdentifier">$a</span> = <span class="synIdentifier">$key-&gt;{</span><span class="synConstant">'Shared/IDNG//'</span><span class="synIdentifier">}</span> <span class="synStatement">or</span> <span class="synIdentifier">$key_not_found</span> = <span class="synConstant">1</span>;
+<img src="/images/b.png"><span class="linenum">119</span> 
+<img src="/images/b.png"><span class="linenum">120</span> <span class="synStatement">if</span> (<span class="synIdentifier">$key_not_found</span>) {
+<img src="/images/b.png"><span class="linenum">121</span>     <span class="synStatement">print</span> <span class="synConstant">&quot;TRADOS 2007 appears to be installed, but your Registry is configured in an unexpected way.</span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>;
+<img src="/images/b.png"><span class="linenum">122</span>     <span class="synIdentifier">&lt;STDIN&gt;</span>;
+<img src="/images/b.png"><span class="linenum">123</span>     <span class="synStatement">exit</span>;
+<img src="/images/b.png"><span class="linenum">124</span> }
+<img src="/images/b.png"><span class="linenum">125</span> 
+<img src="/images/b.png"><span class="linenum">126</span> <span class="synStatement">my</span> <span class="synIdentifier">$idng</span> = <span class="synIdentifier">$a-&gt;[</span><span class="synConstant">0</span><span class="synIdentifier">]</span>;
+<img src="/images/b.png"><span class="linenum">127</span> 
+<img src="/images/b.png"><span class="linenum">128</span> <span class="synStatement">DISPLAY:</span>
+<img src="/images/i.png"><span class="linenum">129</span> <span class="synStatement">if</span> (<span class="synStatement">not</span> <span class="synIdentifier">$idng</span> =~ <span class="synStatement">/</span><span class="synConstant">{</span><span class="synSpecial">(.*</span><span class="synConstant">-</span><span class="synSpecial">.*</span><span class="synConstant">-</span><span class="synSpecial">.*</span><span class="synConstant">-</span><span class="synSpecial">.*</span><span class="synConstant">-00</span><span class="synSpecial">)(.*)</span><span class="synConstant">}</span><span class="synStatement">/</span>) {
+<img src="/images/b.png"><span class="linenum">130</span>     <span class="synStatement">print</span> <span class="synConstant">&quot;Unexpected IDNG value </span><span class="synIdentifier">$idng</span><span class="synConstant"> encountered.</span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>;
+<img src="/images/b.png"><span class="linenum">131</span>     <span class="synIdentifier">&lt;STDIN&gt;</span>;
+<img src="/images/b.png"><span class="linenum">132</span>     <span class="synStatement">exit</span>;
+<img src="/images/b.png"><span class="linenum">133</span> }
+<img src="/images/b.png"><span class="linenum">134</span> <span class="synStatement">my</span> (<span class="synIdentifier">$prefix</span>, <span class="synIdentifier">$meat</span>) = (<span class="synIdentifier">$1</span>, <span class="synIdentifier">$2</span>);
+<img src="/images/b.png"><span class="linenum">135</span> 
+<img src="/images/b.png"><span class="linenum">136</span> <span class="synStatement">print</span> <span class="synConstant">&quot;IDNG: </span><span class="synIdentifier">$idng</span><span class="synSpecial">\n\n</span><span class="synConstant">&quot;</span>;
+<img src="/images/b.png"><span class="linenum">137</span> <span class="synStatement">my</span> <span class="synIdentifier">$slot</span> = <span class="synConstant">0</span>;
+<img src="/images/i.png"><span class="linenum">138</span> <span class="synStatement">foreach</span> <span class="synStatement">my</span> <span class="synIdentifier">$language</span> (<span class="synStatement">unpack</span>(<span class="synConstant">&quot;(A2)*&quot;</span>, <span class="synIdentifier">$meat</span>)) {
+<img src="/images/b.png"><span class="linenum">139</span>     <span class="synStatement">my</span> <span class="synIdentifier">$l</span> = <span class="synIdentifier">$languages{$language}</span> || <span class="synConstant">&quot;-- (</span><span class="synIdentifier">$language</span><span class="synConstant">)&quot;</span>;
+<img src="/images/b.png"><span class="linenum">140</span>     <span class="synStatement">my</span> <span class="synIdentifier">$ln</span> = code2language(<span class="synIdentifier">$l</span>);
+<img src="/images/b.png"><span class="linenum">141</span>     <span class="synIdentifier">$ln</span> = <span class="synConstant">&quot;Croatian/Serbian/Bosnian&quot;</span> <span class="synStatement">if</span> <span class="synIdentifier">$l</span> <span class="synStatement">eq</span> <span class="synConstant">'HR'</span>;
+<img src="/images/b.png"><span class="linenum">142</span>     <span class="synIdentifier">$l</span> .= <span class="synConstant">&quot; (</span><span class="synIdentifier">$ln</span><span class="synConstant">)&quot;</span> <span class="synStatement">if</span> <span class="synIdentifier">$ln</span>;
+<img src="/images/b.png"><span class="linenum">143</span>     <span class="synIdentifier">$slot</span>++;
+<img src="/images/b.png"><span class="linenum">144</span>     <span class="synStatement">print</span> <span class="synConstant">&quot;</span><span class="synIdentifier">$slot</span><span class="synConstant">: </span><span class="synIdentifier">$l</span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>;
+<img src="/images/b.png"><span class="linenum">145</span> }
+<img src="/images/b.png"><span class="linenum">146</span> <span class="synStatement">print</span> <span class="synConstant">&quot;</span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>;
+<img src="/images/b.png"><span class="linenum">147</span> <span class="synStatement">print</span> <span class="synConstant">&quot;Enter new values or &lt;Enter&gt; to quit: &quot;</span>;
+<img src="/images/b.png"><span class="linenum">148</span> 
+<img src="/images/b.png"><span class="linenum">149</span> <span class="synStatement">READ:</span>
+<img src="/images/b.png"><span class="linenum">150</span> <span class="synStatement">my</span> <span class="synIdentifier">$line</span> = <span class="synIdentifier">&lt;STDIN&gt;</span>;
+<img src="/images/b.png"><span class="linenum">151</span> <span class="synStatement">chomp</span> <span class="synIdentifier">$line</span>;
+<img src="/images/b.png"><span class="linenum">152</span> <span class="synStatement">exit</span> <span class="synStatement">unless</span> <span class="synIdentifier">$line</span>;
+<img src="/images/b.png"><span class="linenum">153</span> 
+<img src="/images/i.png"><span class="linenum">154</span> <span class="synStatement">my</span> <span class="synIdentifier">@values</span> = <span class="synStatement">split</span> <span class="synStatement">/</span><span class="synConstant"> </span><span class="synStatement">/</span>, <span class="synIdentifier">$line</span>;
+<img src="/images/b.png"><span class="linenum">155</span> <span class="synStatement">if</span> (<span class="synIdentifier">@values</span> &gt; <span class="synConstant">5</span>) {
+<img src="/images/b.png"><span class="linenum">156</span>     <span class="synStatement">print</span> <span class="synConstant">&quot;Need 1 to 5 values or &lt;Enter&gt; to quit: &quot;</span>;
+<img src="/images/b.png"><span class="linenum">157</span>     <span class="synStatement">goto</span> READ;
+<img src="/images/b.png"><span class="linenum">158</span> }
+<img src="/images/b.png"><span class="linenum">159</span> 
+<img src="/images/b.png"><span class="linenum">160</span> <span class="synStatement">my</span> <span class="synIdentifier">$problem</span> = <span class="synConstant">0</span>;
+<img src="/images/b.png"><span class="linenum">161</span> <span class="synStatement">foreach</span> <span class="synStatement">my</span> <span class="synIdentifier">$s</span> (<span class="synConstant">0</span>, <span class="synConstant">1</span>, <span class="synConstant">2</span>, <span class="synConstant">3</span>, <span class="synConstant">4</span>) {
+<img src="/images/b.png"><span class="linenum">162</span>     
+<img src="/images/b.png"><span class="linenum">163</span>     <span class="synStatement">if</span> (<span class="synIdentifier">$s</span> + <span class="synConstant">1</span> &gt; <span class="synIdentifier">@values</span> <span class="synStatement">or</span> <span class="synIdentifier">$values[$s]</span> <span class="synStatement">eq</span> <span class="synConstant">'--'</span>) {
+<img src="/images/b.png"><span class="linenum">164</span>         <span class="synIdentifier">$values[$s]</span> = <span class="synConstant">'84'</span>;  <span class="synComment"># Standard not-used</span>
+<img src="/images/b.png"><span class="linenum">165</span>         <span class="synStatement">next</span>;
+<img src="/images/b.png"><span class="linenum">166</span>     }
+<img src="/images/b.png"><span class="linenum">167</span>     <span class="synStatement">if</span> (<span class="synIdentifier">$values[$s]</span> =~ <span class="synStatement">/</span><span class="synConstant">^</span><span class="synSpecial">[0-9][0-9A-F]</span><span class="synConstant">$</span><span class="synStatement">/</span>) {
+<img src="/images/b.png"><span class="linenum">168</span>         <span class="synIdentifier">$values[$s]</span> =~ <span class="synStatement">tr/</span><span class="synConstant">a-z</span><span class="synStatement">/</span><span class="synConstant">A-Z</span><span class="synStatement">/</span>;
+<img src="/images/b.png"><span class="linenum">169</span>         <span class="synStatement">next</span>;
+<img src="/images/b.png"><span class="linenum">170</span>     }
+<img src="/images/b.png"><span class="linenum">171</span>     <span class="synStatement">my</span> <span class="synIdentifier">$ln</span> = language2code (<span class="synIdentifier">$values[$s]</span>);
+<img src="/images/b.png"><span class="linenum">172</span>     <span class="synIdentifier">$values[$s]</span> = <span class="synIdentifier">$ln</span> <span class="synStatement">if</span> <span class="synIdentifier">$ln</span>;
+<img src="/images/b.png"><span class="linenum">173</span>     <span class="synIdentifier">$values[$s]</span> =~ <span class="synStatement">tr/</span><span class="synConstant">a-z</span><span class="synStatement">/</span><span class="synConstant">A-Z</span><span class="synStatement">/</span>;
+<img src="/images/b.png"><span class="linenum">174</span>     <span class="synIdentifier">$values[$s]</span> = <span class="synConstant">'HR'</span> <span class="synStatement">if</span> <span class="synIdentifier">$values[$s]</span> <span class="synStatement">eq</span> <span class="synConstant">'SR'</span> <span class="synStatement">or</span> <span class="synIdentifier">$values[$s]</span> <span class="synStatement">eq</span> <span class="synConstant">'BS'</span>;
+<img src="/images/b.png"><span class="linenum">175</span>     <span class="synStatement">foreach</span> <span class="synStatement">my</span> <span class="synIdentifier">$n</span> (<span class="synStatement">keys</span> <span class="synIdentifier">%languages</span>) {
+<img src="/images/b.png"><span class="linenum">176</span>         <span class="synStatement">if</span> (<span class="synStatement">lc</span>(<span class="synIdentifier">$languages{$n}</span>) <span class="synStatement">eq</span> <span class="synStatement">lc</span>(<span class="synIdentifier">$values[$s]</span>)) {
+<img src="/images/b.png"><span class="linenum">177</span>             <span class="synIdentifier">$values[$s]</span> = <span class="synIdentifier">$n</span>;
+<img src="/images/b.png"><span class="linenum">178</span>             <span class="synStatement">goto</span> NEXTNEXT;
+<img src="/images/b.png"><span class="linenum">179</span>         }
+<img src="/images/b.png"><span class="linenum">180</span>     }
+<img src="/images/b.png"><span class="linenum">181</span>     <span class="synIdentifier">$problem</span> = <span class="synConstant">1</span>;
+<img src="/images/b.png"><span class="linenum">182</span>     <span class="synStatement">print</span> <span class="synStatement">sprintf</span>(<span class="synConstant">&quot;Don't understand value  in slot </span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>, <span class="synIdentifier">$values[$s]</span>, <span class="synIdentifier">$s</span> + <span class="synConstant">1</span>);
+<img src="/images/b.png"><span class="linenum">183</span> <span class="synStatement">    NEXTNEXT:</span>
+<img src="/images/b.png"><span class="linenum">184</span> }
+<img src="/images/b.png"><span class="linenum">185</span> 
+<img src="/images/b.png"><span class="linenum">186</span> <span class="synStatement">if</span> (<span class="synIdentifier">$problem</span>) {
+<img src="/images/b.png"><span class="linenum">187</span>     <span class="synStatement">print</span> <span class="synConstant">&quot;Need 1 to 5 values or &lt;Enter&gt; to quit: &quot;</span>;
+<img src="/images/b.png"><span class="linenum">188</span>     <span class="synStatement">goto</span> READ;
+<img src="/images/b.png"><span class="linenum">189</span> }
+<img src="/images/b.png"><span class="linenum">190</span> 
+<img src="/images/i.png"><span class="linenum">191</span> <span class="synIdentifier">$idng</span> = <span class="synStatement">sprintf</span> (<span class="synConstant">&quot;{</span><span class="synIdentifier">$prefix</span><span class="synConstant">}&quot;</span>, <span class="synStatement">join</span> (<span class="synConstant">''</span>, <span class="synIdentifier">@values</span>));
+<img src="/images/b.png"><span class="linenum">192</span> <span class="synIdentifier">$key-&gt;{</span><span class="synConstant">'Shared/IDNG//'</span><span class="synIdentifier">}</span> = [<span class="synIdentifier">$idng</span>, <span class="synConstant">1</span>];
+<img src="/images/b.png"><span class="linenum">193</span> <span class="synStatement">goto</span> DISPLAY;
+</pre>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>.</Font>
+</center>
+
+
+</body>
+</html>

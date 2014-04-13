@@ -219,7 +219,10 @@ If the script gets a list of values it understands, it will write the new key to
 you can immediately restart TRADOS Workbench to use the new settings. You can leave the utility running
 if you want to make other changes later.
 </p><p>
-The individual parts of the script are basically the following:
+Thanks to the inclusion of the language code table, the script is a couple
+hundred lines long and therefore ungainly to include on this page,
+so I've put it <a href="trados_2007_languages_script.html">over here</a> for your reading pleasure.
+The individual parts of the script basically break down as follows:
 <table>
 <tr><td valign="top" class="linenum"><tt>006-013:</tt></td><td>This is the table of language values expressed as a hash.</td></tr>
 <tr><td valign="top" class="linenum"><tt>106-124:</tt></td><td>Here, we find the Registry key and diagnose a few possible problems
@@ -232,9 +235,13 @@ installation slots.</td></tr>
 <tr><td valign="top" class="linenum"><tt>191-192:</tt></td><td>Here, we build the new key and write it, then repeat the process.</td></tr>
 </table>
 </p><p>
+I'll probably be improving this presentation style; I'm trying to learn how to write effectively
+about code, but there isn't much source material out there to emulate. If you know of any,
+please feel free to get in touch.
+</p><p>
 <div class="title">Going forward</div>
 </p><p>
-Going forward, I'd obviously first like to pull all the language code functionality out into a nice
+Soon, I'd obviously first like to pull all the language code functionality out into a nice
 module, then rewrite the script to use the module. And since modules can install scripts that act as
 system commands, you won't even need the script - just type something like "ttxl" and this utility would
 pop up.
