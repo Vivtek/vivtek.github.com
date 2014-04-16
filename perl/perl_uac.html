@@ -189,7 +189,7 @@ use Win32::RunAsAdmin qw(force);
 Seriously.  Just put that at the top and your script will pop up a UAC box and run in
 a separate process as Administrator. Here's what it does:
 <ul>
-<li>Call <pre>Win32::RunAsAdmin->check_status()</pre> to see if we're in admin mode already.
+<li>Call <tt>Win32::RunAsAdmin::check</tt> to see if we're in admin mode already.
 If so, we're done.</li>
 <li>Otherwise, determine the Perl executable, calling script, and arguments.</li>
 <li>Call ShellExecute to restart the calling script as Administrator.</li>
