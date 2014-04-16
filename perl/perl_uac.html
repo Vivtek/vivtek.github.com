@@ -1,0 +1,254 @@
+<html>
+<head>
+<title>Perl and Windows UAC</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+.synComment    { color: #0000FF }
+.synConstant   { color: #FF00FF }
+.synIdentifier { color: #008B8B }
+.synStatement  { color: #A52A2A ; font-weight: bold }
+.synPreProc    { color: #A020F0 }
+.synType       { color: #2E8B57 ; font-weight: bold }
+.synSpecial    { color: #6A5ACD }
+.synUnderlined { color: #000000 ; text-decoration: underline }
+.synError      { color: #FFFFFF ; background: #FF0000 none }
+.synTodo       { color: #0000FF ; background: #FFFF00 none }
+.linenum       { color: #222222 ; background: #EEEEEE none }
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/recent.html>recent</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/translation/>translation</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<div class="sidemenu">
+<p class="smtitle">perl</p>
+<p>[ <a href="/perl/perl_uac.html">runasadmin</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Perl and Windows UAC</div>
+Windows security is an attempt to balance two needs - on the one hand, Windows
+is a user-centric operating system that is intended to be operated by
+your grandmother without the need for dedicated support staff, while on the other,
+there are roughly as many Windows machines connected to the Internet as
+there are stars in the Orion Arm, and if they don't have <i>some</i> kind
+of security, the botnets on them will bootstrap to sapience and we will
+all be dead.
+</p><p>
+The result, for now, is UAC.
+<a href="http://en.wikipedia.org/wiki/User_Account_Control">UAC (User Account Control)</a>
+is Microsoft's way of letting Windows machines run in user mode and still
+permit "dangerous" things like installers to enter Administrator mode.
+When they do this, the entire screen goes dark and a prominent dialog asks
+the user if they really want the program to change their system. The key is
+that the user can't miss this behavior. It probably helps.
+</p><p>
+What requires a program to run as Administrator? To start, any write
+access to the Registry. And there's just one little problem with that when
+you're using Perl: Win32::TieRegistry (best practice for Registry access)
+requests write access by default. So when I was building my little
+utility script for TRADOS Registry entries, working out just how Win32::TieRegistry
+was supposed to work took a disproportionate amount of time (leading, in
+fact, to this very article). When you're just wanting to read the Registry,
+pro tip: just request read access.
+</p><p>
+But let's assume you <i>do</i> want to modify the Registry. To run a program
+as Administrator, you have to request a UAC pop up. And the recommended way to do that is
+to make a manifest (which is a simple XML file) and embed it into the program's
+executable, or at least place it in the directory next to that executable.
+Well, but wait a minute. The Perl executable is not your program, is it?
+And the vast majority of Perl programs don't need admin mode, obviously, so popping
+up UAC for every Perl call would be ridiculous - not to mention that calling this
+from the command mode starts the program in a separate console and process anyway.
+</p><p>
+All in all, a mess.
+</p><p>
+But there are a couple of ways to do this for scripting languages. One is to create a
+shortcut to call the script for you, then click "Advanced" and check the
+"Run as administrator" button. You can even run that from the command line with
+"start my_shortcut.link". Your script will run in a separate console, but it will
+pop up a UAC box and work.
+</p><p>
+It's easy enough to create a shortcut from Perl using
+<a href="https://metacpan.org/pod/Win32::Shortcut">Win32::Shortcut</a>, but that only wraps
+the IShellLink interface, which doesn't expose that admin flag (because it was
+designed before UAC was invented). To gain access to that flag, you need the
+IShellLinkDataList interface (but of course), and set the SDLF_RUN_AS_USER flag
+(but of course). And of course there's the whole sticky wicket of having to put
+another file next to your script, which is just messy and prone to error
+</p><p>
+I wanted a technique I could automate quickly and easily, so that wasn't it.
+Some more poking turned up the
+<a href="http://technet.microsoft.com/en-us/magazine/2007.06.utilityspotlight.aspx">Elevate Command Power Toy</a>.
+There's a download link at the top of that article that installs a bunch of
+little apps for running different things with elevated privileges - the ones
+you want are "elevated.cmd" and "elevated.vbs". Toss those into a directory in
+your path, and you can now just say:
+</p><p>
+<pre class="code">
+c:\projects\trados_languages&gt; elevate perl trados_languages.pl
+</pre>
+</p><p>
+This was already much better! It can be used for anything at all, so if I want
+to edit a system file or something, I can just call it on my editor. Very flexible!
+</p><p>
+Looking a little closer, though, it turns out that the key to that power toy is
+a single call: the <pre>Shell.Application</pre> interface exposes <pre>ShellExecute</pre>,
+which can be called with the application (perl), a string containing arguments (the
+script and any arguments it wants), the local directory (which can be left blank to
+use the current directory), and a verb.
+</p><p>
+It's not documented (thanks, Microsoft), but that verb can be "runas" to pop up the
+UAC dialog before running the program identified. Essentially, this is what the shortcut
+does for you.
+</p><p>
+At any rate, I've wrapped up this solution into a convenient module
+called <a href="https://metacpan.org/pod/Win32::RunAsAdmin">Win32::RunAsAdmin</a>, called like this:
+</p><p>
+<pre class="code">
+use Win32::RunAsAdmin qw(force);
+
+... everything else ...
+</pre>
+</p><p>
+Seriously.  Just put that at the top and your script will pop up a UAC box and run in
+a separate process as Administrator. Here's what it does:
+<ul>
+<li>Call <pre>Win32::RunAsAdmin->check_status()</pre> to see if we're in admin mode already.
+If so, we're done.</li>
+<li>Otherwise, determine the Perl executable, calling script, and arguments.</li>
+<li>Call ShellExecute to restart the calling script as Administrator.</li>
+</ul>
+</p><p>
+It's still not perfect. The elevated privilege is attached to the Perl executable,
+not the script, and so a separate console is started, which makes it incompatible
+with shell-style usage. But for simple utility scripts, it's a convenient
+way to bootstrap into Administrator.
+</p><p>
+(For the record, I believe the only way to run an elevated script as a shell-style
+script would be to open an elevated console to start with, then just call the script.) 
+</p><p>
+For more details about the API this module exposes (for example, if you simply want
+to run some other program as Administrator instead of rerunning the current script),
+check its CPAN documentation <a href="https://metacpan.org/pod/Win32-RunAsAdmin">here</a>.
+</p><p>
+At some later date, I'd like to look a little closer at manifests and other UAC-related
+topics, and those might go into Win32::RunAsAdmin, but this much gets me what I wanted
+to achieve today.
+</p><p>
+<div class="title">Detecting elevated privileges</div>
+</p><p>
+It's pretty cheesy, but the way I learned about UAC in the first place was when
+Win32::TieRegistry failed because it requests write access to the Registry by default.
+There is probably a more standard way of detecting elevation in the running process,
+but this works. I just did this:
+</p><p>
+<pre class="code">
+   use Win32::TieRegistry qw( ::KEY_ );
+
+   my $key = Win32::TieRegistry-&gt;Open( "LMachine", {Access=&gt;KEY_READ()|KEY_WRITE()} );
+</pre>
+</p><p>
+If <tt>$key</tt> is undefined, you're not running with elevated privileges. I've
+exported that as <tt>Win32::RunAsAdmin::check</tt>.
+</p><p>
+<div class="title">Running using Win32::OLE</div>
+</p><p>
+Since this technique only works through the Shell object, you've got to invoke it using
+Win32::OLE. Fortunately, that can be done in two lines:
+</p><p>
+<pre class="code">
+   use Win32::OLE;
+
+   my $shell = Win32::OLE-&gt;new("Shell.Application");
+   $shell-&gt;ShellExecute ($executable, $args, $directory, 'runas');  # undef is fine for the directory
+</pre>
+</p><p>
+And that's really just about all that's of any interest in this module; the rest is
+pretty vanilla Perl stuff. As always, drop me a line if you have any questions or suggestions.
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>.</Font>
+</center>
+
+
+</body>
+</html>
