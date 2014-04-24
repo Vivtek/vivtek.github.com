@@ -1,0 +1,503 @@
+<html>
+<head>
+<title>Perl and KeePass through SSL</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+.synComment    { color: #0000FF }
+.synConstant   { color: #FF00FF }
+.synIdentifier { color: #008B8B }
+.synStatement  { color: #A52A2A ; font-weight: bold }
+.synPreProc    { color: #A020F0 }
+.synType       { color: #2E8B57 ; font-weight: bold }
+.synSpecial    { color: #6A5ACD }
+.synUnderlined { color: #000000 ; text-decoration: underline }
+.synError      { color: #FFFFFF ; background: #FF0000 none }
+.synTodo       { color: #0000FF ; background: #FFFF00 none }
+.linenum       { color: #222222 ; background: #EEEEEE none }
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/recent.html>recent</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/translation/>translation</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<div class="sidemenu">
+<p class="smtitle">perl</p>
+<p>[ <a href="/perl/perl_uac.html">runasadmin</a> ]</p>
+<p>[ <a href="/perl/keepassrest.html">keepass</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Perl and KeePass through SSL</div>
+KeePass is a handy Windows utility to solve today's problem of the need to keep track
+of fifty different passwords for fifty different online services, all of which
+should ideally have more security than just l33t-spelling the name of your
+dog. It keeps them all in a handy encrypted database that you sign into <i>once</i>,
+then ask for as needed. When your laptop goes to sleep, KeePass can even lock its
+database back up in case of physical loss of your machine.
+</p><p>
+And then, when we write an LWP script to check our bank account, we hardcode
+the password. That's ... stupid. But what alternatives are there? There's
+<a href="https://metacpan.org/pod/File::KeePass">File::KeePass</a>, (as recently featured
+on <a href="http://perltricks.com/article/79/2014/3/24/Secure-your-passwords-with-KeePass-and-Perl">PerlTricks.com</a>)
+- but you still have to
+supply it with a password to unlock the database, and that would expose <i>all</i>
+your passwords to a hypothetical laptop thief. That's worse!
+</p><p>
+You can just prompt for a password every time the script runs - but what if
+I want a scheduled script that checks my bank balance every ten minutes and sounds
+a siren if things go wrong? More seriously, prompting for a password defeats the
+purpose of any automation, so it's only a partial answer.
+</p><p>
+If only there were a way to start the KeePass utility with a password once, as intended,
+then have it run in the background to supply automated scripts with passwords when needed!
+Turns out this is actually pretty easy, with a nifty plugin called
+<a href="https://www.smartftp.com/keepassrest">KeePassRest</a>, and the Perl module
+<a href="https://metacpan.org/pod/WWW::KeePassRest">WWW::KeePassRest</a>.
+</p><p>
+KeePassRest was developed by the makers of SmartFTP to store FTP server passwords
+securely. (Did you know that FileZilla keeps your passwords in a plaintext XML file? No?
+Surprise!) In other words, it was developed precisely for this situation.
+Once installed, it listens on port 12984 of your local machine when KeePass
+is started, and fields REST requests against the current database in JSON format.
+The API it exposes doesn't do everything File::KeePass can do - most particularly it
+doesn't do anything with groups - but if you use KeePass to organize your keys,
+you <i>can</i> use the API to retrieve passwords for automation without any further ado.
+It's an excellent part of a sensible automation security strategy.
+</p><p>
+The POD in WWW::KeePassRest includes example code showing how to use the API, but
+this article presents some background on the technical issues, because frankly,
+anything to do with security is fraught with confusion as far as I'm concerned. So
+I wanted to document a little of what I learned while writing WWW::KeePassRest, if only
+to have it all in one place next time I want to do something security-related. And there
+were some other neat little tips and tricks I learned along the way, as well.
+</p><p>
+<div class="title">SSL and certificates</div>
+</p><p>
+The HTTPS protocol used to talk to KeePassRest uses TLS (transport layer security)
+to encrypt everything on the wire, and TLS uses X.509 certificates to do that.
+So why do we always call everything SSL? It's easy to remember, that's why - and the
+<i>technical</i> jargon for anything remotely related to cryptography is an impenetrable
+morass of legalism and terminology that I, for one, find incredibly daunting.
+</p><p>
+So it was with immense relief that I found this awesome
+<a href="http://www.zytrax.com/tech/survival/ssl.html">SSL Survival Guide</a>,
+which explains everything with a touch of humor entirely absent from any other security-related
+material I have ever seen. Read it. Then read it a couple more times. Eventually some of
+it will sink in. (At least that's what I've been telling myself.) Seriously - I've been
+working intermittently with this stuff since the 90's and I just can't remember any of it between
+exposures.
+</p><p>
+At any rate, the point is that to connect to an HTTPS service, you've got to have
+an X.509 certificate. When I first started figuring out KeePassRest, I was under the
+mistaken impression that - since HTTPS "runs on SSL", these were the same as the keys
+I use for password-free authentication to SSL servers. They are <i>not</i>. They're used
+more or less the same way, but we're talking about different protocols entirely. (And Net::SSL
+failed silently, leading to several hours of my wondering why a "certificate" that Net::SSL
+seemed to like wasn't being accepted by KeePassRest...)
+</p><p>
+To talk to KeePassRest, you need an X.509 certificate and key in two files conventionally
+stored with names ending in ".pem". The certificate is the public part that will be sent to the
+server, and the key is the private part you'll use (well - LWP will use ... well - <i>Net::SSL</i>
+will use, well no, actually <i>Crypt::SSLeay</i> will use,
+it's a tall stack) to encrypt messages going out.
+</p><p>
+You can create your own key and certificate with OpenSSL following the instructions in the
+<a href="http://www.zytrax.com/tech/survival/ssl.html#single-cert">survival guide</a> for creating
+a single self-signed certificate,
+but be warned - lots of different systems install OpenSSL, and not all of them will actually work.
+In my case, I had to juggle my path to be sure that an OpenSSL that Strawberry's installer had left
+in place wasn't masking the Cygwin version that should have been called - when called in the Strawberry
+environment, there is apparently a virtual drive Z: that is used to store the configuration file, and so
+it fails when called from the command line.
+</p><p>
+In the WWW::KeePassRest module, I've bundled perfectly good self-signed cert and key files for use
+by the module, so you don't even need to worry about any of this configuration to use the module.
+(And more saliently, I don't have to forget where I stored the cert.) I generated those with this:
+</p><p>
+<pre class="code">
+C:\projects\keepass\cert&gt;openssl req -x509 -nodes -days 10000 -newkey rsa:2048 -keyout wwwkprkey.pem -out wwwkprcert.pem
+Generating a 2048 bit RSA private key
+................................................................................
+...................................................+++
+......................................+++
+writing new private key to 'wwwkprkey.pem'
+-----
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [AU]:.
+State or Province Name (full name) [Some-State]:.
+Locality Name (eg, city) []:
+Organization Name (eg, company) [Internet Widgits Pty Ltd]:CPAN
+Organizational Unit Name (eg, section) []:
+Common Name (eg, YOUR name) []:WWW::KeePassRest
+Email Address []:
+</pre>
+</p><p>
+You can easily generate your own if you don't want to use the default key/certificate.
+</p><p>
+<div class="title">Net::SSL environment variables versus LWP ssl_opt</div>
+</p><p>
+The other place I shot myself in the foot during this whole venture was not quite clearly
+understanding all the different Perl modules interacting and how each is parameterized.
+The LWP user agent itself configures the SSL connection based on the values passed in the
+<a href="https://metacpan.org/pod/LWP::UserAgent#ua-ssl_opts">ssl_opts method</a>, but passes that
+configuration to the SSL module actually in use (either IO::Socket::SSL or Net::SSL; in my
+case, Net::SSL).
+</p><p>
+If you explicitly <tt>use Net::SSL</tt>, though, then you can use its own configuration mechanism,
+which consists of reading environment variables. As I was flailing around trying to figure out why
+SSL wasn't working, I managed to mix and match these, except for the match part, and ended up
+entirely confused. (The environment variables are actually used by
+<a href="https://metacpan.org/pod/Crypt::SSLeay">Crypt::SSLeay</a>
+down there at the bottom of the stack; I believe they're probably overwritten by LWP::UserAgent
+if Net::SSL isn't explicitly loaded, but I haven't looked at the code to verify this.)
+</p><p>
+The most interesting of those is actually HTTPS_DEBUG; if set to 1, that will give you very
+verbose step-by-step information about what is happening and what might be going wrong in
+this many-layered process. I found this invaluable in understanding the many things I screwed up.
+</p><p>
+But normally, you <i>don't</i> load Net::SSL explicitly, and you don't need to mess
+with the environment variables.
+</p><p>
+<div class="title">Installing certificates as shared files in the Perl module system</div>
+</p><p>
+I mentioned that the WWW::KeePassRest module provides its own certificate so you
+don't have to worry about installing one. This wasn't the first time I'd thought about how
+nice it would be to provide non-module data files during installation from CPAN, but it
+<i>is</i> the first time I actually figured out how it's done, so I thought I'd
+mention it here before I get down to the business of protyping.
+</p><p>
+It's actually pretty straightforward. Perl provides an 'auto' facility that
+can be used for the installation of static files either per distribution or
+per module, and the <a href="https://metacpan.org/pod/File::ShareDir">File::ShareDir</a> module
+can find them and return the full directory (see the module documentation for details).
+If you use Ext::MakeMaker for your builds, like I do (I know, I know, but I'm
+familiar with it), then the <a href="https://metacpan.org/pod/File::ShareDir::Install">File::ShareDir::Install</a>
+module will augment your build process with just a couple of lines to install your
+static files for you.
+</p><p>
+The nice thing is that they're also put into their proper slots for testing.
+Slick! I love these little extras in the Perl module/CPAN ecosystem.
+</p><p>
+<div class="title">How KeePassRest stores its certificates</div>
+</p><p>
+Finally, you'll notice if you run the sample script that the first time a certificate/key is used
+to access KeePassRest, a security dialog pops up like this:
+</p><p>
+<center><img src="keepass-unknown-client.png"></center>
+</p><p>
+If you click Yes, you won't see that box again - as long as you save your KeePass database before
+ending the session. That's because the KeePassRest plugin saves all the keys in the extra string
+values (on the "Advanced" tab of the key information) of a key named
+"KeePassRest Settings", stored by default in the root group of your database.
+Honestly, KeePass would be a pretty great way to store any kind of sensitive configuration information
+on Windows (and of course there are work-alikes on *nix systems that even use the same database
+format).
+</p><p>
+<div class="title">Writing the first prototype</div>
+</p><p>
+So now that we understand the technical background, let's look at the first prototype script I wrote to 
+talk to KeePassRest at the LWP level. What this script does is pretty simple - it asks KeePassRest
+to search for keys stored with "GitHub" in their titles, then retrieves each of those keys
+and shows detailed information about them. On my machine, that returns and displays two different
+keys, so it was a good test case. Your mileage will obviously vary, depending on what you have
+in your KeePass database.
+</p><p>
+<pre><span class="linenum">01</span> <span class="synStatement">use </span>LWP;
+<span class="linenum">02</span> <span class="synStatement">use </span>HTTP::Request;
+<span class="linenum">03</span> <span class="synStatement">use </span>Data::Dumper;
+<span class="linenum">04</span> <span class="synStatement">use </span>JSON;
+<span class="linenum">05</span> 
+<span class="linenum">06</span> <span class="synStatement">my</span> <span class="synIdentifier">$ua</span> = LWP::UserAgent-&gt;new();
+<span class="linenum">07</span> <span class="synIdentifier">$ua-&gt;ssl_opts</span> (
+<span class="linenum">08</span>    <span class="synConstant">SSL_version</span>         =&gt; <span class="synConstant">'SSLv3'</span>,
+<span class="linenum">09</span>    <span class="synConstant">verify_hostname</span> =&gt; <span class="synConstant">0</span>,
+<span class="linenum">10</span>    <span class="synConstant">SSL_cert_file</span>       =&gt; <span class="synConstant">'cert/wwwkprcert.pem'</span>,
+<span class="linenum">11</span>    <span class="synConstant">SSL_key_file</span>        =&gt; <span class="synConstant">'cert/wwwkprkey.pem'</span>,
+<span class="linenum">12</span> );
+<span class="linenum">13</span> 
+<span class="linenum">14</span> <span class="synStatement">my</span> <span class="synIdentifier">$j</span> = JSON-&gt;new-&gt;utf8;
+<span class="linenum">15</span> <span class="synStatement">my</span> <span class="synIdentifier">$req</span>;
+<span class="linenum">16</span> <span class="synStatement">my</span> <span class="synIdentifier">$res</span>;
+<span class="linenum">17</span> 
+<span class="linenum">18</span> <span class="synIdentifier">$req</span> = HTTP::Request-&gt;new ( <span class="synConstant">POST</span> =&gt; <span class="synConstant">'https://localhost:12984/keepass/entry/search'</span>,
+<span class="linenum">19</span>                                        [<span class="synConstant">'Content-Type'</span> =&gt; <span class="synConstant">'application/json'</span>],
+<span class="linenum">20</span>                                        <span class="synConstant">'{&quot;SearchString&quot;:&quot;Github&quot;,&quot;SearchInTitles&quot;:&quot;true&quot;}'</span> );
+<span class="linenum">21</span> 
+<span class="linenum">22</span> <span class="synIdentifier">$res</span> = <span class="synIdentifier">$ua-&gt;request</span>(<span class="synIdentifier">$req</span>);
+<span class="linenum">23</span> <span class="synStatement">warn</span> <span class="synIdentifier">$@</span> <span class="synStatement">if</span> <span class="synIdentifier">$@</span>;
+<span class="linenum">24</span> 
+<span class="linenum">25</span> <span class="synStatement">my</span> <span class="synIdentifier">$c</span> = <span class="synIdentifier">$j-&gt;decode</span>(<span class="synIdentifier">$res-&gt;content</span>);
+<span class="linenum">26</span> <span class="synStatement">print</span> <span class="synIdentifier">Dumper</span>(<span class="synIdentifier">$c</span>);
+<span class="linenum">27</span> <span class="synStatement">foreach</span> <span class="synStatement">my</span> <span class="synIdentifier">$uuid</span> (<span class="synIdentifier">@$c</span>) {
+<span class="linenum">28</span>    <span class="synIdentifier">$req</span> = HTTP::Request-&gt;new (<span class="synConstant">GET</span> =&gt; <span class="synConstant">&quot;https://localhost:12984/keepass/entry/</span><span class="synIdentifier">$uuid</span><span class="synConstant">&quot;</span> );
+<span class="linenum">29</span>    <span class="synIdentifier">$res</span> = <span class="synIdentifier">$ua-&gt;request</span> (<span class="synIdentifier">$req</span>);
+<span class="linenum">30</span>    <span class="synStatement">my</span> <span class="synIdentifier">$entry</span> = <span class="synIdentifier">$j-&gt;decode</span>(<span class="synIdentifier">$res-&gt;content</span>);
+<span class="linenum">31</span>    <span class="synStatement">print</span> <span class="synIdentifier">Dumper</span>(<span class="synIdentifier">$entry</span>);
+<span class="linenum">32</span> }
+</pre>
+</p><p>
+On my machine, this returns the following (except obviously the passwords are not all x's):
+<pre class="code">
+C:\projects\keepass&gt;perl keepass-raw.pl
+$VAR1 = [
+          '7F7DE15ADED7F74BB311C94932F7DE0D',
+          'B98ED52729AFCC43970CE04FE6DEA636'
+        ];
+$VAR1 = {
+          'UserName' =&gt; 'x5n',
+          'URL' =&gt; '',
+          'Password' =&gt; 'xxxxxxxxxxxxxxx',
+          'Notes' =&gt; 'Email address vivtek@gmail.com',
+          'Title' =&gt; 'Github @ x5n'
+        };
+$VAR1 = {
+          'UserName' =&gt; 'michael@vivtek.com',
+          'URL' =&gt; 'https://github.com/signup/free',
+          'Password' =&gt; 'xxxxxxxxxxxxxxx',
+          'Notes' =&gt; "This is a UTF-8 t\x{e9}st.",
+          'Title' =&gt; 'Github @ Vivtek'
+        };
+</pre>
+</p><p>
+<div class="title">Writing a better prototype</div>
+</p><p>
+To exercise the rest of the KeePassRest API, I wanted to add calls to create, update, and delete
+a key - but all the typing to do that started to get boring. I abstracted out the JSON calls so
+I could concentrate on just the more KeePassRest-specific logic (and also type a little less).
+I put that stuff into a new module I've released to CPAN as WWW::JSONAPI; I'll link to
+the new article on that as soon as it's written. (I will note, however, that there is already
+a perfectly good CPAN module called <a href="https://metacpan.org/pod/WWW::JSON">WWW::JSON</a>
+that may very well suit your needs better, as it is far more mature.)
+</p><p>
+I defined five different methods against a JSON API connection opened with this module;
+these are json_POST_json (posts JSON, then expects a JSON return), json_POST_string (posts JSON,
+then expects a string in return), json_PUT_string, GET_json (doesn't post anything, gets JSON back),
+and finally DELETE_string (doesn't post anything, gets a string back).  (I also tossed
+in some error handling so it doesn't clutter up our code - it will croak gracefully if
+KeePass isn't started and thus not accepting connections, for example.)
+</p><p>
+When we abstract that out and add the new logic, we get my second prototype. Here, note that
+lines 1-18 are just the translation of lines 1-32 of the first prototype, so I saved that
+much typing, anyway.
+</p><p>
+<pre><span class="linenum">01</span> <span class="synStatement">use strict</span>; <span class="synStatement">use warnings</span>;
+<span class="linenum">02</span> <span class="synStatement">use lib</span> <span class="synConstant">'./lib'</span>;
+<span class="linenum">03</span> <span class="synStatement">use </span>WWW::JSONAPI;
+<span class="linenum">04</span> <span class="synStatement">use </span>Data::Dumper;
+<span class="linenum">05</span> 
+<span class="linenum">06</span> <span class="synStatement">my</span> <span class="synIdentifier">$json</span> = WWW::JSONAPI-&gt;new(<span class="synConstant">cert_file</span> =&gt; <span class="synConstant">'cert/wwwkprcert.pem'</span>,
+<span class="linenum">07</span>                              <span class="synConstant">key_file</span>  =&gt; <span class="synConstant">'cert/wwwkprkey.pem'</span>,
+<span class="linenum">08</span>                              <span class="synConstant">base_url</span>  =&gt; <span class="synConstant">'https://localhost:12984/keepass/'</span>);
+<span class="linenum">09</span>                              
+<span class="linenum">10</span> <span class="synComment"># Search for keys with &quot;Github&quot; in the title</span>
+<span class="linenum">11</span> <span class="synStatement">my</span> <span class="synIdentifier">$c</span> = <span class="synIdentifier">$json-&gt;json_POST_json</span> (<span class="synConstant">'entry/search'</span>, { <span class="synConstant">SearchString</span> =&gt; <span class="synConstant">'Github'</span>,
+<span class="linenum">12</span>                                                 <span class="synConstant">SearchInTitles</span> =&gt; <span class="synConstant">'true'</span> } );
+<span class="linenum">13</span> <span class="synStatement">print</span> <span class="synIdentifier">Dumper</span>(<span class="synIdentifier">$c</span>);
+<span class="linenum">14</span> 
+<span class="linenum">15</span> <span class="synStatement">foreach</span> <span class="synStatement">my</span> <span class="synIdentifier">$uuid</span> (<span class="synIdentifier">@$c</span>) {
+<span class="linenum">16</span>    <span class="synStatement">my</span> <span class="synIdentifier">$entry</span> = <span class="synIdentifier">$json-&gt;GET_json</span> (<span class="synConstant">&quot;entry/</span><span class="synIdentifier">$uuid</span><span class="synConstant">&quot;</span>);
+<span class="linenum">17</span>    <span class="synStatement">print</span> <span class="synIdentifier">Dumper</span>(<span class="synIdentifier">$entry</span>);
+<span class="linenum">18</span> }
+<span class="linenum">19</span> 
+<span class="linenum">20</span> <span class="synComment"># Get a list of existing keys that already have our test URL.</span>
+<span class="linenum">21</span> <span class="synStatement">my</span> <span class="synIdentifier">$list</span> = <span class="synIdentifier">$json-&gt;json_POST_json</span> (<span class="synConstant">'entry/search'</span>, { <span class="synConstant">SearchString</span> =&gt; <span class="synConstant">'http://test.cpan.org/wwwkpr'</span>, <span class="synConstant">SearchInUrls</span> =&gt; <span class="synConstant">'true'</span>} );
+<span class="linenum">22</span> 
+<span class="linenum">23</span> <span class="synComment"># Add a test key - in contrast with the spec, this returns &quot;true&quot; if successful, not the UUID.</span>
+<span class="linenum">24</span> <span class="synStatement">my</span> <span class="synIdentifier">$ret</span> = <span class="synIdentifier">$json-&gt;json_POST_string</span> (<span class="synConstant">'entry'</span>, { <span class="synConstant">GroupName</span> =&gt; <span class="synConstant">'test'</span>,
+<span class="linenum">25</span>                                               <span class="synConstant">Entry</span> =&gt; { <span class="synConstant">Title</span> =&gt; <span class="synConstant">'wwwkpr test'</span>,
+<span class="linenum">26</span>                                                          <span class="synConstant">Password</span> =&gt; <span class="synConstant">'test'</span>,
+<span class="linenum">27</span>                                                          <span class="synConstant">URL</span> =&gt; <span class="synConstant">'http://test.cpan.org/wwwkpr'</span> }});
+<span class="linenum">28</span> <span class="synStatement">print</span> <span class="synConstant">&quot;</span><span class="synIdentifier">$ret</span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>;
+<span class="linenum">29</span> 
+<span class="linenum">30</span> <span class="synIdentifier">$c</span> = <span class="synIdentifier">$json-&gt;json_POST_json</span> (<span class="synConstant">'entry/search'</span>, { <span class="synConstant">SearchString</span> =&gt; <span class="synConstant">'http://test.cpan.org/wwwkpr'</span>, <span class="synConstant">SearchInUrls</span> =&gt; <span class="synConstant">'true'</span>} );
+<span class="linenum">31</span> <span class="synStatement">my</span> <span class="synIdentifier">$newkey</span> = <span class="synConstant">''</span>;
+<span class="linenum">32</span> <span class="synStatement">foreach</span> <span class="synStatement">my</span> <span class="synIdentifier">$check</span> (<span class="synIdentifier">@$c</span>) {
+<span class="linenum">33</span>    <span class="synStatement">if</span> (<span class="synStatement">not</span> <span class="synStatement">grep {</span> <span class="synIdentifier">$_</span> <span class="synStatement">eq</span> <span class="synIdentifier">$check</span> <span class="synStatement">}</span> <span class="synIdentifier">@$list</span>) {
+<span class="linenum">34</span>       <span class="synIdentifier">$newkey</span> = <span class="synIdentifier">$check</span>;
+<span class="linenum">35</span>       <span class="synStatement">last</span>;
+<span class="linenum">36</span>    }
+<span class="linenum">37</span> }
+<span class="linenum">38</span> <span class="synStatement">print</span> <span class="synConstant">&quot;</span><span class="synIdentifier">$newkey</span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>;
+<span class="linenum">39</span> 
+<span class="linenum">40</span> <span class="synStatement">my</span> <span class="synIdentifier">$entry</span> = <span class="synIdentifier">$json-&gt;GET_json</span> (<span class="synConstant">&quot;entry/</span><span class="synIdentifier">$newkey</span><span class="synConstant">&quot;</span>);
+<span class="linenum">41</span> <span class="synStatement">print</span> <span class="synIdentifier">Dumper</span>(<span class="synIdentifier">$entry</span>);
+<span class="linenum">42</span> 
+<span class="linenum">43</span> <span class="synIdentifier">$entry-&gt;{</span><span class="synConstant">'test-string'</span><span class="synIdentifier">}</span> = <span class="synIdentifier">$newkey</span>;
+<span class="linenum">44</span> <span class="synStatement">print</span> <span class="synIdentifier">$json-&gt;json_PUT_string</span> (<span class="synConstant">&quot;entry/</span><span class="synIdentifier">$newkey</span><span class="synConstant">&quot;</span>, <span class="synIdentifier">$entry</span>) . <span class="synConstant">&quot;</span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>;
+<span class="linenum">45</span> 
+<span class="linenum">46</span> <span class="synStatement">print</span> <span class="synIdentifier">$json-&gt;DELETE_string</span> (<span class="synConstant">&quot;entry/</span><span class="synIdentifier">$newkey</span><span class="synConstant">&quot;</span>) . <span class="synConstant">&quot;</span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>;
+</pre>
+</p><p>
+This one returns the same information as above, then continues:
+</p><p>
+<pre class="code">
+true
+3422B28F08767C4D9B352BEF532B7215
+$VAR1 = {
+          'URL' =&gt; 'http://test.cpan.org/wwwkpr',
+          'Password' =&gt; 'test',
+          'Title' =&gt; 'wwwkpr test'
+        };
+true
+true
+</pre>
+</p><p>
+<div class="title">The KeePassRest API</div>
+</p><p>
+I know it's shocking, but that prototype just covered the entire API that KeePassRest exposes.
+The only thing it didn't do was exercise all the different options, but basically you've got CRUD
+for entries, and search for entries (plus incidental creation of a group if the group you specify
+when creating a key doesn't exist).
+The folks at SmartFTP have documented the API <a href="https://www.smartftp.com/keepassrest/protocol">here</a>,
+but I found that coverage really thin while I was trying to figure this out. As I note in the
+second prototype, their API actually contains an error; instead of returning
+the UUID key for the entry created by Create, their API simply returns 'true' if successful.
+</p><p>
+The WWW::KeePassRest module actually implements two levels of API: the first is a simple
+wrapping of the REST API provided by the plugin, and consists of '<tt>create</tt>', '<tt>get</tt>',
+'<tt>update</tt>', '<tt>delete</tt>', and '<tt>search</tt>' that do exactly what you'd expect.
+</p><p>
+Then I added some conveniences: the <tt>get</tt> method, in addition to the UUID of the entry to
+retrieve, can also take a list of fields to extract. Then, instead of getting a hashref back,
+you get a list of the values for those fields - so you can pass the UserName and Password fields
+directly to your authentication call in LWP.
+</p><p>
+Two methods <tt>get_by_title</tt> and <tt>get_by_url</tt> do exactly the same thing as vanilla
+<tt>get</tt>, except that instead of a UUID you can pass the title or URL of your desired
+entry. If there are collisions (multiple entries are returned from the search), then a
+random one will be selected and returned. These are for convenience, not complexity; if you
+want to avoid this behavior, just do a search on title or URL yourself and choose the entry
+you prefer.
+</p><p>
+The <tt>get</tt> methods can all be called directly from the class - you don't even have
+to create a WWW::KPR object to grab a username/password and use it to log into a given URL.
+</p><p>
+I also added a <tt>create_and_return</tt> that does what <tt>create</tt> is supposed to do:
+it creates an entry and returns the newly added UUID.
+</p><p>
+Finally, I tossed in a <tt>get_all</tt> that takes search parameters and returns an arrayref of
+hashrefs of all the matching entries.
+</p><p>
+See the <a href="https://metacpan.org/pod/WWW::KeePassRest">POD for WWW::KeePassRest</a> for the full documentation
+of the module's API, but in parting, I'll show you the much-streamlined version of the test
+script that exercises the module's API:
+</p><p>
+<pre><span class="linenum">01</span> <span class="synStatement">use strict</span>;
+<span class="linenum">02</span> <span class="synStatement">use warnings</span>;
+<span class="linenum">03</span> <span class="synStatement">use </span>WWW::KeePassRest;
+<span class="linenum">04</span> <span class="synStatement">use </span>Data::Dumper;
+<span class="linenum">05</span> 
+<span class="linenum">06</span> <span class="synStatement">my</span> <span class="synIdentifier">$kpr</span> = WWW::KeePassRest-&gt;new();
+<span class="linenum">07</span>                              
+<span class="linenum">08</span> <span class="synComment"># Search for keys with &quot;Github&quot; in the title</span>
+<span class="linenum">09</span> <span class="synStatement">my</span> <span class="synIdentifier">$c</span> = <span class="synIdentifier">$kpr-&gt;get_all</span> (<span class="synConstant">'Github'</span>, <span class="synConstant">'SearchInTitles'</span>);
+<span class="linenum">10</span> <span class="synStatement">print</span> <span class="synIdentifier">Dumper</span>(<span class="synIdentifier">$c</span>);
+<span class="linenum">11</span> 
+<span class="linenum">12</span> <span class="synComment"># Add a test key and get the UUID back.</span>
+<span class="linenum">13</span> <span class="synStatement">my</span> <span class="synIdentifier">$newkey</span> = <span class="synIdentifier">$kpr-&gt;create_and_return</span> (<span class="synConstant">'test'</span>, { <span class="synConstant">Title</span> =&gt; <span class="synConstant">'wwwkpr test'</span>,
+<span class="linenum">14</span>                                                 <span class="synConstant">Password</span> =&gt; <span class="synConstant">'test'</span>,
+<span class="linenum">15</span>                                                 <span class="synConstant">URL</span> =&gt; <span class="synConstant">'http://test.cpan.org/wwwkpr'</span> });
+<span class="linenum">16</span> <span class="synStatement">print</span> <span class="synConstant">&quot;</span><span class="synIdentifier">$newkey</span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>;
+<span class="linenum">17</span> 
+<span class="linenum">18</span> <span class="synComment"># Check it, modify it, delete it.</span>
+<span class="linenum">19</span> <span class="synStatement">my</span> <span class="synIdentifier">$entry</span> = <span class="synIdentifier">$kpr-&gt;get</span> (<span class="synIdentifier">$newkey</span>);
+<span class="linenum">20</span> <span class="synStatement">print</span> <span class="synIdentifier">Dumper</span>(<span class="synIdentifier">$entry</span>);
+<span class="linenum">21</span> <span class="synIdentifier">$entry-&gt;{</span><span class="synConstant">'test-string'</span><span class="synIdentifier">}</span> = <span class="synIdentifier">$newkey</span>;
+<span class="linenum">22</span> <span class="synStatement">print</span> <span class="synIdentifier">$kpr-&gt;update</span> (<span class="synIdentifier">$newkey</span>, <span class="synIdentifier">$entry</span>) . <span class="synConstant">&quot;</span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>;
+<span class="linenum">23</span> <span class="synStatement">print</span> <span class="synIdentifier">$kpr-&gt;delete</span> (<span class="synIdentifier">$newkey</span>) . <span class="synConstant">&quot;</span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>;
+</pre>
+</p><p>
+Cool, huh?
+</p><p>
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>.</Font>
+</center>
+
+
+</body>
+</html>
