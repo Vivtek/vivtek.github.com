@@ -10,9 +10,9 @@ sep ::=
 whitespace ~ [\s]+
 
 tag ::= tag_name
-tag_name ~ <plain tag> | <annotation tag>
-<plain tag> ~ [\w]+
-<annotation tag> ~ '[' <plain tag> ']'
+tag_name ~ &lt;plain tag&gt; | &lt;annotation tag&gt;
+&lt;plain tag&gt; ~ [\w]+
+&lt;annotation tag&gt; ~ '[' &lt;plain tag> ']'
 
 names ::= name+
 name ~ [\w]+
@@ -20,11 +20,11 @@ name ~ [\w]+
 parmgroup ::= paren_group
 parmgroup ::=
 paren_group ::= '(' parm_list ')'
-parm_list ::= parm* separator => <comma>
+parm_list ::= parm* separator => &lt;comma&gt;
 parm ::= words | words '=' words
 words ::= name+
 
-<comma> ~ [,]
+&lt;comma&gt; ~ [,]
 </pre>
 
 Marpa version 2.084.<br/>
