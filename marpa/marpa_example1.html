@@ -1,0 +1,76 @@
+<pre class="grammar">:default ::= action => [name,values]
+lexeme default = latm => 1
+:start ::= line
+
+line ::= name_group sep parmgroup
+name_group ::= tag | tag whitespace names
+
+sep ::= whitespace
+sep ::=
+whitespace ~ [\s]+
+
+tag ::= tag_name
+tag_name ~ <plain tag> | <annotation tag>
+<plain tag> ~ [\w]+
+<annotation tag> ~ '[' <plain tag> ']'
+
+names ::= name+
+name ~ [\w]+
+
+parmgroup ::= paren_group
+parmgroup ::=
+paren_group ::= '(' parm_list ')'
+parm_list ::= parm* separator => <comma>
+parm ::= words | words '=' words
+words ::= name+
+
+<comma> ~ [,]
+</pre>
+
+Marpa version 2.084.<br/>
+
+Test case:
+<pre class="test">tag name (parm)</pre>
+
+<pre class="parse">[
+  'line',
+  [
+    'name_group',
+    [
+      'tag',
+      'tag'
+    ],
+    ' ',
+    [
+      'names',
+      'name'
+    ]
+  ],
+  [
+    'sep',
+    ' '
+  ],
+  [
+    'parmgroup',
+    [
+      'paren_group',
+      '(',
+      [
+        'parm_list',
+        [
+          'parm',
+          [
+            'words',
+            'parm'
+          ]
+        ]
+      ],
+      ')'
+    ]
+  ]
+];
+</pre>
+
+
+
+
