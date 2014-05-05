@@ -228,6 +228,10 @@ but this works. I just did this:
 If <tt>$key</tt> is undefined, you're not running with elevated privileges. I've
 exported that as <tt>Win32::RunAsAdmin::check</tt>.
 </p><p>
+<i>Update 2014-05-05:</i> Thanks to Alex at <a href="http://blogs.perl.org/users/michael/2014/04/perl-and-windows-uac.html#comment-1358828">blogs.perl.org</a>,
+I learned that there's a perfectly good Win32 API call, "IsAdminUser()", that handles this
+"the right way". So v0.02 of the module uses that.
+</p><p>
 <div class="title">Running using Win32::OLE</div>
 </p><p>
 Since this technique only works through the Shell object, you've got to invoke it using
@@ -240,8 +244,17 @@ Win32::OLE. Fortunately, that can be done in two lines:
    $shell-&gt;ShellExecute ($executable, $args, $directory, 'runas');  # undef is fine for the directory
 </pre>
 </p><p>
-And that's really just about all that's of any interest in this module; the rest is
-pretty vanilla Perl stuff. As always, drop me a line if you have any questions or suggestions.
+<div class="title">The value of the Perl community</div>
+</p><p>
+After pushing Win32::RunAsAdmin to CPAN, I posted a blog post about it and also blabbed it
+to Perlmonks - each netted me one suggestion for improvement, which I incorporated into the second
+version (and in the case of the Perlmonks suggestion, that saved me a huge hassle when I went
+to use Win32::RunAsAdmin in a new case I hadn't considered!)
+</p><p>
+Perl rocks.
+</p><p>
+Anyway, that's really just about all that's of any interest in this module.
+As always, drop me a line if you have any questions or suggestions.
 
 </div></td></td></table>
 
