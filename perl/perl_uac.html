@@ -117,9 +117,14 @@ is Microsoft's way of letting Windows machines run in user mode and still
 permit "dangerous" things like installers to enter Administrator mode.
 When they do this, the entire screen goes dark and a prominent dialog asks
 the user if they really want the program to change their system. The key is
-that the user can't miss this behavior. It probably helps.
+that the user can't miss this behavior. (Here's an 
+<a href="http://journeyintoir.blogspot.hu/2013/03/uac-impact-on-malware.html">interesting article</a>
+exploring one quasi-vulnerability malware authors use to social-engineer
+their way around UAC - but note that there <i>is no way</i> to make admin
+changes to the system with UAC enabled, without that popup. I call that
+a pretty effective engineering solution.)
 </p><p>
-What requires a program to run as Administrator? To start, any write
+So what requires a program to run as Administrator? To start, any write
 access to the Registry. And there's just one little problem with that when
 you're using Perl: Win32::TieRegistry (best practice for Registry access)
 requests write access by default. So when I was building my little
