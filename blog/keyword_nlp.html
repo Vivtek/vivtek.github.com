@@ -212,6 +212,34 @@ Soon, compadre. Soon!
 <br>
 </td>
 </tr>
+<tr>
+<td><div class="title"><a href="test_driven_lexicography.html">Test-driven lexicography</a></div>
+<div class="st2">2014-05-24 <a href="keyword_nlp.html">nlp</a></div><br>
+I'm getting hip-deep in German lexicography these days; since I can actually realistically tokenize
+my translation documents now, I keep trying to, well, tokenize my translation documents now.
+</p><p>
+I've broken things up into Lingua::Lex, which is general tools for management of a lexicon, and Lingua::Lex::DE,
+which is specifically my German lexicon. This allows me to test things at the level of the mechanism in one
+place, and at the level of specific lexical rules in another. (Note: I haven't gotten as far as testing
+specific lexical rules: but it's there in potential, anyway.)
+</p><p>
+The distribution version of a Lex::DE is flat files with convenient ASCII-only encoding; as part of the
+setup procedure we build an SQLite database for the actual lexical work. I'm not sure how big the actual
+lexicon will end up being yet, but from the igerman98 distro, it's not frighteningly large or impossible
+for CPAN to handle. We'll see.
+</p><p>
+The lexical rules from igerman98 only scratch the surface - and they're grammatically naive, as there was
+no reason to try to encode parts of speech, so for instance any word that takes an 's' on the end can be
+lumped into the same flag no matter why it takes that 's'. Is it genitive? Plural? Something else? A spell
+checker doesn't care, but a lexicon driving a parser does.
+</p><p>
+So there's work to be done, and I have the framework hammered out. I've made a lot of progress with it;
+the compounding mechanism works, and suffixes are mostly working as of today. Once I start trying to tokenize
+real text, then improvements should proceed apace. I figure maybe another week before I'm to the point of
+trying to feed these token streams to Marpa - but that's not too long at all!
+<br>
+</td>
+</tr>
 </table>
 
 </div></td></td></table>
