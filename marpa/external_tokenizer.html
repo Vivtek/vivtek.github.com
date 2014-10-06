@@ -1,0 +1,354 @@
+<html>
+<head>
+<title>Proof of concept: using Marpa with an external tokenizer</title>
+<style>p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
+.synComment    { color: #0000FF }
+.synConstant   { color: #FF00FF }
+.synIdentifier { color: #008B8B }
+.synStatement  { color: #A52A2A ; font-weight: bold }
+.synPreProc    { color: #A020F0 }
+.synType       { color: #2E8B57 ; font-weight: bold }
+.synSpecial    { color: #6A5ACD }
+.synUnderlined { color: #000000 ; text-decoration: underline }
+.synError      { color: #FFFFFF ; background: #FF0000 none }
+.synTodo       { color: #0000FF ; background: #FFFF00 none }
+.linenum       { color: #222222 ; background: #EEEEEE none }
+</style>
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href=/>home</a> ]</p>
+<p>[ <a href=/blog/>blog</a> ]</p>
+<p>[ <a href=/recent.html>recent</a> ]</p>
+<p>[ <a href=/projects/>programming</a> ]</p>
+<p>[ <a href=/translation/>translation</a> ]</p>
+<p>[ <a href=/fiction/>fiction</a> ]</p>
+<p>[ <a href=/contact.html>contact</a> ]</p>
+</div>
+
+<hr />
+<script type="text/javascript"><!--
+google_ad_client = "pub-7508846022405297";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+google_ad_type = "text";
+google_ad_channel = "";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+
+</div>
+
+</div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Proof of concept: using Marpa with an external tokenizer</div>
+Since learning of Marpa (I don't know when I first ran across it - the earliest notes I can
+find are from mid-2012 and they all mention Marpa as something I really wanted to learn someday),
+there have been two basic realms of problems I want to use it for: parsing computer language,
+specifically my Decl declarative language - and parsing natural language.
+</p><p>
+This article is about natural language.
+</p><p>
+If you haven't dealt much with natural language, there are a couple of areas where it differs
+strongly from computer languages. First, the grammars of natural languages are far more
+complex: Pro3gres, a state-of-the-art research parser for English, with a hand-written grammar,
+has about 1200 rules - and its design goals do *not* include full coverage of the English
+language. (See the technical report
+<a href="http://www.cl.uzh.ch/research/techreport/TR_2011_02.pdf">here</a>
+if you're interested in Pro3gres - it's pretty nifty, and the report is well worth
+reading for its good overview of current NLP parsing research alone.)
+In contrast, the C parser written in Marpa by Jean-Damien Durand,
+<a href="https://metacpan.org/release/MarpaX-Languages-C-AST">MarpaX::Languages::C::AST</a>,
+consists of just 102 productions by my count.
+</p><p>
+In fact, many researchers consider hand-writing a grammar for a natural language to be
+essentially an impossible task, so that most research today has a focus on statistical methods.
+I'm hoping (and currently believe) that Marpa will be a game-changer in this respect.
+Watch this space for further details, I guess. And wish me luck.
+</p><p>
+The second difference between computer languages and natural languages is that the tokens in a
+formal computer language are necessarily quite simple and well-marked. The tokenizer is a set
+of regular expressions and the token type is easily predicted - and never ambiguous.
+</p><p>
+In marked contrast, natural languages *love* ambiguity. The part of speech (the token type) of
+a given word can be quite impossible to know out of context. Marpa's own timeflies.t test case
+is an illustration of this ambiguity - the words "time", "flies", and even "like" can all take
+on different parts of speech and entirely different meanings, so that the sentence
+"Time flies like an arrow" can itself have multiple
+meanings. And that's not all - the part of speech of a given word can't be determined from its
+appearance, unlike, say, an identifer in C. Instead, lexicalization of natural language words
+is a database-intensive task. You simply have to know detailed information about
+tens of thousands of words.
+</p><p>
+And that's just in English, where words are mostly separated by spaces when written down.
+Chinese and Japanese don't use spaces at all, and many languages use complicated systems of
+prefixes and suffixes to build words on the fly. English does this too, a little.
+We can put "un-" on the beginning of just about anything and still get some meaning from it.
+Novel words like "unmeaning" are immediately comprehensible, even though they don't appear
+in any dictionary. In other languages, like Hungarian, "the table" is "az asztal", while the
+phrase "for the table", which uses an introductory word in English, *changes* the Hungarian
+word so that it's "az asztalnak". (It gets worse: "that table" is "az az asztal", and "for
+that table" is "annak az astzalnak". And don't even get me started on Turkish, in which words
+of fifty syllables can easily be constructed - although this is essentially only done when you
+want to make people laugh.)
+</p><p>
+So in short, finding lexemes in natural languages - tokenizing them - is a hard problem. And
+as a result, a practical approach to natural language starts with a tokenizer. I've been working
+hard on just such a tokenizer for a few months now; it's not on CPAN yet, but it will appear
+under Lingua::Tok, with the lexical database work being done by one or more lexicon classes
+subclassing Lingua::Lex (including a German lexicon in Lingua::Lex::DE).
+</p><p>
+Naturally, I want to feed tokens from my dictionary-based tokenizer into Marpa. This article
+introduces my proof-of-concept test script for doing that. You can see the script itself
+<a href="test_script.html">here</a> - there are a couple of sections that deserve a little discussion,
+though.
+</p><p>
+</p><p>
+<a name="analysis"/>
+<p><p>
+<p><p>
+</p><p>
+</p><div class="title">Definition of the Marpa grammar (lines 11-37)</div><p>
+Any Marpa grammar breaks down into a general preamble, then top-level G1 rules followed
+by lower-level L0 rules. Here, I've explicitly reflected that by breaking these up into
+separate strings, which are concatenated into the full grammar when we build the parser.
+Here's the grammar I'm working with:
+</p><p><pre><span class="linenum">11</span> <span class="synStatement">my</span> <span class="synIdentifier">$preamble</span> = <span class="synConstant">&lt;&lt;'EOF';</span>
+<span class="linenum">12</span> <span class="synConstant">:default ::= action =&gt; [name,values]</span>
+<span class="linenum">13</span> <span class="synConstant">lexeme default = latm =&gt; 1</span>
+<span class="linenum">14</span> <span class="synConstant">:start ::= text</span>
+<span class="linenum">15</span> <span class="synConstant">EOF</span>
+<span class="linenum">16</span> 
+<span class="linenum">17</span> <span class="synStatement">my</span> <span class="synIdentifier">@tokens</span> = (<span class="synConstant">'n'</span>, <span class="synConstant">'aa'</span>, <span class="synConstant">'prep'</span>, <span class="synConstant">'unk'</span>);
+<span class="linenum">18</span> <span class="synStatement">my</span> <span class="synIdentifier">$tlist</span> = <span class="synStatement">join</span> (<span class="synConstant">' | '</span>, <span class="synIdentifier">@tokens</span>);
+<span class="linenum">19</span> 
+<span class="linenum">20</span> <span class="synStatement">my</span> <span class="synIdentifier">$rules</span> = <span class="synConstant">&lt;&lt;&quot;EOF&quot;;</span>
+<span class="linenum">21</span> <span class="synConstant">text ::= heading | salad</span>
+<span class="linenum">22</span> <span class="synConstant">heading ::= np</span>
+<span class="linenum">23</span> <span class="synConstant">np ::= n | adjp n | np pp</span>
+<span class="linenum">24</span> <span class="synConstant">pp ::= prep np</span>
+<span class="linenum">25</span> <span class="synConstant">adjp ::= aa+</span>
+<span class="linenum">26</span> <span class="synConstant">salad ::= lex+</span>
+<span class="linenum">27</span> <span class="synConstant">lex ::= np | </span><span class="synIdentifier">$tlist</span>
+<span class="linenum">28</span> <span class="synConstant">EOF</span>
+<span class="linenum">29</span> 
+<span class="linenum">30</span> 
+<span class="linenum">31</span> <span class="synStatement">my</span> <span class="synIdentifier">%types</span>;
+<span class="linenum">32</span> <span class="synStatement">my</span> <span class="synIdentifier">$tokens</span> = <span class="synConstant">''</span>;
+<span class="linenum">33</span> <span class="synStatement">foreach</span> <span class="synStatement">my</span> <span class="synIdentifier">$token</span> (<span class="synIdentifier">@tokens</span>) {
+<span class="linenum">34</span>     <span class="synIdentifier">$types{$token}</span> = <span class="synConstant">'_'</span>.<span class="synIdentifier">$token</span> <span class="synStatement">unless</span> <span class="synIdentifier">$token</span> <span class="synStatement">eq</span> <span class="synConstant">'unk'</span>;
+<span class="linenum">35</span>     <span class="synIdentifier">$tokens</span> .= <span class="synConstant">&quot;</span><span class="synIdentifier">$token</span><span class="synConstant"> ::= _</span><span class="synIdentifier">$token</span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>;
+<span class="linenum">36</span>     <span class="synIdentifier">$tokens</span> .= <span class="synConstant">&quot;_</span><span class="synIdentifier">$token</span><span class="synConstant"> ~ 'a'</span><span class="synSpecial">\n</span><span class="synConstant">&quot;</span>;
+<span class="linenum">37</span> }
+</pre>
+</p><p></p><p>
+The grammar itself is pretty stupid - my original stab was just a "word salad", which
+parsed each series of words into ... a series of words, without further analysis. The idea
+here is that when I have a sentence that can't be parsed, I still want Marpa to tell me the
+parts it <i>can</i> parse, so a word salad can either be a bunch of undifferentiated words, or
+it might have noun phrases in it, and so on.
+</p><p>
+Turns out that doesn't work well, because Marpa just sees a whole lot of ambiguity and I
+get a lot of different possible "parses" back that consist of calling larger and larger
+parts of the sentence word salad. More on that approach later.
+</p><p>
+Anyway, each token has a type and a word. Marpa doesn't actually care about the word, so I
+just pass the word's offset in the token stream, along with a type that is either an
+actual guess at a part of speech, or 'unk' for unknown.
+</p><p>
+In line 26, we define a word salad as a series of lexemes, and in line 27, we define a lexeme
+as either a noun phrase or any one of the parts of speech we've identified as coming from
+the tokenizer.
+</p><p>
+In lines 33 through 37, we loop through our token types and define a G1 rule consisting of
+the token type and an underscored version that will be an L0 lexer rule, then we build the
+lexer rule as a dummy. If that rule isn't there, Marpa won't accept lexemes of that type, so
+there you go.
+</p><p>
+</p><div class="title">Set up Lingua::Tok with appropriate lexica (lines 41-49)</div><p>
+The setup of the tokenizer itself is relatively unimportant for this test; essentially I'm
+recycling a common configuration I use elsewhere. The extra words lexicon is a local lexicon
+for any words the main lexicon doesn't catch, and the main lexicon is the standard German
+lexicon Lingua::Lex::DE. The test file 'test.ttx' is an actual translation file from a recent
+job.
+</p><p>
+</p><div class="title">Iterate through tokens, parsing as we go (lines 54-79)</div><p>
+The loop for token processing deserves a little comment, as it's mildly opaque:
+</p><p><pre><span class="linenum">54</span> <span class="synStatement">while</span> (<span class="synConstant">1</span>) {
+<span class="linenum">55</span>     <span class="synStatement">my</span> <span class="synIdentifier">$token</span> = <span class="synIdentifier">$tok-&gt;token</span>();
+<span class="linenum">56</span>     <span class="synStatement">last</span> <span class="synStatement">if</span> <span class="synStatement">not</span> <span class="synStatement">defined</span> <span class="synIdentifier">$token</span>;
+<span class="linenum">57</span>     <span class="synStatement">if</span> (<span class="synStatement">ref</span> <span class="synIdentifier">$token</span> <span class="synStatement">eq</span> <span class="synConstant">'ARRAY'</span>) {
+<span class="linenum">58</span>         <span class="synStatement">next</span> <span class="synStatement">if</span> <span class="synIdentifier">$token-&gt;[</span><span class="synConstant">0</span><span class="synIdentifier">]</span> <span class="synStatement">eq</span> <span class="synConstant">'S'</span>;
+<span class="linenum">59</span>         <span class="synStatement">if</span> (<span class="synIdentifier">$token-&gt;[</span><span class="synConstant">0</span><span class="synIdentifier">]</span> <span class="synStatement">eq</span> <span class="synConstant">'FSB'</span>) {
+<span class="linenum">60</span>             <span class="synIdentifier">$recce</span> = Marpa::R2::Scanless::R-&gt;new( { <span class="synConstant">grammar</span> =&gt; <span class="synIdentifier">$grammar</span> } );
+<span class="linenum">61</span>             <span class="synStatement">my</span> <span class="synIdentifier">$input</span> = <span class="synConstant">' '</span> x <span class="synConstant">100</span>;
+<span class="linenum">62</span>             <span class="synIdentifier">$recce-&gt;read</span>(\<span class="synIdentifier">$input</span>, <span class="synConstant">0</span>, <span class="synConstant">0</span>);
+<span class="linenum">63</span>             <span class="synIdentifier">@cursent</span> = ();
+<span class="linenum">64</span>         } <span class="synStatement">elsif</span> (<span class="synIdentifier">$token-&gt;[</span><span class="synConstant">0</span><span class="synIdentifier">]</span> <span class="synStatement">eq</span> <span class="synConstant">'FSE'</span>) {
+<span class="linenum">65</span>             <span class="synStatement">my</span> <span class="synIdentifier">$v</span> = <span class="synIdentifier">$recce-&gt;value</span>();
+<span class="linenum">66</span>             out (<span class="synIdentifier">$$v</span>, <span class="synIdentifier">@cursent</span>);
+<span class="linenum">67</span>             <span class="synComment">#while ($v = $recce-&gt;value()) {</span>
+<span class="linenum">68</span>             <span class="synComment">#    print &quot; --- OR ---\n&quot;;</span>
+<span class="linenum">69</span>             <span class="synComment">#    out ($$v, @cursent);</span>
+<span class="linenum">70</span>             <span class="synComment">#}</span>
+<span class="linenum">71</span>         } <span class="synStatement">else</span> {
+<span class="linenum">72</span>             <span class="synStatement">my</span> <span class="synIdentifier">$type</span> = <span class="synIdentifier">$types{$token-&gt;[</span><span class="synConstant">0</span><span class="synIdentifier">]}</span> || <span class="synConstant">'_unk'</span>;
+<span class="linenum">73</span>             <span class="synIdentifier">$recce-&gt;lexeme_read</span> (<span class="synIdentifier">$type</span>, <span class="synConstant">1</span>, <span class="synConstant">1</span>, <span class="synStatement">scalar</span> <span class="synIdentifier">@cursent</span>);
+<span class="linenum">74</span>             <span class="synStatement">push</span> <span class="synIdentifier">@cursent</span>, <span class="synIdentifier">$token</span>;
+<span class="linenum">75</span>         }
+<span class="linenum">76</span>     } <span class="synStatement">else</span> {
+<span class="linenum">77</span>         <span class="synStatement">die</span> <span class="synConstant">&quot;Hit a non-array token </span><span class="synIdentifier">$token</span><span class="synConstant">&quot;</span>;
+<span class="linenum">78</span>     }
+<span class="linenum">79</span> }
+</pre>
+</p><p></p><p>
+To process tokens, we just grab one at a time with <tt>$tok->token()</tt>. Each token is
+an arrayref (although I'm a little paranoid that I might have missed something). The document
+model returns 'FSB' and 'FSE' tokens to mark the start and end of segments; each segment is
+nominally a sentence, so this is a good unit to pass into the parser. 'S' tokens are whitespace;
+here, I'm ignoring whitespace (in line 58).
+</p><p>
+So on an 'FSB' token, I build a scanner for the sentence to come (line 60). Line 61 might be
+obsolete, but Marpa doesn't like it when you tell it the start of a token is beyond the end
+of the input string, so I have a long dummy string. Line 62 sets up the scanner
+with a dummy read and initializes the current sentence, which is just a list of the tokens
+we've pushed into the scanner.
+</p><p>
+On an 'FSE' token, we extract the topmost value from the scanner and send it to our output
+function.
+</p><p>
+Finally, on any other kind of token, we look up the token in our table of tokens the grammar
+will accept, and assign '_unk' for anything unexpected. We use <tt>lexeme_read</tt> to push
+the token into the scanner, probably incorrectly given that all the tokens are marked as being
+at position 1 with length 1 (I think). The "text" of the word is just an index into the current
+list of tokens; then we push the token onto the list in line 74.
+</p><p>
+</p><div class="title">Routine to output a parsed sentence (lines 81-96)</div><p>
+The output function is relatively uninteresting, although I should note that unless you
+provide some indication of nested phrases, a tabular output of tokens and parse structure together
+is nearly impossible to comprehend.
+</p><p>
+</p><div class="title">Sample output</div><p>
+The resulting output file ends up looking pretty much like this:
+</p><p>
+</p><p><pre class=code>aa	0	aa	Beste		
+adjp	--&gt; Beste
+n	1	n	Partner		
+np	--&gt; Beste Partner
+prep	2	prep	f&uacut;r		
+aa	3	aa	beste		
+adjp	--&gt; beste
+n	4	n	L&eacut;sungen	L&eacut;sen+ung+en	n+f+p
+np	--&gt; beste L&eacut;sungen
+pp	--&gt; f&uacut;r beste L&eacut;sungen
+np	--&gt; Beste Partner f&uacut;r beste L&eacut;sungen
+salad	--&gt; Beste Partner f&uacut;r beste L&eacut;sungen
+n	0	n	&Uacut;bersicht		
+n	1	n	Produkt		
+np	--&gt; Produkt
+unk	2	P	-		
+n	3	n	Portfolio		
+np	--&gt; Portfolio
+salad	--&gt; &Uacut;bersicht Produkt - Portfolio
+</pre></p><p></p>
+</p><p>
+</p><div class="title">Double-parse technique</div><p>
+<p>As I said earlier, my original thought was to let Marpa return a heading (as a noun phrase)
+or a sentence, if that's what it managed to parse correctly, but then a "word salad" if it
+couldn't find a parse. The word-salad approach, however, potentially sees <i>everything</i> as a
+word salad, so any given phrase is ambiguous - it could be a noun phrase, or it could be word
+salad with a smaller noun phrase in it. This is useless if I want to ask Marpa about multiple
+valid parses for a given sentence, so what I should probably do instead is to provide a grammar
+that doesn't contain word salads first - then, if Marpa can't parse the sentence, I take a
+word salad approach so that Marpa can at least chunk the identifiable parts of the sentence
+for me.
+</p><p>
+Which brings me to the notion of chunking. Marpa in salad mode seems to me to be an ideal
+chunker - no machine learning involved. It simply finds all the (say) noun phrases it can, given
+the lexical knowledge we already have. This will definitely be one thing I'll be investigating
+as I spend more time on NLP with Marpa.
+</p><p>
+And note that this technique of double parsing rests on the notion that Marpa parsers are quick
+to build. If we generalize <i>that</i> idea, we come to the possibility of building all kinds of
+parsers on the fly for very fine-tuned analysis of particular kinds of text. This is another
+promising thread of investigation I hope to follow up later.
+</p><p>
+A final note on chunking, yet another experimental series I hope to address: if I can safely
+identify all the words in a sentence but one, and if most of the sentence can therefore be
+chunked, it should be possible to make a reasonable guess at the part of speech of the remaining
+word by trying parts of speech until the sentence parses. That should be an excellent way to
+work through a corpus to discover parts of speech, so again - a promising thread I'll be looking
+at in the months to come.
+</p>
+</p><p>
+</p><div class="title">Going forward</div><p>
+So in short, it turns out to be quite possible to use Marpa with an external tokenizer,
+and I have to say that this little script has really given me a taste of how sweet it's going
+to be to have Marpa in my toolkit. There are a boatload of things I want to try it out on, and
+hopefully I'll be writing many more articles like this one.
+
+</div></td></td></table>
+
+<br><br><br><br>
+    <center><img src="/images/black.gif" height=1 width=300><br>
+    <Font Size="-1"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>.</Font>
+</center>
+
+
+</body>
+</html>

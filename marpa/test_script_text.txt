@@ -1,0 +1,96 @@
+use strict; use warnings;
+use Lingua::Tok::Document::TTX;
+use Lingua::Tok;
+use 5.10.0;
+use Marpa::R2;
+
+use Data::Dumper;
+use utf8;
+binmode (STDOUT, ":utf8");
+
+my $preamble = <<'EOF';
+:default ::= action => [name,values]
+lexeme default = latm => 1
+:start ::= text
+EOF
+
+my @tokens = ('n', 'aa', 'prep', 'unk');
+my $tlist = join (' | ', @tokens);
+
+my $rules = <<"EOF";
+text ::= heading | salad
+heading ::= np
+np ::= n | adjp n | np pp
+pp ::= prep np
+adjp ::= aa+
+salad ::= lex+
+lex ::= np | $tlist
+EOF
+
+
+my %types;
+my $tokens = '';
+foreach my $token (@tokens) {
+    $types{$token} = '_'.$token unless $token eq 'unk';
+    $tokens .= "$token ::= _$token\n";
+    $tokens .= "_$token ~ 'a'\n";
+}
+
+my $grammar = Marpa::R2::Scanless::G->new({source => \($preamble . $rules . $tokens)});
+
+my $extra = Lingua::Lex->new (db => 'extra.lex');
+$extra->reload('extra_words.txt');
+
+my $tok = Lingua::Tok->new (Lingua::Tok::Document::TTX->load('test.ttx'),
+                                  [{rec => ['NUM']},
+                                   $extra,
+                                   {lang => 'DE'},
+                                   {splitter => 'y'},
+                                  ]);
+
+my $recce;
+my @cursent;
+sub out;
+while (1) {
+    my $token = $tok->token();
+    last if not defined $token;
+    if (ref $token eq 'ARRAY') {
+        next if $token->[0] eq 'S';
+        if ($token->[0] eq 'FSB') {
+            $recce = Marpa::R2::Scanless::R->new( { grammar => $grammar } );
+            my $input = ' ' x 100;
+            $recce->read(\$input, 0, 0);
+            @cursent = ();
+        } elsif ($token->[0] eq 'FSE') {
+            my $v = $recce->value();
+            out ($$v, @cursent);
+            #while ($v = $recce->value()) {
+            #    print " --- OR ---\n";
+            #    out ($$v, @cursent);
+            #}
+        } else {
+            my $type = $types{$token->[0]} || '_unk';
+            $recce->lexeme_read ($type, 1, 1, scalar @cursent);
+            push @cursent, $token;
+        }
+    } else {
+        die "Hit a non-array token $token";
+    }
+}
+
+sub out {
+    my $v = shift;
+    my $type = shift @$v;
+    my @phrase = ();
+    if (ref $v->[0]) {
+        push @phrase, out (shift @$v, @_) while @$v;
+        my $p = join ' ', @phrase;
+        print "$type\t--> $p\n" unless $type eq 'lex' or $type eq 'text';
+    } else {
+        my $num = $v->[0];
+        my $t = $_[$num];
+        push @phrase, $t->[1];
+        printf "%s\t%d\t%s\t%s\t%s\t%s\n", $type, $num, $t->[0], $t->[1], $t->[2] || '', $t->[3] || '';
+    }
+    @phrase;
+}
