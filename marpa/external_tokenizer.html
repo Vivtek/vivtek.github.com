@@ -147,16 +147,25 @@ that table" is "annak az astzalnak". And don't even get me started on Turkish, i
 of fifty syllables can easily be constructed - although this is essentially only done when you
 want to make people laugh.)
 </p><p>
+</p><div class="title">Tokenization is hard: outsource it</div><p>
+</p><p>
 So in short, finding lexemes in natural languages - tokenizing them - is a hard problem. And
 as a result, a practical approach to natural language starts with a tokenizer. I've been working
 hard on just such a tokenizer for a few months now; it's not on CPAN yet, but it will appear
 under Lingua::Tok, with the lexical database work being done by one or more lexicon classes
 subclassing Lingua::Lex (including a German lexicon in Lingua::Lex::DE).
 </p><p>
-Naturally, I want to feed tokens from my dictionary-based tokenizer into Marpa. This article
-introduces my proof-of-concept test script for doing that. You can see the script itself
-<a href="test_script.html">here</a> - there are a couple of sections that deserve a little discussion,
-though.
+Naturally, I want to feed tokens from my dictionary-based tokenizer into Marpa, but all the
+existing examples I could find treat lexicalization as something very simple. In fact, "vanilla
+Marpa" simply tokenizes in the L0 layer of the grammar, which consists of regular expressions
+on plain old strings. This works great for formal languages like programming languages, but
+not so much for full natural language.
+</p><p>
+Fortunately, there is a perfectly serviceable API for feeding tokens to Marpa directly, and so
+the rest of this article introduces my proof-of-concept test script for doing that.
+The script is presented
+<a href="test_script.html">in its entirety here</a> - there are a couple of sections that deserve a little
+extra discussion, though.
 </p><p>
 </p><p>
 <a name="analysis"/>
@@ -335,6 +344,17 @@ word by trying parts of speech until the sentence parses. That should be an exce
 work through a corpus to discover parts of speech, so again - a promising thread I'll be looking
 at in the months to come.
 </p>
+</p><p>
+</p><div class="title">Handling ambiguity in parts of speech</div><p>
+Marpa is notable for its ability to backtrack over lexicalization, so that if a word is
+initially identified as a given part of speech, the tokenizer can "change its mind" and try
+a different tokenization. There are a couple of different ways to do that; the most obvious
+is simply to use the <tt>lexeme_alternative</tt> and <tt>lexeme_complete</tt> calls to provide
+Marpa with a set of alternative readings of a given token.
+</p><p>
+But Ruslan Shvedov proposes a fascinating alternative in email: simply define a new grammar
+for each sentence, feeding it specific lexemes appropriate to just that sentence. It's an
+elegant solution, and I might try it out at some point.
 </p><p>
 </p><div class="title">Going forward</div><p>
 So in short, it turns out to be quite possible to use Marpa with an external tokenizer,
