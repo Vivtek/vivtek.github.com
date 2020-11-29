@@ -22,90 +22,83 @@
 <td valign="top"><div class="content">
 
 <div class="title">Code analysis and software measurement</div>
-<p><i>(Article originally written April 8, 2000, and Wiki-ized May 31, 2008)</i>
-</p><p>
-As usual, this topic is growing out of many years of thought but is prompted by a recent development: <a href=/linkout/www.sourcexchange.com>SourceXchange</a>
+<div class="date">Published 2000-04-08</div>
+
+<p>As usual, this topic is growing out of many years of thought but is prompted by a recent development: SourceXchange
 has an RFP up for a "multi-lingual software metric framework".  Since I'm always motivated by the prospect of getting paid to
 do things I've always wanted to do, I promptly sat down and wrote down some of my ideas about how such a thing would work.
-But before all that makes sense, I want to talk a little about the theory behind software measurement, and hence this topic.
-</p><p>
-So what are software metrics?  Metrics, or measures, are the first fledgeling attempts to introduce numerical, quantifiable
+But before all that makes sense, I want to talk a little about the theory behind software measurement, and hence this topic.</p>
+
+<p>So what are software metrics?  Metrics, or measures, are the first fledgeling attempts to introduce numerical, quantifiable
 engineering techniques into the wild and wooly world of software development.  Some of these metrics are useful; some are
-probably less so.  Horst Zuse, in his 1997 textbook "A Framework of Software Measurement" (ISBN 3-11-015587-7), tells us that he has found more than 1500 different
+probably less so.  Horst Zuse, in his 1997 textbook "A Framework of Software Measurement", tells us that he has found more than 1500 different
 software metrics proposed and described.  There is a vast literature of software measurement.  Pointy-haired bosses the world
 around love them, because they are numbers, which you can put into a Powerpoint presentation and print on a transparency for
 a dollar a page.  And the open-source world has thus far managed to wobble along with no such support.  This begs a question:
-<i>do we want open-source software metrics?</i>  I think that the answer, seen in a larger framework, is <i>yes</i>.  The
-fine folks at Collab.Net obviously share this opinion.
-</p><p>
-So.  <i>Why</i> do we want metrics?  I think it's important to rephrase this question.  The question in my mind is: <i>What
-benefits can be derived from automatic program analysis in the open-source framework?</i>  There are many.  First, as we all
+<em>do we want open-source software metrics?</em>  I think that the answer, seen in a larger framework, is <em>yes</em>.  The
+fine folks at Collab.Net obviously share this opinion.</p>
+
+<p>So.  <em>Why</em> do we want metrics?  I think it's important to rephrase this question.  The question in my mind is: <em>What
+benefits can be derived from automatic program analysis in the open-source framework?</em>  There are many.  First, as we all
 know, the most common criticism levelled against open-source code is that it's hard to understand and poorly documented.
 (We all know as well that closed code is just as bad, but that's a different soapbox and one I'm going to steer clear of in
-this particular forum.)
+this particular forum.)</p>
+
 <p>The Holy Grail of open source is that you can modify (or fix) the
 code yourself -- but the first impression most people get on first opening up a fresh box of open-source code is, what the
-hell <i>is</i> all this?  Thus the criticism.  But imagine we had a tool to get an overview of the project,
+hell <em>is</em> all this?  Thus the criticism.  But imagine we had a tool to get an overview of the project,
 which would create standardized
 reports and pinpoint those parts of the project where the code was hardest to understand.  This would be useful for two
 classes of people: for the newbie, this code documentation would lower the bar and enable a quicker fix in a crisis situation.
 For the core developers, it would show those sections of code most likely to be trouble spots in the future (the more
 complex the code, the more likely it is to contain mistakes, and we all know that.)  With time, the hard parts could be
 better documented and simplified, and the learning curve as a whole would get less steep.  And that means more heads, and
-<i>that</i> means better open code.
-</p><p>
-And of course, simply having the outline framework of a program's code should prompt the core developers to write at least
+<em>that</em> means better open code.</p>
+
+<p>And of course, simply having the outline framework of a program's code should prompt the core developers to write at least
 a little of the decision-making process down, explaining why this function is there and what it does, and why it isn't done
 over there.  That sort of thing.  Collab.net is also taken by the idea of analyzing a project's CVS history in order to
-see where most development is taking place.  That's a good idea.  The idea here is that <i>more information about a project
-can only help</i> in the open-source model.  But the really important insight in this is that <i>more information will only be
-available if it's generated automatically</i>, otherwise it would already have been written down.  So what we need is a framework
-for easy generation of metadata about projects.
-</p><p>
-Software measurement isn't just a case of taking a list of files and spitting out a list of numbers.  (Well, except for
+see where most development is taking place.  That's a good idea.  The idea here is that <em>more information about a project
+can only help</em> in the open-source model.  But the really important insight in this is that <em>more information will only be
+available if it's generated automatically</em>, otherwise it would already have been written down.  So what we need is a framework
+for easy generation of metadata about projects.</p>
+
+<p>Software measurement isn't just a case of taking a list of files and spitting out a list of numbers.  (Well, except for
 that hoariest of metrics, lines of code or just "LOC" to friends.)  No, reasonable software measurement operates on a finer
 level.  In fact, there are plenty of metrics which could operate at the token level (like length of variable name).  Other
 metrics are relationships between two functions.  Other measures look at more complicated entities, like the call graph
-or flow chart of a function.  In short, <i>a unified framework for software metrics presupposes a unified framework for
-program analysis</i>.  Code analysis in particular is something that interests me for its applicability to <a href=/litprog.html>literate
+or flow chart of a function.  In short, <em>a unified framework for software metrics presupposes a unified framework for
+program analysis</em>.  Code analysis in particular is something that interests me for its applicability to <a href=/litprog.html>literate
 programming</a>, so it's not something that I consider trivial.  A facility for indexing and cataloging the definitions
-which embody a program, well, that's half the battle for code documentation.  And metrics are just icing on the cake.
-</p><p>
-Ultimately the development of analysis and measurement tools should allow automated generation of suggestions.  This idea is
-embodied in the notion of a <i>critic</i>, which I ran across in the free UML tool ArgoUML.  Critics are undoubtedly well-covered
+which embody a program, well, that's half the battle for code documentation.  And metrics are just icing on the cake.</p>
+
+<p>Ultimately the development of analysis and measurement tools should allow automated generation of suggestions.  This idea is
+embodied in the notion of a <em>critic</em>, which I ran across in the free UML tool ArgoUML.  Critics are undoubtedly well-covered
 in the literature but I've had no time to look.  I'll admit it -- I'm completely enamoured of the idea.  And imagine: if
 you had a framework for analysis, and metrics to make suggestions about, then writing little critic applets would be a piece
 of cake, right?  All you'd need is a place to store and rank the suggestions.  And ultimately what you'd have is a nice
 power utility which you would fire up when you encountered an interesting orphaned project.  It would read the whole codebase
 and say things like "My God, take a look at this function xxyysg() -- have you ever seen such a mess?"  It would be an
-expert in a box.
-</p><p>
-Anyway, back to reality a bit here.
+expert in a box.</p>
+
+<p>Anyway, back to reality a bit here.
 This topic will logically be a place to hang links and a bibliography about code analysis and software measurement, but so
 far I haven't got much of a short list.  Zuse's textbook is the best book I've read so far (but then it's the only book
 I've read so far) and of course it is equipped with an exhaustive bibliography, so if you're interested in pursuing this
 on an academic level, I'll steer you in that direction.  More details about what I actually intend to do will be in the
-project documentation, which I haven't started yet.  When I do start it, I will link to it from this page as well.
-</p><p>
-<i>Update May 31, 2008</i>:<br>
-I just ran across this article today and it makes me want to take up the project again.  The links are all dead, of course.
-SourceXchange was a great idea, but just didn't work out well (Collab.net is still out there, last I looked.)  And I had
-one more-info link, also dead (but found, in its new incarnation, on June 3, 2008):
-</p><p>
-<a href=/linkout/www.chris-lott.org/resources/cmetrics/>Programs for C Source Code Metrics, compiled by Christoper Lott</a><br>
-A useful set of C programs to do C program analysis.  Nice list to show you what you can do.
-</p><p>
-Some other links from a recent Google:
-</p><p>
-<a href=/linkout/www.dwheeler.com/sloccount/>SLOCCount</a> is a program for file-level analysis of code, with a line counter which is hard to fool and discovery of programming language to that end.  It seems to be made up mostly of shell scripts, which seems weird.  It would be interesting to port it into Perl for integration with the <a href=/projects/wiki/codewiki.html>CodeWiki</a>.
-</p><p>
-<a href=/linkout/www.opensolaris.org/os/project/opengrok/>OpenGROK</a> is Solaris's intelligent code presentation tool.  Very interesting list of features, and it's written in a nicely modular fashion.  But in Java, which I hate.  (Sorry, a man of my advanced years needs <i>some</i> religion, and mine seems to be ABJ -- Anything But Java.)
-</p>
+project documentation, which I haven't started yet.  When I do start it, I will link to it from this page as well.</p>
+
+
 </div></td></td></table>
 
 <br><br><br><br>
-    <center><img src="/images/black.gif" height=1 width=300><br>
-    <Font Size="-1"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>.</Font>
+   <center><img src="/images/black.gif" height=1 width=300><br>
+   <font size="-1"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/">
+      <img alt="Creative Commons License" style="border-width:0"
+           src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png" />
+      </a><br />
+   This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>.
+   </font>
 </center>
 
 <script data-goatcounter="https://vivtek.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
