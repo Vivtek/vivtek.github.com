@@ -18,6 +18,13 @@ font-size:x-large;
 color:black;
 background-color:#eeeeee;
 }
+.title {
+font-family: arial, sans-serif;
+font-style: italic;
+font-size: medium;
+color:black;
+background-color:#eeeeee;
+}
 .subtitle {
 font-family: arial, sans-serif;
 font-size:small;
