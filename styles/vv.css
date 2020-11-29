@@ -1,0 +1,48 @@
+/* Basic Vivtek stylesheet */
+p, li, td {
+font-family: arial, sans-serif;
+}
+p.smtitle {
+margin-left:0px;background-color:#eeeeee;font-weight:bold;
+}
+.sidemenu p {
+font-size:small;
+margin-top:0px;
+margin-bottom:2px;
+margin-left:10px;
+}
+.title {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:x-large;
+color:black;
+background-color:#eeeeee;
+}
+.subtitle {
+font-family: arial, sans-serif;
+font-size:small;
+}
+.t2 {
+font-family: arial, sans-serif;
+font-weight: bold;
+font-size:large;
+color:black;
+background-color:#eeeeee;
+}
+.st2 {
+font-family: arial, sans-serif;
+font-size:x-small;
+}
+.border {
+border: 1px solid #336600;
+}
+.content {
+}
+pre.code {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px dashed #94bd8d;
+  color: Black;
+  background-color: #eff7ef;
+  overflow: auto;
+}
