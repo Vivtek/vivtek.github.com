@@ -1,4 +1,8 @@
 /* Basic Vivtek stylesheet */
+@media print {
+  @page { margin: 0; }
+  body { margin: 1.6cm; }
+}
 p, li, td {
 font-family: arial, sans-serif;
 }
@@ -44,6 +48,7 @@ font-size:x-small;
 border: 1px solid #336600;
 }
 .content {
+
 }
 pre.code {
   margin: .5em 1em;
