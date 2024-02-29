@@ -28,18 +28,14 @@
 <div class="title">Building a chunkabet for fun and profit</div>
 <div class="date">Published 2024-02-26</div>
 
-<div class="aside">
-This is the first part of a work in progress, that being to reimplement a program called Jumbo, written by Douglas Hofstadter
+<div class="aside"><p>This is the first part of a work in progress, that being to reimplement a program called Jumbo, written by Douglas Hofstadter
 between 1980 and 1982 in Lisp, an elegant weapon for a more civilised age. My real project, of course, is not to write a really abstruse way of finding anagrams
 that aren't even required to be English words, but to kick off the development of (my version of) the architecture as a whole. I'm starting with Jumbo because it
 has the fewest moving parts and out of a vague sense that ontogeny should recapitulate phylogeny. Because I'm Han Solo to Hofstadter's Obi Wan, I'm writing it in
 Perl, the common blaster of programming languages. This article is about one small aspect of the domain of word jumbles, and so it shouldn't have been the first
-in a series, and if all goes well it won't be later, but until this box is gone? Yeah, it still is the first in a series. Of one.
-    
-We return you to your exploration of artificial intelligence, already in progress.
+in a series, and if all goes well it won't be later, but until this box is gone? Yeah, it still is the first in a series. Of one.</p>
 
-</div>
-
+<p>We return you to your exploration of artificial intelligence, already in progress.</p></div>
 
 <p>All the codelets in the Jumbo domain [<em>hey, I told you this is a work in progress</em>] have to be able to determine the felicity of a given short group of letters.
 English words contain "sh" quite a lot, but unless they're
@@ -69,16 +65,12 @@ Frequency Count," short and sweet. It's pretty much what you'd expect: they took
 most common, checked a dictionary for canonical syllabification, punched up another set of cards with syllables and sorted them, and took the 322 most common. (The cutoff
 was that the syllable had to appear five or more times in the corpus.)</p>
 
-<div class="aside">
-A quick aside here: the word list for common words had been done "by computer" in 1971, and the paper tape was archived in Arlington, Virginia. Sakiey and her team obtained
+<div class="aside"><p>A quick aside here: the word list for common words had been done "by computer" in 1971, and the paper tape was archived in Arlington, Virginia. Sakiey and her team obtained
 that physical paper tape and generated 52,000 punched cards for the words that appeared there more than a specific number of times. Then they hand-edited the card stack to
 eliminate non-words like "1945" and "$100" and merge different capitalization, which had been tallied separately because it was 1971 and nobody had thought very hard about
-case-insensitivity yet.
+case-insensitivity yet.</p>
 
-All this work is so old they spell "data base" as two words. I find it shockingly weird to realize that it was the state of the art while Hofstadter was writing Jumbo.
-
-</div>
-
+<p>All this work is so old they spell "data base" as two words. I find it shockingly weird to realize that it was the state of the art while Hofstadter was writing Jumbo.</p></div>
 
 <p>Anyway, having run all that down, the list seemed solid enough for me! Given a list of common syllables, I could write a script to break the syllables into consonant and
 vowel clusters and get an idea of the frequencies to put into my chunkabet. If I were <em>really</em> obsessive about it, I could always replicate Sakiey's methodology, but seriously,
