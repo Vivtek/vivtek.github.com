@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+<title>Building a chunkabet for fun and profit</title>
+<link href="/styles/vv.css" rel="stylesheet">
+</head>
+<body>
+<table width="100%">
+<tr>
+<td valign="top" width="150px"><div class="sidebar">
+<div class="border">
+<div class="sidemenu">
+<p class="smtitle">vivtek</p>
+<p>[ <a href="/">home</a> ]</p>
+<p>[ <a href="/blog/">blog</a> ]</p>
+<p>[ <a href="/recent.html">recent</a> ]</p>
+<p>[ <a href="/projects/">programming</a> ]</p>
+<p>[ <a href="/translation/">translation</a> ]</p>
+<p>[ <a href="/fiction/">fiction</a> ]</p>
+<p>[ <a href="/contact.html">contact</a> ]</p>
+<p class="smtitle">jombu</p>
+                                                                        <p>[ <a href="/jombu/chunkabet">chunkabet</a> ]</p>
+
+</div></div></div>
+</td>
+<td valign="top"><div class="content">
+
+<div class="title">Building a chunkabet for fun and profit</div>
+<div class="date">Published 2024-02-26</div>
+
+<div class="aside">
+This is the first part of a work in progress, that being to reimplement a program called Jumbo, written by Douglas Hofstadter
+between 1980 and 1982 in Lisp, an elegant weapon for a more civilised age. My real project, of course, is not to write a really abstruse way of finding anagrams
+that aren't even required to be English words, but to kick off the development of (my version of) the architecture as a whole. I'm starting with Jumbo because it
+has the fewest moving parts and out of a vague sense that ontogeny should recapitulate phylogeny. Because I'm Han Solo to Hofstadter's Obi Wan, I'm writing it in
+Perl, the common blaster of programming languages. This article is about one small aspect of the domain of word jumbles, and so it shouldn't have been the first
+in a series, and if all goes well it won't be later, but until this box is gone? Yeah, it still is the first in a series. Of one.
+    
+We return you to your exploration of artificial intelligence, already in progress.
+
+</div>
+
+
+<p>All the codelets in the Jumbo domain [<em>hey, I told you this is a work in progress</em>] have to be able to determine the felicity of a given short group of letters.
+English words contain "sh" quite a lot, but unless they're
+acronyms, they can never contain "bq". How would you pronounce it? "Bee cue", right? That's not a syllable. These little groups of letters are called "clusters", by the way,
+and they come in two varieties: consonant clusters and vowel clusters. To do their job, codelets need to know whether a group of letters is a valid English letter cluster
+at all, and if so, how strong it is. The strength of a cluster can also differ according to whether it's at the start of a syllable or the end. For instance, "ng" is a
+very common cluster at the ends of English words, but never occurs at the beginning of a syllable or word. Most English speakers have trouble pronouncing a syllable that
+starts with "ng".</p>
+
+<p>In the original implementation of Jumbo, Hofstadter simply listed all the combinations of letters that felt sensible, and assigned each one a number or numbers indicating its
+strength (assigning multiple numbers for clusters whose strengths differ in initial, middle, or final position in the syllable). He called this list the "chunkabet", and two
+sections of it appear in Chapter 5 of his 1995 book Fluid Concepts and Creative Analogies. As Hofstadter notes, "I felt no compunction to resort to objective frequency analyses
+or to do psychological experiments to determine these values." This is eminently logical - his goal was to model the subjective affinities that Jumble players feel for the
+clusters, not to produce an accurate model of frequencies.</p>
+
+<p>I think we can all agree I'm no Doug Hofstadter. Instead of introspecting for a couple of hours, I'd much rather find a frequency table somewhere and slam down a Perl script
+to format it into code I can use. Sure, it takes longer, but it's <em>fun</em>. So I went looking. Turns out almost nobody <em>does</em> frequency tables for letter clusters, for a reason
+that was quite obvious once I'd thought about it - when looking at how syllables work, linguists don't care how English spells words, and all the analysis of clusters turns
+out to work on a phonetic basis, because that's how languages evolve.</p>
+
+<p>You know who <em>is</em> interested in common syllables that appear in literal text? Elementary educators who are teaching children how to read. Unfortunately, they almost
+all have short worksheets for, you know, children who are learning how to read. These kids can't do a list of hundreds of syllables, so nobody has lists of hundreds of
+syllables - except for exactly one list of "the 322 most common syllables in the 5000 most common words" that gets copied around on education sites with almost no attribution.</p>
+
+<p>It took me most of an evening to run that down. It comes from work in 1980 by Elizabeth Sakiey et al., who outlined their methodology in a paper called simply "A Syllable
+Frequency Count," short and sweet. It's pretty much what you'd expect: they took an existing list of words used in elementary texts, summarized them and selected the 5000
+most common, checked a dictionary for canonical syllabification, punched up another set of cards with syllables and sorted them, and took the 322 most common. (The cutoff
+was that the syllable had to appear five or more times in the corpus.)</p>
+
+<div class="aside">
+A quick aside here: the word list for common words had been done "by computer" in 1971, and the paper tape was archived in Arlington, Virginia. Sakiey and her team obtained
+that physical paper tape and generated 52,000 punched cards for the words that appeared there more than a specific number of times. Then they hand-edited the card stack to
+eliminate non-words like "1945" and "$100" and merge different capitalization, which had been tallied separately because it was 1971 and nobody had thought very hard about
+case-insensitivity yet.
+
+All this work is so old they spell "data base" as two words. I find it shockingly weird to realize that it was the state of the art while Hofstadter was writing Jumbo.
+
+</div>
+
+
+<p>Anyway, having run all that down, the list seemed solid enough for me! Given a list of common syllables, I could write a script to break the syllables into consonant and
+vowel clusters and get an idea of the frequencies to put into my chunkabet. If I were <em>really</em> obsessive about it, I could always replicate Sakiey's methodology, but seriously,
+even I have to draw the line somewhere. Hofstadter didn't care about specific syllabification algorithms, and if I ever want to get anything out of all this, neither should I.
+Besides, I only found one with code and another survey paper of syllabification methods before I could force myself to stop.</p>
+
+<p>But I had discovered from reading Sakiey et al. that they also provide a second list, which nobody in education cares about, consisting of the 290 most common syllables
+<em>weighted by word frequency</em>. This is more salient for my purposes, because I think it makes a difference to our understanding of "ing" that it appears very, very often
+in English text, enough to put it in the top 10 syllables when weighted by word frequency but somewhere near the bottom of the original 322-syllable list. When we see an
+N and a G floating around, we should be very quick to assume they belong together, and word frequency in the original text gets us closer to that goal than just the number
+of occurrences of a syllable in the 5000-word list.</p>
+
+<p>By the way, exact counts don't really make a difference here, as I'm going to categorize the strengths of clusters into fuzzy categories anyway - it doesn't make much sense to say
+that the strength of "sk" is 8, but saying it's "strong" does feel realistic to me. So while I'll keep frequency counts around for a bit longer, they'll be elided by the
+time we get to the end of this account.</p>
+
+<p>Long story short, I copied the syllables and their word-weighted frequency counts into a text file, massaged that into a two-column format with a quick script,
+and scanned down it. There were a couple of OCR errors I had to fix, and I decided that "n't" shouldn't be in there. There were a few syllables like "liked" and "times"
+that I split into two subsyllables, which seemed more appropriate to my purposes. I wrote a second script to read that in and break each syllable into its consonant
+and vowel clusters, which obviously alternate. This left trailing "e" as a separate vowel cluster, so I merged those into the preceding consonant cluster (so "l-i-k-e"
+turned into "l-i-ke"). That made the maximum number of clusters in the whole syllable list 3, meaning it was easy to figure out which were initial, middle, and final
+clusters. (Single-cluster syllables counted as both initial and final clusters.) I ended up with a list sorted by frequency of 125 clusters. That's the 125 clusters
+in the 322 most frequent syllables of the 5000 most frequent words in half a million words of elementary school texts in 1971.</p>
+
+<p>125 being 5 cubed, I felt good about breaking that into 5 bands of 25 clusters apiece and ranking them from "meh" to "wow" on a fuzzy scale of felicity. They're a weird
+bunch of clusters, actually. A lot doesn't appear there. But it's a start. This is another of those design decisions where I realize that my goal here isn't to write
+an anagram calculator but to build a specific architecture using an anagram calculator as a goad. More will come.</p>
+
+<p>Finally, I wrote another script to write this initial chunkabet out in a form easily consumed by Perl, then wrapped some code around it, wrote a few unit tests for
+the sake of sanity, and pushed the whole thing to Github so we can move on with our lives. You can see the Chunkabet class
+<a href="https://github.com/Vivtek/AI-Jombu/blob/main/lib/AI/Jombu/Chunkabet.pm">here</a>.</p>
+
+
+</div></td></table>
+
+<br><br><br><br>
+   <center><img src="/images/black.gif" height=1 width=300><br>
+   <font size="-1"><a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/">
+      <img alt="Creative Commons License" style="border-width:0"
+           src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png" />
+      </a><br />
+   This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution-ShareAlike 3.0 Unported License</a>.
+   </font>
+</center>
+
+<script data-goatcounter="https://vivtek.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>

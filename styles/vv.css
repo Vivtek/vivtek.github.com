@@ -58,3 +58,25 @@ pre.code {
   background-color: #eff7ef;
   overflow: auto;
 }
+.aside {
+  margin: 0.5em 10em 0.5em 3em;
+  text-align: justify;
+  border-left: 2px solid;
+  padding: 0.5em;
+  color: Black;
+  overflow: auto;
+}
+.abstract {
+  margin: 0.5em 10em 0.5em 3em;
+  text-align: justify;
+  padding: 0.5em;
+  color: Black;
+  overflow: auto;
+}
+.box {
+  margin: .5em 1em;
+  padding: 0.5em;
+  border: 1px #94bd8d;
+  color: Black;
+  overflow: auto;
+}
